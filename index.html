@@ -30,51 +30,65 @@
     <div class="wrapper">
 
       <section>
-        <div id="title">
-		
-          <h1>Freeture</h1>
-          <p>A Meteor detection software</p>
-          <hr>
-          <span class="credits left">Project maintained by <a href="https://github.com/fripon">fripon</a></span>
-        <!--  <span class="credits right">Hosted on GitHub Pages &mdash; Theme by <a href="https://twitter.com/michigangraham">mattgraham</a></span>
-        -->
-		
+		<div id="title">
+
+		  <h1>Freeture</h1>
+		  <p>A Meteor detection software</p>
+		  <hr>
+		  <span class="credits left">Project maintained by <a href="https://github.com/fripon">fripon</a></span>
+		<!--  <span class="credits right">Hosted on GitHub Pages &mdash; Theme by <a href="https://twitter.com/michigangraham">mattgraham</a></span>
+		-->
+
 		</div>
 		
-		
+		<h3><a name="welcome-to-freeture-page" class="anchor" href="#welcome-to-freeture-page"><span class="octicon octicon-link"></span></a>Welcome to FreeTure Page.</h3>
 
-        <h3>
-<a name="welcome-to-freeture-page" class="anchor" href="#welcome-to-freeture-page"><span class="octicon octicon-link"></span></a>Welcome to FreeTure Page.</h3>
+		<p style="text-align:justify;"><strong>FreeTure</strong> is a meteor detection software used to monitor the sky with GigE all-sky cameras to detect and record falling stars and fireball. Originally, it has been developped for the <strong>FRIPON</strong> (Fireball Recovery and InterPlanetary Observation Network) project (<a href="http://www.fripon.org">www.fripon.org</a>) which aims to cover all France with 100 fish eyes cameras. But you can use it on your own station if you have a GigE camera. For now, just this kind of camera is supported but you can easily add the support of your own camera.</p>
 
-<p style="text-align:justify;"><strong>FreeTure</strong> is a meteor detection software used to monitor the sky with GigE all-sky cameras to detect and record falling stars and fireball. It has been developped for the <strong>FRIPON</strong> (Fireball Recovery and InterPlanetary Observation Network) project (<a href="http://www.fripon.org">www.fripon.org</a>) which aims to cover all France with 100 fish eyes cameras.</p>
+		<h3>
+		<a name="getting-started" class="anchor" href="#getting-started"><span class="octicon octicon-link"></span></a>Getting started</h3>
+          <p style="text-align:justify;">Please refer to the wiki on github for futher informations about the installation. Once the soft has been installed, you can do a copy of the configuration file located by default in /usr/share/freeture/ for linux to start to configurate some parameters. After that you can start to use the soft by the following commands. There are four mains available modes. </p></br>
+        
+        <p style="text-align:justify;">The first mode lists detected cameras. The returned name must be write in the configuration file in order to use the thirs mode or write in the command line for the second mode.</p>
+        
+		<pre><code>$ freeture -m 1
+		</code></pre>
 
-<h3>
-<a name="getting-started" class="anchor" href="#getting-started"><span class="octicon octicon-link"></span></a>Getting started</h3>
+        <p style="text-align:justify;">The second mode is used to quickly see the parameters of the configuration file.</p>
+        
+		<pre><code>$ freeture -m 2
+		</code></pre>
+        
+        <p style="text-align:justify;">The third mode run the detection. The option -c is not usefull if the command is run in the same directory.</p>
+        
+		<pre><code>$ freeture -m 3 -c [path_of_the_configuration_file] -t [execution_time]
+		</code></pre>
+        
+         <p style="text-align:justify;">The fourth mode makes a single capture to test the camera. </p>
+        
+		<pre><code>$ freeture -m 4 -d [device_name] -g [gain] -e [exposure_time]
+		</code></pre>
 
-<pre><code>$ freeture -m 1
-</code></pre>
+		<h3><a name="examples" class="anchor" href="#examples"><span class="octicon octicon-link"></span></a>Examples</h3>
+
+		<p>The following fireball has been detected the 06 october 2014 at 22h58m38s UT.</p>
+		<img src="images/met20141006.png" alt="" />   
+		<p>Plane events are usually not recorded because they are during too long time compared to meteors. Adjusting soome parameters can enable the soft to record them, like the following examples.</p>
+		<img src="images/plane.png" alt="" />   
+
+		<h3>
+		<a name="authors-and-contributors" class="anchor" href="#authors-and-contributors"><span class="octicon octicon-link"></span></a>Authors and Contributors</h3>
+
+		<ul>
+		<li>GEOPS, Université Paris-Sud 11</li>
+		<li>IMCCE, Observatoire de Paris</li>
+		</ul><h3>
+		<a name="support-or-contact" class="anchor" href="#support-or-contact"><span class="octicon octicon-link"></span></a>Support or Contact</h3>
+
+		<p>Having trouble with FreeTure ? Check out the wiki at <a href="https://github.com/fripon/freeture/wiki">https://github.com/fripon/freeture/wiki</a> or contact us and we’ll help you sort it out.</p>
 
 
-<a name="examples" class="anchor" href="#examples"><span class="octicon octicon-link"></span></a>Examples</h3>
-
-<p>A fireball detected 2014 10 06 22h58m38s UT</p>
-<img src="images/met20141006.png" alt="" />   
-<p>A plane</p>
-<img src="images/plane.png" alt="" />   
-
-<h3>
-<a name="authors-and-contributors" class="anchor" href="#authors-and-contributors"><span class="octicon octicon-link"></span></a>Authors and Contributors</h3>
-
-<ul>
-<li>GEOPS, Université Paris-Sud 11</li>
-<li>IMCCE, Observatoire de Paris</li>
-</ul><h3>
-<a name="support-or-contact" class="anchor" href="#support-or-contact"><span class="octicon octicon-link"></span></a>Support or Contact</h3>
-
-<p>Having trouble with FreeTure ? Check out the wiki at <a href="https://github.com/fripon/freeture/wiki">https://github.com/fripon/freeture/wiki</a> or contact us and we’ll help you sort it out.</p>
-
-
-<img src="images/bandeau_fripon.png" alt="" />  
+		<img src="images/bandeau_fripon.png" alt="" />  
 
   
 	 </section>
