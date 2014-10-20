@@ -1,0 +1,29 @@
+Prerequisites
+=============
+
+FreeTure requires the following packages:
+
+
+Simple install procedure
+========================
+
+  % gzip -cd freeture-@PACKAGE_VERSION@.tar.gz | tar xvf - # unpack the sources
+  % cd freeture-@PACKAGE_VERSION@			   # change to the toplevel directory
+  % ./configure				   # run the `configure' script
+  % make				   # build FreeTure
+  [ Become root if necessary ]
+  % make install			   # install FreeTure
+
+The Details
+===========
+
+Complete information about installing FreeTure and related libraries can be found 
+in the file:
+
+ docs/reference/...
+
+Or online at:
+
+ http://
+
+
