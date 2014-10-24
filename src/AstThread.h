@@ -37,6 +37,7 @@
 #include "EnumLog.h"
 #include "Fifo.h"
 #include "Frame.h"
+#include "Fits.h"
 #include "Fits2D.h"
 #include "Histogram.h"
 #include "TimeDate.h"
@@ -159,6 +160,8 @@ class AstThread{
 
 		string stationName;
 
+		Fits fitsHeader;
+
 	public:
 
         //! Constructor
@@ -186,7 +189,8 @@ class AstThread{
                     double longi,
                     boost::mutex *m_frame_queue,
                     boost::condition_variable *c_queue_full,
-                    boost::condition_variable *c_queue_new);
+                    boost::condition_variable *c_queue_new,
+                    Fits fitsHead);
 
         //! Destructor
         ~AstThread(void);

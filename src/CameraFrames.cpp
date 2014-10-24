@@ -40,8 +40,9 @@ CameraFrames::CameraFrames( string dir,
                             Fifo<Frame> *queue,
                             boost::mutex *m_mutex_queue,
                             boost::condition_variable *m_cond_queue_fill,
-                            boost::condition_variable *m_cond_queue_new_element){
-
+                            boost::condition_variable *m_cond_queue_new_element,
+                            Fits fitsHead){
+    fitsHeader = fitsHead;
 	dirPath             = dir;
 	thread              = NULL;
 	frameQueue          = queue;
@@ -215,9 +216,12 @@ void CameraFrames::operator () (){
                     }
 
                     Mat resMat;
-                    Fits2D fit(fichier,0, "", 0, 30, 255, 33333.0, 850, 0.0 );
+                   /* Fits2D fit(fichier,0, "", 0, 30, 255, 33333.0, 850, 0.0 );
                     fit.loadKeywordsFromConfigFile("/home/fripon/friponProject/friponCapture/configuration.cfg");
-                    fit.readFitsToMat(resMat, fichier);
+                    fit.readFitsToMat(resMat, fichier);*/
+
+                    Fits2D newFits(fichier,fitsHeader);
+                    newFits.readFitsToMat(resMat, fichier);
 
                     Mat i = Conversion::convertTo8UC1(resMat);
 
@@ -265,10 +269,10 @@ void CameraFrames::operator () (){
                 endReadFrames = false;
                 cpt = 0;
                 numFrame = frameNumStart;
-
+/*
                 Fits2D fit("/home/fripon/data/ISS_20140923_052830/ISS_sum", 0, "", 0, 30, 4095, 33333.0, 850, 0.0 );
                 fit.loadKeywordsFromConfigFile("/home/fripon/friponProject/friponCapture/configuration.cfg");
-                fit.writeimage(resImg, 32, "", false);
+                fit.writeimage(resImg, 32, "", false);*/
 
             //}
 

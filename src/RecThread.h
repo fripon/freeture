@@ -35,6 +35,7 @@
 
 #include "includes.h"
 #include "RecEvent.h"
+#include "Fits.h"
 #include "Fits2D.h"
 #include "Fits3D.h"
 #include "Conversion.h"
@@ -141,6 +142,8 @@ class RecThread{
 
 		int pixelFormat;
 
+		Fits fitsHeader;
+
 	public:
 
         //! Constructor
@@ -162,7 +165,8 @@ class RecThread{
                     bool bmp,
                     bool trail,
                     bool shape,
-                    bool mapGE );
+                    bool mapGE,
+                    Fits fitsHead );
 
 
         //! Destructor

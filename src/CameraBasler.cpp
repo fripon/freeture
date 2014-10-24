@@ -60,7 +60,8 @@ CameraBasler::CameraBasler( int     exposure,
                             bool    saveBmp,
                             int     acqFormat,
                             string  configPath,
-                            string saveLocation){
+                            string saveLocation,
+                            Fits fitsHead){
 
     m_thread			= NULL;
     initialExpValue     = exposure;
@@ -70,6 +71,7 @@ CameraBasler::CameraBasler( int     exposure,
     format              = acqFormat;
     configFile          = configPath;
     savePath            = saveLocation;
+    fitsHeader          = fitsHead;
 
     #ifdef USE_PYLON
         camera = new CameraSDKPylon();
@@ -203,7 +205,7 @@ int     CameraBasler::getCameraHeight(){
 
 int     CameraBasler::getCameraWidth(){
 
-    return camera->getHeight();
+    return camera->getWidth();
 
 }
 
@@ -313,13 +315,18 @@ void CameraBasler::grabOne(){
 
             if(saveFits){
 
-                Fits2D fit(savePath + "capture", 1, "", 0, 30, 255, 0, 0, 0 );
-                fit.loadKeywordsFromConfigFile(configFile);
-
-                if(fit.writeimage(f.getImg(), 8, "0" , true))
-                    cout << "fits saved" << endl;
-                else
-                    cout << "fits not saved" << endl;
+                Fits2D newFits(savePath,fitsHeader);
+                newFits.setGaindb(initialGainValue);
+                //newFits.setDateobs("");//dateObs
+                newFits.setSaturate(255);
+                newFits.setRadesys("ICRS");
+                newFits.setEquinox(2000.0);
+                newFits.setCtype1("RA---ARC");
+                newFits.setCtype2("DEC---ARC");
+                newFits.setExposure(initialExpValue * 1e-6);
+                //newFits.setElaptime(0);
+                //newFits.setCrval1(0);//sideraltime
+                newFits.writeimage(f.getImg(), 8, "", true );
 
             }
 
@@ -338,13 +345,18 @@ void CameraBasler::grabOne(){
 
             if(saveFits){
 
-                Fits2D fit(savePath+ "capture", 1, "", 0, 30, 4095, 0, 0, 0 );
-                fit.loadKeywordsFromConfigFile(configFile);
-
-                if(fit.writeimage(f.getImg(), 16, "0", true ))
-                    cout << "fits saved" << endl;
-                else
-                    cout << "fits not saved" << endl;
+                Fits2D newFits(savePath,fitsHeader);
+                newFits.setGaindb(initialGainValue);
+                //newFits.setDateobs("");//dateObs
+                newFits.setSaturate(4095);
+                newFits.setRadesys("ICRS");
+                newFits.setEquinox(2000.0);
+                newFits.setCtype1("RA---ARC");
+                newFits.setCtype2("DEC---ARC");
+                newFits.setExposure(initialExpValue * 1e-6);
+                //newFits.setElaptime(0);
+                //newFits.setCrval1(0);//sideraltime
+                newFits.writeimage(f.getImg(), 16, "", true );
 
             }
 
@@ -416,6 +428,12 @@ void    CameraBasler::operator()(){
     string rep = "";//"ISS_20140925_070111";
     //ISS_20140923_052830
 
+    int compteur = 0;
+
+    vector<Mat> listForFits3D;
+    bool savef3D = false;
+
+
     //Thread loop
     do{
 
@@ -443,7 +461,7 @@ void    CameraBasler::operator()(){
             if(saveISS){
 
                 if(camera->getPixelFormat() != 8){
-
+/*
                         Fits2D fit("/home/fripon/data/" + rep + "/MOON_"+Conversion::intToString(cpt), 0, "", 0, 30, 4095, 33333.0, 400, 0.0 );
                         fit.loadKeywordsFromConfigFile("/home/fripon/friponProject/friponCapture/configuration.cfg");
                         fit.writeimage(f.getImg(), 16, "" , false);
@@ -454,15 +472,72 @@ void    CameraBasler::operator()(){
 */
                 }else{
 
-                        Fits2D fit("/home/fripon/data/" + rep +  "/MOON_"+Conversion::intToString(cpt), 0, "", 0, 30, 255, 33333.0, 850, 0.0 );
+                      /*  Fits2D fit("/home/fripon/data/" + rep +  "/MOON_"+Conversion::intToString(cpt), 0, "", 0, 30, 255, 33333.0, 850, 0.0 );
                         fit.loadKeywordsFromConfigFile("/home/fripon/friponProject/friponCapture/configuration.cfg");
                         fit.writeimage(f.getImg(), 8, "", false );
                         Mat temp1;
-                         f.getImg().copyTo(temp1);
+                         f.getImg().copyTo(temp1);*/
                         //temp1cd.convertTo(temp1, CV_8UC1, 255/4095, 0);
                       // SaveImg::saveBMP(temp1,"/home/fripon/data/" + rep +  "/ISS_BMP_" + Conversion::intToString(cpt) );
                 }
             }
+
+
+
+
+           /* Fits fitsHeader;
+            fitsHeader.loadKeywordsFromConfigFile("/home/fripon/friponProject/friponCapture/configuration.cfg");
+
+            Fits2D newFits("/home/fripon/data2/",fitsHeader);
+            newFits.setOntime(0); // ontime/fps
+            newFits.setGaindb(850);
+            newFits.setObsmode(30);//fps
+            newFits.setDateobs("");//dateObs
+            newFits.setSaturate(255);
+            newFits.setRadesys("ICRS");
+            newFits.setEquinox(2000.0);
+            newFits.setCtype1("RA---ARC");
+            newFits.setCtype2("DEC---ARC");
+            newFits.setExposure(33333 * 1e-6);
+            newFits.setElaptime(0);
+            newFits.setCrval1(0);//sideraltime
+
+            if(newFits.writeimage(f.getImg(), 8, Conversion::intToString(compteur), true ))
+            cout << "saved"<<endl;
+            else
+            cout << "not saved"<<endl;
+
+            compteur++;
+*/
+
+            if(listForFits3D.size() < 80){
+
+
+                listForFits3D.push_back(f.getImg());
+
+
+
+            }else{
+
+
+
+                    Fits3D newF(listForFits3D.size(), f.getImg().rows,f.getImg().cols, &listForFits3D);
+
+                    if(newF.writeFits3D_UC("/home/fripon/saveFits3D_"+Conversion::intToString(compteur))){
+                        cout << "fits 3D saved" <<endl;
+
+                    }
+                    else
+                        cout << "fits 3D not saved" <<endl;
+
+
+                    compteur ++;
+                    listForFits3D.clear();
+
+
+            }
+
+
 
             f.setNumFrame(cpt);
 

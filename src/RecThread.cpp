@@ -52,8 +52,10 @@ RecThread::RecThread(   string recpath,
                         bool bmp,
                         bool trail,
                         bool shape,
-                        bool mapGE  ){
+                        bool mapGE,
+                        Fits fitsHead  ){
 
+    fitsHeader  = fitsHead;
     pixelFormat             = pixFormat;
     recPath                 = recpath;
     listEventToRec          = sharedList;
@@ -138,21 +140,6 @@ void RecThread::operator () (){
                 BOOST_LOG_SEV(log,notification) << "Number of event to record : " << listEventToRec->size();
 
                 RecEvent *r = new RecEvent();
-
-                 cout << "INN RECCC THREEEDD !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!" <<endl;
-                cout <<"%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%" <<endl;
-                cout <<"%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%" <<endl;
-                cout <<"%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%" <<endl;
-                cout <<"%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%" <<endl;
-                cout <<"%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%" <<endl;
-                cout <<"%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%" <<endl;
-                cout <<"%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%" <<endl;
-                cout <<"%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%" <<endl;
-                cout <<"%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%" <<endl;
-                cout <<"%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%" <<endl;
-                cout <<"%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%" <<endl;
-
-
 
                 r->copyFromRecEvent(&listEventToRec->at(listEventToRec->size()-1));
 
@@ -293,7 +280,11 @@ void RecThread::operator () (){
                     BOOST_LOG_SEV(log,notification) << listFrames.at(0).rows;
                     BOOST_LOG_SEV(log,notification) << listFrames.at(0).cols;
 
-                    Fits3D fitsFile(listFrames.size(), listFrames.at(0).rows, listFrames.at(0).cols, listFrames);
+
+                    cout << "save fits3S" <<endl;
+
+
+                    Fits3D fitsFile(listFrames.size(), listFrames.at(0).rows, listFrames.at(0).cols, &listFrames);
 
                     if(pixelFormat == 8){
                         BOOST_LOG_SEV(log,notification) << "fits3D in 8 bits";
@@ -317,7 +308,7 @@ void RecThread::operator () (){
 
                     r->getMapEvent().copyTo(temp);
 
-                    string path = "/home/fripon/friponProject/friponCapture/data/GEMap_ev_" + evDate + "_";
+                    /*string path = r->getPath() + evDate + "_";
 
                     string pathFinal;
 
@@ -330,7 +321,7 @@ void RecThread::operator () (){
 
                     }while(boost::filesystem::exists( pathFinal + ".bmp" ) );
 
-                    SaveImg::saveBMP(temp, pathFinal);
+                    SaveImg::saveBMP(temp, pathFinal);*/
 
                     SaveImg::saveBMP(temp, r->getPath() + "GEMap_" + evDate);
 
@@ -352,15 +343,21 @@ void RecThread::operator () (){
                      BOOST_LOG_SEV(log,notification) << "start sum...rows: " << listFrames.at(0).rows << " cols : "<< listFrames.at(0).cols;
                     for (it2=listFrames.begin(); it2!=listFrames.end(); ++it2){
 
-                       cout << Conversion::matTypeToString((*it2).type())<<endl;
                         //(*it2).convertTo(img, CV_32FC1);
                         accumulate((*it2),resImg);
 
                     }
-BOOST_LOG_SEV(log,notification) << "start to save...";
-                    Fits2D fit(r->getPath() + "sum", listFrames.size(), "", 0, 30, 255, 33333.0, 400, 0.0 );
+
+                    BOOST_LOG_SEV(log,notification) << "start to save...";
+
+                    Fits2D newFits(r->getPath() + "sum",fitsHeader);
+
+                    newFits.writeimage(resImg, 32, "0", true );
+
+
+                   /* Fits2D fit(r->getPath() + "sum", listFrames.size(), "", 0, 30, 255, 33333.0, 400, 0.0 );
                     fit.loadKeywordsFromConfigFile("/home/fripon/friponProject/friponCapture/configuration.cfg");
-                    fit.writeimage(resImg, 32, "0" , true);
+                    fit.writeimage(resImg, 32, "0" , true);*/
 
                     /*Mat final8UCsum;
                     resImg.convertTo(final8UCsum, CV_8UC1, 255, 0);

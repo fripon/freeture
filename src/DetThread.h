@@ -37,6 +37,7 @@
 #include "EnumLog.h"
 #include "Fifo.h"
 #include "Frame.h"
+#include "Fits.h"
 #include "Fits2D.h"
 #include "Fits3D.h"
 #ifdef CFITSIO_H
@@ -134,6 +135,8 @@ class DetThread{
 
         bool                        maskMoonSave;
 
+        Fits fitsHeader;
+
 	public:
 
         DetThread(   Mat                        maskImg,
@@ -155,7 +158,8 @@ class DetThread{
                      string                     debugPath,
                      bool                       detMaskMoon,
                      bool                       saveMaskedMoon,
-                     bool                       detDownsample
+                     bool                       detDownsample,
+                     Fits fitsHead
                  );
 
 

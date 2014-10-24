@@ -42,6 +42,7 @@
 #include "Configuration.h"
 #include "TimeDate.h"
 #include "EnumLog.h"
+#include "Fits.h"
 //using namespace Pylon;
 //using namespace GenApi;
 using namespace cv;
@@ -58,7 +59,7 @@ namespace keywords	= boost::log::keywords;
 
 using namespace logenum;
 
-class Fits2D{
+class Fits2D : public Fits{
 
 	private :
 
@@ -67,7 +68,7 @@ class Fits2D{
 		string savedFitsPath;
 
 		//Keywords values
-		string vFILENAME;
+		/*string vFILENAME;
 		double vEXPOSURE;
 		string vTELESCOP;
 		string vOBSERVER;
@@ -106,19 +107,34 @@ class Fits2D{
 		string vCTYPE2;
 		int vELAPTIME;
 		double CRVAL2;
-		double vCRVAL1;
+		double vCRVAL1;*/
+
+
 
 	public:
 
 		            Fits2D                      (string recPath,
-                                                 int    ontime,
+                                                 /*int    ontime,
                                                  string dateObs,
                                                  int    elaptime,
                                                  int    fps,
                                                  double saturate,
                                                  double exposure,
                                                  int    gain,
-                                                 double sideralTime);
+                                                 double sideralTime,*/
+                                                 const Fits & f):Fits(f), savedFitsPath(recPath){};/*
+                                                 f.kONTIME(ontime / fps),
+                                                 f.kDATEOBS(dateObs),
+                                                 f.kELAPTIME(elaptime),
+                                                 f.kCRVAL1(sideralTime),
+                                                 f.kCTYPE2("DEC--ARC"),
+                                                 f.kCTYPE1("RA---ARC"),
+                                                 f.kEQUINOX(2000.0),
+                                                 f.kRADESYS("ICRS"),
+                                                 f.kSATURATE(saturate),
+                                                 f.kOBSMODE(fps),
+                                                 f.kGAINDB(gain),
+                                                 f.kEXPOSURE(exposure * 1e-6){} ;*/
 
                     Fits2D();
 

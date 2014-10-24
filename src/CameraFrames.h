@@ -43,6 +43,7 @@
 #include "Conversion.h"
 #include "ManageFiles.h"
 #include "Fits2D.h"
+#include "Fits.h"
 
 //#include "serialize.h"
 #include <boost/filesystem.hpp>
@@ -123,6 +124,8 @@ class CameraFrames : public Camera{
 
         int frameNumStop;
 
+        Fits fitsHeader;
+
 	public:
 
         //! Constructor
@@ -139,7 +142,8 @@ class CameraFrames : public Camera{
                     Fifo<Frame> *queue,
                     boost::mutex *m_mutex_queue,
                     boost::condition_variable *m_cond_queue_fill,
-                    boost::condition_variable *m_cond_queue_new_element);
+                    boost::condition_variable *m_cond_queue_new_element,
+                    Fits fitsHead);
 
         //! Destructor
 		~CameraFrames(void);

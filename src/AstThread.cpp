@@ -44,8 +44,10 @@ AstThread::AstThread(   string                      recPath,
                         double                      longi,
                         boost::mutex                *m_frame_queue,
                         boost::condition_variable   *c_queue_full,
-                        boost::condition_variable   *c_queue_new){
+                        boost::condition_variable   *c_queue_new,
+                        Fits fitsHead){
 
+    fitsHeader  = fitsHead;
     stationName             = station;
     longitude               = longi;
     fitsMethod              = astMeth;
@@ -316,20 +318,25 @@ void AstThread::operator()(){
             double sideralT = TimeDate::localSideralTime_2(julianCentury, dateObsDeb.at(3), dateObsDeb.at(4), dateObsDeb.at(5), longitude);
 
             //Création d'un fits 2D
-            Fits2D fit(finalPath, totalImgToSummed, dateObs, elapTime, 30, 255, exposure, gain, sideralT );
-            fit.loadKeywordsFromConfigFile(configFile);
+            Fits2D newFits(finalPath,fitsHeader);
+            newFits.setOntime(totalImgToSummed / 30);
+            newFits.setGaindb(gain);
+            newFits.setObsmode(30);
+            newFits.setDateobs(dateObs);//dateObs
+            newFits.setSaturate(4095);
+            newFits.setRadesys("ICRS");
+            newFits.setEquinox(2000.0);
+            newFits.setCtype1("RA---ARC");
+            newFits.setCtype2("DEC---ARC");
+            newFits.setExposure(exposure * 1e-6);
+            newFits.setElaptime(elapTime);
+            newFits.setCrval1(sideralT);//sideraltime
 
-            if(fit.writeimage(resImg, 32, "0", true )){
-
-                BOOST_LOG_SEV(log,normal) << "Fits saved";
+            if(newFits.writeimage(resImg, 32, "0", true ))
                 cout << "Fits saved" << endl;
-
-            }else{
-
-                BOOST_LOG_SEV(log,fail) << "Fits not saved";
+            else
                 cout << "Fits not saved" << endl;
 
-            }
 
             t = (((double)getTickCount() - t)/getTickFrequency())*1000;
             cout << "Astro thread time : " <<std::setprecision(5)<< std::fixed<< t << " ms"<< endl;

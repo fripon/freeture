@@ -41,7 +41,9 @@
 #include "TimeDate.h"
 #include "Conversion.h"
 #include "SaveImg.h"
+#include "Fits.h"
 #include "Fits2D.h"
+#include "Fits3D.h"
 #include "ManageFiles.h"
 #include "Conversion.h"
 #include "EnumLog.h"
@@ -133,6 +135,7 @@ class CameraBasler : public Camera{
         string configFile;
         string savePath;
 
+        Fits fitsHeader;
 
 	public:
 
@@ -159,7 +162,8 @@ class CameraBasler : public Camera{
                       bool saveBmp,
                       int acqFormat,
                       string configPath,
-                      string saveLocation);
+                      string saveLocation,
+                      Fits fitsHead);
 
 
 		//! Constructor

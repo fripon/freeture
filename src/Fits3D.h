@@ -44,17 +44,6 @@
 #include "TimeDate.h"
 #include "EnumLog.h"
 
-/*#include <pylon/PylonIncludes.h>
-#ifdef PYLON_WIN_BUILD
-	#include <pylon/PylonGUI.h>
-#endif
-#include <pylon/gige/BaslerGigEInstantCamera.h>
-#include <pylon/gige/BaslerGigECamera.h>
-*/
-
-
-//using namespace Pylon;
-//using namespace GenApi;
 using namespace cv;
 using namespace std;
 //using namespace Basler_GigECameraParams;
@@ -78,14 +67,15 @@ class Fits3D{
         int imgH;
         int imgT;
 
-        vector <Mat> buffer;
+        vector <Mat> *buffer;
 
     public:
 
-        Fits3D(int dimT, int dimH, int dimW, vector <Mat> frames);
+        Fits3D(int dimT, int dimH, int dimW, vector <Mat> *frames);
         ~Fits3D();
         bool writeFits3D_UC(string file);
         bool writeFits3D_US(string file);
+        void printerror( int status);
 
 };
 

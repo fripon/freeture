@@ -52,10 +52,11 @@ DetThread::DetThread(Mat                        maskImg,
                      string                     debugPath,
                      bool                       detMaskMoon,
                      bool                       saveMaskedMoon,
-                     bool                       detDownsample){
+                     bool                       detDownsample,
+                     Fits fitsHead){
 
 
-
+    fitsHeader  = fitsHead;
     downsample                      =   detDownsample;
     maskMoonSave                    =   saveMaskedMoon;
     maskMoon                        =   detMaskMoon;
@@ -142,9 +143,11 @@ void DetThread::operator ()(){
 	Mat lastMoonCap;
 	Point moonPos = Point(0,0);
 
-	vector <LocalEvent> listLEMoon;
+
 
 	int roiSize[2] = {10, 10};
+
+	int cptNoMoon = 0;
 
     //%%%%%%%%%%% STORE THE POSITION OF N LAST DETECTED EVENTS  %%%%%%%%%%%
 
@@ -230,6 +233,7 @@ void DetThread::operator ()(){
             // Segmentation toutes les 30 secondes pour localiser la position de la lune
             if(f.getNumFrame()%400 == 0 && maskMoon){
 
+                vector <LocalEvent> listLEMoon;
 
                 Mat moon_res, temp;
                 currentFrame.copyTo(temp,mask);
@@ -341,23 +345,36 @@ void DetThread::operator ()(){
                         }
 
 
-                        moonPos = (*tempIt).centerOfMass;
+                        if(sqrt(pow(((*tempIt).centerOfMass.x - moonPos.x),2) + pow(((*tempIt).centerOfMass.y - moonPos.y),2)) < 100 ){
+
+                            moonPos = (*tempIt).centerOfMass;
+
+                        }
 
                         cout << "MOON POSITION = " << moonPos << endl;
 
                         if(maskMoonSave)
                             SaveImg::saveBMP(currentFrame, debugLocation + "moon_original_" + Conversion::intToString(f.getNumFrame()));
 
-                        circle(currentFrame, moonPos, 50, Scalar(0), CV_FILLED, 8, 0);
+                        circle(currentFrame, moonPos, 60, Scalar(0), CV_FILLED, 8, 0);
 
                         if(maskMoonSave)
                             SaveImg::saveBMP(currentFrame, debugLocation + "moon_final_" + Conversion::intToString(f.getNumFrame()));
 
+                        cptNoMoon = 0;
 
+                    }else{
+
+                        cptNoMoon ++;
 
                     }
 
+                    if(cptNoMoon >= 5 )
+                        moonPos = Point(0,0);
+
                     moon_res.copyTo(lastMoonCap);
+
+
                 }
             }
 

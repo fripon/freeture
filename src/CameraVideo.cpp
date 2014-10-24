@@ -211,7 +211,7 @@ void CameraVideo::operator () (){
                 frameQueue->pushInFifo(newFrameRAM);
 
 
-
+/*
                 line( copyframe, Point( 392, 0),
                        Point( 392, imgH -1 ),
                        Scalar( 0,0,255), 1, 4, 0  );
@@ -221,7 +221,7 @@ void CameraVideo::operator () (){
                        Scalar( 0,0,255), 1, 4, 0  );
 
                 SaveImg::saveBMP(copyframe,"/home/fripon/testColor_"+Conversion::intToString(numFrame));
-
+*/
                 if(oVideoWriter.isOpened()){
 
                     oVideoWriter << copyframe;

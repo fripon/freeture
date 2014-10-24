@@ -32,7 +32,7 @@ freeture_SOURCES	= AstThread.h CameraDMK.h Camera.h CameraBasler.h \
 			CameraSDK.h CameraSDKAravis.h CameraFrames.h \
 			CameraSDKPylon.h \
 			Configuration.h Conversion.h DetThread.h Fifo.h \
-			Fits2D.h Fits3D.h Frame.h GlobalEvent.h Histogram.h \
+			Fits.h Fits2D.h Fits3D.h Frame.h GlobalEvent.h Histogram.h \
 			ImgThread.h includes.h LocalEvent.h \
 			PixelEvent.h RecEvent.h \
 			TimeDate.h DetByLines.h DetByLists.h ManageFiles.h \
@@ -42,7 +42,7 @@ freeture_SOURCES	= AstThread.h CameraDMK.h Camera.h CameraBasler.h \
 			CameraDMK.cpp CameraSimu.cpp \
 			CameraSDK.cpp CameraSDKAravis.cpp CameraSDKPylon.cpp \
 			CameraVideo.cpp Configuration.cpp Conversion.cpp \
-			DetThread.cpp Fifo.cpp Fits2D.cpp Fits3D.cpp \
+			DetThread.cpp Fifo.cpp Fits.cpp Fits2D.cpp Fits3D.cpp \
 			Frame.cpp GlobalEvent.cpp Histogram.cpp ImgThread.cpp \
 			LocalEvent.cpp main.cpp PixelEvent.cpp \
 			RecEvent.cpp TimeDate.cpp \

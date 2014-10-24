@@ -170,7 +170,7 @@ int main(int argc, const char ** argv){
         bool saveFits2D     = false;
         int gain            = 300;
         int exp             = 100;
-        string version      =  string(PACKAGE_VERSION); //"1"; //
+        string version      =  string(PACKAGE_VERSION);  //"1";//;
 
         po::store(po::parse_command_line(argc, argv, desc), vm);
 
@@ -329,6 +329,9 @@ int main(int argc, const char ** argv){
 
             }
 
+            Fits fitsHeader;
+            fitsHeader.loadKeywordsFromConfigFile(configPath);
+
             // log configuration
             init_log(logPath);
             src::severity_logger< severity_level > slg;
@@ -430,14 +433,23 @@ int main(int argc, const char ** argv){
                                 }
 
                                 //Control the mask for the frame of camera
-                                if(acqMaskEnable){
+                              /*  if(acqMaskEnable){
 
-                                    if(mask.rows != inputCam->getCameraHeight() && mask.cols!= inputCam->getCameraWidth()){
+                                    if(mask.rows != inputCam->getCameraHeight() || mask.cols!= inputCam->getCameraWidth()){
+
+                                        cout << "mask.rows : " << mask.rows << endl;
+
+                                        cout << "inputCam->getCameraHeight() : " << inputCam->getCameraHeight() << endl;
+
+                                        cout << "mask.cols : " << mask.cols << endl;
+
+                                        cout << "inputCam->getCameraWidth() : " << inputCam->getCameraWidth() << endl;
 
                                         throw "ERROR : The size of the mask doesn't match to the size of the camera's frame";
 
                                     }
-                                }
+                                }*/
+
                             }
 
                         }else{
@@ -476,7 +488,15 @@ int main(int argc, const char ** argv){
                             //Control the mask for the frame of camera
                             if(acqMaskEnable){
 
-                                if(mask.rows != inputCam->getCameraHeight() && mask.cols!= inputCam->getCameraWidth()){
+                                if(mask.rows != inputCam->getCameraHeight() || mask.cols!= inputCam->getCameraWidth()){
+
+                                    cout << "mask.rows : " << mask.rows << endl;
+
+                                    cout << "inputCam->getCameraHeight() : " << inputCam->getCameraHeight() << endl;
+
+                                    cout << "mask.cols : " << mask.cols << endl;
+
+                                    cout << "inputCam->getCameraWidth() : " << inputCam->getCameraWidth() << endl;
 
                                     throw "ERROR : The size of the mask doesn't match to the size of the camera's frame";
 
@@ -518,6 +538,14 @@ int main(int argc, const char ** argv){
 
                                 if(mask.rows != inputCam->getCameraHeight() && mask.cols!= inputCam->getCameraWidth()){
 
+                                    cout << "mask.rows : " << mask.rows << endl;
+
+                                    cout << "inputCam->getCameraHeight() : " << inputCam->getCameraHeight() << endl;
+
+                                    cout << "mask.cols : " << mask.cols << endl;
+
+                                    cout << "inputCam->getCameraWidth() : " << inputCam->getCameraWidth() << endl;
+
                                     throw "ERROR : The size of the mask doesn't match to the size of the video's frame";
 
                                 }
@@ -543,7 +571,8 @@ int main(int argc, const char ** argv){
                                                         &queueRAM,
                                                         &m_queueRAM,
                                                         &c_queueRAM_Full,
-                                                        &c_queueRAM_New);
+                                                        &c_queueRAM_New,
+                                                        fitsHeader);
 
                             //Control the mask for the frame of camera
                             /*if(acqMaskEnable){
@@ -611,7 +640,8 @@ int main(int argc, const char ** argv){
                                                     longitude,
                                                     &m_queueRAM,
                                                     &c_queueRAM_Full,
-                                                    &c_queueRAM_New);
+                                                    &c_queueRAM_New,
+                                                    fitsHeader);
 
                                 ast->startCapture();
 
@@ -674,7 +704,8 @@ int main(int argc, const char ** argv){
                                                         debugPath,
                                                         detMaskMoon,
                                                         saveMaskedMoon,
-                                                        detDownsample);
+                                                        detDownsample,
+                                                        fitsHeader);
 
                                 det->startDetectionThread();
 
@@ -692,7 +723,8 @@ int main(int argc, const char ** argv){
                                                         detRecBmp,
                                                         detRecTrail,
                                                         detRecShape,
-                                                        detRecMapGE);
+                                                        detRecMapGE,
+                                                        fitsHeader);
 
                                 rec->start();
 
@@ -913,6 +945,9 @@ int main(int argc, const char ** argv){
             src::severity_logger< severity_level > slg;
             BOOST_LOG_SCOPED_THREAD_TAG("LogName", "mainThread");
 
+            Fits fitsHeader;
+            fitsHeader.loadKeywordsFromConfigFile(configPath);
+
             cout << "FORMAT :        " << acqFormat     << endl;
             cout << "EXPOSURE TIME : " << exp           << endl;
             cout << "GAIN :          " << gain          << endl;
@@ -938,7 +973,8 @@ int main(int argc, const char ** argv){
                                         saveBmp,
                                         acqFormat,
                                         configPath,
-                                        savePath);
+                                        savePath,
+                                        fitsHeader);
 
             //list connected basler cameras
             inputCam->getListCameras();

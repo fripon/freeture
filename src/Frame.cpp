@@ -265,10 +265,6 @@ vector <int> Frame::getDate(){
 
 vector <string> Frame::getDateString(){
 
-    cout << "getDate String"<<endl;
-
-    cout << dateString.size() << endl;
-
     return dateString;
 
 }

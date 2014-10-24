@@ -36,7 +36,7 @@
 
 #include "Fits3D.h"
 
-Fits3D::Fits3D(int dimT, int dimH, int dimW, vector <Mat> frames){
+Fits3D::Fits3D(int dimT, int dimH, int dimW, vector <Mat> *frames){
 
     //ctor
     imgW = dimW;
@@ -48,6 +48,8 @@ Fits3D::Fits3D(int dimT, int dimH, int dimW, vector <Mat> frames){
 }
 
 Fits3D::~Fits3D(){
+
+
     //dtor
 }
 
@@ -64,37 +66,24 @@ bool Fits3D::writeFits3D_UC(string file){
     int imgSize = imgH*imgW;
 
     // 1D array which contains severals images : [ image1(line1, line2 ...) image2(line1, line2...)]
-    unsigned char *array3d;
-
-    // 2D array : one image per line
-    unsigned char **array2d;
-
-    array2d = (unsigned char**)calloc(imgT, sizeof(unsigned char*));
-
-    if (array2d == NULL){
-        cout << "Memory allocation error for array2d"<<endl;
-        return false;
-    }
-
-    for (int i=0; i<imgT; i++){
-
-        array2d[i] = (unsigned char*)calloc((imgW*imgH), sizeof(unsigned char));
-
-        if (array2d[i] == NULL){
-
-            cout << "Memory allocation error for array2d" << endl;
-            return false;
-
-        }
-    }
-
-    /// Fill 2D array with frames
+    unsigned char *array3d = NULL;
 
     Mat currentImg;
 
-    for(int t=0 ; t<imgT;t++){
+    array3d = (unsigned char *)malloc(size3d * sizeof(unsigned char ));
 
-        buffer.at(t).copyTo(currentImg);
+    if(array3d == NULL){
+
+        cout << "echec de l'allocation" <<endl;
+        return false;
+
+    }
+
+    int jj;
+
+    for (int n = 0; n < imgT; n++){
+
+       buffer->at(n).copyTo(currentImg);
 
         for (int j = 0 ; j < naxes[1] ; j++){
 
@@ -102,23 +91,9 @@ bool Fits3D::writeFits3D_UC(string file){
 
             for (int i = 0; i <naxes[0] ; i++){
 
-                array2d[t][(imgH-1-j)*imgW+i] = (int)pt[i];
+                array3d[n*imgH*imgW + (imgH-1-j)*imgW+i] = (int)pt[i];
 
             }
-        }
-     }
-
-    array3d = (unsigned char *)calloc(size3d,sizeof(unsigned char ));
-
-    int jj;
-
-    for (int n = 0; n < imgT; n++){
-
-        for (int i=0; i<imgSize; i++){
-
-              jj = n*imgSize + i;
-              array3d[jj] = array2d[n][i];
-
         }
     }
 
@@ -130,24 +105,38 @@ bool Fits3D::writeFits3D_UC(string file){
 
     fits_create_file(&fptr, filename, &status);
 
+    if (status) {
+
+	    fits_report_error(stderr, status);
+
+	}
+
     fits_create_img(fptr, BYTE_IMG, naxis, naxes, &status);
 
+    if (status) {
 
-    if (fits_write_pix(fptr, TBYTE, fpixel, size3d, array3d, &status)){
+	    fits_report_error(stderr, status);
 
-        cout << " Error writing pixel data " << endl;
-        return false;
-    }
+	}
+
+    fits_write_pix(fptr, TBYTE, fpixel, size3d, array3d, &status);
+
+    if (status) {
+
+	    fits_report_error(stderr, status);
+
+	}
+
 
     fits_close_file(fptr, &status);     // close the file
 
-    fits_report_error(stderr, status);  // print out any error messages
+
+    free(array3d );
+    array3d = NULL;
 
     return true;
 
 }
-
-
 
 bool Fits3D::writeFits3D_US(string file){
 
@@ -191,7 +180,7 @@ bool Fits3D::writeFits3D_US(string file){
 
     for(int t=0 ; t<imgT;t++){
 
-        buffer.at(t).copyTo(currentImg);
+        buffer->at(t).copyTo(currentImg);
 
         for (int j = 0 ; j < naxes[1] ; j++){
 
@@ -248,7 +237,19 @@ bool Fits3D::writeFits3D_US(string file){
 
 }
 
+void Fits3D::printerror( int status){
+//    /*****************************************************/
+//    /* Print out cfitsio error messages and exit program */
+//    /*****************************************************/
 
+
+    if (status){
+       fits_report_error(stderr, status); /* print error report */
+
+       exit( status );    /* terminate the program, returning error status */
+    }
+    return;
+}
 
 
 

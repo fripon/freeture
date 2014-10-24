@@ -20,7 +20,7 @@
 *	You should have received a copy of the GNU General Public License
 *	along with FreeTure. If not, see <http://www.gnu.org/licenses/>.
 *
-*	Last modified:		20/10/2014
+*	Last modified:		22/10/2014
 *
 *%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%*/
 
@@ -28,115 +28,13 @@
  * @file    Fits2D.cpp
  * @author  Yoan Audureau
  * @version 1.0
- * @date    03/06/2014
- * @section DESCRIPTION
- *
- * The detection class contains all meteor detection methods
+ * @date    22/10/2014
  */
 
 #include "Fits2D.h"
 
-Fits2D::Fits2D(string    recPath,
-               int       ontime,
-               string    dateObs,
-               int       elaptime,
-               int       fps,
-               double    saturate,
-               double    exposure,
-               int       gain,
-               double    sideralTime
-               ){
-
-    savedFitsPath = recPath;
-   // cout << scientific;
-    vEXPOSURE     = exposure * 1e-6;
-    //cout << fixed;
-    vONTIME       = ontime / fps;
-    vGAINDB       = gain;
-    vOBSMODE      = fps;
-    vDATEOBS      = dateObs;
-    vSATURATE     = saturate;
-    vRADESYS      = "ICRS";
-    vEQUINOX      = 2000.0;
-    vCTYPE1       = "RA---ARC";
-    vCTYPE2       = "DEC--ARC";
-    vELAPTIME     = elaptime;
-    vCRVAL1       = sideralTime;//Sidereal time / degres decimaux
-    //vCRAVL2   //latitude du lieu d'observation / degres decimaux
-
-}
-
 Fits2D::Fits2D(){
 
-}
-
-bool Fits2D::loadKeywordsFromConfigFile(string configFile){
-
-	Configuration getFitsKeys;
-	getFitsKeys.Load(configFile);
-
-	if (getFitsKeys.Get("TELESCOP", vTELESCOP)&&
-		getFitsKeys.Get("OBSERVER", vOBSERVER)&&
-		getFitsKeys.Get("INSTRUME", vINSTRUME)&&
-		getFitsKeys.Get("CAMERA",   vCAMERA)  &&
-		getFitsKeys.Get("FOCAL",    vFOCAL)   &&
-		getFitsKeys.Get("APERTURE", vAPERTURE)&&
-		getFitsKeys.Get("SITELONG", vSITELONG)&&
-		getFitsKeys.Get("SITELAT",  vSITELAT) &&
-		getFitsKeys.Get("SITEELEV", vSITEELEV)&&
-		getFitsKeys.Get("CENTAZ",   vCENTAZ)  &&
-		getFitsKeys.Get("CENTALT",  vCENTALT) &&
-		getFitsKeys.Get("CENTOR",   vCENTOR)  &&
-		getFitsKeys.Get("CRPIX1",   vCRPIX1)  &&
-		getFitsKeys.Get("CRPIX2",   vCRPIX2)  &&
-		getFitsKeys.Get("K1",       vK1)      &&
-		getFitsKeys.Get("K2",       vK2)      &&
-		getFitsKeys.Get("PROGRAM",  vPROGRAM) &&
-		getFitsKeys.Get("FILTER",   vFILTER)  &&
-		getFitsKeys.Get("CREATOR",  vCREATOR) &&
-        getFitsKeys.Get("CD1_1",    vCD1_1)   &&
-        getFitsKeys.Get("CD1_2",    vCD1_2)   &&
-        getFitsKeys.Get("CD2_1",    vCD2_1)   &&
-        getFitsKeys.Get("CD2_2",    vCD2_2)   &&
-        getFitsKeys.Get("XPIXEL",   vXPIXEL)  &&
-        getFitsKeys.Get("YPIXEL",   vYPIXEL)  &&
-		getFitsKeys.Get("COMMENT",  vCOMMENT)){
-
-		/*cout<<endl;
-		cout <<"EXPOSURE = "<<vkeys.vEXPOSURE <<"   "<<ckeys.cEXPOSURE<<endl;
-		cout <<"TELESCOP = "<<vkeys.vTELESCOP <<"   "<<ckeys.cTELESCOP<<endl;
-		cout <<"OBSERVER = "<<vkeys.vOBSERVER <<"   "<<ckeys.cOBSERVER<<endl;
-		cout <<"INSTRUME = "<<vkeys.vINSTRUME <<"   "<<ckeys.cINSTRUME<<endl;
-		cout <<"CAMERA   = "<<vkeys.vCAMERA <<"   "<<ckeys.cCAMERA<<endl;
-		cout <<"FOCAL    = "<<vkeys.vFOCAL <<"   "<<ckeys.cFOCAL<<endl;
-		cout <<"APERTURE = "<<vkeys.vAPERTURE <<"   "<<ckeys.cAPERTURE<<endl;
-		cout <<"XPIXEL   = "<<vkeys.vXPIXEL <<"   "<<ckeys.cXPIXEL<<endl;
-		cout <<"YPIXEL   = "<<vkeys.vYPIXEL <<"   "<<ckeys.cYPIXEL<<endl;
-		cout <<"SITELONG = "<<vkeys.vSITELONG <<"   "<<ckeys.cSITELONG<<endl;
-		cout <<"SITELAT  = "<<vkeys.vSITELAT <<"   "<<ckeys.cSITELAT<<endl;
-		cout <<"SITEELEV = "<<vkeys.vSITEELEV <<"   "<<ckeys.cSITEELEV<<endl;
-		cout <<"GAINDB   = "<<vkeys.vGAINDB <<"   "<<ckeys.cGAINDB<<endl;
-		cout <<"CENTAZ   = "<<vkeys.vCENTAZ <<"   "<<ckeys.cCENTAZ<<endl;
-		cout <<"CENTALT  = "<<vkeys.vCENTALT <<"   "<<ckeys.cCENTALT<<endl;
-		cout <<"CENTOR   = "<<vkeys.vCENTOR <<"   "<<ckeys.cCENTOR<<endl;
-		cout <<"CRPIX1   = "<<vkeys.vCRPIX1 <<"   "<<ckeys.cCRPIX1<<endl;
-		cout <<"CRPIX2   = "<<vkeys.vCRPIX2 <<"   "<<ckeys.cCRPIX2<<endl;
-		cout <<"K1       = "<<vkeys.vK1 <<"   "<<ckeys.cK1<<endl;
-		cout <<"K2       = "<<vkeys.vK2 <<"   "<<ckeys.cK2<<endl;
-		cout <<"PROGRAM  = "<<vkeys.vPROGRAM <<"   "<<ckeys.cPROGRAM<<endl;
-		cout <<"FILTER   = "<<vkeys.vFILTER <<"   "<<ckeys.cFILTER<<endl;
-		cout <<"CREATOR  = "<<vkeys.vCREATOR <<"   "<<ckeys.cCREATOR<<endl;
-		cout <<"COMMENT  = "<<vkeys.vCOMMENT <<"   "<<ckeys.cCOMMENT<<endl<<endl;*/
-
-        cout<< "Success to load fits keys"<<endl;
-		BOOST_LOG_SEV(log,notification) << "Success to load fits keys";
-
-		return true;
-	}
-
-	BOOST_LOG_SEV(log,fail) << "Failed to load fits keys. Probably miss some keyword's definition";
-
-	return false;
 }
 
 Fits2D::~Fits2D(void){
@@ -160,7 +58,10 @@ bool Fits2D::writeimage( Mat img, int bitDepth,string nb, bool dtANDstation){
 
     string fitsCreationDate	= TimeDate::localDateTime(second_clock::universal_time(),"%Y-%m-%dT %H:%M:%S");
     string dateT1	= TimeDate::localDateTime(second_clock::universal_time(),"%Y%m%d_%H%M%S");
-    string name		= vTELESCOP+"_"+dateT1+"UT"+"-"+nb;
+    string name		= kTELESCOP+"_"+dateT1+"UT"+"-"+nb;
+
+    cout << name<<endl;
+    cout << savedFitsPath<<endl;
     // string name		= "summ"+vTELESCOP+".fit";
     string pathAndname ="";
 
@@ -213,6 +114,8 @@ bool Fits2D::writeimage( Mat img, int bitDepth,string nb, bool dtANDstation){
                 // Create new FITS file
                 if (fits_create_file(&fptr, filename, &status))
                      printerror( status );
+                     else
+                     cout << "file created"<<endl;
 
                 if ( fits_create_img(fptr,  BYTE_IMG, naxis, naxes, &status) )
                      printerror( status );
@@ -234,7 +137,9 @@ bool Fits2D::writeimage( Mat img, int bitDepth,string nb, bool dtANDstation){
                  if(fits_write_img(fptr, TBYTE, firstPixel, nbelements, tab[0], &status))
                     printerror( status );
 
-                free( tab[0] );  // free previously allocated memory
+                //free( *tab);
+                 //free( *tab );
+            free( tab[0]);    // free previously allocated memory
 
             break;
         }
@@ -284,7 +189,8 @@ bool Fits2D::writeimage( Mat img, int bitDepth,string nb, bool dtANDstation){
             if ( fits_write_img(fptr, TUSHORT, firstPixel, nbelements, tab[0], &status) )
                 printerror( status );
 
-            free( tab[0] );  // free previously allocated memory
+            free( *tab);
+            free( tab );  // free previously allocated memory
 
             break;
 
@@ -335,7 +241,10 @@ bool Fits2D::writeimage( Mat img, int bitDepth,string nb, bool dtANDstation){
            if ( fits_write_img(fptr, TFLOAT, firstPixel, nbelements, tab[0], &status) )
                 printerror( status );
 
-            free( tab[0] );  // free previously allocated memory
+
+           // realloc(ptr, 0);
+            free( *tab );
+            free( tab);  // free previously allocated memory
 
 
             break;
@@ -377,8 +286,8 @@ bool Fits2D::writeimage( Mat img, int bitDepth,string nb, bool dtANDstation){
         delete fdc;
 
         //DATE-OBS
-        char * d = new char[vDATEOBS.length()+1];
-        strcpy(d,vDATEOBS.c_str());
+        char * d = new char[kDATEOBS.length()+1];
+        strcpy(d,kDATEOBS.c_str());
 
         if(fits_write_key(fptr,TSTRING,"DATE-OBS",d,"UT date of Observation",&status))
             printerror( status );
@@ -386,24 +295,24 @@ bool Fits2D::writeimage( Mat img, int bitDepth,string nb, bool dtANDstation){
         delete d;
 
         //OBS_MODE
-        if(fits_write_key(fptr,TINT,"OBS_MODE",&vOBSMODE,"Acquisition frequence",&status))
+        if(fits_write_key(fptr,TINT,"OBS_MODE",&kOBSMODE,"Acquisition frequence",&status))
             printerror( status );
 
         //ELAPTIME - date de fin obs - date de debut obs
-        if(fits_write_key(fptr,TINT,"ELAPTIME",&vELAPTIME,"Time between the obs's start and end",&status))
+        if(fits_write_key(fptr,TINT,"ELAPTIME",&kELAPTIME,"Time between the obs's start and end",&status))
             printerror( status );
 
         //ONTIME
-        if(fits_write_key(fptr,TDOUBLE,"ONTIME",&vONTIME,"Integration time",&status))
+        if(fits_write_key(fptr,TDOUBLE,"ONTIME",&kONTIME,"Integration time",&status))
             printerror( status );
 
         //EXPOSURE
-        if(fits_write_key(fptr,TDOUBLE,"EXPOSURE",&vEXPOSURE,"Camera's exposure time (sec)",&status))
+        if(fits_write_key(fptr,TDOUBLE,"EXPOSURE",&kEXPOSURE,"Camera's exposure time (sec)",&status))
             printerror( status );
 
         //RADESYS
-        char * radesys = new char[vRADESYS.length()+1];
-        strcpy(radesys,vRADESYS.c_str());
+        char * radesys = new char[kRADESYS.length()+1];
+        strcpy(radesys,kRADESYS.c_str());
 
         if(fits_write_key(fptr,TSTRING,"RADESYS",radesys,"",&status))
             printerror( status );
@@ -411,8 +320,8 @@ bool Fits2D::writeimage( Mat img, int bitDepth,string nb, bool dtANDstation){
         delete radesys;
 
         //FILTER
-        char * f = new char[vFILTER.length()+1];
-        strcpy(f,vFILTER.c_str());
+        char * f = new char[kFILTER.length()+1];
+        strcpy(f,kFILTER.c_str());
 
         if(fits_write_key(fptr,TSTRING,"FILTER",f,"",&status))
             printerror( status );
@@ -420,8 +329,8 @@ bool Fits2D::writeimage( Mat img, int bitDepth,string nb, bool dtANDstation){
         delete f;
 
         //TELESCOP
-        char * t = new char[vTELESCOP.length()+1];
-        strcpy(t,vTELESCOP.c_str());
+        char * t = new char[kTELESCOP.length()+1];
+        strcpy(t,kTELESCOP.c_str());
 
         if(fits_write_key(fptr,TSTRING,"TELESCOP",t,"",&status))
             printerror( status );
@@ -429,8 +338,8 @@ bool Fits2D::writeimage( Mat img, int bitDepth,string nb, bool dtANDstation){
         delete t;
 
         //OBSERVER
-        char * o = new char[vOBSERVER.length()+1];
-        strcpy(o,vOBSERVER.c_str());
+        char * o = new char[kOBSERVER.length()+1];
+        strcpy(o,kOBSERVER.c_str());
 
         if(fits_write_key(fptr,TSTRING,"OBSERVER",o,"",&status))
             printerror( status );
@@ -438,8 +347,8 @@ bool Fits2D::writeimage( Mat img, int bitDepth,string nb, bool dtANDstation){
         delete o;
 
         //INSTRUME
-        char * i = new char[vINSTRUME.length()+1];
-        strcpy(i,vINSTRUME.c_str());
+        char * i = new char[kINSTRUME.length()+1];
+        strcpy(i,kINSTRUME.c_str());
 
         if(fits_write_key(fptr,TSTRING,"INSTRUME",i,"",&status))
             printerror( status );
@@ -447,8 +356,8 @@ bool Fits2D::writeimage( Mat img, int bitDepth,string nb, bool dtANDstation){
         delete i;
 
         //CAMERA
-        char * cam = new char[vCAMERA.length()+1];
-        strcpy(cam,vCAMERA.c_str());
+        char * cam = new char[kCAMERA.length()+1];
+        strcpy(cam,kCAMERA.c_str());
 
         if(fits_write_key(fptr,TSTRING,"CAMERA",cam,"",&status))
             printerror( status );
@@ -456,11 +365,11 @@ bool Fits2D::writeimage( Mat img, int bitDepth,string nb, bool dtANDstation){
         delete cam;
 
         //FOCAL
-        if(fits_write_key(fptr,TDOUBLE,"FOCAL",&vFOCAL,"",&status))
+        if(fits_write_key(fptr,TDOUBLE,"FOCAL",&kFOCAL,"",&status))
             printerror( status );
 
         //APERTURE
-        if(fits_write_key(fptr,TDOUBLE,"APERTURE",&vAPERTURE,"",&status))
+        if(fits_write_key(fptr,TDOUBLE,"APERTURE",&kAPERTURE,"",&status))
             printerror( status );
 
 
@@ -469,7 +378,7 @@ bool Fits2D::writeimage( Mat img, int bitDepth,string nb, bool dtANDstation){
         /*char * sitelong = new char[vSITELONG.length()+1];
         strcpy(sitelong,vSITELONG.c_str());*/
 
-        if(fits_write_key(fptr,TDOUBLE,"SITELONG",&vSITELONG,"Longitude observatory",&status))
+        if(fits_write_key(fptr,TDOUBLE,"SITELONG",&kSITELONG,"Longitude observatory",&status))
             printerror( status );
 
         //delete sitelong;
@@ -478,7 +387,7 @@ bool Fits2D::writeimage( Mat img, int bitDepth,string nb, bool dtANDstation){
         /*char * sitelat = new char[vSITELAT.length()+1];
         strcpy(sitelat,vSITELAT.c_str());*/
 
-        if(fits_write_key(fptr,TDOUBLE,"SITELAT",&vSITELAT,"Latitude observatory",&status))
+        if(fits_write_key(fptr,TDOUBLE,"SITELAT",&kSITELAT,"Latitude observatory",&status))
             printerror( status );
 
         //delete sitelat;
@@ -487,22 +396,22 @@ bool Fits2D::writeimage( Mat img, int bitDepth,string nb, bool dtANDstation){
         /*char * siteelev = new char[vSITEELEV.length()+1];
         strcpy(siteelev,vSITEELEV.c_str());*/
 
-        if(fits_write_key(fptr,TDOUBLE,"SITEELEV",&vSITEELEV,"Observatory elevation",&status))
+        if(fits_write_key(fptr,TDOUBLE,"SITEELEV",&kSITEELEV,"Observatory elevation",&status))
             printerror( status );
 
        // delete siteelev;
 
         //GAINDB
-        if(fits_write_key(fptr,TINT,"GAINDB",&vGAINDB,"Camera's gain",&status))
+        if(fits_write_key(fptr,TINT,"GAINDB",&kGAINDB,"Camera's gain",&status))
             printerror( status );
 
         //SATURATE
-        if(fits_write_key(fptr,TDOUBLE,"SATURATE",&vSATURATE,"Max value in image",&status))
+        if(fits_write_key(fptr,TDOUBLE,"SATURATE",&kSATURATE,"Max value in image",&status))
             printerror( status );
 
         //PROGRAM
-        char * p = new char[vPROGRAM.length()+1];
-        strcpy(p,vPROGRAM.c_str());
+        char * p = new char[kPROGRAM.length()+1];
+        strcpy(p,kPROGRAM.c_str());
 
         if(fits_write_key(fptr,TSTRING,"PROGRAM",p,"Name of acquisition program",&status))
             printerror( status );
@@ -510,8 +419,8 @@ bool Fits2D::writeimage( Mat img, int bitDepth,string nb, bool dtANDstation){
         delete p;
 
         //CREATOR
-        char * c = new char[vCREATOR.length()+1];
-        strcpy(c,vCREATOR.c_str());
+        char * c = new char[kCREATOR.length()+1];
+        strcpy(c,kCREATOR.c_str());
 
         if(fits_write_key(fptr,TSTRING,"CREATOR",c,"Creator's name",&status))
             printerror( status );
@@ -519,8 +428,8 @@ bool Fits2D::writeimage( Mat img, int bitDepth,string nb, bool dtANDstation){
         delete c;
 
         //CENTAZ
-        char * centaz = new char[vCENTAZ.length()+1];
-        strcpy(centaz,vCENTAZ.c_str());
+        char * centaz = new char[kCENTAZ.length()+1];
+        strcpy(centaz,kCENTAZ.c_str());
 
         if(fits_write_key(fptr,TSTRING,"CENTAZ",centaz,"Nominal Azimuth of center of image in deg",&status))
             printerror( status );
@@ -528,8 +437,8 @@ bool Fits2D::writeimage( Mat img, int bitDepth,string nb, bool dtANDstation){
         delete centaz;
 
         //CENTALT
-        char * centalt = new char[vCENTALT.length()+1];
-        strcpy(centalt,vCENTALT.c_str());
+        char * centalt = new char[kCENTALT.length()+1];
+        strcpy(centalt,kCENTALT.c_str());
 
         if(fits_write_key(fptr,TSTRING,"CENTALT",centalt,"Nominal Altitude of center of image in deg",&status))
             printerror( status );
@@ -537,8 +446,8 @@ bool Fits2D::writeimage( Mat img, int bitDepth,string nb, bool dtANDstation){
         delete centalt;
 
         //CENTOR
-        char * centor = new char[vCENTOR.length()+1];
-        strcpy(centor,vCENTOR.c_str());
+        char * centor = new char[kCENTOR.length()+1];
+        strcpy(centor,kCENTOR.c_str());
 
         if(fits_write_key(fptr,TSTRING,"CENTOR",centor,"Orientation camera",&status))
             printerror( status );
@@ -546,69 +455,69 @@ bool Fits2D::writeimage( Mat img, int bitDepth,string nb, bool dtANDstation){
         delete centor;
 
         //CRPIX1
-        if(fits_write_key(fptr,TINT,"CRPIX1",&vCRPIX1,"Center fish eyes X",&status))
+        if(fits_write_key(fptr,TINT,"CRPIX1",&kCRPIX1,"Center fish eyes X",&status))
             printerror( status );
 
         //CRPIX2
-        if(fits_write_key(fptr,TINT,"CRPIX2",&vCRPIX2,"Center fish eyes Y",&status))
+        if(fits_write_key(fptr,TINT,"CRPIX2",&kCRPIX2,"Center fish eyes Y",&status))
             printerror( status );
 
         //K1
-        if(fits_write_key(fptr,TDOUBLE,"K1",&vK1,"R = K1 * f * sin(theta/K2)",&status))
+        if(fits_write_key(fptr,TDOUBLE,"K1",&kK1,"R = K1 * f * sin(theta/K2)",&status))
             printerror( status );
 
         //K2
-        if(fits_write_key(fptr,TDOUBLE,"K2",&vK2,"R = K1 * f * sin(theta/K2)",&status))
+        if(fits_write_key(fptr,TDOUBLE,"K2",&kK2,"R = K1 * f * sin(theta/K2)",&status))
             printerror( status );
 
         //EQUINOX
-         if(fits_write_key(fptr,TDOUBLE,"EQUINOX",&vEQUINOX,"",&status))
+         if(fits_write_key(fptr,TDOUBLE,"EQUINOX",&kEQUINOX,"",&status))
             printerror( status );
 
         //CTYPE1
-        char * ctype1 = new char[vCTYPE1.length()+1];
-        strcpy(ctype1,vCTYPE1.c_str());
+        char * ctype1 = new char[kCTYPE1.length()+1];
+        strcpy(ctype1,kCTYPE1.c_str());
 
         if(fits_write_key(fptr,TSTRING,"CTYPE1",ctype1,"Projection and reference system",&status))
             printerror( status );
 
         //CTYPE2
-        char * ctype2 = new char[vCTYPE2.length()+1];
-        strcpy(ctype2,vCTYPE2.c_str());
+        char * ctype2 = new char[kCTYPE2.length()+1];
+        strcpy(ctype2,kCTYPE2.c_str());
 
         if(fits_write_key(fptr,TSTRING,"CTYPE2",ctype2,"Projection and reference system",&status))
             printerror( status );
 
         //CD1_1
-        if(fits_write_key(fptr,TDOUBLE,"CD1_1",&vCD1_1,"deg/pix",&status))
+        if(fits_write_key(fptr,TDOUBLE,"CD1_1",&kCD1_1,"deg/pix",&status))
             printerror( status );
 
         //CD1_2
-        if(fits_write_key(fptr,TDOUBLE,"CD1_2",&vCD1_2,"deg/pix",&status))
+        if(fits_write_key(fptr,TDOUBLE,"CD1_2",&kCD1_2,"deg/pix",&status))
             printerror( status );
 
         //CD2_1
-        if(fits_write_key(fptr,TDOUBLE,"CD2_1",&vCD2_1,"deg/pix",&status))
+        if(fits_write_key(fptr,TDOUBLE,"CD2_1",&kCD2_1,"deg/pix",&status))
             printerror( status );
 
         //CD2_2
-        if(fits_write_key(fptr,TDOUBLE,"CD2_2",&vCD2_2,"deg/pix",&status))
+        if(fits_write_key(fptr,TDOUBLE,"CD2_2",&kCD2_2,"deg/pix",&status))
             printerror( status );
 
         //CRVAL1
-        if(fits_write_key(fptr,TDOUBLE,"CRVAL1",&vCRVAL1,"degree",&status))
+        if(fits_write_key(fptr,TDOUBLE,"CRVAL1",&kCRVAL1,"degree",&status))
             printerror( status );
 
         //CRVAL2
-        if(fits_write_key(fptr,TDOUBLE,"CRVAL2",&vSITELAT,"deg/pix",&status))
+        if(fits_write_key(fptr,TDOUBLE,"CRVAL2",&kSITELAT,"deg/pix",&status))
             printerror( status );
 
         //XPIXEL
-        if(fits_write_key(fptr,TDOUBLE,"XPIXEL",&vXPIXEL,"in micro meter",&status))
+        if(fits_write_key(fptr,TDOUBLE,"XPIXEL",&kXPIXEL,"in micro meter",&status))
             printerror( status );
 
         //YPIXEL
-        if(fits_write_key(fptr,TDOUBLE,"YPIXEL",&vYPIXEL,"in micro meter",&status))
+        if(fits_write_key(fptr,TDOUBLE,"YPIXEL",&kYPIXEL,"in micro meter",&status))
             printerror( status );
 
         // close the file
@@ -619,7 +528,6 @@ bool Fits2D::writeimage( Mat img, int bitDepth,string nb, bool dtANDstation){
 
     return returnValue;
 }
-
 
 bool Fits2D::readFitsToMat(Mat &img, string filePath){
 

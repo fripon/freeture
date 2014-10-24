@@ -1290,6 +1290,12 @@ bool DetByLists::detectionMethodByListManagement(   Frame                   f,
 
     currentFrame.copyTo(copyCurr, mask);
 
+    if(maskMoon && moonPos.x !=0 && moonPos.y !=0){
+
+        circle(copyCurr, moonPos, 60, Scalar(0), CV_FILLED, 8, 0);
+
+    }
+
     //cvtColor(copyCurrWithoutMask, copyCurrWithoutMask, CV_GRAY2BGR);
     cvtColor(currentFrame, currentFrame, CV_GRAY2BGR);
 
@@ -1716,6 +1722,9 @@ bool DetByLists::detectionMethodByListManagement(   Frame                   f,
 
                     if(r.success){
 
+                        //SaveImg::saveBMP(copyCurr,"/home/fripon/data2/moonMask_" + Conversion::intToString(f.getNumFrame()) );
+
+
                         buildRecEvent((*itGE), r.path, listRecEvent, m_listRecEvent);
                         nbDet++;
                         nbSaveGE ++;
@@ -1782,6 +1791,7 @@ bool DetByLists::detectionMethodByListManagement(   Frame                   f,
     BOOST_LOG_SEV(log,notification) << "GE deleted           : " << nbRmGE + nbSaveGE;
 
     BOOST_LOG_SEV(log,notification) << "GE in RAM            : " << listGlobalEvents.size();
+    cout << "GE in RAM            : " << listGlobalEvents.size()<<endl;
     BOOST_LOG_SEV(log,notification) << ">> Manage GE list    : " << tStep4<< " ms";
 
     if(debug){
@@ -1876,12 +1886,12 @@ bool DetByLists::detectionMethodByListManagement(   Frame                   f,
 
         if(videoDebug.isOpened()){
 
-            videoDebug << VIDEO_finalFrame;
+            videoDebug<<VIDEO_finalFrame;
 
         }
 
     }
 
     return rec;
-}
 
+}
