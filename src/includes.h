@@ -24,11 +24,11 @@
 *
 *%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%*/
 
-/*#ifdef    HAVE_CONFIG_H
+#ifdef    HAVE_CONFIG_H
     #include "config.h"
-#else*/
+#else
     #define USE_PYLON
-//#endif
+#endif
 
 //#define _WIN64_
 #define _LINUX_
