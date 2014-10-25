@@ -510,7 +510,7 @@ void    CameraBasler::operator()(){
             compteur++;
 */
 
-            if(listForFits3D.size() < 80){
+            /*if(listForFits3D.size() < 80){
 
 
                 listForFits3D.push_back(f.getImg());
@@ -535,7 +535,7 @@ void    CameraBasler::operator()(){
                     listForFits3D.clear();
 
 
-            }
+            }*/
 
 
 
