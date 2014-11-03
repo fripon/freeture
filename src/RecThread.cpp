@@ -69,7 +69,7 @@ RecThread::RecThread(   string recpath,
 	recTrail                = trail;
 	recShape                = shape;
 	recMapGE                = mapGE;
-
+    mustStop				        =	false;
 	threadStopped           = false;
 
 }
