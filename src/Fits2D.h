@@ -67,81 +67,15 @@ class Fits2D : public Fits{
 
 		string savedFitsPath;
 
-		//Keywords values
-		/*string vFILENAME;
-		double vEXPOSURE;
-		string vTELESCOP;
-		string vOBSERVER;
-		string vINSTRUME;
-		string vCAMERA;
-		double vFOCAL;
-		string vFILTER;
-		string vPROGRAM;
-		string vCREATOR;
-		double vAPERTURE;
-		double vXPIXEL;
-		double vYPIXEL;
-		double vSITELONG;
-		double vSITELAT;
-		double vSITEELEV;
-		int    vGAINDB;
-		string vCENTAZ;
-		string vCENTALT;
-		string vCENTOR;
-		int    vCRPIX1;
-		int    vCRPIX2;
-		double vK1;
-		double vK2;
-		string vCOMMENT;
-		double vCD1_1;
-		double vCD1_2;
-		double vCD2_1;
-		double vCD2_2;
-		int    vOBSMODE;
-		string vDATEOBS;
-		double vSATURATE;
-		double vONTIME;
-		string vRADESYS;
-		double vEQUINOX;
-		string vCTYPE1;
-		string vCTYPE2;
-		int vELAPTIME;
-		double CRVAL2;
-		double vCRVAL1;*/
-
-
-
 	public:
 
-		            Fits2D                      (string recPath,
-                                                 /*int    ontime,
-                                                 string dateObs,
-                                                 int    elaptime,
-                                                 int    fps,
-                                                 double saturate,
-                                                 double exposure,
-                                                 int    gain,
-                                                 double sideralTime,*/
-                                                 const Fits & f):Fits(f), savedFitsPath(recPath){};/*
-                                                 f.kONTIME(ontime / fps),
-                                                 f.kDATEOBS(dateObs),
-                                                 f.kELAPTIME(elaptime),
-                                                 f.kCRVAL1(sideralTime),
-                                                 f.kCTYPE2("DEC--ARC"),
-                                                 f.kCTYPE1("RA---ARC"),
-                                                 f.kEQUINOX(2000.0),
-                                                 f.kRADESYS("ICRS"),
-                                                 f.kSATURATE(saturate),
-                                                 f.kOBSMODE(fps),
-                                                 f.kGAINDB(gain),
-                                                 f.kEXPOSURE(exposure * 1e-6){} ;*/
+		            Fits2D                      (string recPath, const Fits & f):Fits(f), savedFitsPath(recPath){};
 
                     Fits2D();
 
 		            ~Fits2D                     (void);
 
-		bool        writeimage                  (Mat img,
-                                                 int bitDepth, string nb, bool dtANDstation);
+		bool        writeimage                  (Mat img, int bitDepth, string nb, bool dtANDstation);
 
 		void        printerror                  (int status);
 

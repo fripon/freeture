@@ -109,7 +109,7 @@ Mat buildMeteorTrail( GlobalEvent &ev, int h, int w, bool originalIntensity){
 
 }
 
-vector<PixelEvent> createListPixSupThreshold(Mat &frame, const int *roiSize,Point framePixPos ){
+vector<PixelEvent> createListPixSupThreshold(Mat &frame, const int *roiSize,Point framePixPos){
 
     src::severity_logger< severity_level > log;
 
@@ -117,7 +117,7 @@ vector<PixelEvent> createListPixSupThreshold(Mat &frame, const int *roiSize,Poin
     Mat roi;
      vector<PixelEvent> listPix;
 
-    //if(pixelFormat == 8){
+   // if(pixelFormat == 8){
 
         unsigned char * ptr;
 
@@ -144,48 +144,34 @@ vector<PixelEvent> createListPixSupThreshold(Mat &frame, const int *roiSize,Poin
 
       //  cout << "Nb Pix > seuil in ROI : "<<listPixSupThresh.size()<<endl;
 
-   /* }else{
+  /*  }else{
+
 
         unsigned short * ptr;
-        unsigned short * ptr2;
 
-        //BOOST_LOG_SEV(log,notification) << " framePos.x : " << framePos.x-roiSize[0]/2 ;
-        //BOOST_LOG_SEV(log,notification) << " framePos.y : " << framePos.y-roiSize[1]/2 ;
-        //BOOST_LOG_SEV(log,notification) << " roiSize[0]: " << roiSize[0] ;
-        //BOOST_LOG_SEV(log,notification) << " roiSize[1] : " << roiSize[1] ;
-        // roi extraction from diffF
-        diffMat(Rect(framePos.x-roiSize[0]/2,framePos.y-roiSize[1]/2,roiSize[0],roiSize[1])).copyTo(roi);
-        prevFrame(Rect(framePos.x-roiSize[0]/2,framePos.y-roiSize[1]/2,roiSize[0],roiSize[1])).copyTo(prev);
-
-        // list of pixels (inside roi) positions which have a value > sigma
-
+        frame(Rect(framePixPos.x-roiSize[0]/2,framePixPos.y-roiSize[1]/2,roiSize[0],roiSize[1])).copyTo(roi);
 
         // loop roi
         for(int i = 0; i < roi.rows; i++){
 
             ptr = roi.ptr<unsigned short>(i);
-            ptr2 = prev.ptr<unsigned short>(i);
 
 
             for(int j = 0; j < roi.cols; j++){
 
-                if((int)ptr[j] > (int)ptr2[j]){
+                if(ptr[j] > 0){
 
-                    if(((int)ptr[j] - (int)ptr2[j]) > threshold){
+                    PixelEvent *pix = new PixelEvent(roiPositionToFramePosition(Point(j, i), Point(roiSize[0]/2, roiSize[1]/2), framePixPos), ptr[j]);
 
-                        PixelEvent *pix = new PixelEvent(roiPositionToFramePosition(Point(j, i), Point(roiSize[0]/2, roiSize[1]/2), framePos), (int)ptr[j]);
-                       // cout << "val: "<<(int)ptr[j]<<endl;
-                        listPixSupThresh.push_back(*pix);
-                    }
+                    listPix.push_back(*pix);
+
                 }
             }
         }
 
-      //  cout << "Nb Pix > seuil in ROI : "<<listPixSupThresh.size()<<endl;
-
     }
-
 */
+
 
 
 
@@ -308,178 +294,105 @@ evPathRes buildRecEventLocation( GlobalEvent &gEvent, string recPath, string sta
     functReturn.path = "";
     functReturn.success = false;
 
-    /*int month   = gEvent.getDate().at(1);
-    int day     = gEvent.getDate().at(2);
-    int hours   = gEvent.getDate().at(3);
-    int minutes = gEvent.getDate().at(4);
-    int seconds = gEvent.getDate().at(5);
-
-    string MM = Conversion::intToString(month);
-    string DD = Conversion::intToString(day);
-    string HH = Conversion::intToString(hours);
-    string mm = Conversion::intToString(minutes);
-    string SS = Conversion::intToString(seconds);
-
-    int n = month, nbDigit = 0;
-    while(n!=0){    n/=10;    ++nbDigit;}
-    if(nbDigit == 1 || month == 0)
-        MM = "0" + MM;
-
-    n = day; nbDigit = 0;
-    while(n!=0){    n/=10;    ++nbDigit;}
-    if(nbDigit == 1 || day == 0)
-        DD = "0" + DD;
-
-    n = hours; nbDigit = 0;
-    while(n!=0){    n/=10;    ++nbDigit;}
-    if(nbDigit == 1 || hours == 0)
-        HH = "0" + HH;
-
-    n = minutes; nbDigit = 0;
-    while(n!=0){    n/=10;    ++nbDigit;}
-    if(nbDigit == 1 || minutes == 0)
-        mm = "0" + mm;
-
-    n = seconds; nbDigit = 0;
-    while(n!=0){    n/=10;    ++nbDigit;}
-    if(nbDigit == 1 || seconds == 0)
-        SS = "0" + SS;*/
-
     //STATION_AAMMDD
     string root = recPath + stationName + "_" + gEvent.getDate().at(0) + gEvent.getDate().at(1) + gEvent.getDate().at(2) +"/";
 
     //event
     string sub0 = "events/";
 
-    //HH_UT
-    string sub1 = gEvent.getDate().at(3) + "_UT/";
-
     //STATION_AAAAMMDD_HHMMSS_UT_version
-    string sub2 = stationName + "_" + gEvent.getDate().at(0)
+    string sub1 = stationName + "_" + gEvent.getDate().at(0)
                                            + gEvent.getDate().at(1)
                                            + gEvent.getDate().at(2) + "_"
                                            + gEvent.getDate().at(3)
                                            + gEvent.getDate().at(4)
                                            + gEvent.getDate().at(5) + "_UT-"
                                            + Conversion::intToString(0) + "/";
+    //Data location/
     path p(recPath);
 
+    //Data location/ + STATION_AAMMDD/
     path p0(root);
 
+    //Data location/ + STATION_AAMMDD/ + events/
     string path1 = root + sub0;
     path p1(path1);
 
+    //Data location/ + STATION_AAMMDD/ + events/ + STATION_AAAAMMDD_HHMMSS_UT_version/
     string path2 = root + sub0 + sub1;
     path p2(path2);
 
-    string path3 = root + sub0 + sub1 + sub2;
-    path p3(path3);
-
-
+    //If Data location exists
     if(fs::exists(p)){
 
+        //If Data location/ + STATION_AAMMDD/ already exists
         if(fs::exists(p0)){
 
-            //std::cout << "Destination directory " << p0.string() << " already exists." << '\n';
             BOOST_LOG_SEV(log,notification) << "Destination directory " << p0.string() << " already exists.";
 
+            //If Data location/ + STATION_AAMMDD/ + events/  already exists
             if(fs::exists(p1)){
 
-                //std::cout << "Destination directory " << p1.string() << " already exists." << '\n';
                 BOOST_LOG_SEV(log,notification) << "Destination directory " << p1.string() << " already exists.";
 
                 if(fs::exists(p2)){
 
-                    //std::cout << "Destination directory " << p2.string() << " already exists." << '\n';
                     BOOST_LOG_SEV(log,notification) << "Destination directory " << p2.string() << " already exists.";
 
-                    if(fs::exists(p3)){
+                    bool createFlag = false;
+                    int version = 0;
 
-                        //std::cout << "Destination directory " << p3.string() << " already exists." << '\n';
-                        BOOST_LOG_SEV(log,notification) << "Destination directory " << p3.string() << " already exists.";
+                    string finalPath = "";
 
-                        bool createFlag = false;
-                        int version = 0;
+                    do{
 
-                        string finalPath = "";
-
-                        do{
-
-                            finalPath = path2 + stationName + "_" + gEvent.getDate().at(0)
-                                                       + gEvent.getDate().at(1)
-                                                       + gEvent.getDate().at(2) + "_"
-                                                       + gEvent.getDate().at(3)
-                                                       + gEvent.getDate().at(4)
-                                                       + gEvent.getDate().at(5) + "_UT-"
-                                                       + Conversion::intToString(version) + "/";
-                            path p5(finalPath);
-
-                            // Create the destination directory
-                            if(!fs::create_directory(p5)){
-
-                                //std::cerr << "Unable to create destination directory" << p5.string() << '\n';
-                                BOOST_LOG_SEV(log,notification) << "Unable to create destination directory" << p5.string();
-                                version ++;
-
-                            }else{
-                                //std::cout << "Success to create directory : " << p5.string() << '\n';
-                                BOOST_LOG_SEV(log,notification) << "Success to create directory : " << p5.string() ;
-                                createFlag = true;
-
-                            }
-
-                        }while(!createFlag);
-
-                        if(createFlag){
-
-                            functReturn.success = true;
-                            functReturn.path = finalPath;
-                            return functReturn;
-
-                        }
-
-                    }else{
+                        finalPath = path2 + stationName + "_" + gEvent.getDate().at(0)
+                                                   + gEvent.getDate().at(1)
+                                                   + gEvent.getDate().at(2) + "_"
+                                                   + gEvent.getDate().at(3)
+                                                   + gEvent.getDate().at(4)
+                                                   + gEvent.getDate().at(5) + "_UT-"
+                                                   + Conversion::intToString(version) + "/";
+                        path p5(finalPath);
 
                         // Create the destination directory
-                        if(!fs::create_directory(p3)){
+                        if(!fs::create_directory(p5)){
 
-                            //std::cerr << "Unable to create destination directory" << p3.string() << '\n';
-                            BOOST_LOG_SEV(log,notification) << "Unable to create destination directory" << p3.string();
-                            return functReturn;
+                            //std::cerr << "Unable to create destination directory" << p5.string() << '\n';
+                            BOOST_LOG_SEV(log,notification) << "Unable to create destination directory" << p5.string();
+                            version ++;
 
                         }else{
+                            //std::cout << "Success to create directory : " << p5.string() << '\n';
+                            BOOST_LOG_SEV(log,notification) << "Success to create directory : " << p5.string() ;
+                            createFlag = true;
 
-                            functReturn.success = true;
-                            functReturn.path = path3;
-                            return functReturn;
                         }
+
+                    }while(!createFlag);
+
+                    if(createFlag){
+
+                        functReturn.success = true;
+                        functReturn.path = finalPath;
+                        return functReturn;
+
                     }
 
                 }else{
 
-                    // Create the destination directory
                     if(!fs::create_directory(p2)){
 
-                        //std::cerr << "Unable to create destination directory" << p2.string() << '\n';
                         BOOST_LOG_SEV(log,notification) << "Unable to create destination directory" << p2.string();
                         return functReturn;
 
-
                     }else{
 
-                        if(!fs::create_directory(p3)){
-
-                            //std::cerr << "Unable to create destination directory" << p3.string() << '\n';
-                            BOOST_LOG_SEV(log,notification) << "Unable to create destination directory" << p3.string();
-                            return functReturn;
-
-                        }else{
-
-                            functReturn.success = true;
-                            functReturn.path = path3;
-                            return functReturn;
-                        }
+                        functReturn.success = true;
+                        functReturn.path = path2;
+                        return functReturn;
                     }
+
                 }
 
             }else{
@@ -494,26 +407,18 @@ evPathRes buildRecEventLocation( GlobalEvent &gEvent, string recPath, string sta
 
                     // Create the destination directory
                     if(!fs::create_directory(p2)){
-                        //std::cerr << "Unable to create destination directory" << p2.string() << '\n';
+                        //std::cerr << "Unable to create destination directory" << p3.string() << '\n';
                         BOOST_LOG_SEV(log,notification) << "Unable to create destination directory" << p2.string();
                         return functReturn;
 
                     }else{
 
-                        // Create the destination directory
-                        if(!fs::create_directory(p3)){
-                            //std::cerr << "Unable to create destination directory" << p3.string() << '\n';
-                            BOOST_LOG_SEV(log,notification) << "Unable to create destination directory" << p3.string();
-                            return functReturn;
+                        functReturn.success = true;
+                        functReturn.path = path2;
+                        return functReturn;
 
-                        }else{
-
-                            functReturn.success = true;
-                            functReturn.path = path3;
-                            return functReturn;
-
-                        }
                     }
+
                 }
             }
 
@@ -536,29 +441,20 @@ evPathRes buildRecEventLocation( GlobalEvent &gEvent, string recPath, string sta
 
                 }else{
 
-                    // Create the destination directory
                     if(!fs::create_directory(p2)){
-                        //std::cerr << "Unable to create destination directory" << p2.string() << '\n';
+                        //std::cerr << "Unable to create destination directory" << p3.string() << '\n';
                         BOOST_LOG_SEV(log,notification) << "Unable to create destination directory" << p2.string();
                         return functReturn;
 
 
                     }else{
 
-                        if(!fs::create_directory(p3)){
-                            //std::cerr << "Unable to create destination directory" << p3.string() << '\n';
-                            BOOST_LOG_SEV(log,notification) << "Unable to create destination directory" << p3.string();
-                            return functReturn;
+                        functReturn.success = true;
+                        functReturn.path = path2;
+                        return functReturn;
 
-
-                        }else{
-
-                            functReturn.success = true;
-                            functReturn.path = path3;
-                            return functReturn;
-
-                        }
                     }
+
                 }
             }
         }
@@ -567,7 +463,6 @@ evPathRes buildRecEventLocation( GlobalEvent &gEvent, string recPath, string sta
 
         if(!fs::create_directory(p)){
 
-            //std::cerr << "Unable to create destination directory" << p.string() << '\n';
             BOOST_LOG_SEV(log,notification) << "Unable to create destination directory" << p.string();
             return functReturn;
 
@@ -576,42 +471,30 @@ evPathRes buildRecEventLocation( GlobalEvent &gEvent, string recPath, string sta
             // Create the destination directory
             if(!fs::create_directory(p0)){
 
-                //std::cerr << "Unable to create destination directory" << p0.string() << '\n';
                 BOOST_LOG_SEV(log,notification) << "Unable to create destination directory" << p0.string();
                 return functReturn;
-
 
             }else{
 
                 if(!fs::create_directory(p1)){
-                    //std::cerr << "Unable to create destination directory" << p1.string() << '\n';
+
                     BOOST_LOG_SEV(log,notification) << "Unable to create destination directory" << p1.string();
                     return functReturn;
 
                 }else{
 
-                    // Create the destination directory
                     if(!fs::create_directory(p2)){
-                        //std::cerr << "Unable to create destination directory" << p2.string() << '\n';
+
                         BOOST_LOG_SEV(log,notification) << "Unable to create destination directory" << p2.string();
                         return functReturn;
 
 
                     }else{
 
-                        if(!fs::create_directory(p3)){
-                            //std::cerr << "Unable to create destination directory" << p3.string() << '\n';
-                            BOOST_LOG_SEV(log,notification) << "Unable to create destination directory" << p3.string();
-                            return functReturn;
+                        functReturn.success = true;
+                        functReturn.path = path2;
+                        return functReturn;
 
-
-                        }else{
-
-                            functReturn.success = true;
-                            functReturn.path = path3;
-                            return functReturn;
-
-                        }
                     }
                 }
             }
@@ -703,7 +586,7 @@ void searchROI( Mat &area,                      //Region where to search ROI
 
     src::severity_logger< severity_level > log;
 
-    if(pixelFormat == 8){
+   // if(pixelFormat == 8){
 
         unsigned char * ptr;
 
@@ -729,19 +612,16 @@ void searchROI( Mat &area,                      //Region where to search ROI
 
                         if(nbPixNonZero > 1){
 
-                            vector<PixelEvent> listPixInRoi = createListPixSupThreshold(frame, roiSize, Point(areaPosition.x + j, areaPosition.y + i));
+                            vector<PixelEvent> listPixInRoi = createListPixSupThreshold(frame, roiSize, Point(areaPosition.x + j, areaPosition.y + i)/*, pixelFormat*/);
 
                             //Get color in ROI's eventMap
                             vector<Scalar> listColorInRoi = getColorInEventMap(eventMap, Point(areaPosition.x + j, areaPosition.y + i), roiSize );
-
-
-
-
 
                             if(listColorInRoi.size() == 1){
 
                                 // If there is an other color than black
                                 if( listColorInRoi.at(0).val[0]!=0 || listColorInRoi.at(0).val[1] != 0 || listColorInRoi.at(0).val[2] != 0 ){
+
 
                                     vector<LocalEvent>::iterator it;
 
@@ -882,6 +762,8 @@ void searchROI( Mat &area,                      //Region where to search ROI
 
                             }else{
 
+
+
                                 vector<LocalEvent>::iterator itRmLE;
 
                                 vector<Scalar>::iterator it2;
@@ -987,179 +869,11 @@ void searchROI( Mat &area,                      //Region where to search ROI
 
                                 }
                             }
-
-
                         }
                     }
                 }
             }
         }
-
-/*
-        vector<LocalEvent>::iterator itRmLE;
-        itRmLE = listLE.begin();
-
-        while ( itRmLE != listLE.end() ){
-
-            // If an existing localEvent matches
-            if( (*itRmLE).listRoiCenter.size() > 10){
-
-
-                itRmLE = listLE.erase(itRmLE);
-
-
-            }else{
-
-                ++itRmLE;
-
-            }
-        }
-*/
-
-
-    }else{
-
-      /*  unsigned short * ptr;
-
-        //height
-        for(int i = 0; i < area.rows; i++){
-
-            ptr = area.ptr<unsigned short>(i);
-
-            //width
-            for(int j = 0; j < area.cols; j++){
-
-                // Current pixel value > threshold
-                if((int)ptr[j] > 0){
-
-                    // Check if ROI is not out of range in the frame
-                    if((areaPosition.y + i - roiSize[1]/2 > 0) && (areaPosition.y + i + roiSize[1]/2 < imgH) && ( areaPosition.x + j-roiSize[0]/2 > 0) && (areaPosition.x + j + roiSize[0]/2 < imgW)){
-
-
-                        vector<PixelEvent> listPixInRoi;
-
-                        if(listPixInRoi.size() > 0 ){
-
-                            //BOOST_LOG_SEV(log,notification) << " Several pixel > threshold";
-
-                            //Get color in ROI's eventMap
-                            Scalar roiColor = getColorInEventMap(eventMap, Point(areaPosition.x + j, areaPosition.y + i), roiSize );
-
-                            // If there is an other color than black
-                            if( roiColor.val[0]!=0 || roiColor.val[1] != 0 || roiColor.val[2] != 0 ){
-
-                                //BOOST_LOG_SEV(log,notification) << " There is an another color than black at position ("<< areaPosition.x + j << ";" << areaPosition.y + i << ") in eventMap --> " << roiColor;
-
-                                vector<LocalEvent>::iterator it;
-
-                                for (it=listLE.begin(); it!=listLE.end(); ++it){
-
-                                    // If an existing localEvent matches
-                                    if((*it).getColor() == roiColor){
-
-                                        // Merge localEvents
-                                       (*it).listRoiCenter.push_back(Point(areaPosition.x + j, areaPosition.y + i));
-
-                                        Mat tempMat = (*it).getMap();
-
-                                        Mat roiTemp(roiSize[1],roiSize[0],CV_8UC1,Scalar(255));
-
-                                        roiTemp.copyTo(tempMat(Rect(areaPosition.x + j - roiSize[0]/2, areaPosition.y + i - roiSize[1]/2, roiSize[0], roiSize[1])));
-
-                                        (*it).setMap(tempMat);
-
-                                        // Update center of mass
-                                        (*it).computeCenterOfMass(false);
-
-                                    }
-                                }
-
-                               // Color eventdMap's ROI with the color
-                               Mat roi(roiSize[1],roiSize[0],CV_8UC3,roiColor);
-                               roi.copyTo(eventMap(Rect( areaPosition.x + j-roiSize[0]/2, areaPosition.y + i-roiSize[1]/2,roiSize[0],roiSize[1])));
-
-                            }else{
-
-                                //BOOST_LOG_SEV(log,notification) << "Create new localEvent";
-
-                                // Compute new color group
-                                if(groupColor.val[0] + 10 <= 250){
-
-                                    groupColor.val[0] += 10;  // B
-
-                                }else if(groupColor.val[1]  + 10 <= 250){
-
-                                    groupColor.val[1] += 10;  // G
-
-                                }else if(groupColor.val[2] + 10 <= 250){
-
-                                    groupColor.val[2] += 10;  // R
-
-                                }
-
-                                //vector<PixelEvent>  listPixInRoi = createListPixSupThreshold(threshold, roiSize, Point(areaPosition.x + j, areaPosition.y + i), frame,prevFrame);
-
-                                // Create new localEvent object
-                                LocalEvent newLocalEvent(groupColor, Point(areaPosition.x + j, areaPosition.y + i), listPixInRoi, imgH, imgW, roiSize);
-
-                                newLocalEvent.computeCenterOfMass(false);
-
-                                // And add it in the list of localEvent
-                                listLE.push_back(newLocalEvent);
-
-                                // Update eventMap with the color of the new localEvent group
-                                //BOOST_LOG_SEV(log,notification) << " Update eventMap";
-                                Mat roi(roiSize[1], roiSize[0], CV_8UC3, groupColor);
-                                roi.copyTo(eventMap(Rect( areaPosition.x + j-roiSize[0]/2, areaPosition.y + i-roiSize[1]/2,roiSize[0],roiSize[1])));
-
-                            }
-                            //BOOST_LOG_SEV(log,notification) << " Prepare to color in black";
-                            int height = roiSize[1];
-                            int width = roiSize[0];
-                            int posX = j - roiSize[0]/2;
-                            int posY = i - roiSize[1]/2;
-
-                            if(j - roiSize[0]/2 < 0){
-
-                                width = j + roiSize[0]/2;
-                                posX = 0;
-
-                            }else if(j + roiSize[0]/2 > areaPosX){
-
-                                width = areaPosX - j + roiSize[0]/2;
-
-                            }
-
-                            if(i - roiSize[1]/2 < 0){
-
-                                height = i + roiSize[1];
-                                posY = 0;
-
-
-                            }else if(i + roiSize[1]/2 > areaPosY){
-
-                                height = areaPosY - i + roiSize[0]/2;
-
-                            }
-
-                            //BOOST_LOG_SEV(log,notification) << " Color in black region";
-
-                            Mat roiBlackRegion(height,width,CV_16UC1,Scalar(0));
-                            roiBlackRegion.copyTo(area(Rect(posX, posY, width, height)));
-
-                            //BOOST_LOG_SEV(log,notification) << " Color in black diff";
-                            Mat roiBlack(roiSize[1],roiSize[0],CV_16UC1,Scalar(0));
-                            roiBlack.copyTo(frame(Rect( areaPosition.x + j-roiSize[0]/2, areaPosition.y + i-roiSize[1]/2,roiSize[0],roiSize[1])));
-
-                        }
-
-                    }
-                }
-            }
-        }*/
-
-    }
-
 }
 
 void DetByLists::buildListSubdivisionOriginPoints(vector<Point> &listSubdivPosition, int nbSubdivOnAxis, int imgH, int imgW){
@@ -1237,7 +951,7 @@ bool DetByLists::detectionMethodByListManagement(   Frame                   f,
                                                     Mat                     mean,
                                                     int const               *roiSize,
                                                     vector <GlobalEvent>    &listGlobalEvents,
-                                                    Mat                     &mask,
+                                                    Mat                     mask,
                                                     boost::mutex            &m_listRecEvent,
                                                     boost::mutex            &mutexQueue,
                                                     vector<RecEvent>        &listRecEvent,
@@ -1276,7 +990,7 @@ bool DetByLists::detectionMethodByListManagement(   Frame                   f,
     //Iterator on list of regions
     vector<Point>::iterator itR;
 
-    Mat diff, copyCurr, copyCurrWithoutMask, copyMapThreshold;
+    Mat diff, copyCurr, copyCurrWithoutMask;
 
     Mat VIDEO_finalFrame;
     Mat VIDEO_originalFrame;
@@ -1290,11 +1004,11 @@ bool DetByLists::detectionMethodByListManagement(   Frame                   f,
 
     currentFrame.copyTo(copyCurr, mask);
 
-    if(maskMoon && moonPos.x !=0 && moonPos.y !=0){
+    /*if(maskMoon && moonPos.x !=0 && moonPos.y !=0){
 
         circle(copyCurr, moonPos, 60, Scalar(0), CV_FILLED, 8, 0);
 
-    }
+    }*/
 
     //cvtColor(copyCurrWithoutMask, copyCurrWithoutMask, CV_GRAY2BGR);
     cvtColor(currentFrame, currentFrame, CV_GRAY2BGR);
@@ -1316,9 +1030,20 @@ bool DetByLists::detectionMethodByListManagement(   Frame                   f,
 
     mean.copyTo(mean, mask);
 
-    Mat mapThreshold = Mat(imgH,imgW, CV_8UC1,Scalar(0));
+    Mat mapThreshold, copyMapThreshold;
 
-    //Absolute difference between current and previous mean frame to remove static objects
+    if(downsample){
+
+        imgH = imgH/2;
+        imgW = imgW/2;
+
+        pyrDown( copyCurr, copyCurr, Size( copyCurr.cols/2, copyCurr.rows/2 ) );
+        pyrDown( mean, mean, Size( mean.cols/2, mean.rows/2 ) );
+        pyrDown( mask, mask, Size( mask.cols/2, mask.rows/2 ) );
+
+    }
+
+    mapThreshold = Mat(imgH,imgW, CV_8UC1,Scalar(0));
     absdiff(copyCurr, mean, diff);
 
     //Eliminate negative pixels
@@ -1329,14 +1054,14 @@ bool DetByLists::detectionMethodByListManagement(   Frame                   f,
         unsigned short * ptrDiff;
 
         //height
-        for(int i = 0; i < copyCurr.rows; i++){
+        for(int i = 0; i < imgH; i++){
 
             ptrCurr = copyCurr.ptr<unsigned short>(i);
             ptrPrev = mean.ptr<unsigned short>(i);
             ptrDiff = diff.ptr<unsigned short>(i);
 
             //width
-            for(int j = 0; j < copyCurr.cols; j++){
+            for(int j = 0; j < imgW; j++){
 
                 if((ptrCurr[j] - ptrPrev[j]) < 0){
 
@@ -1347,21 +1072,26 @@ bool DetByLists::detectionMethodByListManagement(   Frame                   f,
             }
         }
 
+        diff = Conversion::convertTo8UC1(diff);
+        maskNeighborhood = Conversion::convertTo8UC1(maskNeighborhood);
+
     }else if(pixelFormat == 8){
+
+
 
         unsigned char * ptrCurr;
         unsigned char * ptrPrev;
         unsigned char * ptrDiff;
 
         //height
-        for(int i = 0; i < copyCurr.rows; i++){
+        for(int i = 0; i < imgH; i++){
 
             ptrCurr = copyCurr.ptr<unsigned char>(i);
             ptrPrev = mean.ptr<unsigned char>(i);
             ptrDiff = diff.ptr<unsigned char>(i);
 
             //width
-            for(int j = 0; j < copyCurr.cols; j++){
+            for(int j = 0; j < imgW; j++){
 
 
                 if((ptrCurr[j] - ptrPrev[j]) < 0){

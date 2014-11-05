@@ -380,8 +380,10 @@ void DetThread::operator ()(){
 
             //%%%%%%%%%%%%%%%% COMPUTE REGION %%%%%%%%%%%%%%%
             if(!computeRegion){
-
-                DetByLists::buildListSubdivisionOriginPoints(listSubdivPosition, 8, currentFrame.rows, currentFrame.cols);
+                if(downsample)
+                    DetByLists::buildListSubdivisionOriginPoints(listSubdivPosition, 8, currentFrame.rows/2, currentFrame.cols/2);
+                else
+                    DetByLists::buildListSubdivisionOriginPoints(listSubdivPosition, 8, currentFrame.rows, currentFrame.cols);
                 computeRegion = true;
 
             }

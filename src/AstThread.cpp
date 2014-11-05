@@ -107,8 +107,6 @@ void AstThread::operator()(){
 	BOOST_LOG_SEV(log, critical) << "\n";
 	BOOST_LOG_SEV(log,notification) << "Astro thread started.";
 
-
-
     bool stop = false;
 
     int totalImgToSummed = exposureTime * 30;
@@ -138,21 +136,11 @@ void AstThread::operator()(){
             gain = 0;
             exposure = 0;
 
-            //BOOST_LOG_SEV(log,notification) << "Thread is sleeping during : "<<capInterval*1000<<" s";
             boost::this_thread::sleep(boost::posix_time::millisec(capInterval*1000));
-
-            //sleep(capInterval);
-            //auto start = boost::chrono::high_resolution_clock::now();
 
             boost::mutex::scoped_lock lock(*m_mutex_queue);
 
             while (!framesQueue->getFifoIsFull()) condFill->wait(lock);
-
-            cout << framesQueue->getFifoElementAt(0).getDateString().at(0) <<endl;
-
-            cout << framesQueue->getFifoElementAt(0).getDateString().at(1) <<endl;
-
-            cout << framesQueue->getFifoElementAt(0).getDateString().at(2) << endl;
 
             string root = path_ + stationName + "_" + framesQueue->getFifoElementAt(0).getDateString().at(0) + framesQueue->getFifoElementAt(0).getDateString().at(1) + framesQueue->getFifoElementAt(0).getDateString().at(2) +"/";
 

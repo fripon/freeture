@@ -105,7 +105,6 @@ bool ManageFiles::copyDirectory( path const & source, path const & destination){
     return true;
 }
 
-
 bool ManageFiles::removeDirectory(string const & source){
 
     try{

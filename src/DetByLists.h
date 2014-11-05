@@ -79,7 +79,7 @@ class DetByLists{
                                                     Mat mean,
                                                     int const *roiSize,
                                                     vector <GlobalEvent> &listGlobalEvents,
-                                                    Mat &mask,
+                                                    Mat mask,
                                                     boost::mutex &mutex_listEventToRecord,
                                                     boost::mutex &mutexQueue,
                                                     vector<RecEvent> &listEventToRecord,

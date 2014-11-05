@@ -49,6 +49,7 @@
 #include "Conversion.h"
 #include "Fits2D.h"
 #include "ManageFiles.h"
+#include "TimeDate.h"
 
 #include <boost/filesystem.hpp>
 
@@ -162,7 +163,7 @@ int main(int argc, const char ** argv){
 
         int mode  = 0;
         int executionTime   = 0;
-        string configPath   = string(CONFIG_PATH) + "/configuration.cfg"; //"./configuration.cfg"; //
+        string configPath   = "./configuration.cfg"; //string(CONFIG_PATH) + "/configuration.cfg"; //
         string savePath     = "./";
         string device       = "";
         int acqFormat       = 8;
@@ -170,7 +171,7 @@ int main(int argc, const char ** argv){
         bool saveFits2D     = false;
         int gain            = 300;
         int exp             = 100;
-        string version      =  string(PACKAGE_VERSION);  //"1";//;
+        string version      =  "1";//;string(PACKAGE_VERSION);  //
 
         po::store(po::parse_command_line(argc, argv, desc), vm);
 
@@ -229,6 +230,7 @@ int main(int argc, const char ** argv){
         double  longitude               = 0.0;
         int     acqInitialExposure	    = 0;
         int     acqInitialGain		    = 0;
+        bool    saveConfigFileCopy      = false;
 
         /****************************************************************
         *************** MODE 1 : LIST CONNECTED CAMERAS *****************
@@ -770,6 +772,12 @@ int main(int argc, const char ** argv){
 
                         if(inputDevice == "BASLER" || inputDevice == "DMK"){
 
+                            initConfig.Get("saveConfigFileCopy", saveConfigFileCopy);
+                            initConfig.Get("stationName",           stationName);
+
+
+
+
                             #ifdef _WIN64_
                                 BOOST_LOG_SEV(slg, notification) << "This is the process : " << (unsigned long)_getpid();
                             #elif defined _LINUX_
@@ -785,6 +793,110 @@ int main(int argc, const char ** argv){
                             int cptTime = 0;
 
                             while(!sigTermFlag){
+
+                                if(saveConfigFileCopy){
+
+                                    namespace fs = boost::filesystem;
+
+                                    string dateNow = TimeDate::localDateTime(second_clock::universal_time(),"%Y:%m:%d:%H:%M:%S");
+                                    vector<string> dateString;
+
+                                    typedef boost::tokenizer<boost::char_separator<char> > tokenizer;
+                                    boost::char_separator<char> sep(":");
+                                    tokenizer tokens(dateNow, sep);
+
+                                    for (tokenizer::iterator tok_iter = tokens.begin();tok_iter != tokens.end(); ++tok_iter){
+                                        dateString.push_back(*tok_iter);
+                                    }
+
+                                    string root = dataRecordPath + stationName + "_" + dateString.at(0) + dateString.at(1) + dateString.at(2) +"/";
+
+                                    string cFile = root + "configuration.cfg";
+
+                                    cout << cFile << endl;
+
+                                    path p(dataRecordPath);
+
+                                    path p1(root);
+
+                                    path p2(cFile);
+
+                                    if(fs::exists(p)){
+
+                                        if(fs::exists(p1)){
+
+                                            BOOST_LOG_SEV(slg,notification) << "Destination directory " << p1.string() << " already exists.";
+
+                                            if(!fs::exists(p2)){
+
+                                                path p3(configPath);
+
+                                                if(fs::exists(p3)){
+
+                                                    fs::copy_file(p3,p2,copy_option::overwrite_if_exists);
+
+                                                }else{
+
+                                                    //cout << "Failed to copy configuration file : " << p3.string() << " not exists." << endl;
+                                                    BOOST_LOG_SEV(slg,notification) << "Failed to copy configuration file : " << p3.string() << " not exists.";
+
+                                                }
+
+                                            }
+
+                                        }else{
+
+                                            if(!fs::create_directory(p1)){
+
+                                                BOOST_LOG_SEV(slg,notification) << "Unable to create destination directory" << p1.string();
+
+                                            }else{
+
+                                                path p3(configPath);
+
+                                                if(fs::exists(p3)){
+
+                                                    fs::copy_file(p3,p2,copy_option::overwrite_if_exists);
+
+                                                }else{
+
+                                                    cout << "Failed to copy configuration file : " << p3.string() << " not exists." << endl;
+                                                    BOOST_LOG_SEV(slg,notification) << "Failed to copy configuration file : " << p3.string() << " not exists.";
+
+                                                }
+                                            }
+                                        }
+
+                                    }else{
+
+                                        if(!fs::create_directory(p)){
+
+                                            BOOST_LOG_SEV(slg,notification) << "Unable to create destination directory" << p.string();
+
+                                        }else{
+
+                                            if(!fs::create_directory(p1)){
+
+                                                BOOST_LOG_SEV(slg,notification) << "Unable to create destination directory" << p1.string();
+
+                                            }else{
+
+                                                path p3(configPath);
+
+                                                if(fs::exists(p3)){
+
+                                                    fs::copy_file(p3,p2,copy_option::overwrite_if_exists);
+
+                                                }else{
+
+                                                    cout << "Failed to copy configuration file : " << p3.string() << " not exists." << endl;
+                                                    BOOST_LOG_SEV(slg,notification) << "Failed to copy configuration file : " << p3.string() << " not exists.";
+
+                                                }
+                                            }
+                                        }
+                                    }
+                                }
 
                                 #ifdef _WIN64_
                                     Sleep(1000);
