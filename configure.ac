@@ -45,9 +45,8 @@ AC_SUBST(PACKAGER, "Yoan Audureau")
 AC_SUBST(DATE2, "$date2")
 AC_SUBST(DATE3, "$date3")
 
-AC_DEFINE_UNQUOTED([CONFIG_PATH], "$datarootdir/$PACKAGE_TARNAME",[Default PATH of the configuration file]) 
-
 # Include macros
+sinclude(acx_urbi_resolve_dir.m4)
 sinclude(acx_boost.m4)
 sinclude(acx_opencv.m4)
 sinclude(acx_cfitsio.m4)
@@ -127,6 +126,15 @@ AC_ARG_WITH(cfitsio-incdir,
         [AS_HELP_STRING([--with-cfitsio-incdir=<CFITSIO include dir>],
 	[Alternative directory for CFITSIO include files])])
 
+# Provide a special option for the default config file path
+with_cfg_path=$(URBI_RESOLVE_DIR([$datadir]))"/$PACKAGE_NAME/"
+AC_ARG_WITH(cfg_path,
+        [AS_HELP_STRING([--with-cfg_path=<default path for conf file>],
+        [Provide an alternative default path for the configuration file])])
+
+AC_DEFINE_UNQUOTED([CFG_PATH], "$with_cfg_path",[Default path for the configuration file])
+
+
 ################# handle the Pylon library ##################
 if test "$enable_pylon" = "yes"; then
   AC_DEFINE(USE_PYLON, 1, [Pylon activated for Basler cameras])
@@ -194,5 +202,6 @@ AC_CONFIG_FILES([Makefile
 		 INSTALL
                  doc/Makefile
 		 doc/freeture.1
-                 src/Makefile])
+                 src/Makefile
+                 ])
 AC_OUTPUT

@@ -29,8 +29,9 @@
 AUTOMAKE_OPTIONS	= foreign no-dependencies
 SUBDIRS			= doc src
 #dist_pkgdata_DATA	= 
-EXTRA_DIST		= INSTALL.txt acx_boost.m4 acx_cfitsio.m4 \
-			acx_opencv.m4 acx_pylon.m4 bootstrap.sh 
+EXTRA_DIST		= README NEWS INSTALL acx_boost.m4 acx_cfitsio.m4 \
+			acx_opencv.m4 acx_pylon.m4 acx_urbi_resolve_dir.m4 \
+			bootstrap.sh 
 #RPM_ROOTDIR		= `rpmbuild --nobuild -E %_topdir`
 #RPM_SRCDIR		= $(RPM_ROOTDIR)/SOURCES
 #dist-hook:
