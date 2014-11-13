@@ -147,7 +147,7 @@ int main(int argc, const char ** argv){
       ("mode,m",        po::value<int>(),                                                               "Run mode of the program : list connected devices, view configuration file parameters, meteor dectection, single capture")
       ("exectime,t",    po::value<int>(),                                                               "Execution time of the program in seconds")
       ("help,h",                                                                                        "Print help messages")
-      ("config,c",      po::value<string>()->default_value(string(CFG_PATH) + "configuration.cfg"), "Define configuration file's path")
+      ("config,c",      po::value<string>()->default_value(/*"./configuration.cfg"*/string(CFG_PATH) + "configuration.cfg"), "Define configuration file's path")
       ("bitdepth,i",    po::value<int>()->default_value(8),                                             "Bit depth of a frame")
       ("bmp,b",         po::value<bool>()->default_value(false),                                        "Save in .bmp")
       ("fits,f",        po::value<bool>()->default_value(false),                                        "Save in fits2D")
@@ -163,7 +163,7 @@ int main(int argc, const char ** argv){
 
         int mode  = 0;
         int executionTime   = 0;
-        string configPath   = string(CFG_PATH) + "configuration.cfg";
+        string configPath   = /*"./configuration.cfg";*/string(CFG_PATH) + "configuration.cfg";
         string savePath     = "./";
         string device       = "";
         int acqFormat       = 8;
@@ -222,6 +222,7 @@ int main(int argc, const char ** argv){
         bool    detDownsample           = false;
         bool    acqMaskEnable           = false;
         bool	imgCapEnable            = false;
+        bool    detRecSum               = false;
         bool	imgCapGammaCorrEnable;
         bool	imgAstroEnable;
         double	imgCapExpTime;
