@@ -44,6 +44,7 @@
 #include "ManageFiles.h"
 #include "Fits2D.h"
 #include "Fits.h"
+#include <list>
 
 //#include "serialize.h"
 #include <boost/filesystem.hpp>

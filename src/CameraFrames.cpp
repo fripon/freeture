@@ -174,11 +174,13 @@ void CameraFrames::operator () (){
 
                         if(is_regular_file(current2)){
 
+
+
                             //cout<< "FILE : "<<file2->path()<<endl;
 
                             list<string> ch;
 
-                            stringtok(ch,file2->path().c_str(),"_");
+                            stringtok(ch,current2.filename().c_str(),"_");
 
 
                            // list<string> ch2;
@@ -186,7 +188,28 @@ void CameraFrames::operator () (){
 
                             //ch2.pop_back();
 
-                            int v = atoi(ch.back().c_str());
+                            std:list<string>::const_iterator lit(ch.begin()), lend(ch.end());
+                            int i = 0;
+                            int v=0;
+
+                            for(;lit!=lend;++lit){
+
+                                if(i==1){
+
+                                    v = atoi((*lit).c_str());
+                                    break;
+                                }
+
+                                i++;
+
+                                /* std::cout << *lit << ' ';
+                                std::cout << std::endl;*/
+                            }
+
+
+
+                            //int v = atoi(ch.at(1).c_str());
+                           // cout << v <<endl;
 
                            // cout << "------>" << v << endl;
 

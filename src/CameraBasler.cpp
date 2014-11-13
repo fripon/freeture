@@ -341,7 +341,9 @@ void CameraBasler::grabOne(){
         //conversion to 8UC
         }else if(camera->getPixelFormat() == 12){
 
-            Mat res = Conversion::convertTo8UC1(f.getImg());
+            Mat temp = f.getImg();
+            Mat res;
+            /*Mat res = */Conversion::convertTo8UC1(temp).copyTo(res);
 
             if(saveFits){
 
@@ -425,7 +427,7 @@ void    CameraBasler::operator()(){
     int div = 1;
 
     bool saveISS = false;
-    string rep = "";//"ISS_20140925_070111";
+    string rep = "moon1/";//"ISS_20140925_070111";
     //ISS_20140923_052830
 
     int compteur = 0;
@@ -458,9 +460,12 @@ void    CameraBasler::operator()(){
 
             camera->getWidth();
 
-            if(saveISS){
+            if(saveISS && compteur < 9000){
 
                 if(camera->getPixelFormat() != 8){
+
+                     Fits2D newFits("/home/fripon/data2/" + rep +  "/MOON_"+Conversion::intToString(compteur),fitsHeader);
+                    newFits.writeimage(newFrame->getImg(), 16, "0", false );
 /*
                         Fits2D fit("/home/fripon/data/" + rep + "/MOON_"+Conversion::intToString(cpt), 0, "", 0, 30, 4095, 33333.0, 400, 0.0 );
                         fit.loadKeywordsFromConfigFile("/home/fripon/friponProject/friponCapture/configuration.cfg");
@@ -472,6 +477,11 @@ void    CameraBasler::operator()(){
 */
                 }else{
 
+
+
+                     Fits2D newFits("/home/fripon/data2/" + rep +  "/MOON_"+Conversion::intToString(compteur),fitsHeader);
+                    newFits.writeimage(newFrame->getImg(), 8, "0", false );
+
                       /*  Fits2D fit("/home/fripon/data/" + rep +  "/MOON_"+Conversion::intToString(cpt), 0, "", 0, 30, 255, 33333.0, 850, 0.0 );
                         fit.loadKeywordsFromConfigFile("/home/fripon/friponProject/friponCapture/configuration.cfg");
                         fit.writeimage(f.getImg(), 8, "", false );
@@ -480,6 +490,8 @@ void    CameraBasler::operator()(){
                         //temp1cd.convertTo(temp1, CV_8UC1, 255/4095, 0);
                       // SaveImg::saveBMP(temp1,"/home/fripon/data/" + rep +  "/ISS_BMP_" + Conversion::intToString(cpt) );
                 }
+
+                compteur++;
             }
 
 

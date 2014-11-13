@@ -59,7 +59,7 @@ class RecEvent{
 
         void setPositionInBuffer(vector<int> l);
 
-        bool copyFromRecEvent(RecEvent *ev);
+        bool copyFromRecEvent(RecEvent ev);
 
         void setPrevFrames(vector<Frame> prev);
         void setFramesDisk(vector<int> f);
@@ -78,9 +78,17 @@ class RecEvent{
 
         void setBuffer(vector<Mat> b);
         vector<Mat> getBuffer();
+        void setDirMap(Mat dirMap);
+
+        Mat getDirMap();
+
+        void setPrevBuffer(vector<Mat> eventPrevBuffer);
+        vector<Mat> getPrevBuffer();
 
     private:
 
+        vector<Mat> prevBuffer;
+        Mat mapDir;
         vector<Mat> buffer;
         vector<string> dateEv;
         Mat mapEvent;

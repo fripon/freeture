@@ -232,17 +232,16 @@ vector<Scalar> getColorInEventMap(Mat &eventMap, Point framePixPos, const int *r
 
 }
 
-void buildRecEvent( GlobalEvent &gEvent, string recPath, vector<RecEvent> &listRecEvent, boost::mutex &m_listRecEvent){
+void buildRecEvent(GlobalEvent &gEvent, string recPath, vector<RecEvent> &listRecEvent, boost::mutex &m_listRecEvent){
 
-    RecEvent *rec = new RecEvent();
+  //GlobalEvent newGlobalEvent((*itLE),(*itLE).getMap(),date);
+    RecEvent rec = gEvent.extractEventRecInfos();
 
-    gEvent.extractEventRecInfos(*rec);
-
-    rec->setPath(recPath);
+    rec.setPath(recPath);
 
     boost::mutex::scoped_lock lock_listRecEvent(m_listRecEvent);
 
-    listRecEvent.push_back(*rec);
+    listRecEvent.push_back(rec);
 
     lock_listRecEvent.unlock();
 
@@ -992,23 +991,8 @@ bool DetByLists::detectionMethodByListManagement(   Frame                   f,
 
     Mat diff, copyCurr, copyCurrWithoutMask;
 
-    Mat VIDEO_finalFrame;
-    Mat VIDEO_originalFrame;
-    Mat VIDEO_diffFrame;
-    Mat VIDEO_threshMapFrame;
-    Mat VIDEO_eventMapFrame;
-    Mat VIDEO_eventFrame;
-    Mat VIDEO_geMapFrame;
-
     currentFrame.copyTo(copyCurrWithoutMask);
-
     currentFrame.copyTo(copyCurr, mask);
-
-    /*if(maskMoon && moonPos.x !=0 && moonPos.y !=0){
-
-        circle(copyCurr, moonPos, 60, Scalar(0), CV_FILLED, 8, 0);
-
-    }*/
 
     //cvtColor(copyCurrWithoutMask, copyCurrWithoutMask, CV_GRAY2BGR);
     cvtColor(currentFrame, currentFrame, CV_GRAY2BGR);
@@ -1068,12 +1052,11 @@ bool DetByLists::detectionMethodByListManagement(   Frame                   f,
                     ptrDiff[j] = 0;
 
                 }
-
             }
         }
 
-        diff = Conversion::convertTo8UC1(diff);
-        maskNeighborhood = Conversion::convertTo8UC1(maskNeighborhood);
+        Conversion::convertTo8UC1(diff).copyTo(diff);
+        Conversion::convertTo8UC1(maskNeighborhood).copyTo(maskNeighborhood);
 
     }else if(pixelFormat == 8){
 
@@ -1175,8 +1158,6 @@ bool DetByLists::detectionMethodByListManagement(   Frame                   f,
 
     while(itLE != listLocalEvents.end()){
 
-        //On conserve le GE le plus ancien que se link au LE courant
-
         bool LELinked = false;
         bool firstGELinked = false;
         vector<GlobalEvent>::iterator itLink;
@@ -1210,137 +1191,21 @@ bool DetByLists::detectionMethodByListManagement(   Frame                   f,
         }
 
         // ADD LE to the correct GE
-
         if(LELinked){
 
             // Flag utilisé pour setter la propriété de nombre de frame sans qu'un GE ait été attaché à un LE
+            (*itLink).setLELinked(true);
 
-            (*itLink).LELinked = true;
+            if((*itLink).addLE((*itLE))){
 
-            // flash ?
-            if((*itLE).listRoiCenter.size() > 10){
-
-                (*itLink).flash = true;
-
-            }else{
-
-                (*itLink).flash = false;
-            }
-
-            // Vérification de la direction
-            if(sqrt( pow(((*itLE).centerOfMass.x - (*itLink).getA().x),2) + pow(((*itLE).centerOfMass.y - (*itLink).getA().y),2)) > 5 && !(*itLink).flash){
-
-            //if((*itLink).getAge()%4 == 0){
-
-                //Event's vector of the current globalEvent has not been defined
-                if((*itLink).getB().x == 0 && (*itLink).getB().y == 0){
-
-                    (*itLink).nbLEchecked++;
-
-                    //Define the second point
-                    (*itLink).setB((*itLE).centerOfMass);
-
-                    //Compute vector
-                    (*itLink).setvDir(Point((*itLink).getB().x - (*itLink).getA().x, (*itLink).getB().y - (*itLink).getA().y ));
-
-                    //Reset the time (in frames) without that any localEvent has been added to the globalEvent
-                    (*itLink).setAgeLastElem(0);
-
-                    //Update the last position of the event
-                    (*itLink).setLastCoM((*itLE).centerOfMass);
-
-                    //Update event's map
-                    Mat res = (*itLink).getMapEvent() + (*itLE).getMap();
-
-                    (*itLink).setMapEvent(res);
-
-                    //This localEvent's variable is set to true to remember that this localEvent has been attached to a localEvent
-                    (*itLE).belongGlobalEv = true;
-
-                    //Add the current localEvent to the globalEvent's list of localEvent
-                    (*itLink).getListLocalEvent()->push_back((*itLE));
-
-                    nbLink_dir1++;
-
-
-                }else{ // On vérifie que le localEvent soit dans la même direction que le vecteur directeur sinon on ne le prend pas en compte
-
-                    //coordonnées du nouveau point qu'il faut vérifier
-                    Point C = (*itLE).centerOfMass;
-
-                    // récupération du point précédent : point B
-                    Point lastCoM = (*itLink).getLastCoM();
-
-                    //Changement de repère, le point B devient le point A
-                    Point newA = lastCoM;
-
-                    //Recalcul de la position du point B par rapport au vecteur directeur
-                    Point newB = Point(lastCoM.x+(*itLink).getvDir().x, lastCoM.y+(*itLink).getvDir().y);
-
-                    // vecteur AC
-                    Point vAC = Point(C.x-newA.x, C.y-newA.y );
-
-                    // vecteur AB
-                    Point vAB = Point(newB.x-newA.x, newB.y-newA.y );
-
-                    float thetaRad = (vAB.x*vAC.x+vAB.y*vAC.y)/(sqrt(pow(vAB.x,2)+pow(vAB.y,2))*sqrt(pow(vAC.x,2)+pow(vAC.y,2)));
-
-                    float thetaDeg = (180 * acos(thetaRad))/3.14159265358979323846;
-
-                    //cout << "vDir: "<< e.getvDir()<< "Pt A: "<<  newA <<"Pt B: "<< newB   <<"Pt C: "<< C  <<" AB: "<< vAB<<" AC: "<< vAC<<  " ANGLE: "<<thetaDeg<<endl;
-
-                    if(thetaDeg < 45.0 && thetaDeg > -45.0 ){
-
-                        (*itLink).nbLEchecked++;
-
-                        (*itLink).setAgeLastElem(0);
-
-                        //Mise à jour de la map de l'event
-                        Mat res = (*itLink).getMapEvent() + (*itLE).getMap();
-                        (*itLink).setMapEvent(res);
-
-                        (*itLE).belongGlobalEv = true;
-
-
-                        (*itLink).setLastCoM((*itLE).centerOfMass);
-
-                        // Ajout du frameEvent courant à l'évènement qui lui correspond dans listEvent
-                        (*itLink).getListLocalEvent()->push_back((*itLE));
-
-                        nbLink_dir2++;
-
-                    }else{
-
-                        (*itLink).LELinked = false;
-                        (*itLE).notTakeAccount = true;
-
-                    }
-                }
-
-            }else{
-
-                 //Reset the time (in frames) without that any localEvent has been added to the globalEvent
-                (*itLink).setAgeLastElem(0);
-
-                //Update the last position of the event
-                (*itLink).setLastCoM((*itLE).centerOfMass);
-
-                //Update event's map
-                Mat res = (*itLink).getMapEvent() + (*itLE).getMap();
-
-                (*itLink).setMapEvent(res);
-
-                //This localEvent's variable is set to true to remember that this localEvent has been attached to a localEvent
                 (*itLE).belongGlobalEv = true;
 
-                //Add the current localEvent to the globalEvent's list of localEvent
-                (*itLink).getListLocalEvent()->push_back((*itLE));
+            }else{
 
-                nbLink_noDir++;
+                (*itLink).setLELinked(false);
+                (*itLE).notTakeAccount = true;
 
             }
-
-        // LE not linked to existing GE -> Create new GE if maximum instance not reached
 
         }else{
 
@@ -1350,19 +1215,17 @@ bool DetByLists::detectionMethodByListManagement(   Frame                   f,
 
                 cout << "CREATE NEW GLOBAL EVENT" << endl;
 
-                GlobalEvent newGlobalEvent((*itLE),(*itLE).getMap(),date);
+                GlobalEvent newGlobalEvent(date, imgH, imgW, downsample);
 
-                newGlobalEvent.setA((*itLE).centerOfMass);
+                newGlobalEvent.addLE((*itLE));
 
-                newGlobalEvent.setLastCoM((*itLE).centerOfMass);
-
-                if(newGlobalEvent.geBuffer.size() == 0){
+                if(newGlobalEvent.getEvPrevBuffer().size() == 0){
 
                     boost::mutex::scoped_lock lock(mutexQueue);
 
-                    for(int i = framesQueue.getSizeQueue() -1 ; i>=0;i--){
+                    for(int i = framesQueue.getSizeQueue() - 1 ; i>=0; i--){
 
-                        newGlobalEvent.geBuffer.push_back(framesQueue.getFifoElementAt(i).getImg());
+                        newGlobalEvent.setEvPrevBuffer(framesQueue.getFifoElementAt(i).getImg());
 
                     }
 
@@ -1390,27 +1253,27 @@ bool DetByLists::detectionMethodByListManagement(   Frame                   f,
     //Loop globalEvent's list
     for(itGE=listGlobalEvents.begin(); itGE!=listGlobalEvents.end(); ++itGE){
 
-        Mat res = (*itGE).getMapEvent() + geMap;
+        //Mat res = (*itGE).getMapEvent() + geMap;
 
-        res.copyTo(geMap);
+        (*itGE).getMapEvent().copyTo(geMap);
 
 
         (*itGE).setAge((*itGE).getAge() + 1);
 
 
-        if(!(*itGE).LELinked){
+        if(!(*itGE).getLELinked()){
 
             (*itGE).setAgeLastElem((*itGE).getAgeLastElem()+1);
 
         }
 
-        (*itGE).LELinked = false;
+        (*itGE).setLELinked(false);
 
-        if((*itGE).geBuffer.size() != 0){
+      //  if((*itGE).getEvBuffer().size() != 0){
 
-            (*itGE).geBuffer.push_back(copyCurrWithoutMask);
+            (*itGE).setEvBuffer(copyCurrWithoutMask);
 
-        }
+        //}
 
     }
 
@@ -1434,17 +1297,22 @@ bool DetByLists::detectionMethodByListManagement(   Frame                   f,
 
     int trash_cpt = 0;
 
+    cout << "#GE#       Age          AgeLast" << endl;
+
+
     if( listGlobalEvents.size() != 0 ){
 
         itGE = listGlobalEvents.begin();
 
         while ( itGE != listGlobalEvents.end() ){
 
+            cout << "#GE#      "<<(*itGE).getAge()<<"          "<<(*itGE).getAgeLastElem()<< endl;
+
             //No LE added to the current GE for more than 4 frames
-            if( (*itGE).getAgeLastElem() > 20 ){
+            if( (*itGE).getAgeLastElem() > 10 /*|| ((*itGE).getAge() > 500 && (*itGE).getAgeLastElem() > 10)*/ ){
 
                 //Check if the current GE has the minimum required number of LE to considerate it as an event to record
-                if( (*itGE).nbLEchecked/*getListLocalEvent()->size()*/ > 4 ){
+                if( (*itGE).getAvgPos().size()/*getListLocalEvent()->size()*/ > 4 ){
 
                     struct evPathRes r;
 
@@ -1452,25 +1320,20 @@ bool DetByLists::detectionMethodByListManagement(   Frame                   f,
 
                     if(r.success){
 
-                        //SaveImg::saveBMP(copyCurr,"/home/fripon/data2/moonMask_" + Conversion::intToString(f.getNumFrame()) );
-
+                       /* SaveImg::saveBMP((*itGE).getDirMap(),"/home/fripon/data2/dirMask_" + Conversion::intToString(f.getNumFrame()) );
+                        SaveImg::saveBMP((*itGE).getMapEvent(),"/home/fripon/data2/mapEvent_" + Conversion::intToString(f.getNumFrame()) );*/
 
                         buildRecEvent((*itGE), r.path, listRecEvent, m_listRecEvent);
                         nbDet++;
                         nbSaveGE ++;
                         rec = true;
 
-                        if(lastDet.size()< 5){
-
-                           // lastDet.push_back((*itGE).);
-
-                        }
-
-                        itGE = listGlobalEvents.erase(itGE);
-
-                        break;
 
                     }
+
+                    itGE = listGlobalEvents.erase(itGE);
+ //nbRmGE ++;
+                    break;
 
                 }else{
 
@@ -1481,6 +1344,11 @@ bool DetByLists::detectionMethodByListManagement(   Frame                   f,
                     itGE = listGlobalEvents.erase(itGE);
                     nbRmGE ++;
                 }
+
+            }else if((*itGE).getAge() > 400) {
+
+                itGE = listGlobalEvents.erase(itGE);
+                nbRmGE ++;
 
             }else{
 
@@ -1525,6 +1393,14 @@ bool DetByLists::detectionMethodByListManagement(   Frame                   f,
     BOOST_LOG_SEV(log,notification) << ">> Manage GE list    : " << tStep4<< " ms";
 
     if(debug){
+
+        Mat VIDEO_finalFrame;
+        Mat VIDEO_originalFrame;
+        Mat VIDEO_diffFrame;
+        Mat VIDEO_threshMapFrame;
+        Mat VIDEO_eventMapFrame;
+        Mat VIDEO_eventFrame;
+        Mat VIDEO_geMapFrame;
 
        // if(f.getNumFrame() < 200){
 

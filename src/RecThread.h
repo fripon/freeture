@@ -123,7 +123,7 @@ class RecThread{
 		bool recFits2D;
 
         //! Enable to record a file of positions
-		bool recPositionFile;
+		bool recPos;
 
         //! Enable to record bmp for each frame
 		bool recBmp;
@@ -139,6 +139,8 @@ class RecThread{
 
 		//! Enable to record the map of the globalEvent
 		bool recMapGE;
+
+        bool recSum;
 
 		int pixelFormat;
 
@@ -161,6 +163,7 @@ class RecThread{
                     bool avi,
                     bool fits3D,
                     bool fits2D,
+                    bool sum,
                     bool positionFile,
                     bool bmp,
                     bool trail,

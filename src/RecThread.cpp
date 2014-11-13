@@ -48,6 +48,7 @@ RecThread::RecThread(   string recpath,
                         bool avi,
                         bool fits3D,
                         bool fits2D,
+                        bool sum,
                         bool positionFile,
                         bool bmp,
                         bool trail,
@@ -55,7 +56,7 @@ RecThread::RecThread(   string recpath,
                         bool mapGE,
                         Fits fitsHead  ){
 
-    fitsHeader  = fitsHead;
+    fitsHeader              = fitsHead;
     pixelFormat             = pixFormat;
     recPath                 = recpath;
     listEventToRec          = sharedList;
@@ -64,7 +65,8 @@ RecThread::RecThread(   string recpath,
     recAvi                  = avi;
     recFits3D               = fits3D;
     recFits2D               = fits2D;
-	recPositionFile         = positionFile;
+	recPos                  = positionFile;
+	recSum                  = sum;
 	recBmp                  = bmp;
 	recTrail                = trail;
 	recShape                = shape;
@@ -117,6 +119,8 @@ void RecThread::operator () (){
 
     bool stop = false;
 
+    namespace fs = boost::filesystem;
+
     do{
 
         try{
@@ -135,64 +139,23 @@ void RecThread::operator () (){
 
             do{
 
+                BOOST_LOG_SEV(log,notification) << "Number of GE to save : " << listEventToRec->size();
+
+                RecEvent r;
+                vector<Mat> listFrames;
+                vector<Mat> listPrevFrames;
+                vector<Mat>::iterator it2;
+
                 lock.lock();
-
-                BOOST_LOG_SEV(log,notification) << "Number of event to record : " << listEventToRec->size();
-
-                RecEvent *r = new RecEvent();
-
-                r->copyFromRecEvent(&listEventToRec->at(listEventToRec->size()-1));
-
+                r.copyFromRecEvent(listEventToRec->back());
                 listEventToRec->pop_back();
-
                 lock.unlock();
 
-                vector<Mat> listFrames;
+                listFrames = r.getBuffer();
+                listPrevFrames = r.getPrevBuffer();
 
 
-
-                listFrames = r->getBuffer();
-                BOOST_LOG_SEV(log,notification) << "size : "<<r->getBuffer().size();
-                BOOST_LOG_SEV(log,notification) << listFrames.size();
-
-                  BOOST_LOG_SEV(log,notification) << r->getBuffer().at(0).rows;
-                 BOOST_LOG_SEV(log,notification) << r->getBuffer().at(0).cols;
-
-                     BOOST_LOG_SEV(log,notification) << listFrames.at(0).rows;
-                 BOOST_LOG_SEV(log,notification) << listFrames.at(0).cols;
-
-
-
-                /// POSITIONS FILE ///
-
-                BOOST_LOG_SEV(log,notification) << "Build meteor's positions file";
-
-                //Get the list of meteor positions
-                BOOST_LOG_SEV(log,notification) << "Get the list of meteor positions";
-                vector<Point> posEv = r->getListMetPos();
-
-                //Get the list of positions in buffer
-                BOOST_LOG_SEV(log,notification) << "Get the list of positions in buffer";
-                vector <int> posEvBuff = r->getPositionInBuffer();
-
-                ofstream posFile;
-                string posFilePath = r->getPath() + "eventPositions.txt";
-                BOOST_LOG_SEV(log,notification) << "File location : " << posFilePath;
-
-                posFile.open(posFilePath.c_str());
-                posFile << "num_frame (x;y)\n";
-
-                for(int i =0; i<posEv.size(); i++){
-
-                    posFile << posEvBuff.at(posEv.size()- 1 - i) << "         (" << posEv.at(i).x << ";" << posEv.at(i).y<<")\n";
-
-                }
-
-                BOOST_LOG_SEV(log,notification) << "Close positions file";
-
-                posFile.close();
-
-                vector<string> eventDate = r->getDateEvent();
+                vector<string> eventDate = r.getDateEvent();
 
                 string evDate =   eventDate.at(0)
                                 + eventDate.at(1)
@@ -201,11 +164,40 @@ void RecThread::operator () (){
                                 + eventDate.at(4)
                                 + eventDate.at(5);
 
-                BOOST_LOG_SEV(log,notification) << "Load event date : " << evDate;
+                /// %%%%%%%%%%%%%%%% SAVE POSITIONS FILE %%%%%%%%%%%%%%%% ///
 
-                vector<Mat>::iterator it2;
+                if(recPos){
 
-                /// AVI ///
+                    BOOST_LOG_SEV(log,notification) << "Build meteor's positions file";
+
+                    //Get the list of meteor positions
+                    BOOST_LOG_SEV(log,notification) << "Get the list of meteor positions";
+                    vector<Point> posEv = r.getListMetPos();
+
+                    //Get the list of positions in buffer
+                    BOOST_LOG_SEV(log,notification) << "Get the list of positions in buffer";
+                    vector <int> posEvBuff = r.getPositionInBuffer();
+
+                    ofstream posFile;
+                    string posFilePath = r.getPath() + "eventPositions.txt";
+                    BOOST_LOG_SEV(log,notification) << "File location : " << posFilePath;
+
+                    posFile.open(posFilePath.c_str());
+                    posFile << "num_frame (x;y)\n";
+
+                    for(int i =0; i<posEv.size(); i++){
+
+                        posFile << posEvBuff.at(posEv.size()- 1 - i) << "         (" << posEv.at(i).x << ";" << posEv.at(i).y<<")\n";
+
+                    }
+
+                    BOOST_LOG_SEV(log,notification) << "Close positions file";
+
+                    posFile.close();
+
+                }
+
+                /// %%%%%%%%%%%%%%%% SAVE AVI AND/OR BMP %%%%%%%%%%%%%%%% ///
 
                 if(recAvi){
 
@@ -216,7 +208,7 @@ void RecThread::operator () (){
 
                     Size frameSize(static_cast<int>(w), static_cast<int>(h));
 
-                    VideoWriter oVideoWriter(r->getPath() + "video_" +".avi", CV_FOURCC('D', 'I', 'V', 'X'), 30, frameSize, false); //initialize the VideoWriter object
+                    VideoWriter oVideoWriter(r.getPath() + "video_" +".avi", CV_FOURCC('D', 'I', 'V', 'X'), 30, frameSize, false); //initialize the VideoWriter object
 
                     Conversion c;
 
@@ -240,7 +232,7 @@ void RecThread::operator () (){
 
                             string bmpName = "frame_";
 
-                            imwrite(r->getPath() + bmpName + Conversion::intToString(n) + ".bmp", temp1);
+                            imwrite(r.getPath() + bmpName + Conversion::intToString(n) + ".bmp", temp1);
 
                         }
 
@@ -265,112 +257,136 @@ void RecThread::operator () (){
 
                             string bmpName = "frame_";
 
-                            imwrite(r->getPath() + bmpName + Conversion::intToString(n) + ".bmp", temp1);
+                            imwrite(r.getPath() + bmpName + Conversion::intToString(n) + ".bmp", temp1);
 
                             n++;
                         }
                     }
                 }
 
-                /// Fits3D ///
+                /// %%%%%%%%%%%%%%%% SAVE Fits2D %%%%%%%%%%%%%%%% ///
+
+                if(recFits2D){
+
+                    BOOST_LOG_SEV(log,notification) << "START to save fits2D ...";
+
+                    string fits2DPath = r.getPath() + "fits2D/";
+
+                    if(ManageFiles::createDirectory(fits2DPath)){
+
+                        int num = 0;
+
+                        int digits = 0;
+                        int maxx = listPrevFrames.size() + listFrames.size();
+                        cout << "size : " << maxx << endl;
+                        while (maxx) {
+                            maxx/= 10;
+                            digits++;
+                        }
+
+                        for (it2=listPrevFrames.begin(); it2!=listPrevFrames.end(); ++it2){
+
+                            if(pixelFormat == 8){
+
+                                Fits2D newFits(fits2DPath + "f_"+ Conversion::numbering(digits, num) + Conversion::intToString(num) + "_",fitsHeader);
+                                newFits.writeimage((*it2), 8, "0", true );
+
+                            }else{
+
+                                Fits2D newFits(fits2DPath + "f_"+ Conversion::numbering(digits, num) + Conversion::intToString(num) + "_",fitsHeader);
+                                newFits.writeimage((*it2), 16, "0", true );
+                            }
+
+                            num++;
+                        }
+
+
+                        for (it2=listFrames.begin(); it2!=listFrames.end(); ++it2){
+
+                            if(pixelFormat == 8){
+
+                                Fits2D newFits(fits2DPath + "f_"+ Conversion::numbering(digits, num) + Conversion::intToString(num) + "_",fitsHeader);
+                                newFits.writeimage((*it2), 8, "0", true );
+
+                            }else{
+
+                                Fits2D newFits(fits2DPath + "f_"+ Conversion::numbering(digits, num) + Conversion::intToString(num) + "_",fitsHeader);
+                                newFits.writeimage((*it2), 16, "0", true );
+                            }
+
+                            num++;
+                        }
+
+                    }else{
+
+                        BOOST_LOG_SEV(log,notification) << "Can't create fits2D directory in " << r.getPath();
+
+                    }
+
+                    BOOST_LOG_SEV(log,notification) << "END to save fits2D ...";
+
+                }
+
+                /// %%%%%%%%%%%%%%%% SAVE Fits3D %%%%%%%%%%%%%%%% ///
 
                 if(recFits3D){
 
-                    BOOST_LOG_SEV(log,notification) << "START to record fits3D ...";
-                    BOOST_LOG_SEV(log,notification) << listFrames.at(0).rows;
-                    BOOST_LOG_SEV(log,notification) << listFrames.at(0).cols;
-
-
-                    cout << "save fits3S" <<endl;
-
+                    BOOST_LOG_SEV(log,notification) << "START to save fits3D ...";
 
                     Fits3D fitsFile(listFrames.size(), listFrames.at(0).rows, listFrames.at(0).cols, &listFrames);
 
                     if(pixelFormat == 8){
-                        BOOST_LOG_SEV(log,notification) << "fits3D in 8 bits";
-                        fitsFile.writeFits3D_UC(r->getPath() + "fits3D_" + ".fits");
-                    }else{
-                        BOOST_LOG_SEV(log,notification) << "fits3D in 12 bits";
-                        BOOST_LOG_SEV(log,notification) << "fits3D mat type : " << Conversion::matTypeToString(r->getBuffer().at(0).type());
-                        fitsFile.writeFits3D_US(r->getPath() + "fits3D_" + ".fits");
 
-                    BOOST_LOG_SEV(log,notification) << "END to record fits3D ...";
+                        fitsFile.writeFits3D_UC(r.getPath() + "fits3D_" + ".fits");
+
+                    }else{
+
+                        fitsFile.writeFits3D_US(r.getPath() + "fits3D_" + ".fits");
+
                     }
+
+                    BOOST_LOG_SEV(log,notification) << "END to save fits3D ...";
                 }
 
-                /// GEMap ///
+                /// %%%%%%%%%%%%%%%% Save GEMap %%%%%%%%%%%%%%%%///
 
                 if(recMapGE){
 
-                    BOOST_LOG_SEV(log,notification) << "START to record GEMap ...";
+                    BOOST_LOG_SEV(log,notification) << "START to save GEMap ...";
 
                     Mat temp;
 
-                    r->getMapEvent().copyTo(temp);
+                    r.getMapEvent().copyTo(temp);
 
-                    /*string path = r->getPath() + evDate + "_";
+                    SaveImg::saveBMP(temp, r.getPath() + "GEMap_" + evDate);
 
-                    string pathFinal;
-
-                    int v = 0;
-
-                    do{
-
-                        pathFinal = path + Conversion::intToString(v);
-                        v++;
-
-                    }while(boost::filesystem::exists( pathFinal + ".bmp" ) );
-
-                    SaveImg::saveBMP(temp, pathFinal);*/
-
-                    SaveImg::saveBMP(temp, r->getPath() + "GEMap_" + evDate);
-
-                    BOOST_LOG_SEV(log,notification) << "END to record fits3D ...";
+                    BOOST_LOG_SEV(log,notification) << "END to save fits3D ...";
 
                 }
 
-                /// Sum frames ///
-
-                bool recSum = true;
-
+                /// %%%%%%%%%%%%%%%% Save the sum of the event's frames %%%%%%%%%%%%%%%% ///
 
                 if(recSum){
 
-                    BOOST_LOG_SEV(log,notification) << "START to record sum ...";
+                    BOOST_LOG_SEV(log,notification) << "START recSum ...";
 
                     Mat resImg = Mat::zeros(listFrames.at(0).rows,listFrames.at(0).cols, CV_32FC1);
                     Mat img = Mat::zeros(listFrames.at(0).rows,listFrames.at(0).cols,CV_32FC1);
-                     BOOST_LOG_SEV(log,notification) << "start sum...rows: " << listFrames.at(0).rows << " cols : "<< listFrames.at(0).cols;
+
                     for (it2=listFrames.begin(); it2!=listFrames.end(); ++it2){
 
-                        //(*it2).convertTo(img, CV_32FC1);
                         accumulate((*it2),resImg);
 
                     }
 
-                    BOOST_LOG_SEV(log,notification) << "start to save...";
-
-                    Fits2D newFits(r->getPath() + "sum",fitsHeader);
-
+                    Fits2D newFits(r.getPath() + "sum",fitsHeader);
                     newFits.writeimage(resImg, 32, "0", true );
 
-
-                   /* Fits2D fit(r->getPath() + "sum", listFrames.size(), "", 0, 30, 255, 33333.0, 400, 0.0 );
-                    fit.loadKeywordsFromConfigFile("/home/fripon/friponProject/friponCapture/configuration.cfg");
-                    fit.writeimage(resImg, 32, "0" , true);*/
-
-                    /*Mat final8UCsum;
-                    resImg.convertTo(final8UCsum, CV_8UC1, 255, 0);
-                    SaveImg::saveBMP(final8UCsum,r->getPath()+"sum");*/
-
-                    BOOST_LOG_SEV(log,notification) << "END to record sum ...";
+                    BOOST_LOG_SEV(log,notification) << "END recSum ...";
 
                 }
 
-
-
-                if(r!=NULL)
-                    delete r;
+                imwrite(r.getPath() + "dirMap.bmp", r.getDirMap());
 
                 lock.lock();
 
@@ -380,7 +396,6 @@ void RecThread::operator () (){
                     recStatus = false;
 
                 lock.unlock();
-
 
             }while(recStatus);
 

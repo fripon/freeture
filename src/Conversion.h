@@ -53,7 +53,9 @@ class Conversion{
 
         static double roundToNearest(double num);
 
-        static Mat convertTo8UC1(Mat img);
+        static Mat convertTo8UC1(Mat &img);
+
+        static string numbering(int totalDigit, int n);
 
 };
 

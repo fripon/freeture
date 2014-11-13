@@ -22,7 +22,7 @@
 #*	You should have received a copy of the GNU General Public License
 #*	along with FreeTure. If not, see <http://www.gnu.org/licenses/>.
 #*
-#*	Last modified:		20/06/2014
+#*	Last modified:		20/10/2014
 #*
 #*%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%*/
 

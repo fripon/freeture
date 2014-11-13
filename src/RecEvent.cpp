@@ -146,14 +146,40 @@ vector<Frame>  RecEvent::getBufferFileName(){
 
 }
 
-bool RecEvent::copyFromRecEvent(RecEvent *ev){
+bool RecEvent::copyFromRecEvent(RecEvent ev){
 
-    meteorPos       = ev->getListMetPos();
-    posInBuffer     = ev->getPositionInBuffer();
-    path            = ev->getPath();
-    mapEvent        = ev->getMapEvent();
-    dateEv          = ev->getDateEvent();
-    buffer          = ev->getBuffer();
+    meteorPos       = ev.getListMetPos();
+    posInBuffer     = ev.getPositionInBuffer();
+    path            = ev.getPath();
+    mapEvent        = ev.getMapEvent();
+    dateEv          = ev.getDateEvent();
+    buffer          = ev.getBuffer();
+    prevBuffer      = ev.getPrevBuffer();
+    mapDir          = ev.getDirMap();
+
+}
+
+void RecEvent::setPrevBuffer(vector<Mat> eventPrevBuffer){
+
+     prevBuffer = eventPrevBuffer;
+
+}
+
+vector<Mat> RecEvent::getPrevBuffer(){
+
+    return prevBuffer;
+
+}
+
+void RecEvent::setDirMap(Mat dirMap){
+
+     mapDir = dirMap;
+
+}
+
+Mat RecEvent::getDirMap(){
+
+    return mapDir;
 
 }
 

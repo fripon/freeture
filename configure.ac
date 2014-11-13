@@ -32,7 +32,7 @@ define([AC_CACHE_LOAD],)
 define([AC_CACHE_SAVE],)
 
 AC_PREREQ([2.69])
-AC_INIT([freeture], [0.2], [yoan.audureau@u-psud.fr])
+AC_INIT([freeture], [0.1], [yoan.audureau@u-psud.fr])
 AC_CONFIG_SRCDIR([src/main.cpp])
 AC_CONFIG_HEADERS([config.h])
 

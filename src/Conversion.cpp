@@ -112,7 +112,7 @@ template <typename Container> void Conversion::stringTok(Container &container, s
     }
 }
 
-Mat Conversion::convertTo8UC1(Mat img){
+Mat Conversion::convertTo8UC1(Mat &img){
 
     Mat tmp;
     img.copyTo(tmp);
@@ -123,3 +123,44 @@ Mat Conversion::convertTo8UC1(Mat img){
     return tmp;
 
 }
+
+string Conversion::numbering(int totalDigit, int n){
+
+    int cpt = 0;
+
+    int nbZeroToAdd = 0;
+
+    string ch = "";
+
+    if(n<10){
+
+        nbZeroToAdd = totalDigit - 1;
+
+        for(int i = 0; i < nbZeroToAdd; i++){
+
+            ch += "0";
+
+        }
+
+    }else{
+
+        while(n > 0){
+
+            n/=10;
+            cpt ++;
+
+        }
+
+        nbZeroToAdd = totalDigit - cpt;
+
+        for(int i = 0; i < nbZeroToAdd; i++){
+
+            ch += "0";
+
+        }
+
+    }
+
+    return ch;
+}
+

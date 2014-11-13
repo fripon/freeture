@@ -24,9 +24,7 @@ Release notes for x.xx
 How to report bugs
 ==================
 
-Bugs should be reported to the GNOME bug tracking system.
-(http://bugzilla.gnome.org, product gtk+.) You will need to create an
-account for yourself.
+Bugs should be reported to fripon.github.io/freeture
   
 In the bug report please include:
   
@@ -40,19 +38,15 @@ In the bug report please include:
 
 * How to reproduce the bug. 
 
-  If you can reproduce it with one of the tests or demos built with GTK+, 
-  such as demos/gtk-demo/gtk-demo, that would be most convenient. Otherwise, 
-  please include a short test program that exhibits the behavior. As a 
-  last resort, you can also provide a pointer to a larger piece of software 
-  that can be downloaded.
+  Please include the command line and the configuration file that 
+  exhibits the behavior. As a last resort, you can also provide a pointer to a 
+  larger piece of software that can be downloaded.
 
 * If the bug was a crash, the exact text that was printed out when the
   crash occured.
 
 * Further information such as stack traces may be useful, but is not
-  necessary. If you do send a stack trace, and the error is an X error,
-  it will be more useful if the stacktrace is produced running the test
-  program with the --sync command line option.
+  necessary. 
 
 
 Patches

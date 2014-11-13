@@ -713,6 +713,8 @@ int main(int argc, const char ** argv){
 
                                 ///************************* Create record thread **************************\\
 
+                                initConfig.Get("detRecSum", detRecSum);
+
                                 rec = new RecThread(    dataRecordPath,
                                                         &queueEvToRec,
                                                         &m_queueEvToRec,
@@ -721,6 +723,7 @@ int main(int argc, const char ** argv){
                                                         detRecAvi,
                                                         detRecFits3D,
                                                         detRecFits2D,
+                                                        detRecSum,
                                                         detRecPositions,
                                                         detRecBmp,
                                                         detRecTrail,
