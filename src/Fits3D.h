@@ -25,28 +25,35 @@
 *%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%*/
 
 /**
- * @file    Fits3D.h
- * @author  Yoan Audureau -- FRIPON-GEOPS-UPSUD
+ * @file    Fits3D.cpp
+ * @author  Yoan Audureau
  * @version 1.0
- * @date    13/06/2014
+ * @date    01/12/2014
+ * @section DESCRIPTION
+ *
+ * Class used to write fits cube with 8 bits unsigned char or 16 bits unsigned short values.
+ * Keywords for fits cube have to be defined before to write the fits cube.
+ * See settable keywords in the fits class.
  */
-
 
 #pragma once
 
 #include "includes.h"
+
 #ifdef CFITSIO_H
   #include CFITSIO_H
 #else
   #include "fitsio.h"
 #endif
+
 #include "Configuration.h"
 #include "TimeDate.h"
 #include "EnumLog.h"
+#include "Fits.h"
 
 using namespace cv;
 using namespace std;
-//using namespace Basler_GigECameraParams;
+
 using namespace boost::posix_time;
 
 namespace logging	= boost::log;
@@ -58,7 +65,7 @@ namespace keywords	= boost::log::keywords;
 
 using namespace logenum;
 
-class Fits3D{
+class Fits3D : public Fits{
 
     private:
 
@@ -67,15 +74,25 @@ class Fits3D{
         int imgH;
         int imgT;
 
+        fitsfile *fptr;
+        const char * filename;
+
         vector <Mat> *buffer;
 
     public:
 
         Fits3D(int dimT, int dimH, int dimW, vector <Mat> *frames);
         ~Fits3D();
-        bool writeFits3D_UC(string file);
-        bool writeFits3D_US(string file);
-        void printerror( int status);
+
+        bool writeFits3d8uc     (string file);
+        bool writeFits3d16us    (string file);
+
+    private:
+
+        bool    printerror      (int status, string errorMsg);
+		bool    printerror      (string errorMsg);
+		void    printerror      (int status);
+		bool    writeKeywords   ();
 
 };
 

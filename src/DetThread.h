@@ -127,13 +127,9 @@ class DetThread{
 
         bool                        debug;
 
-        bool                        maskMoon;
-
         bool                        downsample;
 
         string                      debugLocation;
-
-        bool                        maskMoonSave;
 
         Fits fitsHeader;
 
@@ -156,8 +152,6 @@ class DetThread{
                      string                     stationName,
                      bool                       detDebug,
                      string                     debugPath,
-                     bool                       detMaskMoon,
-                     bool                       saveMaskedMoon,
                      bool                       detDownsample,
                      Fits fitsHead
                  );

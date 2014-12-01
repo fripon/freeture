@@ -31,17 +31,16 @@
  * @date    03/06/2014
  */
 
-
 #pragma once
 
 #include "includes.h"
 
 using namespace std;
 
-// https://rqchp.ca/?pageId=129
 class Configuration{
 
 	public:
+
 		// clear all values
 		void Clear();
 

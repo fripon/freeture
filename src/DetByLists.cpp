@@ -967,8 +967,7 @@ bool DetByLists::detectionMethodByListManagement(   Frame                   f,
                                                     VideoWriter             &videoDebug,
                                                     bool                    debug,
                                                     vector<Point>           listSubdivPosition,
-                                                    bool                    maskMoon,
-                                                    Point                   moonPos,
+
                                                     bool                    downsample           ){
 
     src::severity_logger< severity_level > log;
@@ -1309,10 +1308,10 @@ bool DetByLists::detectionMethodByListManagement(   Frame                   f,
             cout << "#GE#      "<<(*itGE).getAge()<<"          "<<(*itGE).getAgeLastElem()<< endl;
 
             //No LE added to the current GE for more than 4 frames
-            if( (*itGE).getAgeLastElem() > 10 /*|| ((*itGE).getAge() > 500 && (*itGE).getAgeLastElem() > 10)*/ ){
+            if( (*itGE).getAgeLastElem() > 30 /*|| ((*itGE).getAge() > 500 && (*itGE).getAgeLastElem() > 10)*/ ){
 
                 //Check if the current GE has the minimum required number of LE to considerate it as an event to record
-                if( (*itGE).getAvgPos().size()/*getListLocalEvent()->size()*/ > 4 ){
+                if( (*itGE).getAvgPos().size() > 5 ){//getAvgPos().size()/*
 
                     struct evPathRes r;
 
@@ -1355,11 +1354,11 @@ bool DetByLists::detectionMethodByListManagement(   Frame                   f,
                 ++itGE;
             }
 
-           /* if(f.getFrameRemaining()< 10 && f.getFrameRemaining() != 0){
+          /* if(f.getFrameRemaining()< 10 && f.getFrameRemaining() != 0){
 
-                if( (*itGE).nbLEchecked/*getListLocalEvent()->size()*/ //> 5 ){
+                if( (*itGE).getListLocalEvent()->size() /*getListLocalEvent()->size()*/ /*> 4 ){
 
-                  /*  struct evPathRes r;
+                    struct evPathRes r;
 
                     r = buildRecEventLocation( (*itGE), recPath, stationName );
 

@@ -167,14 +167,11 @@ void GlobalEvent::setLELinked(bool state){
 bool GlobalEvent::addLE(LocalEvent le){
 
     Point center =  le.centerOfMass;
-    cout << "avant : " << center<<endl;
-    cout <<"frameDownSampled: "<< frameDownSampled<<endl;
+
     if(frameDownSampled){
         center.x = center.x*2;
         center.y = center.y*2;
     }
-
-    cout << "apres : " << center<<endl;
 
     if((listLocalEvent.size() + 1)%nbPt == 0){
 
@@ -196,7 +193,7 @@ bool GlobalEvent::addLE(LocalEvent le){
         avPos.push_back(Point(avgX, avgY));
 
         // Check linearity
-        if((avPos.size()+1)>=3){
+        if((avPos.size()+1)>=2){
 
             Point A1 = avPos.at(avPos.size() - 2);
             Point B1 = avPos.at(avPos.size() - 1);

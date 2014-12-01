@@ -33,6 +33,7 @@
 
 #include "SaveImg.h"
 #include "EnumLog.h"
+#include "includes.h"
 
 #ifdef USE_PYLON
 

@@ -96,8 +96,6 @@ class DetByLists{
                                                     VideoWriter &videoDebug,
                                                     bool debug,
                                                     vector<Point> listSubdivPosition,
-                                                    bool maskMoon,
-                                                    Point moonPos,
                                                     bool downsample  );
 
         static void buildListSubdivisionOriginPoints(

@@ -36,6 +36,7 @@
 #include "includes.h"
 #include <boost/filesystem.hpp>
 #include <iterator>
+#include <cerrno>
 #include <algorithm>
 
 using namespace boost::filesystem;
@@ -68,6 +69,9 @@ class ManageFiles{
             \param source location of the new directory
         */
         static bool createDirectory( string const & source );
+
+
+        static string get_file_contents(const char *filename);
 
 
 

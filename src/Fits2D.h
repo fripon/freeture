@@ -20,7 +20,7 @@
 *	You should have received a copy of the GNU General Public License
 *	along with FreeTure. If not, see <http://www.gnu.org/licenses/>.
 *
-*	Last modified:		20/10/2014
+*	Last modified:		28/11/2014
 *
 *%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%*/
 
@@ -28,27 +28,29 @@
  * @file    Fits2D.h
  * @author  Yoan Audureau -- FRIPON-GEOPS-UPSUD
  * @version 1.0
- * @date    13/06/2014
+ * @date    28/11/2014
  */
 
 #pragma once
 
 #include "includes.h"
+
 #ifdef CFITSIO_H
   #include CFITSIO_H
 #else
   #include "fitsio.h"
 #endif
-#include "Configuration.h"
+
 #include "TimeDate.h"
 #include "EnumLog.h"
+#include "EnumBitdepth.h"
 #include "Fits.h"
-//using namespace Pylon;
-//using namespace GenApi;
-using namespace cv;
+#include "Conversion.h"
+
 using namespace std;
-//using namespace Basler_GigECameraParams;
 using namespace boost::posix_time;
+using namespace logenum;
+using namespace bit_depth_enum;
 
 namespace logging	= boost::log;
 namespace sinks		= boost::log::sinks;
@@ -57,32 +59,43 @@ namespace src		= boost::log::sources;
 namespace expr		= boost::log::expressions;
 namespace keywords	= boost::log::keywords;
 
-using namespace logenum;
-
 class Fits2D : public Fits{
 
 	private :
 
 		src::severity_logger< severity_level > log;
 
-		string savedFitsPath;
+		string fitsPath;
+
+        // Pointer to the FITS file, defined in fitsio.h
+		fitsfile *fptr;
+
+		const char * filename;
 
 	public:
 
-		            Fits2D                      (string recPath, const Fits & f):Fits(f), savedFitsPath(recPath){};
+        Fits2D  (string recPath, const Fits & f):
+            fitsPath(recPath), Fits(f){};
 
-                    Fits2D();
+        Fits2D  ();
+        ~Fits2D (void);
 
-		            ~Fits2D                     (void);
+		bool    writeFits   (Mat img, bitdepth imgType,
+                            int nb, bool filenameWithDate);
 
-		bool        writeimage                  (Mat img, int bitDepth, string nb, bool dtANDstation);
+		bool    readFits32F (Mat &img, string filePath);
+		bool    readFits16US(Mat &img, string filePath);
+		bool    readFits16S (Mat &img, string filePath);
+		bool    readFits8UC (Mat &img, string filePath);
+		bool    readFits8C  (Mat &img, string filePath);
 
-		void        printerror                  (int status);
+    private:
 
-		bool        loadKeywordsFromConfigFile  (string configFile);
+        bool    printerror      (int status, string errorMsg);
+		bool    printerror      (string errorMsg);
+		void    printerror      (int status);
+		bool    writeKeywords   ();
 
-		bool        readFitsToMat(Mat &img, string filePath);
-
-};
+    };
 
 

@@ -47,11 +47,11 @@
 #include "EnumLog.h"
 
 //DMK
-#include "glib.h"
+#include "glib.h"/*
 #include "gst/gst.h"
 #include "gst/gstbuffer.h"
 #include "gst/app/gstappsrc.h"
-#include <gst/app/gstappsink.h>
+#include <gst/app/gstappsink.h>*/
 
 namespace logging = boost::log;
 namespace sinks = boost::log::sinks;

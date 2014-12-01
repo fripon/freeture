@@ -123,8 +123,6 @@ void CameraSimu::operator()(){
 
 	namedWindow("MyWindow", CV_WINDOW_AUTOSIZE);
 
-	cout << "here"<<endl;
-
     do{
 
         double tt = (double)getTickCount();

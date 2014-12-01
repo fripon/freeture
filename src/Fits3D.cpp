@@ -20,7 +20,7 @@
 *	You should have received a copy of the GNU General Public License
 *	along with FreeTure. If not, see <http://www.gnu.org/licenses/>.
 *
-*	Last modified:		20/10/2014
+*	Last modified:		01/12/2014
 *
 *%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%*/
 
@@ -28,10 +28,12 @@
  * @file    Fits3D.cpp
  * @author  Yoan Audureau
  * @version 1.0
- * @date    03/06/2014
+ * @date    01/12/2014
  * @section DESCRIPTION
  *
- * The detection class contains all meteor detection methods
+ * Class used to write fits cube with 8 bits unsigned char or 16 bits unsigned short values.
+ * Keywords for fits cube have to be defined before to write the fits cube.
+ * See settable keywords in the fits class.
  */
 
 #include "Fits3D.h"
@@ -48,22 +50,856 @@ Fits3D::Fits3D(int dimT, int dimH, int dimW, vector <Mat> *frames){
 }
 
 Fits3D::~Fits3D(){
-
-
     //dtor
 }
 
-//http://www.great08challenge.info/code/c/read_GREAT08_fits.c
-bool Fits3D::writeFits3D_UC(string file){
+bool Fits3D::writeKeywords(){
 
-    // Pointer to the FITS file
-    fitsfile *fptr;
+    /*
+
+        %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%% FITS 3D Keywords template %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+        1.  SIMPLE      = T                                         / file does conform to FITS standard
+        2.  BITPIX      = 8                                         / number of bits per pixel
+        3.  NAXIS       = 2                                         / number of data axes
+        4.  NAXIS1      = 1280                                      / length of data axis 1
+        5.  NAXIS2      = 960                                       / length of data axis 2
+        6.  EXTEND      = T                                         / FITS dataset may contain extensions
+
+        7.  FILENAME    = 'stationOrsay_YYYYMMJJ_HHMMSS_UT.fits'    / name of the fits file
+        8.  DATE        = 'YYYY-MM-JJT HH:MM:SS.SS'                 / date of the creation of the fits file
+        9.  DATE-OBS    = 'YYYY-MM-JJT HH:MM:SS.SS'                 / acquisition date of the first frame
+        10. OBS_MODE    = SINGLE                                    / observation method to get this fits file 'SINGLE' 'SUM' 'AVERAGE' ('MEDIAN')
+        11. ELAPTIME    = 60                                        / end observation date - start observation date (sec.)
+        12. EXPOSURE    = 0.033                                     / integration time : 1/fps * nb_frames (sec.)
+        13. ONTIME      = 0.033                                     / frame exposure time (sec.)
+        14. FILTER      = "NONE"
+        15. TELESCOP    = "<Code station>"                          / station <stationName>
+        16. OBSERVER    = "<responsable camera>"
+        17. INSTRUME    = 'FRIPON-CAM'
+        18. CAMERA      = 'BASLER 1300gm'
+        19. FOCAL       = 1.25
+        20. APERTURE    = 2.0
+        21. SITELONG    = 2.1794397                                 / longitude observatory
+        22. SITELAT     = 48.7063906                                / latuitude observatory
+        23. SITEELEV    = 90                                        / observatory elevation (meter)
+        24. XPIXEL      = 3.75
+        25. YPIXEL      = 3.75
+        26. GAINDB      = 400                                       / detector gain
+        27. SATURATE    = 4095                                      / saturation value or max value (not saturated) in case where OBS_MODE = SUM
+        28. PROGRAM     = 'FreeTure v0.1'                           / name of the acquisition software
+        29. CREATOR     = 'FRIPON TEAM'                             / http://fripon.org
+        30. BZERO       = 0
+        31. BSCALE      = 1
+        32. RADESYS     = 'ICRS'
+        33. TIMESYS     = 'UTC'
+        34. EQUINOX     = 2.000000000000E+03                        / equinox of equatorial coordinates
+        35. CTYPE1      = 'RA---ARC'                                / projection and reference system
+        36. CTYPE2      = 'DEC--ARC'                                / projection and reference system
+        37. CTYPE3      = 'UTC '                                    / time reference system (pour les 'videos' des detections)
+        38. TIMEUNIT    = 's '
+        39. CD1_1       = 0.0                                       / deg/px
+        40. CD1_2       = 0.17                                      / deg/px
+        41. CD2_1       = 0.17                                      / deg/pix
+        42. CD2_2       = 0.0                                       / deg/pix
+        43. CD3_3       = 30                                        / fps
+        44. CD1_3       = 0.0
+        45. CD2_3       = 0.0
+        46. CD3_1       = 0.0
+        47. CD3_2       = 0.0
+        48. CRPIX1      = 640
+        49. CRPIX2      = 480
+        50. CRPIX3      = 0
+        51. CRVAL1      =                                           / Sidereal time (decimal degree)
+        52. CRVAL2      =                                           / latitude observatory (decimal degree)
+        53. K1          =
+        54. K2          =
+
+    */
+
     int status = 0;
-    long naxis = 3;
-    long naxes[3] = {imgW,imgH,imgT};
-    int size3d = naxes[0] * naxes[1] * naxes[2];
-    long fpixel[3]={1,1,1};
-    int imgSize = imgH*imgW;
+
+    // DELETE DEFAULT COMMENTS.
+
+    if(ffdkey(fptr, "COMMENT", &status))
+       printerror( status );
+
+    if(ffdkey(fptr, "COMMENT", &status))
+       printerror( status );
+
+    /// 7. %%%%%%%%%%%%%%%%%%%%%%%%%%%%% FILENAME %%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+    char * filename = new char[kFILENAME.length()+1];
+    strcpy(filename,kFILENAME.c_str());
+
+    char * cfilename = new char[cFILENAME.length()+1];
+    strcpy(cfilename,cFILENAME.c_str());
+
+    if(fits_write_key(fptr, TSTRING, "FILENAME", filename, cfilename, &status)){
+
+        delete filename;
+        delete cfilename;
+        return printerror(status, "Error fits_write_key(FILENAME)");
+
+    }
+
+    delete cfilename;
+    delete filename;
+
+    /// 8. %%%%%%%%%%%%%%%%%%%%%%%%%%%%% DATE %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+    char * date = new char[kDATE.length()+1];
+    strcpy(date,kDATE.c_str());
+
+    char * cdate = new char[cDATE.length()+1];
+    strcpy(cdate,cDATE.c_str());
+
+    if(fits_write_key(fptr,TSTRING,"DATE",date,cdate,&status)){
+
+        delete date;
+        delete cdate;
+        return printerror(status, "Error fits_write_key(DATE)");
+
+    }
+
+    delete cdate;
+    delete date;
+
+    /// 9. %%%%%%%%%%%%%%%%%%%%%%%%%%%%% DATE-OBS %%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+    char * dateobs = new char[kDATEOBS.length()+1];
+    strcpy(dateobs,kDATEOBS.c_str());
+
+    char * cdateobs = new char[cDATEOBS.length()+1];
+    strcpy(cdateobs,cDATEOBS.c_str());
+
+    if(fits_write_key(fptr,TSTRING,"DATE-OBS",dateobs,cdateobs,&status)){
+
+        delete dateobs;
+        delete cdateobs;
+        return printerror(status, "Error fits_write_key(DATE-OBS)");
+
+    }
+
+    delete cdateobs;
+    delete dateobs;
+
+    /// 10. %%%%%%%%%%%%%%%%%%%%%%%%%%%%% OBS_MODE %%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+    char * cobsmode = new char[cOBSMODE.length()+1];
+    strcpy(cobsmode,cOBSMODE.c_str());
+
+    char * obsmode = new char[kOBSMODE.length()+1];
+    strcpy(obsmode,kOBSMODE.c_str());
+
+    if(fits_write_key(fptr,TSTRING,"OBS_MODE",obsmode,cobsmode,&status)){
+
+        delete cobsmode;
+        delete obsmode;
+        return printerror(status, "Error fits_write_key(OBS_MODE)");
+
+    }
+
+    delete cobsmode;
+    delete obsmode;
+
+    /// 11. %%%%%%%%%%%%%%%%%%%%%%%%%%%%% ELAPTIME %%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+    char * celaptime = new char[cELAPTIME.length()+1];
+    strcpy(celaptime,cELAPTIME.c_str());
+
+    if(fits_write_key(fptr,TINT,"ELAPTIME",&kELAPTIME,celaptime,&status)){
+
+        delete celaptime;
+        return printerror(status, "Error fits_write_key(ELAPTIME)");
+
+    }
+
+    delete celaptime;
+
+    /// 12. %%%%%%%%%%%%%%%%%%%%%%%%%%%%% EXPOSURE %%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+    char * ceposure = new char[cEXPOSURE.length()+1];
+    strcpy(ceposure,cEXPOSURE.c_str());
+
+    if(fits_write_key(fptr,TDOUBLE,"EXPOSURE",&kEXPOSURE,ceposure,&status)){
+
+        delete ceposure;
+        return printerror(status, "Error fits_write_key(EXPOSURE)");
+
+    }
+
+    delete ceposure;
+
+    /// 13. %%%%%%%%%%%%%%%%%%%%%%%%%%%%% ONTIME %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+    char * contime = new char[cONTIME.length()+1];
+    strcpy(contime,cONTIME.c_str());
+
+    if(fits_write_key(fptr,TDOUBLE,"ONTIME",&kONTIME,contime,&status)){
+
+        delete contime;
+        return printerror(status, "Error fits_write_key(ONTIME)");
+
+    }
+
+    delete contime;
+
+
+    /// 14. %%%%%%%%%%%%%%%%%%%%%%%%%%%%% FILTER %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+    char * cfilter = new char[cFILTER.length()+1];
+    strcpy(cfilter,cFILTER.c_str());
+
+    char * f = new char[kFILTER.length()+1];
+    strcpy(f,kFILTER.c_str());
+
+    if(fits_write_key(fptr,TSTRING,"FILTER",f,cfilter,&status)){
+
+        delete cfilter;
+        delete f;
+        return printerror(status, "Error fits_write_key(FILTER)");
+
+    }
+
+    delete cfilter;
+    delete f;
+
+
+    /// 15. %%%%%%%%%%%%%%%%%%%%%%%%%%%%% TELESCOP %%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+    char * ctelescop = new char[cTELESCOP.length()+1];
+    strcpy(ctelescop,cTELESCOP.c_str());
+
+    char * t = new char[kTELESCOP.length()+1];
+    strcpy(t,kTELESCOP.c_str());
+
+    if(fits_write_key(fptr,TSTRING,"TELESCOP",t,ctelescop,&status)){
+
+        delete ctelescop;
+        delete t;
+        return printerror(status, "Error fits_write_key(TELESCOP)");
+
+    }
+
+    delete ctelescop;
+    delete t;
+
+    /// 16. %%%%%%%%%%%%%%%%%%%%%%%%%%%%% OBSERVER %%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+    char * cobserver = new char[cTELESCOP.length()+1];
+    strcpy(cobserver,cTELESCOP.c_str());
+
+    char * o = new char[kOBSERVER.length()+1];
+    strcpy(o,kOBSERVER.c_str());
+
+    if(fits_write_key(fptr,TSTRING,"OBSERVER",o,cobserver,&status)){
+
+        delete cobserver;
+        delete o;
+        return printerror(status, "Error fits_write_key(OBSERVER)");
+
+    }
+
+    delete cobserver;
+    delete o;
+
+    /// 17. %%%%%%%%%%%%%%%%%%%%%%%%%%%%% INSTRUME %%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+    char * cinstrume = new char[cINSTRUME.length()+1];
+    strcpy(cinstrume,cINSTRUME.c_str());
+
+    char * i = new char[kINSTRUME.length()+1];
+    strcpy(i,kINSTRUME.c_str());
+
+    if(fits_write_key(fptr,TSTRING,"INSTRUME",i,cinstrume,&status)){
+
+        delete cinstrume;
+        delete i;
+        return printerror(status, "Error fits_write_key(OBSERVER)");
+
+    }
+
+    delete cinstrume;
+    delete i;
+
+    /// 18. %%%%%%%%%%%%%%%%%%%%%%%%%%%%% CAMERA %%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+    char * ccamera = new char[cCAMERA.length()+1];
+    strcpy(ccamera,cCAMERA.c_str());
+
+    char * cam = new char[kCAMERA.length()+1];
+    strcpy(cam,kCAMERA.c_str());
+
+    if(fits_write_key(fptr,TSTRING,"CAMERA",cam,ccamera,&status)){
+
+        delete ccamera;
+        delete cam;
+        return printerror(status, "Error fits_write_key(CAMERA)");
+
+    }
+
+    delete ccamera;
+    delete cam;
+
+    /// 19. %%%%%%%%%%%%%%%%%%%%%%%%%%%%% FOCAL %%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+    char * cfocal = new char[cFOCAL.length()+1];
+    strcpy(cfocal,cFOCAL.c_str());
+
+    if(fits_write_key(fptr,TDOUBLE,"FOCAL",&kFOCAL,cfocal,&status)){
+
+        delete cfocal;
+        return printerror(status, "Error fits_write_key(FOCAL)");
+
+    }
+
+    delete cfocal;
+
+    /// 20. %%%%%%%%%%%%%%%%%%%%%%%%%%%%% APERTURE %%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+    char * caperture = new char[cAPERTURE.length()+1];
+    strcpy(caperture,cAPERTURE.c_str());
+
+    if(fits_write_key(fptr,TDOUBLE,"APERTURE",&kAPERTURE,"",&status)){
+
+        delete caperture;
+        return printerror(status, "Error fits_write_key(APERTURE)");
+
+    }
+
+    delete caperture;
+
+    /// 21. %%%%%%%%%%%%%%%%%%%%%%%%%%%%% SITELONG %%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+    char * csitelong = new char[cSITELONG.length()+1];
+    strcpy(csitelong,cSITELONG.c_str());
+
+    if(fits_write_key(fptr,TDOUBLE,"SITELONG",&kSITELONG,csitelong,&status)){
+
+        delete csitelong;
+        return printerror(status, "Error fits_write_key(APERTURE)");
+
+    }
+
+    delete csitelong;
+
+    /// 22. %%%%%%%%%%%%%%%%%%%%%%%%%%%%% SITELAT %%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+    char * csitelat = new char[cSITELAT.length()+1];
+    strcpy(csitelat,cSITELAT.c_str());
+
+    if(fits_write_key(fptr,TDOUBLE,"SITELAT",&kSITELAT,csitelat,&status)){
+
+        delete csitelat;
+        return printerror(status, "Error fits_write_key(SITELAT)");
+
+    }
+
+    delete csitelat;
+
+    /// 23. %%%%%%%%%%%%%%%%%%%%%%%%%%%%% SITEELEV %%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+    char * csiteelev = new char[cSITEELEV.length()+1];
+    strcpy(csiteelev,cSITEELEV.c_str());
+
+    if(fits_write_key(fptr,TDOUBLE,"SITEELEV",&kSITEELEV,csiteelev,&status)){
+
+        delete csiteelev;
+        return printerror(status, "Error fits_write_key(SITEELEV)");
+
+    }
+
+    delete csiteelev;
+
+    /// 24. %%%%%%%%%%%%%%%%%%%%%%%%%%%%% XPIXEL %%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+    char * cxpixel = new char[cXPIXEL.length()+1];
+    strcpy(cxpixel,cXPIXEL.c_str());
+
+    if(fits_write_key(fptr,TDOUBLE,"XPIXEL",&kXPIXEL,cxpixel,&status)){
+
+        delete cxpixel;
+        return printerror(status, "Error fits_write_key(XPIXEL)");
+
+    }
+
+    delete cxpixel;
+
+    /// 25. %%%%%%%%%%%%%%%%%%%%%%%%%%%%% YPIXEL %%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+    char * cypixel = new char[cYPIXEL.length()+1];
+    strcpy(cypixel,cYPIXEL.c_str());
+
+    if(fits_write_key(fptr,TDOUBLE,"YPIXEL",&kYPIXEL,cypixel,&status)){
+
+        delete cypixel;
+        return printerror(status, "Error fits_write_key(YPIXEL)");
+
+    }
+
+    delete cypixel;
+
+    /// 26. %%%%%%%%%%%%%%%%%%%%%%%%%%%%% GAINDB %%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+    char * cgaindb = new char[cGAINDB.length()+1];
+    strcpy(cgaindb,cGAINDB.c_str());
+
+    if(fits_write_key(fptr,TINT,"GAINDB",&kGAINDB,cgaindb,&status)){
+
+        delete cgaindb;
+        return printerror(status, "Error fits_write_key(GAINDB)");
+
+    }
+
+    delete cgaindb;
+
+    /// 27. %%%%%%%%%%%%%%%%%%%%%%%%%%%%% SATURATE %%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+    char * csaturate = new char[cSATURATE.length()+1];
+    strcpy(csaturate,cSATURATE.c_str());
+
+    if(fits_write_key(fptr,TDOUBLE,"SATURATE",&kSATURATE,csaturate,&status)){
+
+        delete csaturate;
+        return printerror(status, "Error fits_write_key(SATURATE)");
+
+    }
+
+    delete csaturate;
+
+    /// 28. %%%%%%%%%%%%%%%%%%%%%%%%%%%%% PROGRAM %%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+    char * cprograme = new char[cPROGRAM.length()+1];
+    strcpy(cprograme,cPROGRAM.c_str());
+
+    char * p = new char[kPROGRAM.length()+1];
+    strcpy(p,kPROGRAM.c_str());
+
+    if(fits_write_key(fptr,TSTRING,"PROGRAM",p,cprograme,&status)){
+
+        delete cprograme;
+        delete p;
+        return printerror(status, "Error fits_write_key(PROGRAM)");
+
+    }
+
+    delete cprograme;
+    delete p;
+
+    /// 29. %%%%%%%%%%%%%%%%%%%%%%%%%%%%% CREATOR %%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+    char * ccreator = new char[cCREATOR.length()+1];
+    strcpy(ccreator,cCREATOR.c_str());
+
+    char * c = new char[kCREATOR.length()+1];
+    strcpy(c,kCREATOR.c_str());
+
+    if(fits_write_key(fptr,TSTRING,"CREATOR",c,ccreator,&status)){
+
+        delete ccreator;
+        delete c;
+        return printerror(status, "Error fits_write_key(CREATOR)");
+
+    }
+
+    delete ccreator;
+    delete c;
+
+    /// 30. %%%%%%%%%%%%%%%%%%%%%%%%%%%%% BZERO %%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+    char * cbzero = new char[cBZERO.length()+1];
+    strcpy(cbzero,cBZERO.c_str());
+
+    if(fits_write_key(fptr,TDOUBLE,"BZERO",&kBZERO,cbzero,&status)){
+
+        delete cbzero;
+        return printerror(status, "Error fits_write_key(BZERO)");
+
+    }
+
+    delete cbzero;
+
+    /// 31. %%%%%%%%%%%%%%%%%%%%%%%%%%%%% BSCALE %%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+    char * cbscale = new char[cBSCALE.length()+1];
+    strcpy(cbscale,cBSCALE.c_str());
+
+    if(fits_write_key(fptr,TDOUBLE,"BSCALE",&kBSCALE,cbscale,&status)){
+
+        delete cbscale;
+        return printerror(status, "Error fits_write_key(BSCALE)");
+
+    }
+
+    delete cbscale;
+
+    /// 32. %%%%%%%%%%%%%%%%%%%%%%%%%%%%% RADESYS %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+    char * radesys = new char[kRADESYS.length()+1];
+    strcpy(radesys,kRADESYS.c_str());
+
+    char * cradesys = new char[cRADESYS.length()+1];
+    strcpy(cradesys,cRADESYS.c_str());
+
+    if(fits_write_key(fptr,TSTRING,"RADESYS",radesys,cradesys,&status)){
+
+        delete cradesys;
+        delete radesys;
+        return printerror(status, "Error fits_write_key(RADESYS)");
+
+    }
+
+    delete cradesys;
+    delete radesys;
+
+    /// 33. %%%%%%%%%%%%%%%%%%%%%%%%%%%%% TIMESYS %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+    char * ctimesys = new char[cTIMESYS.length()+1];
+    strcpy(ctimesys,cTIMESYS.c_str());
+
+    char * timesys = new char[kTIMESYS.length()+1];
+    strcpy(timesys,kTIMESYS.c_str());
+
+    if(fits_write_key(fptr,TSTRING,"TIMESYS",timesys,ctimesys,&status)){
+
+        delete ctimesys;
+        delete timesys;
+        return printerror(status, "Error fits_write_key(TIMESYS)");
+
+    }
+
+    delete ctimesys;
+    delete timesys;
+
+
+    /// 34. %%%%%%%%%%%%%%%%%%%%%%%%%%%%% EQUINOX %%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+    char * cequinox = new char[cEQUINOX.length()+1];
+    strcpy(cequinox,cEQUINOX.c_str());
+
+    if(fits_write_key(fptr,TDOUBLE,"EQUINOX",&kEQUINOX,cequinox,&status)){
+
+        delete cequinox;
+        return printerror(status, "Error fits_write_key(EQUINOX)");
+
+    }
+
+    delete cequinox;
+
+    /// 35. %%%%%%%%%%%%%%%%%%%%%%%%%%%%% CTYPE1 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+    char * ctype1 = new char[cCTYPE1.length()+1];
+    strcpy(ctype1,cCTYPE1.c_str());
+
+    char * ktype1 = new char[kCTYPE1.length()+1];
+    strcpy(ktype1,kCTYPE1.c_str());
+
+    if(fits_write_key(fptr,TSTRING,"CTYPE1",ktype1,ctype1,&status)){
+
+        delete ctype1;
+        delete ktype1;
+        return printerror(status, "Error fits_write_key(CTYPE1)");
+
+    }
+
+    delete ctype1;
+    delete ktype1;
+
+    /// 36. %%%%%%%%%%%%%%%%%%%%%%%%%%%%% CTYPE2 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+    char * ctype2 = new char[cCTYPE2.length()+1];
+    strcpy(ctype2,cCTYPE2.c_str());
+
+    char * ktype2 = new char[kCTYPE2.length()+1];
+    strcpy(ktype2,kCTYPE2.c_str());
+
+    if(fits_write_key(fptr,TSTRING,"CTYPE2",ktype2,ctype2,&status)){
+
+        delete ctype2;
+        delete ktype2;
+        return printerror(status, "Error fits_write_key(CTYPE2)");
+
+    }
+
+    delete ctype2;
+    delete ktype2;
+
+    /// 37. %%%%%%%%%%%%%%%%%%%%%%%%%%%%% CTYPE3 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+    char * ctype3 = new char[cCTYPE3.length()+1];
+    strcpy(ctype3,cCTYPE3.c_str());
+
+    char * ktype3 = new char[kCTYPE2.length()+1];
+    strcpy(ktype2,kCTYPE3.c_str());
+
+    if(fits_write_key(fptr,TSTRING,"CTYPE3",ktype3,ctype3,&status)){
+
+        delete ctype3;
+        delete ktype3;
+        return printerror(status, "Error fits_write_key(CTYPE3)");
+
+    }
+
+    delete ctype3;
+    delete ktype3;
+
+    /// 38. %%%%%%%%%%%%%%%%%%%%%%%%%%%%% TIMEUNIT %%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+    char * ctimeunit = new char[cTIMEUNIT.length()+1];
+    strcpy(ctimeunit,cTIMEUNIT.c_str());
+
+    char * ktimeunit = new char[kTIMEUNIT.length()+1];
+    strcpy(ktimeunit,kTIMEUNIT.c_str());
+
+    if(fits_write_key(fptr,TSTRING,"TIMEUNIT",ktimeunit,ctype2,&status)){
+
+        delete ctimeunit;
+        delete ktimeunit;
+        return printerror(status, "Error fits_write_key(TIMEUNIT)");
+
+    }
+
+    delete ctimeunit;
+    delete ktimeunit;
+
+    /// 39. %%%%%%%%%%%%%%%%%%%%%%%%%%%%% CD1_1 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+    char * ccd1_1 = new char[cCD1_1.length()+1];
+    strcpy(ccd1_1,cCD1_1.c_str());
+
+    if(fits_write_key(fptr,TDOUBLE,"CD1_1",&kCD1_1,ccd1_1,&status)){
+
+        delete ccd1_1;
+        return printerror(status, "Error fits_write_key(CD1_1)");
+
+    }
+
+    delete ccd1_1;
+
+    /// 40. %%%%%%%%%%%%%%%%%%%%%%%%%%%%% CD1_2 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+    char * ccd1_2 = new char[cCD1_2.length()+1];
+    strcpy(ccd1_2,cCD1_2.c_str());
+
+    if(fits_write_key(fptr,TDOUBLE,"CD1_2",&kCD1_2,ccd1_2,&status)){
+
+        delete ccd1_2;
+        return printerror(status, "Error fits_write_key(CD1_2)");
+
+    }
+
+    delete ccd1_2;
+
+    /// 41. %%%%%%%%%%%%%%%%%%%%%%%%%%%%% CD2_1 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+    char * ccd2_1 = new char[cCD2_1.length()+1];
+    strcpy(ccd2_1,cCD2_1.c_str());
+
+    if(fits_write_key(fptr,TDOUBLE,"CD2_1",&kCD2_1,ccd2_1,&status)){
+
+        delete ccd2_1;
+        return printerror(status, "Error fits_write_key(CD2_1)");
+
+    }
+
+    delete ccd2_1;
+
+    /// 42. %%%%%%%%%%%%%%%%%%%%%%%%%%%%% CD2_2 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+    char * ccd2_2 = new char[cCD2_2.length()+1];
+    strcpy(ccd2_2,cCD2_2.c_str());
+
+    if(fits_write_key(fptr,TDOUBLE,"CD2_2",&kCD2_2,ccd2_2,&status)){
+
+        delete ccd2_2;
+        return printerror(status, "Error fits_write_key(CD2_2)");
+
+    }
+
+    delete ccd2_2;
+
+    /// 43. %%%%%%%%%%%%%%%%%%%%%%%%%%%%% CD3_3 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+    char * ccd3_3 = new char[cCD3_3.length()+1];
+    strcpy(ccd3_3,cCD3_3.c_str());
+
+    if(fits_write_key(fptr,TDOUBLE,"CD3_3",&kCD3_3,ccd3_3,&status)){
+
+        delete ccd3_3;
+        return printerror(status, "Error fits_write_key(CD3_3)");
+
+    }
+
+    delete ccd3_3;
+
+    /// 44. %%%%%%%%%%%%%%%%%%%%%%%%%%%%% CD1_3 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+    char * ccd1_3 = new char[cCD1_3.length()+1];
+    strcpy(ccd1_3,cCD1_3.c_str());
+
+    if(fits_write_key(fptr,TDOUBLE,"CD1_3",&kCD1_3,ccd1_3,&status)){
+
+        delete ccd1_3;
+        return printerror(status, "Error fits_write_key(CD1_3)");
+
+    }
+
+    delete ccd1_3;
+
+    /// 45. %%%%%%%%%%%%%%%%%%%%%%%%%%%%% CD2_3 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+    char * ccd2_3 = new char[cCD2_3.length()+1];
+    strcpy(ccd2_3,cCD2_3.c_str());
+
+    if(fits_write_key(fptr,TDOUBLE,"CD2_3",&kCD2_3,ccd2_3,&status)){
+
+        delete ccd2_3;
+        return printerror(status, "Error fits_write_key(CD2_3)");
+
+    }
+
+    delete ccd2_3;
+
+    /// 46. %%%%%%%%%%%%%%%%%%%%%%%%%%%%% CD3_1 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+    char * ccd3_1 = new char[cCD3_1.length()+1];
+    strcpy(ccd3_1,cCD3_1.c_str());
+
+    if(fits_write_key(fptr,TDOUBLE,"CD3_1",&kCD3_1,ccd3_1,&status)){
+
+        delete ccd3_1;
+        return printerror(status, "Error fits_write_key(CD3_1)");
+
+    }
+
+    delete ccd3_1;
+
+    /// 47. %%%%%%%%%%%%%%%%%%%%%%%%%%%%% CD3_2 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+    char * ccd3_2 = new char[cCD3_2.length()+1];
+    strcpy(ccd3_2,cCD3_2.c_str());
+
+    if(fits_write_key(fptr,TDOUBLE,"CD3_2",&kCD3_2,ccd3_2,&status)){
+
+        delete ccd3_2;
+        return printerror(status, "Error fits_write_key(CD3_2)");
+
+    }
+
+    delete ccd3_2;
+
+    /// 48. %%%%%%%%%%%%%%%%%%%%%%%%%%%%% CRPIX1 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+    char * ccrpix1 = new char[cCRPIX1.length()+1];
+    strcpy(ccrpix1,cCRPIX1.c_str());
+
+    if(fits_write_key(fptr,TINT,"CRPIX1",&kCRPIX1,ccrpix1,&status)){
+
+        delete ccrpix1;
+        return printerror(status, "Error fits_write_key(CRPIX1)");
+
+    }
+
+    delete ccrpix1;
+
+    /// 49. %%%%%%%%%%%%%%%%%%%%%%%%%%%%% CRPIX2 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+    char * ccrpix2 = new char[cCRPIX2.length()+1];
+    strcpy(ccrpix2,cCRPIX2.c_str());
+
+    if(fits_write_key(fptr,TINT,"CRPIX2",&kCRPIX2,ccrpix2,&status)){
+
+        delete ccrpix2;
+        return printerror(status, "Error fits_write_key(CRPIX2)");
+
+    }
+
+    delete ccrpix2;
+
+    /// 50. %%%%%%%%%%%%%%%%%%%%%%%%%%%%% CRPIX3 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+    char * ccrpix3 = new char[cCRPIX3.length()+1];
+    strcpy(ccrpix3,cCRPIX3.c_str());
+
+    if(fits_write_key(fptr,TINT,"CRPIX3",&kCRPIX3,ccrpix3,&status)){
+
+        delete ccrpix3;
+        return printerror(status, "Error fits_write_key(CRPIX3)");
+
+    }
+
+    delete ccrpix3;
+
+    /// 51. %%%%%%%%%%%%%%%%%%%%%%%%%%%%% CRVAL1 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+    char * ccrval1 = new char[cCRVAL1.length()+1];
+    strcpy(ccrval1,cCRVAL1.c_str());
+
+    if(fits_write_key(fptr,TDOUBLE,"CRVAL1",&kCRVAL1,ccrval1,&status)){
+
+        delete ccrval1;
+        return printerror(status, "Error fits_write_key(CRVAL1)");
+
+    }
+
+    delete ccrval1;
+
+    /// 52. %%%%%%%%%%%%%%%%%%%%%%%%%%%%% CRVAL2 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+    char * ccrval2 = new char[cCRVAL2.length()+1];
+    strcpy(ccrval2,cCRVAL2.c_str());
+
+    if(fits_write_key(fptr,TDOUBLE,"CRVAL2",&kSITELAT,ccrval2,&status)){
+
+        delete ccrval2;
+        return printerror(status, "Error fits_write_key(CRVAL2)");
+
+    }
+
+    delete ccrval2;
+
+    /// 53. %%%%%%%%%%%%%%%%%%%%%%%%%%%%% K1 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+    char * ck1 = new char[cK1.length()+1];
+    strcpy(ck1,cK1.c_str());
+
+    if(fits_write_key(fptr,TDOUBLE,"K1",&kK1,ck1,&status)){
+
+        delete ck1;
+        return printerror(status, "Error fits_write_key(K1)");
+
+    }
+
+    delete ck1;
+
+    /// 54. %%%%%%%%%%%%%%%%%%%%%%%%%%%%% K2 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+    char * ck2 = new char[cK2.length()+1];
+    strcpy(ck2,cK2.c_str());
+
+    if(fits_write_key(fptr,TDOUBLE,"K2",&kK2,ck2,&status)){
+
+        delete ck2;
+        return printerror(status, "Error fits_write_key(K2)");
+
+    }
+
+    delete ck2;
+
+    return true;
+
+}
+
+//http://www.great08challenge.info/code/c/read_GREAT08_fits.c
+bool Fits3D::writeFits3d8uc(string file){
+
+    int     status      = 0;
+    long    naxis       = 3;
+    long    naxes[3]    = {imgW,imgH,imgT};
+    int     size3d      = naxes[0] * naxes[1] * naxes[2];
+    long    fpixel[3]   = {1,1,1};
+    int     imgSize     = imgH*imgW;
 
     // 1D array which contains severals images : [ image1(line1, line2 ...) image2(line1, line2...)]
     unsigned char *array3d = NULL;
@@ -74,12 +910,9 @@ bool Fits3D::writeFits3D_UC(string file){
 
     if(array3d == NULL){
 
-        cout << "echec de l'allocation" <<endl;
-        return false;
+        return printerror("Fits3D::writeFits3d8uc() case 8 bits -> array3d == NULL");
 
     }
-
-    int jj;
 
     for (int n = 0; n < imgT; n++){
 
@@ -97,57 +930,45 @@ bool Fits3D::writeFits3D_UC(string file){
         }
     }
 
-    const char * filename;
-
     filename = file.c_str();
 
     remove(filename);
 
-    fits_create_file(&fptr, filename, &status);
+    if(fits_create_file(&fptr, filename, &status)){
 
-    if (status) {
+         return printerror( status, "Fits3D::writeFits3d8uc() case 8 bits -> fits_create_file() failed" );
+    }
 
-	    fits_report_error(stderr, status);
+    if(fits_create_img(fptr, BYTE_IMG, naxis, naxes, &status)){
 
-	}
+         return printerror( status, "Fits3D::writeFits3d8uc() case 8 bits -> fits_create_img() failed" );
+    }
 
-    fits_create_img(fptr, BYTE_IMG, naxis, naxes, &status);
+    if(fits_write_pix(fptr, TBYTE, fpixel, size3d, array3d, &status)){
 
-    if (status) {
+         return printerror( status, "Fits3D::writeFits3d8uc() case 8 bits -> fits_write_pix() failed" );
+    }
 
-	    fits_report_error(stderr, status);
+    // close the file
+    if(fits_close_file(fptr, &status)){
 
-	}
+         return printerror( status, "Fits3D::writeFits3d8uc() case 8 bits -> fits_close_file() failed" );
+    }
 
-    fits_write_pix(fptr, TBYTE, fpixel, size3d, array3d, &status);
-
-    if (status) {
-
-	    fits_report_error(stderr, status);
-
-	}
-
-
-    fits_close_file(fptr, &status);     // close the file
-
-
-    free(array3d );
-    array3d = NULL;
+    free( array3d );
 
     return true;
 
 }
 
-bool Fits3D::writeFits3D_US(string file){
+bool Fits3D::writeFits3d16us(string file){
 
-    // Pointer to the FITS file
-    fitsfile *fptr;
-    int status = 0;
-    long naxis = 3;
-    long naxes[3] = {imgW,imgH,imgT};
-    int size3d = naxes[0] * naxes[1] * naxes[2];
-    long fpixel[3]={1,1,1};
-    int imgSize = imgH*imgW;
+    int     status      = 0;
+    long    naxis       = 3;
+    long    naxes[3]    = {imgW,imgH,imgT};
+    int     size3d      = naxes[0] * naxes[1] * naxes[2];
+    long    fpixel[3]   = {1,1,1};
+    int     imgSize     = imgH*imgW;
 
     // 1D array which contains severals images : [ image1(line1, line2 ...) image2(line1, line2...)]
     unsigned short *array3d;
@@ -158,8 +979,8 @@ bool Fits3D::writeFits3D_US(string file){
     array2d = (unsigned short**)calloc(imgT, sizeof(unsigned short*));
 
     if (array2d == NULL){
-        cout << "Memory allocation error for array2d"<<endl;
-        return false;
+
+        return printerror("Fits3D::writeFits3d16us() case 16 bits -> array2d == NULL");
     }
 
     for (int i=0; i<imgT; i++){
@@ -168,8 +989,7 @@ bool Fits3D::writeFits3D_US(string file){
 
         if (array2d[i] == NULL){
 
-            cout << "Memory allocation error for array2d" << endl;
-            return false;
+            return printerror("Fits3D::writeFits3d16us() case 16 bits -> array2d[i] == NULL");
 
         }
     }
@@ -192,7 +1012,7 @@ bool Fits3D::writeFits3D_US(string file){
 
             }
         }
-     }
+    }
 
     array3d = (unsigned short *)calloc(size3d,sizeof(unsigned short ));
 
@@ -208,48 +1028,84 @@ bool Fits3D::writeFits3D_US(string file){
         }
     }
 
-    const char * filename;
-
     filename = file.c_str();
 
     remove(filename);
 
     if(fits_create_file(&fptr, filename, &status)){
 
-        cout << " Failed to create fits3D " << endl;
-
+         return printerror( status, "Fits3D::writeFits3d16us() case 16 bits -> fits_create_file() failed" );
     }
 
-    fits_create_img(fptr, SHORT_IMG, naxis, naxes, &status);
+    if(fits_create_img(fptr, SHORT_IMG, naxis, naxes, &status)){
 
-
-    if (fits_write_pix(fptr, TSHORT, fpixel, size3d, array3d, &status)){
-
-        cout << " Error writing pixel data " << endl;
-        return false;
+         return printerror( status, "Fits3D::writeFits3d16us() case 16 bits -> fits_create_img() failed" );
     }
 
-    fits_close_file(fptr, &status);     // close the file
 
-    fits_report_error(stderr, status);  // print out any error messages
+    if(fits_write_pix(fptr, TSHORT, fpixel, size3d, array3d, &status)){
+
+         return printerror( status, "Fits3D::writeFits3d16us() case 16 bits -> fits_write_pix() failed" );
+    }
+
+    if(fits_close_file(fptr, &status)){
+
+         return printerror( status, "Fits3D::writeFits3d16us() case 16 bits -> fits_close_file() failed" );
+    }
+
+    for (int i=0; i<imgT; i++){
+
+        unsigned short* currentPtr = array2d[i];
+        free(currentPtr);
+    }
+
+    free( array3d );
 
     return true;
 
 }
 
-void Fits3D::printerror( int status){
-//    /*****************************************************/
-//    /* Print out cfitsio error messages and exit program */
-//    /*****************************************************/
-
+bool Fits3D::printerror( int status, string errorMsg){
 
     if (status){
-       fits_report_error(stderr, status); /* print error report */
 
-       exit( status );    /* terminate the program, returning error status */
+        fits_report_error(stderr, status);
+
+        cout << stderr << endl;
+        BOOST_LOG_SEV(log, fail) << stderr;
+
     }
-    return;
+
+    if(errorMsg != ""){
+
+        cout << errorMsg << endl;
+        BOOST_LOG_SEV(log, fail) << errorMsg;
+
+    }
+
+    return false;
 }
 
+void Fits3D::printerror( int status ){
+
+    if (status){
+
+        fits_report_error(stderr, status);
+
+
+    }
+}
+
+bool Fits3D::printerror( string errorMsg){
+
+    if(errorMsg != ""){
+
+        cout << errorMsg << endl;
+        BOOST_LOG_SEV(log, fail) << errorMsg;
+
+    }
+
+    return false;
+}
 
 

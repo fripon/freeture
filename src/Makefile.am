@@ -27,18 +27,18 @@
 #*%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%*/
 
 bin_PROGRAMS		= freeture
-freeture_SOURCES	= AstThread.h CameraDMK.h Camera.h CameraBasler.h \
+freeture_SOURCES	= AstThread.h Base64.h CameraDMK.h Camera.h CameraBasler.h \
 			CameraSimu.h CameraVideo.h \
 			CameraSDK.h CameraSDKAravis.h CameraFrames.h \
-			CameraSDKPylon.h \
+			CameraSDKPylon.h SMTPClient.h \
 			Configuration.h Conversion.h DetThread.h Fifo.h \
 			Fits.h Fits2D.h Fits3D.h Frame.h GlobalEvent.h Histogram.h \
 			ImgThread.h includes.h LocalEvent.h \
-			PixelEvent.h RecEvent.h \
+			PixelEvent.h RecEvent.h EnumBitdepth.h \
 			TimeDate.h DetByLines.h DetByLists.h ManageFiles.h \
 			RecThread.h SaveImg.h \
-			AstThread.cpp Camera.cpp CameraBasler.cpp \
-			CameraFrames.cpp \
+			AstThread.cpp Base64.cpp Camera.cpp CameraBasler.cpp \
+			CameraFrames.cpp SMTPClient.cpp \
 			CameraDMK.cpp CameraSimu.cpp \
 			CameraSDK.cpp CameraSDKAravis.cpp CameraSDKPylon.cpp \
 			CameraVideo.cpp Configuration.cpp Conversion.cpp \

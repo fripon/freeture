@@ -51,6 +51,7 @@
 #include <iterator>
 #include <algorithm>
 #include "EnumLog.h"
+#include "EnumBitdepth.h"
 
 #ifdef CFITSIO_H
   #include CFITSIO_H
@@ -76,6 +77,7 @@ namespace expr		= boost::log::expressions;
 namespace keywords	= boost::log::keywords;
 
 using namespace logenum;
+using namespace bit_depth_enum;
 
 //!  Load a video and use it as a camera
 class CameraFrames : public Camera{
@@ -121,9 +123,9 @@ class CameraFrames : public Camera{
 		//! Width of the video's frames
 		int imgW;
 
-		int frameNumStart;
+		int frameStart_;
 
-        int frameNumStop;
+        int frameStop_;
 
         Fits fitsHeader;
 

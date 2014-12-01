@@ -44,6 +44,7 @@
 #include "SaveImg.h"
 #include "TimeDate.h"
 #include "EnumLog.h"
+#include "EnumBitdepth.h"
 //#include "serialize.h"
 #include <boost/filesystem.hpp>
 #include <iterator>
@@ -63,6 +64,7 @@ namespace expr		= boost::log::expressions;
 namespace keywords	= boost::log::keywords;
 
 using namespace logenum;
+using namespace bit_depth_enum;
 
 //!  A thread class to record detected events
 /*!
@@ -128,9 +130,6 @@ class RecThread{
         //! Enable to record bmp for each frame
 		bool recBmp;
 
-        //! Enable to record the event's shape
-		bool recShape;
-
 		//! Enable to record the trail
 		/*!
           This a sum of consecutive frame difference
@@ -167,7 +166,6 @@ class RecThread{
                     bool positionFile,
                     bool bmp,
                     bool trail,
-                    bool shape,
                     bool mapGE,
                     Fits fitsHead );
 

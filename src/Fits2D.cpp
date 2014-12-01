@@ -20,7 +20,7 @@
 *	You should have received a copy of the GNU General Public License
 *	along with FreeTure. If not, see <http://www.gnu.org/licenses/>.
 *
-*	Last modified:		22/10/2014
+*	Last modified:		01/12/2014
 *
 *%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%*/
 
@@ -28,7 +28,12 @@
  * @file    Fits2D.cpp
  * @author  Yoan Audureau
  * @version 1.0
- * @date    22/10/2014
+ * @date    01/12/2014
+ *
+ * Class used to write fits with 8 bits unsigned char, 8 bits char, 16 bits unsigned short,
+ * 16 bits signed short or 32 float values.
+ * Keywords for the fits have to be defined before to write it.
+ * See settable keywords in the fits class.
  */
 
 #include "Fits2D.h"
@@ -41,210 +46,1097 @@ Fits2D::~Fits2D(void){
 
 }
 
-/******************************************************/
-/* Create a FITS primary array containing a 2-D image */
-/******************************************************/
-bool Fits2D::writeimage( Mat img, int bitDepth,string nb, bool dtANDstation){
+bool Fits2D::writeKeywords(){
 
-    // Pointer to the FITS file, defined in fitsio.h
-    fitsfile *fptr;
-    int status, i, j;
-    long  firstPixel, nbelements;
+    /*
 
-    int hImg = img.rows;
-    int wImg = img.cols;
+        %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%% FITS 2D Keywords template %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
-    TimeDate stringDate;
+        1.  SIMPLE      = T                                         / file does conform to FITS standard
+        2.  BITPIX      = 8                                         / number of bits per pixel
+        3.  NAXIS       = 2                                         / number of data axes
+        4.  NAXIS1      = 1280                                      / length of data axis 1
+        5.  NAXIS2      = 960                                       / length of data axis 2
+        6.  EXTEND      = T                                         / FITS dataset may contain extensions
+        7.  FILENAME    = 'stationOrsay_YYYYMMJJ_HHMMSS_UT.fits'    / name of the fits file
+        8.  DATE        = 'YYYY-MM-JJT HH:MM:SS.SS'                 / date of the creation of the fits file
+        9.  DATE-OBS    = 'YYYY-MM-JJT HH:MM:SS.SS'                 / acquisition date of the first frame
+        10. OBS_MODE    = SINGLE                                    / observation method used to get this fits file 'SINGLE' 'SUM' 'AVERAGE' ('MEDIAN')
+        11. ELAPTIME    = 60                                        / end observation date - start observation date (sec.)
+        12. EXPOSURE    = 0.033                                     / integration time : 1/fps * nb_frames (sec.)
+        13. ONTIME      = 0.033                                     / frame exposure time (sec.)
+        14. FILTER      = "NONE"
+        15. TELESCOP    = "<Code station>"                          / station <stationName>
+        16. OBSERVER    = "<responsable camera>"
+        17. INSTRUME    = 'FRIPON-CAM'
+        18. CAMERA      = 'BASLER 1300gm'
+        19. FOCAL       = 1.25
+        20. APERTURE    = 2.0
+        21. SITELONG    = 2.1794397                                 / longitude observatory
+        22. SITELAT     = 48.7063906                                / latuitude observatory
+        23. SITEELEV    = 90                                        / observatory elevation (meter)
+        24. XPIXEL      = 3.75
+        25. YPIXEL      = 3.75
+        26. GAINDB      = 400                                       / detector gain
+        27. SATURATE    = 4095                                      / saturation value or max value (not saturated) in case where OBS_MODE = SUM
+        28. PROGRAM     = 'FreeTure v0.1'                           / name of the acquisition software
+        29. CREATOR     = 'FRIPON TEAM'                             / http://fripon.org
+        30. BZERO       = 0
+        31. BSCALE      = 1
+        32. RADESYS     = 'ICRS'
+        33. TIMESYS     = 'UTC'
+        34. EQUINOX     = 2.000000000000E+03                        / equinox of equatorial coordinates
+        35. CTYPE1      = 'RA---ARC'                                / projection and reference system
+        36. CTYPE2      = 'DEC--ARC'                                / projection and reference system
+        37. TIMEUNIT    = 's '
+        38. CD1_1       = 0.0                                       / deg/px
+        39. CD1_2       = 0.17                                      / deg/px
+        40. CD2_1       = 0.17                                      / deg/pix
+        41. CD2_2       = 0.0                                       / deg/pix
+        42. CRPIX1      = 640
+        43. CRPIX2      = 480
+        44. CRVAL1      =                                           / Sidereal time (decimal degree)
+        45. CRVAL2      =                                           / latitude observatory (decimal degree)
+        46. K1          =
+        47. K2          =
 
-    string fitsCreationDate	= TimeDate::localDateTime(second_clock::universal_time(),"%Y-%m-%dT %H:%M:%S");
-    string dateT1	= TimeDate::localDateTime(second_clock::universal_time(),"%Y%m%d_%H%M%S");
-    string name		= kTELESCOP+"_"+dateT1+"UT"+"-"+nb;
+    */
 
-    cout << name<<endl;
-    cout << savedFitsPath<<endl;
-    // string name		= "summ"+vTELESCOP+".fit";
-    string pathAndname ="";
+    int status = 0;
 
-    if(dtANDstation){
+    // DELETE DEFAULT COMMENTS.
 
-        pathAndname		= savedFitsPath+name+".fit";
+    if(ffdkey(fptr, "COMMENT", &status))
+       printerror( status );
 
-    }else{
+    if(ffdkey(fptr, "COMMENT", &status))
+       printerror( status );
 
-        pathAndname		= savedFitsPath+".fit";
+    /// 7. %%%%%%%%%%%%%%%%%%%%%%%%%%%%% FILENAME %%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+    char * filename = new char[kFILENAME.length()+1];
+    strcpy(filename,kFILENAME.c_str());
+
+    char * cfilename = new char[cFILENAME.length()+1];
+    strcpy(cfilename,cFILENAME.c_str());
+
+    if(fits_write_key(fptr, TSTRING, "FILENAME", filename, cfilename, &status)){
+
+        delete filename;
+        delete cfilename;
+        return printerror(status, "Error fits_write_key(FILENAME)");
 
     }
 
-    const char * filename;
+    delete cfilename;
+    delete filename;
+
+    /// 8. %%%%%%%%%%%%%%%%%%%%%%%%%%%%% DATE %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+    char * date = new char[kDATE.length()+1];
+    strcpy(date,kDATE.c_str());
+
+    char * cdate = new char[cDATE.length()+1];
+    strcpy(cdate,cDATE.c_str());
+
+    if(fits_write_key(fptr,TSTRING,"DATE",date,cdate,&status)){
+
+        delete date;
+        delete cdate;
+        return printerror(status, "Error fits_write_key(DATE)");
+
+    }
+
+    delete cdate;
+    delete date;
+
+    /// 9. %%%%%%%%%%%%%%%%%%%%%%%%%%%%% DATE-OBS %%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+    char * dateobs = new char[kDATEOBS.length()+1];
+    strcpy(dateobs,kDATEOBS.c_str());
+
+    char * cdateobs = new char[cDATEOBS.length()+1];
+    strcpy(cdateobs,cDATEOBS.c_str());
+
+    if(fits_write_key(fptr,TSTRING,"DATE-OBS",dateobs,cdateobs,&status)){
+
+        delete dateobs;
+        delete cdateobs;
+        return printerror(status, "Error fits_write_key(DATE-OBS)");
+
+    }
+
+    delete cdateobs;
+    delete dateobs;
+
+    /// 10. %%%%%%%%%%%%%%%%%%%%%%%%%%%%% OBS_MODE %%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+    char * cobsmode = new char[cOBSMODE.length()+1];
+    strcpy(cobsmode,cOBSMODE.c_str());
+
+    char * obsmode = new char[kOBSMODE.length()+1];
+    strcpy(obsmode,kOBSMODE.c_str());
+
+    if(fits_write_key(fptr,TSTRING,"OBS_MODE",obsmode,cobsmode,&status)){
+
+        delete cobsmode;
+        delete obsmode;
+        return printerror(status, "Error fits_write_key(OBS_MODE)");
+
+    }
+
+    delete cobsmode;
+    delete obsmode;
+
+    /// 11. %%%%%%%%%%%%%%%%%%%%%%%%%%%%% ELAPTIME %%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+    char * celaptime = new char[cELAPTIME.length()+1];
+    strcpy(celaptime,cELAPTIME.c_str());
+
+    if(fits_write_key(fptr,TINT,"ELAPTIME",&kELAPTIME,celaptime,&status)){
+
+        delete celaptime;
+        return printerror(status, "Error fits_write_key(ELAPTIME)");
+
+    }
+
+    delete celaptime;
+
+    /// 12. %%%%%%%%%%%%%%%%%%%%%%%%%%%%% EXPOSURE %%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+    char * ceposure = new char[cEXPOSURE.length()+1];
+    strcpy(ceposure,cEXPOSURE.c_str());
+
+    if(fits_write_key(fptr,TDOUBLE,"EXPOSURE",&kEXPOSURE,ceposure,&status)){
+
+        delete ceposure;
+        return printerror(status, "Error fits_write_key(EXPOSURE)");
+
+    }
+
+    delete ceposure;
+
+    /// 13. %%%%%%%%%%%%%%%%%%%%%%%%%%%%% ONTIME %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+    char * contime = new char[cONTIME.length()+1];
+    strcpy(contime,cONTIME.c_str());
+
+    if(fits_write_key(fptr,TDOUBLE,"ONTIME",&kONTIME,contime,&status)){
+
+        delete contime;
+        return printerror(status, "Error fits_write_key(ONTIME)");
+
+    }
+
+    delete contime;
+
+
+    /// 14. %%%%%%%%%%%%%%%%%%%%%%%%%%%%% FILTER %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+    char * cfilter = new char[cFILTER.length()+1];
+    strcpy(cfilter,cFILTER.c_str());
+
+    char * f = new char[kFILTER.length()+1];
+    strcpy(f,kFILTER.c_str());
+
+    if(fits_write_key(fptr,TSTRING,"FILTER",f,cfilter,&status)){
+
+        delete cfilter;
+        delete f;
+        return printerror(status, "Error fits_write_key(FILTER)");
+
+    }
+
+    delete cfilter;
+    delete f;
+
+
+    /// 15. %%%%%%%%%%%%%%%%%%%%%%%%%%%%% TELESCOP %%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+    char * ctelescop = new char[cTELESCOP.length()+1];
+    strcpy(ctelescop,cTELESCOP.c_str());
+
+    char * t = new char[kTELESCOP.length()+1];
+    strcpy(t,kTELESCOP.c_str());
+
+    if(fits_write_key(fptr,TSTRING,"TELESCOP",t,ctelescop,&status)){
+
+        delete ctelescop;
+        delete t;
+        return printerror(status, "Error fits_write_key(TELESCOP)");
+
+    }
+
+    delete ctelescop;
+    delete t;
+
+    /// 16. %%%%%%%%%%%%%%%%%%%%%%%%%%%%% OBSERVER %%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+    char * cobserver = new char[cTELESCOP.length()+1];
+    strcpy(cobserver,cTELESCOP.c_str());
+
+    char * o = new char[kOBSERVER.length()+1];
+    strcpy(o,kOBSERVER.c_str());
+
+    if(fits_write_key(fptr,TSTRING,"OBSERVER",o,cobserver,&status)){
+
+        delete cobserver;
+        delete o;
+        return printerror(status, "Error fits_write_key(OBSERVER)");
+
+    }
+
+    delete cobserver;
+    delete o;
+
+    /// 17. %%%%%%%%%%%%%%%%%%%%%%%%%%%%% INSTRUME %%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+    char * cinstrume = new char[cINSTRUME.length()+1];
+    strcpy(cinstrume,cINSTRUME.c_str());
+
+    char * i = new char[kINSTRUME.length()+1];
+    strcpy(i,kINSTRUME.c_str());
+
+    if(fits_write_key(fptr,TSTRING,"INSTRUME",i,cinstrume,&status)){
+
+        delete cinstrume;
+        delete i;
+        return printerror(status, "Error fits_write_key(OBSERVER)");
+
+    }
+
+    delete cinstrume;
+    delete i;
+
+    /// 18. %%%%%%%%%%%%%%%%%%%%%%%%%%%%% CAMERA %%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+    char * ccamera = new char[cCAMERA.length()+1];
+    strcpy(ccamera,cCAMERA.c_str());
+
+    char * cam = new char[kCAMERA.length()+1];
+    strcpy(cam,kCAMERA.c_str());
+
+    if(fits_write_key(fptr,TSTRING,"CAMERA",cam,ccamera,&status)){
+
+        delete ccamera;
+        delete cam;
+        return printerror(status, "Error fits_write_key(CAMERA)");
+
+    }
+
+    delete ccamera;
+    delete cam;
+
+    /// 19. %%%%%%%%%%%%%%%%%%%%%%%%%%%%% FOCAL %%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+    char * cfocal = new char[cFOCAL.length()+1];
+    strcpy(cfocal,cFOCAL.c_str());
+
+    if(fits_write_key(fptr,TDOUBLE,"FOCAL",&kFOCAL,cfocal,&status)){
+
+        delete cfocal;
+        return printerror(status, "Error fits_write_key(FOCAL)");
+
+    }
+
+    delete cfocal;
+
+    /// 20. %%%%%%%%%%%%%%%%%%%%%%%%%%%%% APERTURE %%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+    char * caperture = new char[cAPERTURE.length()+1];
+    strcpy(caperture,cAPERTURE.c_str());
+
+    if(fits_write_key(fptr,TDOUBLE,"APERTURE",&kAPERTURE,"",&status)){
+
+        delete caperture;
+        return printerror(status, "Error fits_write_key(APERTURE)");
+
+    }
+
+    delete caperture;
+
+    /// 21. %%%%%%%%%%%%%%%%%%%%%%%%%%%%% SITELONG %%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+    char * csitelong = new char[cSITELONG.length()+1];
+    strcpy(csitelong,cSITELONG.c_str());
+
+    if(fits_write_key(fptr,TDOUBLE,"SITELONG",&kSITELONG,csitelong,&status)){
+
+        delete csitelong;
+        return printerror(status, "Error fits_write_key(APERTURE)");
+
+    }
+
+    delete csitelong;
+
+    /// 22. %%%%%%%%%%%%%%%%%%%%%%%%%%%%% SITELAT %%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+    char * csitelat = new char[cSITELAT.length()+1];
+    strcpy(csitelat,cSITELAT.c_str());
+
+    if(fits_write_key(fptr,TDOUBLE,"SITELAT",&kSITELAT,csitelat,&status)){
+
+        delete csitelat;
+        return printerror(status, "Error fits_write_key(SITELAT)");
+
+    }
+
+    delete csitelat;
+
+    /// 23. %%%%%%%%%%%%%%%%%%%%%%%%%%%%% SITEELEV %%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+    char * csiteelev = new char[cSITEELEV.length()+1];
+    strcpy(csiteelev,cSITEELEV.c_str());
+
+    if(fits_write_key(fptr,TDOUBLE,"SITEELEV",&kSITEELEV,csiteelev,&status)){
+
+        delete csiteelev;
+        return printerror(status, "Error fits_write_key(SITEELEV)");
+
+    }
+
+    delete csiteelev;
+
+    /// 24. %%%%%%%%%%%%%%%%%%%%%%%%%%%%% XPIXEL %%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+    char * cxpixel = new char[cXPIXEL.length()+1];
+    strcpy(cxpixel,cXPIXEL.c_str());
+
+    if(fits_write_key(fptr,TDOUBLE,"XPIXEL",&kXPIXEL,cxpixel,&status)){
+
+        delete cxpixel;
+        return printerror(status, "Error fits_write_key(XPIXEL)");
+
+    }
+
+    delete cxpixel;
+
+    /// 25. %%%%%%%%%%%%%%%%%%%%%%%%%%%%% YPIXEL %%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+    char * cypixel = new char[cYPIXEL.length()+1];
+    strcpy(cypixel,cYPIXEL.c_str());
+
+    if(fits_write_key(fptr,TDOUBLE,"YPIXEL",&kYPIXEL,cypixel,&status)){
+
+        delete cypixel;
+        return printerror(status, "Error fits_write_key(YPIXEL)");
+
+    }
+
+    delete cypixel;
+
+    /// 26. %%%%%%%%%%%%%%%%%%%%%%%%%%%%% GAINDB %%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+    char * cgaindb = new char[cGAINDB.length()+1];
+    strcpy(cgaindb,cGAINDB.c_str());
+
+    if(fits_write_key(fptr,TINT,"GAINDB",&kGAINDB,cgaindb,&status)){
+
+        delete cgaindb;
+        return printerror(status, "Error fits_write_key(GAINDB)");
+
+    }
+
+    delete cgaindb;
+
+    /// 27. %%%%%%%%%%%%%%%%%%%%%%%%%%%%% SATURATE %%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+    char * csaturate = new char[cSATURATE.length()+1];
+    strcpy(csaturate,cSATURATE.c_str());
+
+    if(fits_write_key(fptr,TDOUBLE,"SATURATE",&kSATURATE,csaturate,&status)){
+
+        delete csaturate;
+        return printerror(status, "Error fits_write_key(SATURATE)");
+
+    }
+
+    delete csaturate;
+
+    /// 28. %%%%%%%%%%%%%%%%%%%%%%%%%%%%% PROGRAM %%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+    char * cprograme = new char[cPROGRAM.length()+1];
+    strcpy(cprograme,cPROGRAM.c_str());
+
+    char * p = new char[kPROGRAM.length()+1];
+    strcpy(p,kPROGRAM.c_str());
+
+    if(fits_write_key(fptr,TSTRING,"PROGRAM",p,cprograme,&status)){
+
+        delete cprograme;
+        delete p;
+        return printerror(status, "Error fits_write_key(PROGRAM)");
+
+    }
+
+    delete cprograme;
+    delete p;
+
+    /// 29. %%%%%%%%%%%%%%%%%%%%%%%%%%%%% CREATOR %%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+    char * ccreator = new char[cCREATOR.length()+1];
+    strcpy(ccreator,cCREATOR.c_str());
+
+    char * c = new char[kCREATOR.length()+1];
+    strcpy(c,kCREATOR.c_str());
+
+    if(fits_write_key(fptr,TSTRING,"CREATOR",c,ccreator,&status)){
+
+        delete ccreator;
+        delete c;
+        return printerror(status, "Error fits_write_key(CREATOR)");
+
+    }
+
+    delete ccreator;
+    delete c;
+
+    /// 30. %%%%%%%%%%%%%%%%%%%%%%%%%%%%% BZERO %%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+    char * cbzero = new char[cBZERO.length()+1];
+    strcpy(cbzero,cBZERO.c_str());
+
+    if(fits_write_key(fptr,TDOUBLE,"BZERO",&kBZERO,cbzero,&status)){
+
+        delete cbzero;
+        return printerror(status, "Error fits_write_key(BZERO)");
+
+    }
+
+    delete cbzero;
+
+    /// 31. %%%%%%%%%%%%%%%%%%%%%%%%%%%%% BSCALE %%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+    char * cbscale = new char[cBSCALE.length()+1];
+    strcpy(cbscale,cBSCALE.c_str());
+
+    if(fits_write_key(fptr,TDOUBLE,"BSCALE",&kBSCALE,cbscale,&status)){
+
+        delete cbscale;
+        return printerror(status, "Error fits_write_key(BSCALE)");
+
+    }
+
+    delete cbscale;
+
+    /// 32. %%%%%%%%%%%%%%%%%%%%%%%%%%%%% RADESYS %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+    char * radesys = new char[kRADESYS.length()+1];
+    strcpy(radesys,kRADESYS.c_str());
+
+    char * cradesys = new char[cRADESYS.length()+1];
+    strcpy(cradesys,cRADESYS.c_str());
+
+    if(fits_write_key(fptr,TSTRING,"RADESYS",radesys,cradesys,&status)){
+
+        delete cradesys;
+        delete radesys;
+        return printerror(status, "Error fits_write_key(RADESYS)");
+
+    }
+
+    delete cradesys;
+    delete radesys;
+
+    /// 33. %%%%%%%%%%%%%%%%%%%%%%%%%%%%% TIMESYS %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+    char * ctimesys = new char[cTIMESYS.length()+1];
+    strcpy(ctimesys,cTIMESYS.c_str());
+
+    char * timesys = new char[kTIMESYS.length()+1];
+    strcpy(timesys,kTIMESYS.c_str());
+
+    if(fits_write_key(fptr,TSTRING,"TIMESYS",timesys,ctimesys,&status)){
+
+        delete ctimesys;
+        delete timesys;
+        return printerror(status, "Error fits_write_key(TIMESYS)");
+
+    }
+
+    delete ctimesys;
+    delete timesys;
+
+
+    /// 34. %%%%%%%%%%%%%%%%%%%%%%%%%%%%% EQUINOX %%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+    char * cequinox = new char[cEQUINOX.length()+1];
+    strcpy(cequinox,cEQUINOX.c_str());
+
+    if(fits_write_key(fptr,TDOUBLE,"EQUINOX",&kEQUINOX,cequinox,&status)){
+
+        delete cequinox;
+        return printerror(status, "Error fits_write_key(EQUINOX)");
+
+    }
+
+    delete cequinox;
+
+    /// 35. %%%%%%%%%%%%%%%%%%%%%%%%%%%%% CTYPE1 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+    char * ctype1 = new char[cCTYPE1.length()+1];
+    strcpy(ctype1,cCTYPE1.c_str());
+
+    char * ktype1 = new char[kCTYPE1.length()+1];
+    strcpy(ktype1,kCTYPE1.c_str());
+
+    if(fits_write_key(fptr,TSTRING,"CTYPE1",ktype1,ctype1,&status)){
+
+        delete ctype1;
+        delete ktype1;
+        return printerror(status, "Error fits_write_key(CTYPE1)");
+
+    }
+
+    delete ctype1;
+    delete ktype1;
+
+    /// 36. %%%%%%%%%%%%%%%%%%%%%%%%%%%%% CTYPE2 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+    char * ctype2 = new char[cCTYPE2.length()+1];
+    strcpy(ctype2,cCTYPE2.c_str());
+
+    char * ktype2 = new char[kCTYPE2.length()+1];
+    strcpy(ktype2,kCTYPE2.c_str());
+
+    if(fits_write_key(fptr,TSTRING,"CTYPE2",ktype2,ctype2,&status)){
+
+        delete ctype2;
+        delete ktype2;
+        return printerror(status, "Error fits_write_key(CTYPE2)");
+
+    }
+
+    delete ctype2;
+    delete ktype2;
+
+    /// 37. %%%%%%%%%%%%%%%%%%%%%%%%%%%%% TIMEUNIT %%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+    char * ctimeunit = new char[cTIMEUNIT.length()+1];
+    strcpy(ctimeunit,cTIMEUNIT.c_str());
+
+    char * ktimeunit = new char[kTIMEUNIT.length()+1];
+    strcpy(ktimeunit,kTIMEUNIT.c_str());
+
+    if(fits_write_key(fptr,TSTRING,"TIMEUNIT",ktimeunit,ctype2,&status)){
+
+        delete ctimeunit;
+        delete ktimeunit;
+        return printerror(status, "Error fits_write_key(TIMEUNIT)");
+
+    }
+
+    delete ctimeunit;
+    delete ktimeunit;
+
+    /// 38. %%%%%%%%%%%%%%%%%%%%%%%%%%%%% CD1_1 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+    char * ccd1_1 = new char[cCD1_1.length()+1];
+    strcpy(ccd1_1,cCD1_1.c_str());
+
+    if(fits_write_key(fptr,TDOUBLE,"CD1_1",&kCD1_1,ccd1_1,&status)){
+
+        delete ccd1_1;
+        return printerror(status, "Error fits_write_key(CD1_1)");
+
+    }
+
+    delete ccd1_1;
+
+    /// 39. %%%%%%%%%%%%%%%%%%%%%%%%%%%%% CD1_2 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+    char * ccd1_2 = new char[cCD1_2.length()+1];
+    strcpy(ccd1_2,cCD1_2.c_str());
+
+    if(fits_write_key(fptr,TDOUBLE,"CD1_2",&kCD1_2,ccd1_2,&status)){
+
+        delete ccd1_2;
+        return printerror(status, "Error fits_write_key(CD1_2)");
+
+    }
+
+    delete ccd1_2;
+
+    /// 40. %%%%%%%%%%%%%%%%%%%%%%%%%%%%% CD2_1 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+    char * ccd2_1 = new char[cCD2_1.length()+1];
+    strcpy(ccd2_1,cCD2_1.c_str());
+
+    if(fits_write_key(fptr,TDOUBLE,"CD2_1",&kCD2_1,ccd2_1,&status)){
+
+        delete ccd2_1;
+        return printerror(status, "Error fits_write_key(CD2_1)");
+
+    }
+
+    delete ccd2_1;
+
+    /// 41. %%%%%%%%%%%%%%%%%%%%%%%%%%%%% CD2_2 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+    char * ccd2_2 = new char[cCD2_2.length()+1];
+    strcpy(ccd2_2,cCD2_2.c_str());
+
+    if(fits_write_key(fptr,TDOUBLE,"CD2_2",&kCD2_2,ccd2_2,&status)){
+
+        delete ccd2_2;
+        return printerror(status, "Error fits_write_key(CD2_2)");
+
+    }
+
+    delete ccd2_2;
+
+    /// 42. %%%%%%%%%%%%%%%%%%%%%%%%%%%%% CRPIX1 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+    char * ccrpix1 = new char[cCRPIX1.length()+1];
+    strcpy(ccrpix1,cCRPIX1.c_str());
+
+    if(fits_write_key(fptr,TINT,"CRPIX1",&kCRPIX1,ccrpix1,&status)){
+
+        delete ccrpix1;
+        return printerror(status, "Error fits_write_key(CRPIX1)");
+
+    }
+
+    delete ccrpix1;
+
+    /// 43. %%%%%%%%%%%%%%%%%%%%%%%%%%%%% CRPIX2 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+    char * ccrpix2 = new char[cCRPIX2.length()+1];
+    strcpy(ccrpix2,cCRPIX2.c_str());
+
+    if(fits_write_key(fptr,TINT,"CRPIX2",&kCRPIX2,ccrpix2,&status)){
+
+        delete ccrpix2;
+        return printerror(status, "Error fits_write_key(CRPIX2)");
+
+    }
+
+    delete ccrpix2;
+
+    /// 44. %%%%%%%%%%%%%%%%%%%%%%%%%%%%% CRVAL1 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+    char * ccrval1 = new char[cCRVAL1.length()+1];
+    strcpy(ccrval1,cCRVAL1.c_str());
+
+    if(fits_write_key(fptr,TDOUBLE,"CRVAL1",&kCRVAL1,ccrval1,&status)){
+
+        delete ccrval1;
+        return printerror(status, "Error fits_write_key(CRVAL1)");
+
+    }
+
+    delete ccrval1;
+
+    /// 45. %%%%%%%%%%%%%%%%%%%%%%%%%%%%% CRVAL2 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+    char * ccrval2 = new char[cCRVAL2.length()+1];
+    strcpy(ccrval2,cCRVAL2.c_str());
+
+    if(fits_write_key(fptr,TDOUBLE,"CRVAL2",&kSITELAT,ccrval2,&status)){
+
+        delete ccrval2;
+        return printerror(status, "Error fits_write_key(CRVAL2)");
+
+    }
+
+    delete ccrval2;
+
+    /// 46. %%%%%%%%%%%%%%%%%%%%%%%%%%%%% K1 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+    char * ck1 = new char[cK1.length()+1];
+    strcpy(ck1,cK1.c_str());
+
+    if(fits_write_key(fptr,TDOUBLE,"K1",&kK1,ck1,&status)){
+
+        delete ck1;
+        return printerror(status, "Error fits_write_key(K1)");
+
+    }
+
+    delete ck1;
+
+    /// 47. %%%%%%%%%%%%%%%%%%%%%%%%%%%%% K2 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+    char * ck2 = new char[cK2.length()+1];
+    strcpy(ck2,cK2.c_str());
+
+    if(fits_write_key(fptr,TDOUBLE,"K2",&kK2,ck2,&status)){
+
+        delete ck2;
+        return printerror(status, "Error fits_write_key(K2)");
+
+    }
+
+    delete ck2;
+
+    return true;
+
+
+}
+
+/******************************************************/
+/* Create a FITS primary array containing a 2-D image */
+/******************************************************/
+
+bool Fits2D::writeFits( Mat img, bitdepth imgType, int nb, bool filenameWithDate){
+
+    int status = 0;
+
+    long  firstPixel, nbelements;
+
+    // 2-dimensional image.
+    long naxis = 2;
+
+    // Image size.
+    long naxes[2] = { img.cols, img.rows };
+
+    // First pixel to write.
+	firstPixel = 1;
+
+	// Number of pixels to write.
+    nbelements = naxes[0] * naxes[1];
+
+    // Get current date.
+    kDATE = TimeDate::localDateTime(microsec_clock::universal_time(),"%Y-%m-%dT %H:%M:%S");
+    string date	= TimeDate::localDateTime(microsec_clock::universal_time(),"%Y%m%d_%H%M%S");
+
+    // Creation of the fits filename.
+    if(nb == 0){
+
+        kFILENAME = kTELESCOP+"_"+date+"_UT";
+
+    }else{
+
+        kFILENAME = kTELESCOP+"_"+date+"_UT"+"-"+ Conversion::intToString(nb);
+
+    }
+
+    string pathAndname ="";
+
+    if(filenameWithDate){
+
+        pathAndname		= fitsPath+kFILENAME+".fit";
+
+    }else{
+
+        pathAndname		= fitsPath+".fit";
+
+    }
 
     filename		= pathAndname.c_str();
-    long naxis		= 2;					// 2-dimensional image
-    long naxes[2]	= { wImg, hImg };
 
-	firstPixel = 1;                        // First pixel to write
-    nbelements = naxes[0] * naxes[1];	   // Number of pixels to write
+    switch(imgType){
 
-    bool returnValue = true;
-
-    switch(bitDepth){
-
-        case 8 :
+        case 0:
         {
-                //https://www-n.oca.eu/pichon/Tableau_2D.pdf
-                unsigned char ** tab = (unsigned char * *) malloc( hImg * sizeof( unsigned char * ) ) ;
-                //float ** tab = (float* *) malloc( hImg * sizeof( float * ) ) ;
+            //https://www-n.oca.eu/pichon/Tableau_2D.pdf
+            unsigned char ** tab = (unsigned char * *) malloc( img.rows * sizeof( unsigned char * ) ) ;
 
-                if(tab == NULL){returnValue = false; break;}
+            if(tab == NULL){
 
-                tab[0] = (unsigned char  *) malloc( naxes[0] * naxes[1] * sizeof(unsigned char) ) ;
-                //tab[0] = (float  *) malloc( naxes[0] * naxes[1] * sizeof(float)) ;
+                return printerror("Fits2D::writeimage() case 8 bits -> tab == NULL");
+            }
 
-                if(tab[0] == NULL){returnValue = false; break;}
+            tab[0] = (unsigned char  *) malloc( naxes[0] * naxes[1] * sizeof(unsigned char) ) ;
 
-                int a;
-                for( a=1; a<naxes[1]; a++ )
-                  tab[a] = tab[a-1] + naxes[0];
+            if(tab[0] == NULL){
 
-                // Delete old file if it already exists
-                remove(filename);
+                return printerror("Fits2D::writeimage() case 8 bits -> tab[0] == NULL");
+            }
 
-                // Initialize status before calling fitsio routines
-                status = 0;
+            for( int a = 1; a<naxes[1]; a++ ){
 
-                // Create new FITS file
-                if (fits_create_file(&fptr, filename, &status))
-                     printerror( status );
-                     else
-                     cout << "file created"<<endl;
+                tab[a] = tab[a-1] + naxes[0];
+            }
 
-                if ( fits_create_img(fptr,  BYTE_IMG, naxis, naxes, &status) )
-                     printerror( status );
+            // Delete old file if it already exists.
+            remove(filename);
 
-                // Initialize the values in the fits image with the mat's values
-                 for (j = 0; j < naxes[1]; j++){
-                     //uchar * matPtr = img.ptr<uchar>(j);
-                     unsigned char * matPtr = img.ptr<unsigned char>(j);
-                     //float * matPtr = img.ptr<float>(j);
+            // Create new FITS file.
+            if (fits_create_file(&fptr, filename, &status)){
 
-                     for (i = 0; i < naxes[0]; i++){
-                         //affect a value and inversed the image
-                         tab[hImg-1-j][i] = (unsigned char)matPtr[i];
-                         //tab[hImg-1-j][i] = (float)matPtr[i];
-                    }
+                 return printerror( status, "Fits2D::writeimage() case 8 bits -> fits_create_file() failed" );
+            }
+
+
+            if (fits_create_img(fptr,  BYTE_IMG, naxis, naxes, &status)){
+
+                 return printerror( status, "Fits2D::writeimage() case 8 bits -> fits_create_img() failed" );
+            }
+
+            // Initialize the values in the fits image with the mat's values.
+             for ( int j = 0; j < naxes[1]; j++){
+
+                 unsigned char * matPtr = img.ptr<unsigned char>(j);
+
+                 for ( int i = 0; i < naxes[0]; i++){
+
+                     // Affect a value and inverse the image.
+                     tab[img.rows-1-j][i] = (unsigned char)matPtr[i];
+
                 }
+            }
 
-                // write the array of unsigned short to the FITS file
-                 if(fits_write_img(fptr, TBYTE, firstPixel, nbelements, tab[0], &status))
-                    printerror( status );
+            // Write the array of unsigned short to the FITS file.
+             if(fits_write_img(fptr, TBYTE, firstPixel, nbelements, tab[0], &status)){
 
-                //free( *tab);
-                 //free( *tab );
-            free( tab[0]);    // free previously allocated memory
+                 return printerror( status, "Fits2D::writeimage() case 8 bits -> fits_write_img() failed" );
+            }
+
+            // Free previously allocated memory.
+            free(tab[0]);
 
             break;
         }
 
-        case 16 :
+        case 1:
+        {
+            //https://www-n.oca.eu/pichon/Tableau_2D.pdf
+            char ** tab = (char * *) malloc( img.rows * sizeof( char * ) ) ;
+
+            if(tab == NULL){
+
+                return printerror("Fits2D::writeimage() case 8 bits -> tab == NULL");
+            }
+
+            tab[0] = (char *) malloc( naxes[0] * naxes[1] * sizeof(char) ) ;
+
+            if(tab[0] == NULL){
+
+                return printerror("Fits2D::writeimage() case 8 bits -> tab[0] == NULL");
+            }
+
+            for( int a = 1; a<naxes[1]; a++ ){
+
+                tab[a] = tab[a-1] + naxes[0];
+            }
+
+            // Delete old file if it already exists.
+            remove(filename);
+
+            // Create new FITS file.
+            if (fits_create_file(&fptr, filename, &status)){
+
+                 return printerror( status, "Fits2D::writeimage() case 8 signed bits -> fits_create_file() failed" );
+            }
+
+
+            if (fits_create_img(fptr,  SBYTE_IMG, naxis, naxes, &status)){
+
+                 return printerror( status, "Fits2D::writeimage() case 8 signed bits -> fits_create_img() failed" );
+            }
+
+            // Initialize the values in the fits image with the mat's values.
+             for ( int j = 0; j < naxes[1]; j++){
+
+                 char * matPtr = img.ptr<char>(j);
+
+                 for ( int i = 0; i < naxes[0]; i++){
+
+                     // Affect a value and inverse the image.
+                     tab[img.rows-1-j][i] = (char)matPtr[i];
+
+                }
+            }
+
+            // Write the array of unsigned short to the FITS file.
+             if(fits_write_img(fptr, TSBYTE, firstPixel, nbelements, tab[0], &status)){
+
+                 return printerror( status, "Fits2D::writeimage() case 8 signed bits -> fits_write_img() failed" );
+            }
+
+            // Free previously allocated memory.
+            free(tab[0]);
+
+            break;
+        }
+
+        case 2 :
         {
 
             //https://www-n.oca.eu/pichon/Tableau_2D.pdf
-            unsigned short ** tab = (unsigned short * *) malloc( hImg * sizeof( unsigned short * ) ) ;
+            unsigned short ** tab = (unsigned short * *) malloc( img.rows * sizeof( unsigned short * ) ) ;
 
-            if(tab == NULL){returnValue = false; break;}
+            if(tab == NULL){
+
+                return printerror("Fits2D::writeimage() case 16 bits -> tab == NULL");
+            }
 
             tab[0] = (unsigned short  *) malloc( naxes[0] * naxes[1] * sizeof(unsigned short) ) ;
 
-            if(tab[0] == NULL){returnValue = false; break;}
+            if(tab[0] == NULL){
 
-            int a;
+                return printerror("Fits2D::writeimage() case 16 bits -> tab[0] == NULL");
+            }
 
-            for( a=1; a<naxes[1]; a++ )
+            for( int a = 1; a<naxes[1]; a++ ){
+
               tab[a] = tab[a-1] + naxes[0];
+            }
 
-            // Delete old file if it already exists
+            // Delete old file if it already exists.
             remove(filename);
 
-            // Initialize status before calling fitsio routines
-            status = 0;
+            // Create new FITS file.
+            if (fits_create_file(&fptr, filename, &status)){
 
-            // Create new FITS file
-            if (fits_create_file(&fptr, filename, &status))
-                 printerror( status );
+                 return printerror( status, "Fits2D::writeimage() case 16 bits -> fits_create_file() failed" );
+            }
 
-            if ( fits_create_img(fptr,  SHORT_IMG, naxis, naxes, &status) )
-                 printerror( status );
 
-            // Initialize the values in the fits image with the mat's values
-            for (j = 0; j < naxes[1]; j++){
+            if ( fits_create_img(fptr,  USHORT_IMG, naxis, naxes, &status)){
+
+                 return printerror( status, "Fits2D::writeimage() case 16 bits -> fits_create_img() failed" );
+            }
+
+            // Initialize the values in the fits image with the mat's values.
+            for ( int j = 0; j < naxes[1]; j++){
 
                  unsigned short * matPtr = img.ptr<unsigned short>(j);
 
-                 for (i = 0; i < naxes[0]; i++){
-                     //affect a value and inversed the image
-                     tab[hImg-1-j][i] = (unsigned short)matPtr[i];
+                 for ( int i = 0; i < naxes[0]; i++){
+
+                     // Affect a value and inverse the image.
+                     tab[img.rows-1-j][i] = (unsigned short)matPtr[i];
                 }
             }
 
             // write the array of unsigned short to the FITS file
-            if ( fits_write_img(fptr, TUSHORT, firstPixel, nbelements, tab[0], &status) )
-                printerror( status );
+            if ( fits_write_img(fptr, TUSHORT, firstPixel, nbelements, tab[0], &status)){
 
+                 return printerror( status, "Fits2D::writeimage() case 16 bits -> fits_write_img() failed" );
+            }
+
+            // Free previously allocated memory.
             free( *tab);
-            free( tab );  // free previously allocated memory
+            free( tab );
 
             break;
 
         }
 
-        case 32 :
+        case 3 :
         {
 
             //https://www-n.oca.eu/pichon/Tableau_2D.pdf
-            float ** tab = (float * *) malloc( hImg * sizeof( float * ) ) ;
+            short ** tab = (short * *) malloc( img.rows * sizeof( short * ) ) ;
 
-            if(tab == NULL){returnValue = false; break;}
+            if(tab == NULL){
 
-            tab[0] = (float *) malloc( naxes[0] * naxes[1] * sizeof(float) ) ;
+                return printerror("Fits2D::writeimage() case 16 signed bits -> tab == NULL");
+            }
 
-            if(tab[0] == NULL){returnValue = false; break;}
+            tab[0] = (short  *) malloc( naxes[0] * naxes[1] * sizeof(short) ) ;
 
-            int a;
+            if(tab[0] == NULL){
 
-            for( a=1; a<naxes[1]; a++ )
+                return printerror("Fits2D::writeimage() case 16 signed bits -> tab[0] == NULL");
+            }
+
+            for( int a = 1; a<naxes[1]; a++ ){
+
               tab[a] = tab[a-1] + naxes[0];
+            }
 
-            // Delete old file if it already exists
+            // Delete old file if it already exists.
             remove(filename);
 
-            // Initialize status before calling fitsio routines
-            status = 0;
+            // Create new FITS file.
+            if (fits_create_file(&fptr, filename, &status)){
 
-            // Create new FITS file
-            if (fits_create_file(&fptr, filename, &status))
-                 printerror( status );
+                 return printerror( status, "Fits2D::writeimage() case 16 signed bits -> fits_create_file() failed" );
+            }
 
-            if ( fits_create_img(fptr,  FLOAT_IMG, naxis, naxes, &status) )
-                 printerror( status );
 
-            // Initialize the values in the fits image with the mat's values
-            for (j = 0; j < naxes[1]; j++){
+            if ( fits_create_img(fptr,  SHORT_IMG, naxis, naxes, &status)){
 
-                 float * matPtr = img.ptr<float>(j);
+                 return printerror( status, "Fits2D::writeimage() case 16 signed bits -> fits_create_img() failed" );
+            }
 
-                 for (i = 0; i < naxes[0]; i++){
-                     //affect a value and inversed the image
-                     tab[hImg-1-j][i] = (float)matPtr[i];
-                 }
+            // Initialize the values in the fits image with the mat's values.
+            for ( int j = 0; j < naxes[1]; j++){
+
+                 short * matPtr = img.ptr<short>(j);
+
+                 for ( int i = 0; i < naxes[0]; i++){
+
+                     // Affect a value and inverse the image.
+                     tab[img.rows-1-j][i] = (short)matPtr[i];
+                }
             }
 
             // write the array of unsigned short to the FITS file
-           if ( fits_write_img(fptr, TFLOAT, firstPixel, nbelements, tab[0], &status) )
-                printerror( status );
+            if ( fits_write_img(fptr, TSHORT, firstPixel, nbelements, tab[0], &status)){
 
+                 return printerror( status, "Fits2D::writeimage() case 16 signed bits -> fits_write_img() failed" );
+            }
 
-           // realloc(ptr, 0);
-            free( *tab );
-            free( tab);  // free previously allocated memory
+            // Free previously allocated memory.
+            free( *tab);
+            free( tab );
+
+            break;
+
+        }
+
+        case 4 :
+        {
+
+            //https://www-n.oca.eu/pichon/Tableau_2D.pdf
+            float ** tab = (float * *) malloc( img.rows * sizeof( float * ) ) ;
+
+            if(tab == NULL){
+
+                return printerror("Fits2D::writeimage() case 32 bits -> tab == NULL");
+            }
+
+            tab[0] = (float *) malloc( naxes[0] * naxes[1] * sizeof(float) ) ;
+
+            if(tab[0] == NULL){
+
+                return printerror("Fits2D::writeimage() case 32 bits -> tab[0] == NULL");
+            }
+
+            for( int a = 1; a<naxes[1]; a++ ){
+
+                tab[a] = tab[a-1] + naxes[0];
+            }
+
+            // Delete old file if it already exists.
+            remove(filename);
+
+            // Create new FITS file
+            if (fits_create_file(&fptr, filename, &status)){
+
+                 return printerror( status, "Fits2D::writeimage() case 32 bits -> fits_create_file() failed" );
+            }
+
+            if ( fits_create_img(fptr,  FLOAT_IMG, naxis, naxes, &status)){
+
+                 return printerror( status, "Fits2D::writeimage() case 32 bits -> fits_create_img() failed" );
+            }
+
+            // Initialize the values in the fits image with the mat's values.
+            for ( int j = 0; j < naxes[1]; j++){
+
+                 float * matPtr = img.ptr<float>(j);
+
+                 for ( int i = 0; i < naxes[0]; i++){
+
+                     // Affect a value and inversed the image.
+                     tab[img.rows-1-j][i] = (float)matPtr[i];
+                 }
+            }
+
+            // Write the array of unsigned short to the FITS file.
+            if ( fits_write_img(fptr, TFLOAT, firstPixel, nbelements, tab[0], &status)){
+
+                 return printerror( status, "Fits2D::writeimage() case 32 bits -> fits_write_img() failed" );
+            }
+
+            // Free previously allocated memory.
+            free(*tab);
+            free(tab);
 
 
             break;
@@ -252,621 +1144,409 @@ bool Fits2D::writeimage( Mat img, int bitDepth,string nb, bool dtANDstation){
 
         default :
 
-            returnValue = false;
+            return printerror("Fits2D::writeimage() -> bitDepth doesn't exists");
 
             break;
 
     }
 
+    if(!writeKeywords()){
 
-    if(returnValue){
+        if( fits_close_file(fptr, &status)){
 
-        if(ffdkey(fptr, "COMMENT", &status))
-           printerror( status );
-
-        if(ffdkey(fptr, "COMMENT", &status))
-           printerror( status );
-
-        //FILENAME
-        char * fn = new char[name.length()+1];
-        strcpy(fn,name.c_str());
-
-        if(fits_write_key(fptr,TSTRING,"FILENAME",fn,"",&status))
-            printerror( status );
-
-        delete fn;
-
-        //DATE
-        char * fdc = new char[fitsCreationDate.length()+1];
-        strcpy(fdc,fitsCreationDate.c_str());
-
-        if(fits_write_key(fptr,TSTRING,"DATE",fdc,"fits creation date",&status))
-            printerror( status );
-
-        delete fdc;
-
-        //DATE-OBS
-        char * d = new char[kDATEOBS.length()+1];
-        strcpy(d,kDATEOBS.c_str());
-
-        if(fits_write_key(fptr,TSTRING,"DATE-OBS",d,"UT date of Observation",&status))
-            printerror( status );
-
-        delete d;
-
-        //OBS_MODE
-        if(fits_write_key(fptr,TINT,"OBS_MODE",&kOBSMODE,"Acquisition frequence",&status))
-            printerror( status );
-
-        //ELAPTIME - date de fin obs - date de debut obs
-        if(fits_write_key(fptr,TINT,"ELAPTIME",&kELAPTIME,"Time between the obs's start and end",&status))
-            printerror( status );
-
-        //ONTIME
-        if(fits_write_key(fptr,TDOUBLE,"ONTIME",&kONTIME,"Integration time",&status))
-            printerror( status );
-
-        //EXPOSURE
-        if(fits_write_key(fptr,TDOUBLE,"EXPOSURE",&kEXPOSURE,"Camera's exposure time (sec)",&status))
-            printerror( status );
-
-        //RADESYS
-        char * radesys = new char[kRADESYS.length()+1];
-        strcpy(radesys,kRADESYS.c_str());
-
-        if(fits_write_key(fptr,TSTRING,"RADESYS",radesys,"",&status))
-            printerror( status );
-
-        delete radesys;
-
-        //FILTER
-        char * f = new char[kFILTER.length()+1];
-        strcpy(f,kFILTER.c_str());
-
-        if(fits_write_key(fptr,TSTRING,"FILTER",f,"",&status))
-            printerror( status );
-
-        delete f;
-
-        //TELESCOP
-        char * t = new char[kTELESCOP.length()+1];
-        strcpy(t,kTELESCOP.c_str());
-
-        if(fits_write_key(fptr,TSTRING,"TELESCOP",t,"",&status))
-            printerror( status );
-
-        delete t;
-
-        //OBSERVER
-        char * o = new char[kOBSERVER.length()+1];
-        strcpy(o,kOBSERVER.c_str());
-
-        if(fits_write_key(fptr,TSTRING,"OBSERVER",o,"",&status))
-            printerror( status );
-
-        delete o;
-
-        //INSTRUME
-        char * i = new char[kINSTRUME.length()+1];
-        strcpy(i,kINSTRUME.c_str());
-
-        if(fits_write_key(fptr,TSTRING,"INSTRUME",i,"",&status))
-            printerror( status );
-
-        delete i;
-
-        //CAMERA
-        char * cam = new char[kCAMERA.length()+1];
-        strcpy(cam,kCAMERA.c_str());
-
-        if(fits_write_key(fptr,TSTRING,"CAMERA",cam,"",&status))
-            printerror( status );
-
-        delete cam;
-
-        //FOCAL
-        if(fits_write_key(fptr,TDOUBLE,"FOCAL",&kFOCAL,"",&status))
-            printerror( status );
-
-        //APERTURE
-        if(fits_write_key(fptr,TDOUBLE,"APERTURE",&kAPERTURE,"",&status))
-            printerror( status );
-
-
-
-        //SITELONG
-        /*char * sitelong = new char[vSITELONG.length()+1];
-        strcpy(sitelong,vSITELONG.c_str());*/
-
-        if(fits_write_key(fptr,TDOUBLE,"SITELONG",&kSITELONG,"Longitude observatory",&status))
-            printerror( status );
-
-        //delete sitelong;
-
-        //SITELAT
-        /*char * sitelat = new char[vSITELAT.length()+1];
-        strcpy(sitelat,vSITELAT.c_str());*/
-
-        if(fits_write_key(fptr,TDOUBLE,"SITELAT",&kSITELAT,"Latitude observatory",&status))
-            printerror( status );
-
-        //delete sitelat;
-
-        //SITEELEV
-        /*char * siteelev = new char[vSITEELEV.length()+1];
-        strcpy(siteelev,vSITEELEV.c_str());*/
-
-        if(fits_write_key(fptr,TDOUBLE,"SITEELEV",&kSITEELEV,"Observatory elevation",&status))
-            printerror( status );
-
-       // delete siteelev;
-
-        //GAINDB
-        if(fits_write_key(fptr,TINT,"GAINDB",&kGAINDB,"Camera's gain",&status))
-            printerror( status );
-
-        //SATURATE
-        if(fits_write_key(fptr,TDOUBLE,"SATURATE",&kSATURATE,"Max value in image",&status))
-            printerror( status );
-
-        //PROGRAM
-        char * p = new char[kPROGRAM.length()+1];
-        strcpy(p,kPROGRAM.c_str());
-
-        if(fits_write_key(fptr,TSTRING,"PROGRAM",p,"Name of acquisition program",&status))
-            printerror( status );
-
-        delete p;
-
-        //CREATOR
-        char * c = new char[kCREATOR.length()+1];
-        strcpy(c,kCREATOR.c_str());
-
-        if(fits_write_key(fptr,TSTRING,"CREATOR",c,"Creator's name",&status))
-            printerror( status );
-
-        delete c;
-
-        //CENTAZ
-        char * centaz = new char[kCENTAZ.length()+1];
-        strcpy(centaz,kCENTAZ.c_str());
-
-        if(fits_write_key(fptr,TSTRING,"CENTAZ",centaz,"Nominal Azimuth of center of image in deg",&status))
-            printerror( status );
-
-        delete centaz;
-
-        //CENTALT
-        char * centalt = new char[kCENTALT.length()+1];
-        strcpy(centalt,kCENTALT.c_str());
-
-        if(fits_write_key(fptr,TSTRING,"CENTALT",centalt,"Nominal Altitude of center of image in deg",&status))
-            printerror( status );
-
-        delete centalt;
-
-        //CENTOR
-        char * centor = new char[kCENTOR.length()+1];
-        strcpy(centor,kCENTOR.c_str());
-
-        if(fits_write_key(fptr,TSTRING,"CENTOR",centor,"Orientation camera",&status))
-            printerror( status );
-
-        delete centor;
-
-        //CRPIX1
-        if(fits_write_key(fptr,TINT,"CRPIX1",&kCRPIX1,"Center fish eyes X",&status))
-            printerror( status );
-
-        //CRPIX2
-        if(fits_write_key(fptr,TINT,"CRPIX2",&kCRPIX2,"Center fish eyes Y",&status))
-            printerror( status );
-
-        //K1
-        if(fits_write_key(fptr,TDOUBLE,"K1",&kK1,"R = K1 * f * sin(theta/K2)",&status))
-            printerror( status );
-
-        //K2
-        if(fits_write_key(fptr,TDOUBLE,"K2",&kK2,"R = K1 * f * sin(theta/K2)",&status))
-            printerror( status );
-
-        //EQUINOX
-         if(fits_write_key(fptr,TDOUBLE,"EQUINOX",&kEQUINOX,"",&status))
-            printerror( status );
-
-        //CTYPE1
-        char * ctype1 = new char[kCTYPE1.length()+1];
-        strcpy(ctype1,kCTYPE1.c_str());
-
-        if(fits_write_key(fptr,TSTRING,"CTYPE1",ctype1,"Projection and reference system",&status))
-            printerror( status );
-
-        //CTYPE2
-        char * ctype2 = new char[kCTYPE2.length()+1];
-        strcpy(ctype2,kCTYPE2.c_str());
-
-        if(fits_write_key(fptr,TSTRING,"CTYPE2",ctype2,"Projection and reference system",&status))
-            printerror( status );
-
-        //CD1_1
-        if(fits_write_key(fptr,TDOUBLE,"CD1_1",&kCD1_1,"deg/pix",&status))
-            printerror( status );
-
-        //CD1_2
-        if(fits_write_key(fptr,TDOUBLE,"CD1_2",&kCD1_2,"deg/pix",&status))
-            printerror( status );
-
-        //CD2_1
-        if(fits_write_key(fptr,TDOUBLE,"CD2_1",&kCD2_1,"deg/pix",&status))
-            printerror( status );
-
-        //CD2_2
-        if(fits_write_key(fptr,TDOUBLE,"CD2_2",&kCD2_2,"deg/pix",&status))
-            printerror( status );
-
-        //CRVAL1
-        if(fits_write_key(fptr,TDOUBLE,"CRVAL1",&kCRVAL1,"degree",&status))
-            printerror( status );
-
-        //CRVAL2
-        if(fits_write_key(fptr,TDOUBLE,"CRVAL2",&kSITELAT,"deg/pix",&status))
-            printerror( status );
-
-        //XPIXEL
-        if(fits_write_key(fptr,TDOUBLE,"XPIXEL",&kXPIXEL,"in micro meter",&status))
-            printerror( status );
-
-        //YPIXEL
-        if(fits_write_key(fptr,TDOUBLE,"YPIXEL",&kYPIXEL,"in micro meter",&status))
-            printerror( status );
-
-        // close the file
-        if ( fits_close_file(fptr, &status) )
-             printerror( status );
-
-    }
-
-    return returnValue;
-}
-
-bool Fits2D::readFitsToMat(Mat &img, string filePath){
-
-        float * ptr = NULL;
-        float  * ptr1 = NULL;
-
-        fitsfile *fptr;       // pointer to the FITS file, defined in fitsio.h
-        int status,  nfound, anynull;
-        long naxes[2], fpixel, nbuffer, npixels;
-
-        float  nullval;
-        //char filename[]  = fichier.c_str();     /* name of existing FITS file   */
-        const char * filename;
-
-        filename = filePath.c_str();
-        status = 0;
-
-        fits_open_file(&fptr, filename, READONLY, &status) ;
-
-        // read the NAXIS1 and NAXIS2 keyword to get image size
-        fits_read_keys_lng(fptr, "NAXIS", 1, 2, naxes, &nfound, &status) ;
-
-        Mat image = Mat::zeros( naxes[1],naxes[0], CV_32FC1);
-
-        npixels  = naxes[0] * naxes[1];         // number of pixels in the image
-        fpixel   = 1;                           // first pixel
-        nullval  = 0;                           // don't check for null values in the image
-
-        nbuffer = npixels;
-
-        float  buffer[npixels];
-
-        fits_read_img(fptr, TFLOAT, fpixel, nbuffer, &nullval,buffer, &anynull, &status) ;
-
-        memcpy(image.ptr(), buffer, npixels * 4);
-
-        Mat loadImg = Mat::zeros( naxes[1],naxes[0], CV_32FC1 );
-
-        int nbpix = 0;
-
-        for(int i = 0; i < naxes[1]; i++){ //y
-
-            float * ptr = image.ptr<float>(i);
-            float * ptr1 = loadImg.ptr<float >(naxes[1] - 1 - i);
-
-            for(int j = 0; j < naxes[0]; j++){ //x
-
-                //float val = ptr[j];
-                  ptr1[j] = ptr[j];
-              //  loadImg.at<float>(naxes[1] - i, j) = image.at<float>(i, j);
-                nbpix++;
-
-            }
+             return printerror( status, "Fits2D::writeimage() -> fits_close_file() failed" );
         }
 
-        loadImg.copyTo(img);
+        return false;
+    }
 
-        fits_close_file(fptr, &status);
+    if( fits_close_file(fptr, &status)){
 
+        return printerror( status, "Fits2D::writeimage() -> fits_close_file() failed" );
+    }
 
-        return true;
+    return true;
+}
+
+//Float 32bits float -1.18*10-38~3.40*10-38
+bool Fits2D::readFits32F(Mat &img, string filePath){
+
+    float * ptr = NULL;
+    float  * ptr1 = NULL;
+
+    int status = 0,  nfound, anynull;
+    long naxes[2], fpixel, nbuffer, npixels;
+
+    float  nullval;
+
+    filename = filePath.c_str();
+
+    if(fits_open_file(&fptr, filename, READONLY, &status)){
+
+        return printerror( status, "Fits2D::readFits32F() -> fits_open_file() failed" );
+    }
+
+    // Read the NAXIS1 and NAXIS2 keyword to get image size.
+    if(fits_read_keys_lng(fptr, "NAXIS", 1, 2, naxes, &nfound, &status)){
+
+        return printerror( status, "Fits2D::readFits32F() -> fits_read_keys_lng() failed" );
+    }
+
+    Mat image = Mat::zeros( naxes[1],naxes[0], CV_32FC1);
+
+    npixels  = naxes[0] * naxes[1];         // number of pixels in the image
+    fpixel   = 1;                           // first pixel
+    nullval  = 0;                           // don't check for null values in the image
+
+    nbuffer = npixels;
+
+    float  buffer[npixels];
+
+    if(fits_read_img(fptr, TFLOAT, fpixel, nbuffer, &nullval,buffer, &anynull, &status)){
+
+        return printerror( status, "Fits2D::readFits32F() -> fits_read_img() failed" );
+    }
+
+    memcpy(image.ptr(), buffer, npixels * 4);
+
+    Mat loadImg = Mat::zeros( naxes[1],naxes[0], CV_32FC1 );
+
+    // y
+    for(int i = 0; i < naxes[1]; i++){
+
+        float * ptr = image.ptr<float>(i);
+        float * ptr1 = loadImg.ptr<float >(naxes[1] - 1 - i);
+
+        // x
+        for(int j = 0; j < naxes[0]; j++){
+
+            ptr1[j] = ptr[j];
+
+        }
+    }
+
+    loadImg.copyTo(img);
+
+    if(fits_close_file(fptr, &status)){
+
+        return printerror( status, "Fits2D::readFits32F() -> fits_close_file() failed" );
+    }
+
+    return true;
 
 }
 
+//Unsigned 16bits ushort 0~65535
+bool Fits2D::readFits16US(Mat &img, string filePath){
 
-//int fits::readFitsKeyWords(){
-//
-//	fitsfile *fptr;
-//    char card[FLEN_CARD];
-//    int status = 0,  nkeys, ii;  /* MUST initialize status */
-//
-//    fits_open_file(&fptr, "D:\\fitsTest.fits", READONLY, &status);
-//    fits_get_hdrspace(fptr, &nkeys, NULL, &status);
-//
-//    for (ii = 1; ii <= nkeys; ii++)  {
-//        fits_read_record(fptr, ii, card, &status); /* read keyword */
-//        printf("%s\n", card);
-//    }
-//    printf("END\n\n");  /* terminate listing with END */
-//    fits_close_file(fptr, &status);
-//
-//    if (status)          /* print any error messages */
-//        fits_report_error(stderr, status);
-//
-//	return(status);
-//
-//}
-//
-//
-//
-///*--------------------------------------------------------------------------*/
-//void fits::writeascii ( void )
-//
-//    /*******************************************************************/
-//    /* Create an ASCII table extension containing 3 columns and 6 rows */
-//    /*******************************************************************/
-//{
-//    fitsfile *fptr;       /* pointer to the FITS file, defined in fitsio.h */
-//    int status;
-//    long firstrow, firstelem;
-//
-//    int tfields = 3;       /* table will have 3 columns */
-//    long nrows  = 6;       /* table will have 6 rows    */
-//
-//    char filename[] = "fitsTest.fit";           /* name for new FITS file */
-//    char extname[] = "PLANETS_ASCII";             /* extension name */
-//
-//    /* define the name, datatype, and physical units for the 3 columns */
-//    char *ttype[] = { "Planet", "Diameter", "Density" };
-//    char *tform[] = { "a8",     "I6",       "F4.2"    };
-//    char *tunit[] = { "\0",      "km",       "g/cm"    };
-//
-//    /* define the name diameter, and density of each planet */
-//    char *planet[] = {"Mercury", "Venus", "Earth", "Mars","Jupiter","Saturn"};
-//    long  diameter[] = {4880,    12112,    12742,   6800,  143000,   121000};
-//    float density[]  = { 5.1,     5.3,      5.52,   3.94,    1.33,    0.69};
-//
-//    status=0;
-//
-//    /* open with write access the FITS file containing a primary array */
-//    if ( fits_open_file(&fptr, filename, READWRITE, &status) )
-//         printerror( status );
-//
-//    /* append a new empty ASCII table onto the FITS file */
-//    if ( fits_create_tbl( fptr, ASCII_TBL, nrows, tfields, ttype, tform,
-//                tunit, extname, &status) )
-//         printerror( status );
-//
-//    firstrow  = 1;  /* first row in table to write   */
-//    firstelem = 1;  /* first element in row  (ignored in ASCII tables) */
-//
-//    /* write names to the first column (character strings) */
-//    /* write diameters to the second column (longs) */
-//    /* write density to the third column (floats) */
-//
-//    fits_write_col(fptr, TSTRING, 1, firstrow, firstelem, nrows, planet,
-//                   &status);
-//    fits_write_col(fptr, TLONG, 2, firstrow, firstelem, nrows, diameter,
-//                   &status);
-//    fits_write_col(fptr, TFLOAT, 3, firstrow, firstelem, nrows, density,
-//                   &status);
-//
-//    if ( fits_close_file(fptr, &status) )       /* close the FITS file */
-//         printerror( status );
-//    return;
-//}
-///*--------------------------------------------------------------------------*/
-//void fits::writebintable ( void )
-//
-//    /*******************************************************************/
-//    /* Create a binary table extension containing 3 columns and 6 rows */
-//    /*******************************************************************/
-//{
-//    fitsfile *fptr;       /* pointer to the FITS file, defined in fitsio.h */
-//    int status, hdutype;
-//    long firstrow, firstelem;
-//
-//    int tfields   = 3;       /* table will have 3 columns */
-//    long nrows    = 6;       /* table will have 6 rows    */
-//
-//    char filename[] = "fitsTest.fit";           /* name for new FITS file */
-//    char extname[] = "PLANETS_Binary";           /* extension name */
-//
-//    /* define the name, datatype, and physical units for the 3 columns */
-//    char *ttype[] = { "Planet", "Diameter", "Density" };
-//    char *tform[] = { "8a",     "1J",       "1E"    };
-//    char *tunit[] = { "\0",      "km",       "g/cm"    };
-//
-//    /* define the name diameter, and density of each planet */
-//    char *planet[] = {"Mercury", "Venus", "Earth", "Mars","Jupiter","Saturn"};
-//    long  diameter[] = {4880,     12112,   12742,   6800,  143000,   121000};
-//    float density[]  = { 5.1,      5.3,     5.52,   3.94,   1.33,     0.69};
-//
-//    status=0;
-//
-//    /* open the FITS file containing a primary array and an ASCII table */
-//    if ( fits_open_file(&fptr, filename, READWRITE, &status) )
-//         printerror( status );
-//
-//    if ( fits_movabs_hdu(fptr, 2, &hdutype, &status) ) /* move to 2nd HDU */
-//         printerror( status );
-//
-//    /* append a new empty binary table onto the FITS file */
-//    if ( fits_create_tbl( fptr, BINARY_TBL, nrows, tfields, ttype, tform,
-//                tunit, extname, &status) )
-//         printerror( status );
-//
-//    firstrow  = 1;  /* first row in table to write   */
-//    firstelem = 1;  /* first element in row  (ignored in ASCII tables) */
-//
-//    /* write names to the first column (character strings) */
-//    /* write diameters to the second column (longs) */
-//    /* write density to the third column (floats) */
-//
-//    fits_write_col(fptr, TSTRING, 1, firstrow, firstelem, nrows, planet,
-//                   &status);
-//    fits_write_col(fptr, TLONG, 2, firstrow, firstelem, nrows, diameter,
-//                   &status);
-//    fits_write_col(fptr, TFLOAT, 3, firstrow, firstelem, nrows, density,
-//                   &status);
-//
-//    if ( fits_close_file(fptr, &status) )       /* close the FITS file */
-//         printerror( status );
-//    return;
-//}
-//
-///*--------------------------------------------------------------------------*/
-void Fits2D::printerror( int status){
-//    /*****************************************************/
-//    /* Print out cfitsio error messages and exit program */
-//    /*****************************************************/
+    unsigned short * ptr = NULL;
+    unsigned short  * ptr1 = NULL;
 
+    int status = 0,  nfound, anynull;
+    long naxes[2], fpixel, nbuffer, npixels;
+
+    float  nullval;
+
+    filename = filePath.c_str();
+
+    if(fits_open_file(&fptr, filename, READONLY, &status)){
+
+        return printerror( status, "Fits2D::readFits16US() -> fits_open_file() failed" );
+    }
+
+    // Read the NAXIS1 and NAXIS2 keyword to get image size.
+    if(fits_read_keys_lng(fptr, "NAXIS", 1, 2, naxes, &nfound, &status)){
+
+        return printerror( status, "Fits2D::readFits16US() -> fits_read_keys_lng() failed" );
+    }
+
+    Mat image = Mat::zeros( naxes[1],naxes[0], CV_16UC1);
+
+    npixels  = naxes[0] * naxes[1];         // number of pixels in the image
+    fpixel   = 1;                           // first pixel
+    nullval  = 0;                           // don't check for null values in the image
+
+    nbuffer = npixels;
+
+    unsigned short  buffer[npixels];
+
+    if(fits_read_img(fptr, TUSHORT, fpixel, nbuffer, &nullval,buffer, &anynull, &status)){
+
+        return printerror( status, "Fits2D::readFits16US() -> fits_read_img() failed" );
+    }
+
+    memcpy(image.ptr(), buffer, npixels * 2);
+
+    Mat loadImg = Mat::zeros( naxes[1],naxes[0], CV_16UC1 );
+
+    // y
+    for(int i = 0; i < naxes[1]; i++){
+
+        unsigned short * ptr = image.ptr<unsigned short>(i);
+        unsigned short * ptr1 = loadImg.ptr<unsigned short >(naxes[1] - 1 - i);
+
+        // x
+        for(int j = 0; j < naxes[0]; j++){
+
+            ptr1[j] = ptr[j];
+
+        }
+    }
+
+    loadImg.copyTo(img);
+
+    if(fits_close_file(fptr, &status)){
+
+        return printerror( status, "Fits2D::readFits16US() -> fits_close_file() failed" );
+    }
+
+    return true;
+
+}
+
+//Signed 16bits short -32768~32767
+bool Fits2D::readFits16S(Mat &img, string filePath){
+
+    short * ptr = NULL;
+    short  * ptr1 = NULL;
+
+    int status = 0,  nfound, anynull;
+    long naxes[2], fpixel, nbuffer, npixels;
+
+    float  nullval;
+
+    filename = filePath.c_str();
+
+    if(fits_open_file(&fptr, filename, READONLY, &status)){
+
+        return printerror( status, "Fits2D::readFits16S() -> fits_open_file() failed" );
+    }
+
+    // Read the NAXIS1 and NAXIS2 keyword to get image size.
+    if(fits_read_keys_lng(fptr, "NAXIS", 1, 2, naxes, &nfound, &status)){
+
+        return printerror( status, "Fits2D::readFits16S() -> fits_read_keys_lng() failed" );
+    }
+
+    Mat image = Mat::zeros( naxes[1],naxes[0], CV_16SC1);
+
+    npixels  = naxes[0] * naxes[1];         // number of pixels in the image
+    fpixel   = 1;                           // first pixel
+    nullval  = 0;                           // don't check for null values in the image
+
+    nbuffer = npixels;
+
+    short  buffer[npixels];
+
+    if(fits_read_img(fptr, TSHORT, fpixel, nbuffer, &nullval,buffer, &anynull, &status)){
+
+        return printerror( status, "Fits2D::readFits16S() -> fits_read_img() failed" );
+    }
+
+    memcpy(image.ptr(), buffer, npixels * 2);
+
+    Mat loadImg = Mat::zeros( naxes[1],naxes[0], CV_16SC1 );
+
+    // y
+    for(int i = 0; i < naxes[1]; i++){
+
+        short * ptr = image.ptr<short>(i);
+        short * ptr1 = loadImg.ptr<short >(naxes[1] - 1 - i);
+
+        // x
+        for(int j = 0; j < naxes[0]; j++){
+
+            ptr1[j] = ptr[j];
+
+        }
+    }
+
+    loadImg.copyTo(img);
+
+    if(fits_close_file(fptr, &status)){
+
+        return printerror( status, "Fits2D::readFits16S() -> fits_close_file() failed" );
+    }
+
+    return true;
+
+}
+
+//Unsigned 8bits uchar 0~255
+bool Fits2D::readFits8UC(Mat &img, string filePath){
+
+    unsigned char * ptr = NULL;
+    unsigned char  * ptr1 = NULL;
+
+    int status = 0,  nfound, anynull;
+    long naxes[2], fpixel, nbuffer, npixels;
+
+    float  nullval;
+
+    filename = filePath.c_str();
+
+    if(fits_open_file(&fptr, filename, READONLY, &status)){
+
+        return printerror( status, "Fits2D::readFits8UC() -> fits_open_file() failed" );
+    }
+
+    // Read the NAXIS1 and NAXIS2 keyword to get image size.
+    if(fits_read_keys_lng(fptr, "NAXIS", 1, 2, naxes, &nfound, &status)){
+
+        return printerror( status, "Fits2D::readFits8UC() -> fits_read_keys_lng() failed" );
+    }
+
+    Mat image = Mat::zeros( naxes[1],naxes[0], CV_8UC1);
+
+    npixels  = naxes[0] * naxes[1];         // number of pixels in the image
+    fpixel   = 1;                           // first pixel
+    nullval  = 0;                           // don't check for null values in the image
+
+    nbuffer = npixels;
+
+    unsigned char  buffer[npixels];
+
+    if(fits_read_img(fptr, TBYTE, fpixel, nbuffer, &nullval,buffer, &anynull, &status)){
+
+        return printerror( status, "Fits2D::readFits8UC() -> fits_read_img() failed" );
+    }
+
+    memcpy(image.ptr(), buffer, npixels * 2);
+
+    Mat loadImg = Mat::zeros( naxes[1],naxes[0], CV_8UC1 );
+
+    // y
+    for(int i = 0; i < naxes[1]; i++){
+
+        unsigned char * ptr = image.ptr<unsigned char>(i);
+        unsigned char * ptr1 = loadImg.ptr<unsigned char >(naxes[1] - 1 - i);
+
+        // x
+        for(int j = 0; j < naxes[0]; j++){
+
+            ptr1[j] = ptr[j];
+
+        }
+    }
+
+    loadImg.copyTo(img);
+
+    if(fits_close_file(fptr, &status)){
+
+        return printerror( status, "Fits2D::readFits8UC() -> fits_close_file() failed" );
+    }
+
+    return true;
+
+}
+
+//Signed 8bits char -128~127
+bool Fits2D::readFits8C(Mat &img, string filePath){
+
+    char * ptr = NULL;
+    char  * ptr1 = NULL;
+
+    int status = 0,  nfound, anynull;
+    long naxes[2], fpixel, nbuffer, npixels;
+
+    float  nullval;
+
+    filename = filePath.c_str();
+
+    if(fits_open_file(&fptr, filename, READONLY, &status)){
+
+        return printerror( status, "Fits2D::readFits8C() -> fits_open_file() failed" );
+    }
+
+    // Read the NAXIS1 and NAXIS2 keyword to get image size.
+    if(fits_read_keys_lng(fptr, "NAXIS", 1, 2, naxes, &nfound, &status)){
+
+        return printerror( status, "Fits2D::readFits8C() -> fits_read_keys_lng() failed" );
+    }
+
+    Mat image = Mat::zeros( naxes[1],naxes[0], CV_8SC1);
+
+    npixels  = naxes[0] * naxes[1];         // number of pixels in the image
+    fpixel   = 1;                           // first pixel
+    nullval  = 0;                           // don't check for null values in the image
+
+    nbuffer = npixels;
+
+    char  buffer[npixels];
+
+    if(fits_read_img(fptr, TSBYTE, fpixel, nbuffer, &nullval,buffer, &anynull, &status)){
+
+        return printerror( status, "Fits2D::readFits8C() -> fits_read_img() failed" );
+    }
+
+    memcpy(image.ptr(), buffer, npixels * 2);
+
+    Mat loadImg = Mat::zeros( naxes[1],naxes[0], CV_8SC1 );
+
+    // y
+    for(int i = 0; i < naxes[1]; i++){
+
+        char * ptr = image.ptr<char>(i);
+        char * ptr1 = loadImg.ptr<char >(naxes[1] - 1 - i);
+
+        // x
+        for(int j = 0; j < naxes[0]; j++){
+
+            ptr1[j] = ptr[j];
+
+        }
+    }
+
+    loadImg.copyTo(img);
+
+    if(fits_close_file(fptr, &status)){
+
+        return printerror( status, "Fits2D::readFits8C() -> fits_close_file() failed" );
+    }
+
+    return true;
+
+}
+
+bool Fits2D::printerror( int status, string errorMsg){
 
     if (status){
-       fits_report_error(stderr, status); /* print error report */
 
-       exit( status );    /* terminate the program, returning error status */
+        fits_report_error(stderr, status);
+
+        cout << stderr << endl;
+        BOOST_LOG_SEV(log, fail) << stderr;
+
     }
-    return;
+
+    if(errorMsg != ""){
+
+        cout << errorMsg << endl;
+        BOOST_LOG_SEV(log, fail) << errorMsg;
+
+    }
+
+    return false;
 }
-//
-//void fits::readheader ( void )
-//
-//    /**********************************************************************/
-//    /* Print out all the header keywords in all extensions of a FITS file */
-//    /**********************************************************************/
-//{
-//    fitsfile *fptr;       /* pointer to the FITS file, defined in fitsio.h */
-//
-//    int status, nkeys, keypos, hdutype, ii, jj;
-//    char filename[]  = "fitsTest.fit";     /* name of existing FITS file   */
-//    char card[FLEN_CARD];   /* standard string lengths defined in fitsioc.h */
-//
-//    status = 0;
-//
-//    if ( fits_open_file(&fptr, filename, READONLY, &status) )
-//         printerror( status );
-//
-//    /* attempt to move to next HDU, until we get an EOF error */
-//    for (ii = 1; !(fits_movabs_hdu(fptr, ii, &hdutype, &status) ); ii++)
-//    {
-//        /* get no. of keywords */
-//        if (fits_get_hdrpos(fptr, &nkeys, &keypos, &status) )
-//            printerror( status );
-//
-//        printf("Header listing for HDU #%d:\n", ii);
-//        for (jj = 1; jj <= nkeys; jj++)  {
-//            if ( fits_read_record(fptr, jj, card, &status) )
-//                 printerror( status );
-//
-//            printf("%s\n", card); /* print the keyword card */
-//        }
-//        printf("END\n\n");  /* terminate listing with END */
-//    }
-//
-//    if (status == END_OF_FILE)   /* status values are defined in fitsioc.h */
-//        status = 0;              /* got the expected EOF error; reset = 0  */
-//    else
-//       printerror( status );     /* got an unexpected error                */
-//
-//    if ( fits_close_file(fptr, &status) )
-//         printerror( status );
-//
-//    return;
-//}
-//
-//void fits::readtable( void )
-//
-//    /************************************************************/
-//    /* read and print data values from an ASCII or binary table */
-//    /************************************************************/
-//{
-//    fitsfile *fptr;       /* pointer to the FITS file, defined in fitsio.h */
-//    int status, hdunum, hdutype,  nfound, anynull, ii;
-//    long frow, felem, nelem, longnull, dia[6];
-//    float floatnull, den[6];
-//    char strnull[10], *name[6], *ttype[3];
-//
-//    char filename[]  = "fitsTest.fit";     /* name of existing FITS file   */
-//
-//    status = 0;
-//
-//    if ( fits_open_file(&fptr, filename, READONLY, &status) )
-//         printerror( status );
-//
-//    for (ii = 0; ii < 3; ii++)      /* allocate space for the column labels */
-//        ttype[ii] = (char *) malloc(FLEN_VALUE);  /* max label length = 69 */
-//
-//    for (ii = 0; ii < 6; ii++)    /* allocate space for string column value */
-//        name[ii] = (char *) malloc(10);
-//
-//    for (hdunum = 2; hdunum <= 3; hdunum++) /*read ASCII, then binary table */
-//    {
-//      /* move to the HDU */
-//      if ( fits_movabs_hdu(fptr, hdunum, &hdutype, &status) )
-//           printerror( status );
-//
-//      if (hdutype == ASCII_TBL)
-//          printf("\nReading ASCII table in HDU %d:\n",  hdunum);
-//      else if (hdutype == BINARY_TBL)
-//          printf("\nReading binary table in HDU %d:\n", hdunum);
-//      else
-//      {
-//          printf("Error: this HDU is not an ASCII or binary table\n");
-//          printerror( status );
-//      }
-//
-//      /* read the column names from the TTYPEn keywords */
-//      fits_read_keys_str(fptr, "TTYPE", 1, 3, ttype, &nfound, &status);
-//
-//      printf(" Row  %10s %10s %10s\n", ttype[0], ttype[1], ttype[2]);
-//
-//      frow      = 1;
-//      felem     = 1;
-//      nelem     = 6;
-//      strcpy(strnull, " ");
-//      longnull  = 0;
-//      floatnull = 0.;
-//
-//      /*  read the columns */
-//      fits_read_col(fptr, TSTRING, 1, frow, felem, nelem, strnull,  name,
-//                    &anynull, &status);
-//      fits_read_col(fptr, TLONG, 2, frow, felem, nelem, &longnull,  dia,
-//                    &anynull, &status);
-//      fits_read_col(fptr, TFLOAT, 3, frow, felem, nelem, &floatnull, den,
-//                    &anynull, &status);
-//
-//      for (ii = 0; ii < 6; ii++)
-//        printf("%5d %10s %10ld %10.2f\n", ii + 1, name[ii], dia[ii], den[ii]);
-//    }
-//
-//    for (ii = 0; ii < 3; ii++)      /* free the memory for the column labels */
-//        free( ttype[ii] );
-//
-//    for (ii = 0; ii < 6; ii++)      /* free the memory for the string column */
-//        free( name[ii] );
-//
-//    if ( fits_close_file(fptr, &status) )
-//         printerror( status );
-//
-//    return;
-//}
+
+void Fits2D::printerror( int status ){
+
+    if (status){
+
+        fits_report_error(stderr, status);
+
+
+    }
+}
+
+bool Fits2D::printerror( string errorMsg){
+
+    if(errorMsg != ""){
+
+        cout << errorMsg << endl;
+        BOOST_LOG_SEV(log, fail) << errorMsg;
+
+    }
+
+    return false;
+}

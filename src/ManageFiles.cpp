@@ -177,4 +177,25 @@ bool ManageFiles::createDirectory( string const & source ){
 
 }
 
+string ManageFiles::get_file_contents(const char *filename){
+
+	ifstream in(filename, ios::in | ios::binary);
+
+	if (in){
+
+		string contents;
+		in.seekg(0, ios::end);
+		contents.resize(in.tellg());
+		in.seekg(0, ios::beg);
+		in.read(&contents[0], contents.size());
+		in.close();
+		return(contents);
+
+	}
+
+	throw(errno);
+
+}
+
+
 

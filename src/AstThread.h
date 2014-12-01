@@ -35,6 +35,7 @@
 
 #include "includes.h"
 #include "EnumLog.h"
+#include "EnumBitdepth.h"
 #include "Fifo.h"
 #include "Frame.h"
 #include "Fits.h"
@@ -60,6 +61,7 @@ namespace expr		= boost::log::expressions;
 namespace keywords	= boost::log::keywords;
 
 using namespace logenum;
+using namespace bit_depth_enum;
 
 //!  A thread class to make captures regurlarly in fits format.
 /*!

@@ -50,16 +50,12 @@ DetThread::DetThread(Mat                        maskImg,
                      string                     stationName,
                      bool                       detDebug,
                      string                     debugPath,
-                     bool                       detMaskMoon,
-                     bool                       saveMaskedMoon,
                      bool                       detDownsample,
                      Fits fitsHead){
 
 
     fitsHeader  = fitsHead;
     downsample                      =   detDownsample;
-    maskMoonSave                    =   saveMaskedMoon;
-    maskMoon                        =   detMaskMoon;
     debug                           =   detDebug;
     debugLocation                   =   debugPath;
     recordingPath                   =   recPath;
@@ -228,155 +224,6 @@ void DetThread::operator ()(){
             BOOST_LOG_SEV(log,logenum::notification) << "****************************************************";
 
 
-            //%%%%%%%%%%%%%%%% MOON %%%%%%%%%%%%%%%%%%%%%%%%%
-
-            // Segmentation toutes les 30 secondes pour localiser la position de la lune
-            if(f.getNumFrame()%400 == 0 && maskMoon){
-
-                vector <LocalEvent> listLEMoon;
-
-                Mat moon_res, temp;
-                currentFrame.copyTo(temp,mask);
-                threshold(temp, moon_res, 250, 255, THRESH_BINARY);
-                //SaveImg::saveBMP(moon_res,"/home/fripon/data2/moon/moon_pos" + Conversion::intToString(f.getNumFrame()));
-
-                if(!lastMoonCap.data){
-
-                    moon_res.copyTo(lastMoonCap);
-
-                }else{
-
-                    Mat res = lastMoonCap & moon_res;
-
-                    //SaveImg::saveBMP(res,"/home/fripon/data2/moon/moon_res" + Conversion::intToString(f.getNumFrame()));
-
-                    if(countNonZero(res)>0){
-
-                        cout << "non zero" <<endl;
-
-                        unsigned char * ptr;
-
-                        //height
-                        for(int i = 0; i < res.rows; i++){
-
-                            ptr = res.ptr<unsigned char>(i);
-
-                            //width
-                            for(int j = 0; j < res.cols; j++){
-
-                                 if((int)ptr[j] > 0){
-
-                                    if((i - 5 > 0) && ( i + 5 < res.rows) && (  j- 5 > 0) && (j + 5 < res.cols)){
-
-                                        vector<LocalEvent>::iterator it;
-
-                                        bool added = false;
-
-                                        Mat temp(res.rows,res.cols,CV_8UC1,Scalar(0));
-                                        Mat roiTemp(10,10,CV_8UC1,Scalar(255));
-                                        roiTemp.copyTo(temp(Rect( j - 5, i - 5, 10, 10)));
-
-                                        if(listLEMoon.size()>0){
-
-                                            for (it=listLEMoon.begin(); it!=listLEMoon.end(); ++it){
-
-                                                Mat resTest = (*it).getMap() & temp;
-
-                                                if( countNonZero(resTest)>0){
-
-                                                    Mat tempMat = (*it).getMap();
-                                                    roiTemp.copyTo(tempMat(Rect( j - 5, i - 5, 10, 10)));
-                                                    (*it).setMap(tempMat);
-                                                    (*it).listRoiCenter.push_back(Point(j,i));
-                                                    (*it).computeCenterOfMass(true);
-                                                    Mat roi(roiSize[1],roiSize[0],CV_8UC1,Scalar(0));
-                                                    roi.copyTo(res(Rect( j-roiSize[0]/2, i-roiSize[1]/2,roiSize[0],roiSize[1])));
-                                                    break;
-
-                                                }else{
-
-                                                    vector<PixelEvent> listPixInRoi;
-                                                    LocalEvent newLocalEvent(Scalar(0,0,0), Point(j, i), listPixInRoi, res.rows, res.cols, roiSize);
-                                                    newLocalEvent.computeCenterOfMass(true);
-                                                    listLEMoon.push_back(newLocalEvent);
-                                                    Mat roi(roiSize[1],roiSize[0],CV_8UC1,Scalar(0));
-                                                    roi.copyTo(res(Rect( j-roiSize[0]/2, i-roiSize[1]/2,roiSize[0],roiSize[1])));
-                                                    break;
-                                                }
-                                            }
-
-                                        }else{
-
-                                            vector<PixelEvent> listPixInRoi;
-                                            LocalEvent newLocalEvent(Scalar(0,0,0), Point(j, i), listPixInRoi, res.rows, res.cols, roiSize);
-                                            newLocalEvent.computeCenterOfMass(true);
-                                            listLEMoon.push_back(newLocalEvent);
-                                            Mat roi(roiSize[1],roiSize[0],CV_8UC1,Scalar(0));
-                                            roi.copyTo(res(Rect( j-roiSize[0]/2, i-roiSize[1]/2,roiSize[0],roiSize[1])));
-
-                                        }
-                                    }
-                                }
-                            }
-                        }
-
-                    }
-
-                    if(listLEMoon.size()>0){
-
-                        vector<LocalEvent>::iterator it;
-                        vector<LocalEvent>::iterator tempIt;
-                        bool first = true;
-
-                        for (it=listLEMoon.begin(); it!=listLEMoon.end(); ++it){
-
-                            if(first){
-
-                                tempIt = it;
-                                first = false;
-
-                            }else{
-
-                                if((*tempIt).listRoiCenter.size() < (*it).listRoiCenter.size())
-                                    tempIt = it;
-
-                            }
-
-                        }
-
-
-                        if(sqrt(pow(((*tempIt).centerOfMass.x - moonPos.x),2) + pow(((*tempIt).centerOfMass.y - moonPos.y),2)) < 100 ){
-
-                            moonPos = (*tempIt).centerOfMass;
-
-                        }
-
-                        cout << "MOON POSITION = " << moonPos << endl;
-
-                        if(maskMoonSave)
-                            SaveImg::saveBMP(currentFrame, debugLocation + "moon_original_" + Conversion::intToString(f.getNumFrame()));
-
-                        circle(currentFrame, moonPos, 60, Scalar(0), CV_FILLED, 8, 0);
-
-                        if(maskMoonSave)
-                            SaveImg::saveBMP(currentFrame, debugLocation + "moon_final_" + Conversion::intToString(f.getNumFrame()));
-
-                        cptNoMoon = 0;
-
-                    }else{
-
-                        cptNoMoon ++;
-
-                    }
-
-                    if(cptNoMoon >= 5 )
-                        moonPos = Point(0,0);
-
-                    moon_res.copyTo(lastMoonCap);
-
-
-                }
-            }
 
             //%%%%%%%%%%%%%%%% COMPUTE REGION %%%%%%%%%%%%%%%
             if(!computeRegion){
@@ -493,8 +340,6 @@ void DetThread::operator ()(){
                                                                         videoDebug,
                                                                         debug,
                                                                         listSubdivPosition,
-                                                                        maskMoon,
-                                                                        moonPos,
                                                                         downsample);
 
            // }

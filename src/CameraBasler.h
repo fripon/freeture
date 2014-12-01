@@ -47,6 +47,7 @@
 #include "ManageFiles.h"
 #include "Conversion.h"
 #include "EnumLog.h"
+#include "EnumBitdepth.h"
 //#include "serialize.h"
 #include <boost/filesystem.hpp>
 #include <iterator>
@@ -72,6 +73,7 @@ using namespace cv;
 using namespace std;
 
 using namespace logenum;
+using namespace bit_depth_enum;
 
 //! Thread class for acquisition with Basler cameras
 class CameraBasler : public Camera{

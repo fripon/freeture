@@ -54,6 +54,8 @@ CameraBasler::CameraBasler(){
 }
 
 
+
+
 CameraBasler::CameraBasler( int     exposure,
                             int     gain,
                             bool    saveFits2D,
@@ -326,7 +328,7 @@ void CameraBasler::grabOne(){
                 newFits.setExposure(initialExpValue * 1e-6);
                 //newFits.setElaptime(0);
                 //newFits.setCrval1(0);//sideraltime
-                newFits.writeimage(f.getImg(), 8, "", true );
+                newFits.writeFits(f.getImg(), UC8, 0, true );
 
             }
 
@@ -358,7 +360,7 @@ void CameraBasler::grabOne(){
                 newFits.setExposure(initialExpValue * 1e-6);
                 //newFits.setElaptime(0);
                 //newFits.setCrval1(0);//sideraltime
-                newFits.writeimage(f.getImg(), 16, "", true );
+                newFits.writeFits(f.getImg(), US16, 0, true );
 
             }
 
@@ -427,13 +429,13 @@ void    CameraBasler::operator()(){
     int div = 1;
 
     bool saveISS = false;
-    string rep = "moon1/";//"ISS_20140925_070111";
+    string rep = "memoryTest/";//"ISS_20140925_070111";
     //ISS_20140923_052830
 
     int compteur = 0;
 
     vector<Mat> listForFits3D;
-    bool savef3D = false;
+    bool savef3D = true;
 
 
     //Thread loop
@@ -464,8 +466,8 @@ void    CameraBasler::operator()(){
 
                 if(camera->getPixelFormat() != 8){
 
-                     Fits2D newFits("/home/fripon/data2/" + rep +  "/MOON_"+Conversion::intToString(compteur),fitsHeader);
-                    newFits.writeimage(newFrame->getImg(), 16, "0", false );
+                     Fits2D newFits("/home/fripon/memoryTest/fitsTest_"+Conversion::intToString(compteur),fitsHeader);
+                    newFits.writeFits(newFrame->getImg(), US16, 0, false );
 /*
                         Fits2D fit("/home/fripon/data/" + rep + "/MOON_"+Conversion::intToString(cpt), 0, "", 0, 30, 4095, 33333.0, 400, 0.0 );
                         fit.loadKeywordsFromConfigFile("/home/fripon/friponProject/friponCapture/configuration.cfg");
@@ -480,7 +482,7 @@ void    CameraBasler::operator()(){
 
 
                      Fits2D newFits("/home/fripon/data2/" + rep +  "/MOON_"+Conversion::intToString(compteur),fitsHeader);
-                    newFits.writeimage(newFrame->getImg(), 8, "0", false );
+                    newFits.writeFits(newFrame->getImg(), UC8, 0, false );
 
                       /*  Fits2D fit("/home/fripon/data/" + rep +  "/MOON_"+Conversion::intToString(cpt), 0, "", 0, 30, 255, 33333.0, 850, 0.0 );
                         fit.loadKeywordsFromConfigFile("/home/fripon/friponProject/friponCapture/configuration.cfg");

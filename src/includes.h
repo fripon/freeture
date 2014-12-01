@@ -24,6 +24,8 @@
 *
 *%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%*/
 
+#define HAVE_CONFIG_H 1
+
 #ifdef    HAVE_CONFIG_H
     #include "config.h"
 #else

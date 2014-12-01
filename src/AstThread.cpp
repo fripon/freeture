@@ -47,7 +47,7 @@ AstThread::AstThread(   string                      recPath,
                         boost::condition_variable   *c_queue_new,
                         Fits fitsHead){
 
-    fitsHeader  = fitsHead;
+    fitsHeader              = fitsHead;
     stationName             = station;
     longitude               = longi;
     fitsMethod              = astMeth;
@@ -215,8 +215,6 @@ void AstThread::operator()(){
 
             }else{
 
-
-
                 if(!fs::create_directory(p)){
 
                     BOOST_LOG_SEV(log,notification) << "Unable to create destination directory" << p.string();
@@ -243,7 +241,6 @@ void AstThread::operator()(){
                     }
                 }
             }
-
 
             resImg = Mat::zeros(framesQueue->getFifoElementAt(0).getImg().rows,framesQueue->getFifoElementAt(0).getImg().cols, CV_32FC1);
             img = Mat::zeros(framesQueue->getFifoElementAt(0).getImg().rows,framesQueue->getFifoElementAt(0).getImg().cols,CV_32FC1);
@@ -292,13 +289,6 @@ void AstThread::operator()(){
             int endObsInSeconds = dateObsEnd.at(3)*3600 + dateObsEnd.at(4)*60 + dateObsEnd.at(5);
             int elapTime = endObsInSeconds - debObsInSeconds;
 
-            /*dateObsDeb.clear();
-            dateObsDeb.push_back(2014);
-            dateObsDeb.push_back(3);
-            dateObsDeb.push_back(25);
-            dateObsDeb.push_back(11);
-            dateObsDeb.push_back(29);
-            dateObsDeb.push_back(23);*/
 
             double julianDate = TimeDate::gregorianToJulian_2(dateObsDeb);
             double julianCentury = TimeDate::julianCentury(julianDate);
@@ -309,18 +299,18 @@ void AstThread::operator()(){
             Fits2D newFits(finalPath,fitsHeader);
             newFits.setOntime(totalImgToSummed / 30);
             newFits.setGaindb(gain);
-            newFits.setObsmode(30);
+            newFits.setObsmode("30");
             newFits.setDateobs(dateObs);//dateObs
-            newFits.setSaturate(4095);
+            newFits.setSaturate(pow(2,formatPixel) - 1);
             newFits.setRadesys("ICRS");
             newFits.setEquinox(2000.0);
             newFits.setCtype1("RA---ARC");
-            newFits.setCtype2("DEC---ARC");
+            newFits.setCtype2("DEC--ARC");
             newFits.setExposure(exposure * 1e-6);
             newFits.setElaptime(elapTime);
             newFits.setCrval1(sideralT);//sideraltime
 
-            if(newFits.writeimage(resImg, 32, "0", true ))
+            if(newFits.writeFits(resImg, F32 , 0, true ))
                 cout << "Fits saved" << endl;
             else
                 cout << "Fits not saved" << endl;

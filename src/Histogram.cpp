@@ -75,8 +75,8 @@ Histogram::~Histogram(){
 
 Mat Histogram::drawHist(){
 
-    double hist_w = 512;
-    double hist_h = 400;
+    double hist_w = 1280;
+    double hist_h = 960;
     double bin_w  = hist_w/histSize ;
 
     Mat histImage( hist_h, hist_w, CV_8UC3, Scalar( 0,0,0) );

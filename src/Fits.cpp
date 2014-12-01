@@ -20,7 +20,7 @@
 *	You should have received a copy of the GNU General Public License
 *	along with FreeTure. If not, see <http://www.gnu.org/licenses/>.
 *
-*	Last modified:		21/10/2014
+*	Last modified:		28/11/2014
 *
 *%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%*/
 
@@ -28,46 +28,107 @@
 
 Fits::Fits(){
 
-    kFILENAME   = "" ;
+    STATION     = "";
+
+    kFILENAME   = "";
+    kDATE       = "";
+    kDATEOBS    = "";
+    kOBSMODE    = "SINGLE";
+    kELAPTIME   = 0;
     kEXPOSURE   = 0.0;
+    kONTIME     = 0.0;
+    kFILTER     = "";
     kTELESCOP   = "";
     kOBSERVER   = "";
     kINSTRUME   = "";
     kCAMERA     = "";
     kFOCAL      = 0.0;
-    kFILTER     = "";
-    kPROGRAM    = "";
-    kCREATOR    = "";
     kAPERTURE   = 0.0;
-    kXPIXEL     = 0.0;
-    kYPIXEL     = 0.0;
     kSITELONG   = 0.0;
     kSITELAT    = 0.0;
     kSITEELEV   = 0.0;
+    kXPIXEL     = 0.0;
+    kYPIXEL     = 0.0;
     kGAINDB     = 0;
-    kCENTAZ     = "";
-    kCENTALT    = "";
-    kCENTOR     = "";
-    kCRPIX1     = 0;
-    kCRPIX2     = 0;
-    kK1         = 0.0;
-    kK2         = 0.0;
-    kCOMMENT    = "";
+    kSATURATE   = 0.0;
+    kPROGRAM    = "";
+    kCREATOR    = "" ;
+    kBZERO      = 0.0;
+    kBSCALE     = 0.0;
+    kRADESYS    = "";
+    kTIMESYS    = "UTC";
+    kEQUINOX    = 0.0;
+    kCTYPE1     = "";
+    kCTYPE2     = "";
+    kCTYPE3     = "";
+    kTIMEUNIT   = "s";
     kCD1_1      = 0.0;
     kCD1_2      = 0.0;
     kCD2_1      = 0.0;
     kCD2_2      = 0.0;
-    kOBSMODE    = 0;
-    kDATEOBS    = "";
-    kSATURATE   = 0.0;
-    kONTIME     = 0.0;
-    kRADESYS    = "";
-    kEQUINOX    = 0.0;
-    kCTYPE1     = "";
-    kCTYPE2     = "";
-    kELAPTIME   = 0;
-    kCRVAL2     = 0.0;
+    kCD3_3      = 0.0;
+    kCD1_3      = 0.0;
+    kCD2_3      = 0.0;
+    kCD3_1      = 0.0;
+    kCD3_2      = 0.0;
+    kCRPIX1     = 0;
+    kCRPIX2     = 0;
+    kCRPIX3     = 0;
     kCRVAL1     = 0.0;
+    kCRVAL2     = 0.0;
+    kK1         = 0.0;
+    kK2         = 0.0;
+    kCOMMENT    = "";
+
+    cFILENAME   = "name of the fits file";
+    cDATE       = "date of the creation of the fits file";
+    cDATEOBS    = "acquisition date of the first frame";
+    cOBSMODE    = "'SINGLE' 'SUM' 'AVERAGE' ('MEDIAN')";
+    cELAPTIME   = "end obs. date - start obs. date (sec.)";
+    cEXPOSURE   = "integration time : 1/fps * nb_frames (sec.)";
+    cONTIME     = "frame exposure time (sec.)";
+    cFILTER     = "";
+    cTELESCOP   = "station " + STATION;
+    cOBSERVER   = "";
+    cINSTRUME   = "";
+    cCAMERA     = "";
+    cFOCAL      = "";
+    cAPERTURE   = "";
+    cSITELONG   = "longitude observatory";
+    cSITELAT    = "latuitude observatory";
+    cSITEELEV   = "observatory elevation (meter)";
+    cXPIXEL     = "";
+    cYPIXEL     = "";
+    cGAINDB     = "detector gain";
+    cSATURATE   = "saturation value or max value (OBS_MODE = SUM)";
+    cPROGRAM    = "name of the acquisition software";
+    cCREATOR    = "http://fripon.org";
+    cBZERO      = "";
+    cBSCALE     = "";
+    cRADESYS    = "";
+    cTIMESYS    = "";
+    cEQUINOX    = "equinox of equatorial coordinates";
+    cCTYPE1     = "projection and reference system";
+    cCTYPE2     = "projection and reference system";
+    cCTYPE3     = "time reference system ";
+    cTIMEUNIT   = "";
+    cCD1_1      = "deg/px";
+    cCD1_2      = "deg/px";
+    cCD2_1      = "deg/px";
+    cCD2_2      = "deg/px";
+    cCD3_3      = "fps";
+    cCD1_3      = "";
+    cCD2_3      = "";
+    cCD3_1      = "";
+    cCD3_2      = "";
+    cCRPIX1     = "";
+    cCRPIX2     = "";
+    cCRPIX3     = "";
+    cCRVAL1     = "sidereal time (decimal degree)";
+    cCRVAL2     = "latitude observatory (decimal degree)";
+    cK1         = "R = K1 * f * sin(theta/K2)";
+    cK2         = "R = K1 * f * sin(theta/K2)";
+    cCOMMENT    = "";
 
 }
 
@@ -86,6 +147,8 @@ bool Fits::loadKeywordsFromConfigFile(string configFile){
         Configuration getFitsKeys;
         getFitsKeys.Load(configFile);
 
+        getFitsKeys.Get("STATION_NAME", STATION);
+
         getFitsKeys.Get("TELESCOP", kTELESCOP);
         getFitsKeys.Get("OBSERVER", kOBSERVER);
         getFitsKeys.Get("INSTRUME", kINSTRUME);
@@ -95,9 +158,6 @@ bool Fits::loadKeywordsFromConfigFile(string configFile){
         getFitsKeys.Get("SITELONG", kSITELONG);
         getFitsKeys.Get("SITELAT",  kSITELAT);
         getFitsKeys.Get("SITEELEV", kSITEELEV);
-        getFitsKeys.Get("CENTAZ",   kCENTAZ);
-        getFitsKeys.Get("CENTALT",  kCENTALT);
-        getFitsKeys.Get("CENTOR",   kCENTOR);
         getFitsKeys.Get("CRPIX1",   kCRPIX1);
         getFitsKeys.Get("CRPIX2",   kCRPIX2);
         getFitsKeys.Get("K1",       kK1);
@@ -117,7 +177,7 @@ bool Fits::loadKeywordsFromConfigFile(string configFile){
 
     }else{
 
-        cout << " The path of the configuration file doesn't exists" << endl;
+        cout << " The path of the configuration file (" << configFile << ") doesn't exists" << endl;
 
         return false;
 
@@ -229,24 +289,6 @@ int Fits::getGaindb(){
 
 }
 
-string Fits::getCentaz(){
-
-    return kCENTAZ;
-
-}
-
-string Fits::getCentalt(){
-
-    return kCENTALT;
-
-}
-
-string Fits::getCentor(){
-
-    return kCENTOR;
-
-}
-
 int Fits::getCrpix1(){
 
     return kCRPIX1;
@@ -301,7 +343,7 @@ double Fits::getCd2_2(){
 
 }
 
-int Fits::getObsmode(){
+string Fits::getObsmode(){
 
     return kOBSMODE;
 
@@ -471,24 +513,6 @@ void Fits::setGaindb(int gaindb){
 
 }
 
-void Fits::setCentaz(string centaz){
-
-    kCENTAZ = centaz;
-
-}
-
-void Fits::setCentalt(string centalt){
-
-    kCENTALT = centalt;
-
-}
-
-void Fits::setCentor(string centor){
-
-    kCENTOR = centor;
-
-}
-
 void Fits::setCrpix1(int crpix1){
 
     kCRPIX1 = crpix1;
@@ -543,7 +567,7 @@ void Fits::setCd2_2(double cd2_2){
 
 }
 
-void Fits::setObsmode(int obsmode){
+void Fits::setObsmode(string obsmode){
 
     kOBSMODE = obsmode;
 
@@ -609,3 +633,9 @@ void Fits::setCrval1(double crval1){
 
 }
 
+void Fits::setStation(string name){
+
+    STATION     = name;
+    cTELESCOP   = "station " + STATION;
+
+}

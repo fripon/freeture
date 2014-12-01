@@ -330,11 +330,7 @@ bool	CameraSDKAravis::grabImage(Frame *&newFrame, Mat newImage){
                 Mat img(height, width, CV_16UC1, arv_buffer->data);
                 img.copyTo(image);
 
-
-
             }
-
-
 
             image.copyTo(newImage);
             newFrame = new Frame(image,  arv_camera_get_gain (camera),arv_camera_get_exposure_time (camera), acquisitionDate);

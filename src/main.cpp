@@ -50,8 +50,12 @@
 #include "Fits2D.h"
 #include "ManageFiles.h"
 #include "TimeDate.h"
+#include "Histogram.h"
+#include "EnumBitdepth.h"
 
 #include <boost/filesystem.hpp>
+
+#include "SMTPClient.h"
 
 using namespace boost::filesystem;
 
@@ -171,7 +175,7 @@ int main(int argc, const char ** argv){
         bool saveFits2D     = false;
         int gain            = 300;
         int exp             = 100;
-        string version      =  "1";//;string(PACKAGE_VERSION);  //
+        string version      =  /*"1";//;*/string(PACKAGE_VERSION);  //
 
         po::store(po::parse_command_line(argc, argv, desc), vm);
 
@@ -184,54 +188,51 @@ int main(int argc, const char ** argv){
         // load configuration file and parameters
         Configuration initConfig;
 
-        string	inputDevice;
-        string  inputDeviceName;
-        string	inputVideoPath;
-        string	detMethod;
-        string  acqMaskPath;
-        string  imgAstroMethod;
-        string  dataRecordPath          = "./data/";
-        string  stationName             = "STATION";
-        string  acqFramesDirectory;
-        string  logPath                 = "/tmp/";
+        string	INPUT;
+        string  CAMERA_NAME;
+        string	VIDEO_PATH;
+        string	DET_METHOD;
+        string  ACQ_MASK_PATH;
+        string  STACK_MTHD;
+        string  DATA_PATH               = "./data/";
+        string  STATION_NAME            = "STATION";
+        string  FRAMES_PATH;
+        string  LOG_PATH                = "/tmp/";
         string  logDirName              = "logFiles/";
-        string  debugPath               = "./";
-        bool    saveMaskedMoon          = false;
-        int     acqFrameNumStart;
-        int     acqFrameNumStop;
-        int		inputIdDevice           = 0;
-        int		acqFormatPix            = 8;
-        int		acqFPS                  = 30;
+        string  DEBUG_PATH              = "./";
+        int     FRAMES_START;
+        int     FRAMES_STOP;
+        int		CAMERA_ID               = 0;
+        int		ACQ_BIT_DEPTH               = 8;
+        int		ACQ_FPS                     = 30;
         int		imgCapInterval;
-        int		imgAstroInterval;
-        int     gePrevTime              = 1;
-        int     geAfterTime             = 1;
-        int     geMax                   = 10;
-        int     geMaxTime               = 10;
-        bool	detEnable;
-        bool    detRecFits3D            = false;
-        bool    detRecFits2D            = false;
-        bool    detRecPositions         = true;
-        bool    detRecBmp               = false;
-        bool    detRecAvi               = false;
-        bool    detRecMapGE             = true;
-        bool    detRecShape             = false;
-        bool    debug                   = false;
-        bool    detRecTrail             = false;
-        bool    detMaskMoon             = false;
-        bool    detDownsample           = false;
-        bool    acqMaskEnable           = false;
+        int		STACK_INTERVAL;
+        int     DET_TIME_BEFORE         = 1;
+        int     DET_TIME_AFTER          = 1;
+        int     DET_GE_MAX              = 10;
+        int     DET_TIME_MAX            = 10;
+        bool	DET_ENABLED;
+        bool    DET_SAVE_FITS3D         = false;
+        bool    DET_SAVE_FITS2D         = false;
+        bool    DET_SAVE_POS            = true;
+        bool    DET_SAVE_BMP            = false;
+        bool    DET_SAVE_AVI            = false;
+        bool    DET_SAVE_GEMAP          = true;
+        bool    DEBUG_ENABLED           = false;
+        bool    DET_SAVE_TRAIL          = false;
+        bool    DET_DOWNSAMPLE_ENABLED  = false;
+        bool    ACQ_MASK_ENABLED            = false;
         bool	imgCapEnable            = false;
-        bool    detRecSum               = false;
+        bool    DET_SAVE_SUM            = false;
         bool	imgCapGammaCorrEnable;
-        bool	imgAstroEnable;
+        bool	STACK_ENABLED;
         double	imgCapExpTime;
         double	imgCapGammaCorrValue;
-        double	imgAstroExpTime;
+        double	STACK_TIME;
         double  longitude               = 0.0;
-        int     acqInitialExposure	    = 0;
-        int     acqInitialGain		    = 0;
-        bool    saveConfigFileCopy      = false;
+        int     ACQ_EXPOSURE	            = 0;
+        int     ACQ_GAIN		            = 0;
+        bool    COPY_CONFIGFILE_ENABLED = false;
 
         /****************************************************************
         *************** MODE 1 : LIST CONNECTED CAMERAS *****************
@@ -249,24 +250,24 @@ int main(int argc, const char ** argv){
 
             initConfig.Load(configPath);
 
-            initConfig.Get("logPath", logPath);
+            initConfig.Get("LOG_PATH", LOG_PATH);
 
-            logPath = logPath + logDirName;
+            LOG_PATH = LOG_PATH + logDirName;
 
-            if(!ManageFiles::createDirectory( logPath )){
+            if(!ManageFiles::createDirectory( LOG_PATH )){
 
                 throw "Can't create location for log files";
 
             }
 
             // log configuration
-            init_log(logPath);
+            init_log(LOG_PATH);
             src::severity_logger< severity_level > slg;
             BOOST_LOG_SCOPED_THREAD_TAG("LogName", "mainThread");
 
-            initConfig.Get("inputDevice", inputDevice);
+            initConfig.Get("INPUT", INPUT);
 
-            if ( inputDevice == "BASLER" ){
+            if ( INPUT == "BASLER" ){
 
                 CameraBasler *baslerCam = new CameraBasler();
                 baslerCam->getListCameras();
@@ -289,30 +290,29 @@ int main(int argc, const char ** argv){
 
             initConfig.Load(configPath);
 
-            cout<<"=> inputDevice               : "<<inputDevice            <<endl;
-            cout<<"=> inputDeviceName           : "<<inputDeviceName        <<endl;
-            cout<<"=> inputIdDevice             : "<<inputIdDevice          <<endl;
-            cout<<"=> inputVideoPath            : "<<inputVideoPath         <<endl;
-            cout<<"=> acqFormatPix			    : "<<acqFormatPix           <<endl;
-            cout<<"=> detEnable                 : "<<detEnable              <<endl;
-            cout<<"=> detMethod                 : "<<detMethod              <<endl;
-            cout<<"=> detRecFits3D              : "<<detRecFits3D           <<endl;
-            cout<<"=> detRecFits2D              : "<<detRecFits2D           <<endl;
-            cout<<"=> detRecBmp                 : "<<detRecBmp              <<endl;
-            cout<<"=> detRecAvi                 : "<<detRecAvi              <<endl;
-            cout<<"=> detRecMapGE               : "<<detRecMapGE            <<endl;
-            cout<<"=> detRecShape               : "<<detRecShape            <<endl;
-            cout<<"=> detRecTrail               : "<<detRecTrail            <<endl;
-            cout<<"=> acqMaskPath               : "<<acqMaskPath            <<endl;
+            cout<<"=> INPUT               : "<<INPUT            <<endl;
+            cout<<"=> CAMERA_NAME         : "<<CAMERA_NAME        <<endl;
+            cout<<"=> CAMERA_ID           : "<<CAMERA_ID          <<endl;
+            cout<<"=> VIDEO_PATH          : "<<VIDEO_PATH         <<endl;
+            cout<<"=> ACQ_BIT_DEPTH			  : "<<ACQ_BIT_DEPTH           <<endl;
+            cout<<"=> DET_ENABLED         : "<<DET_ENABLED              <<endl;
+            cout<<"=> DET_METHOD          : "<<DET_METHOD              <<endl;
+            cout<<"=> DET_SAVE_FITS3D          : "<<DET_SAVE_FITS3D           <<endl;
+            cout<<"=> DET_SAVE_FITS2D              : "<<DET_SAVE_FITS2D           <<endl;
+            cout<<"=> DET_SAVE_BMP                 : "<<DET_SAVE_BMP              <<endl;
+            cout<<"=> DET_SAVE_AVI                 : "<<DET_SAVE_AVI              <<endl;
+            cout<<"=> DET_SAVE_GEMAP               : "<<DET_SAVE_GEMAP            <<endl;
+            cout<<"=> DET_SAVE_TRAIL               : "<<DET_SAVE_TRAIL            <<endl;
+            cout<<"=> ACQ_MASK_PATH               : "<<ACQ_MASK_PATH            <<endl;
             cout<<"=> imgCapEnable              : "<<imgCapEnable           <<endl;
             cout<<"=> imgCapGammaCorrEnable     : "<<imgCapGammaCorrEnable  <<endl;
             cout<<"=> imgCapGammaCorrValue      : "<<imgCapGammaCorrValue   <<endl;
             cout<<"=> imgCapExpTime             : "<<imgCapExpTime          <<endl;
             cout<<"=> imgCapInterval            : "<<imgCapInterval         <<endl;
-            cout<<"=> imgAstroEnable            : "<<imgAstroEnable         <<endl;
-            cout<<"=> imgAstroExpTime           : "<<imgAstroExpTime        <<endl;
-            cout<<"=> imgAstroInterval          : "<<imgAstroInterval       <<endl;
-            cout<<"=> imgAstroMethod            : "<<imgAstroMethod         <<endl;
+            cout<<"=> STACK_ENABLED            : "<<STACK_ENABLED         <<endl;
+            cout<<"=> STACK_TIME           : "<<STACK_TIME        <<endl;
+            cout<<"=> STACK_INTERVAL          : "<<STACK_INTERVAL       <<endl;
+            cout<<"=> STACK_MTHD            : "<<STACK_MTHD         <<endl;
 
         /***************************************************************
         ****************** MODE 3 : RUN DETECTION MODE *****************
@@ -322,11 +322,11 @@ int main(int argc, const char ** argv){
 
             initConfig.Load(configPath);
 
-            initConfig.Get("logPath", logPath);
+            initConfig.Get("LOG_PATH", LOG_PATH);
 
-            logPath = logPath + logDirName;
+            LOG_PATH = LOG_PATH + logDirName;
 
-            if(!ManageFiles::createDirectory( logPath )){
+            if(!ManageFiles::createDirectory( LOG_PATH )){
 
                 throw "Can't create location for log files";
 
@@ -335,19 +335,20 @@ int main(int argc, const char ** argv){
             Fits fitsHeader;
             fitsHeader.loadKeywordsFromConfigFile(configPath);
 
+
             // log configuration
-            init_log(logPath);
+            init_log(LOG_PATH);
             src::severity_logger< severity_level > slg;
             BOOST_LOG_SCOPED_THREAD_TAG("LogName", "mainThread");
 
-            if( initConfig.Get("acqMaskEnable",  acqMaskEnable)&&
-                initConfig.Get("acqMaskPath",    acqMaskPath)&&
-                initConfig.Get("inputDevice",    inputDevice)&&
-                initConfig.Get("imgAstroEnable", imgAstroEnable)&&
-                initConfig.Get("detEnable",      detEnable)){
+            if( initConfig.Get("ACQ_MASK_ENABLED",  ACQ_MASK_ENABLED)&&
+                initConfig.Get("ACQ_MASK_PATH",    ACQ_MASK_PATH)&&
+                initConfig.Get("INPUT",    INPUT)&&
+                initConfig.Get("STACK_ENABLED", STACK_ENABLED)&&
+                initConfig.Get("DET_ENABLED",      DET_ENABLED)){
 
                 initConfig.Get("imgCapEnable",   imgCapEnable);
-                initConfig.Get("gePrevTime",     gePrevTime);
+                initConfig.Get("DET_TIME_BEFORE",     DET_TIME_BEFORE);
 
                 bool detModeStatus = true;
 
@@ -362,7 +363,7 @@ int main(int argc, const char ** argv){
                 boost::condition_variable   c_queueEvToRecNew;
 
                 // The shared buffer
-                Fifo<Frame> queueRAM((gePrevTime * acqFPS), imgCapEnable, imgAstroEnable, detEnable);
+                Fifo<Frame> queueRAM((DET_TIME_BEFORE * ACQ_FPS), imgCapEnable, STACK_ENABLED, DET_ENABLED);
 
                 // Input device type
                 Camera *inputCam = NULL;
@@ -373,27 +374,27 @@ int main(int argc, const char ** argv){
 
                 Mat mask;
 
-                if(acqMaskEnable){
+                if(ACQ_MASK_ENABLED){
 
-                    mask = imread(acqMaskPath,CV_LOAD_IMAGE_GRAYSCALE);
+                    mask = imread(ACQ_MASK_PATH,CV_LOAD_IMAGE_GRAYSCALE);
 
                 }
 
-                if((acqMaskEnable && mask.data) || (!acqMaskEnable)){
+                if((ACQ_MASK_ENABLED && mask.data) || (!ACQ_MASK_ENABLED)){
 
                     ///************************* Create acquisition thread **************************\\
 
-                    if(inputDevice == "BASLER"){
+                    if(INPUT == "BASLER"){
 
-                        debug = false;
+                        DEBUG_ENABLED = false;
 
-                        if( initConfig.Get("inputDeviceName", inputDeviceName)&&
-                            initConfig.Get("acqInitialExposure",    acqInitialExposure)&&
-                            initConfig.Get("acqInitialGain",        acqInitialGain)){
+                        if( initConfig.Get("CAMERA_NAME", CAMERA_NAME)&&
+                            initConfig.Get("ACQ_EXPOSURE", ACQ_EXPOSURE)&&
+                            initConfig.Get("ACQ_GAIN", ACQ_GAIN)){
 
-                            initConfig.Get("acqFPS",                acqFPS);
-                            initConfig.Get("acqFormatPix",          acqFormatPix);
-                            initConfig.Get("inputIdDevice",         inputIdDevice);
+                            initConfig.Get("ACQ_FPS", ACQ_FPS);
+                            initConfig.Get("ACQ_BIT_DEPTH", ACQ_BIT_DEPTH);
+                            initConfig.Get("CAMERA_ID", CAMERA_ID);
 
                             BOOST_LOG_SEV(slg, notification) << " Basler in input ";
 
@@ -401,14 +402,14 @@ int main(int argc, const char ** argv){
                                                         &m_queueRAM,
                                                         &c_queueRAM_Full,
                                                         &c_queueRAM_New,
-                                                        acqInitialExposure,
-                                                        acqInitialGain,
+                                                        ACQ_EXPOSURE,
+                                                        ACQ_GAIN,
                                                         mask,
-                                                        acqMaskEnable);
+                                                        ACQ_MASK_ENABLED);
 
                             inputCam->getListCameras();
 
-                            if(!inputCam->setSelectedDevice(inputIdDevice, inputDeviceName)){
+                            if(!inputCam->setSelectedDevice(CAMERA_ID, CAMERA_NAME)){
 
                                 throw "ERROR : Connection failed to the first BASLER camera.";
 
@@ -417,26 +418,26 @@ int main(int argc, const char ** argv){
                                 BOOST_LOG_SEV(slg, fail)    << " Connection success to the first BASLER camera. ";
                                 cout                        << " Connection success to the first BASLER camera. " << endl;
 
-                                if(acqFormatPix == 12){
+                                if(ACQ_BIT_DEPTH == 12){
 
                                     inputCam->setCameraPixelFormat(12);
 
-                                }else if(acqFormatPix == 8){
+                                }else if(ACQ_BIT_DEPTH == 8){
 
                                     inputCam->setCameraPixelFormat(8);
 
-                                }else if(acqFormatPix == 16){
+                                }else if(ACQ_BIT_DEPTH == 16){
 
                                     inputCam->setCameraPixelFormat(12);
 
                                 }else{
 
-                                    throw "ERROR : Bad definition of acqFormatPix in the configuration file";
+                                    throw "ERROR : Bad definition of ACQ_BIT_DEPTH in the configuration file";
 
                                 }
 
                                 //Control the mask for the frame of camera
-                              /*  if(acqMaskEnable){
+                              /*  if(ACQ_MASK_ENABLED){
 
                                     if(mask.rows != inputCam->getCameraHeight() || mask.cols!= inputCam->getCameraWidth()){
 
@@ -457,25 +458,25 @@ int main(int argc, const char ** argv){
 
                         }else{
 
-                            throw "ERROR : Can't load inputDeviceName from configuration file";
+                            throw "ERROR : Can't load CAMERA_NAME from configuration file";
 
                         }
 
-                     }else if(inputDevice == "DMK"){
+                     }else if(INPUT == "DMK"){
 
-                        debug = false;
+                        DEBUG_ENABLED = false;
 
-                        if(initConfig.Get("inputDeviceName", inputDeviceName)){
+                        if(initConfig.Get("CAMERA_NAME", CAMERA_NAME)){
 
-                            initConfig.Get("acqFormatPix", acqFormatPix);
+                            initConfig.Get("ACQ_BIT_DEPTH", ACQ_BIT_DEPTH);
 
-                            cout << "DMK in input: "<< inputDeviceName <<endl;
+                            cout << "DMK in input: "<< CAMERA_NAME <<endl;
                             BOOST_LOG_SEV(slg, notification) << "DMK in input ";
 
-                            if(acqFormatPix == 12 || acqFormatPix == 8){
+                            if(ACQ_BIT_DEPTH == 12 || ACQ_BIT_DEPTH == 8){
 
-                                inputCam = new CameraDMK(   inputDeviceName,
-                                                            acqFormatPix,
+                                inputCam = new CameraDMK(   CAMERA_NAME,
+                                                            ACQ_BIT_DEPTH,
                                                             &queueRAM,
                                                             &m_queueRAM,
                                                             &c_queueRAM_Full,
@@ -485,11 +486,11 @@ int main(int argc, const char ** argv){
 
                             }else{
 
-                                throw "ERROR : Bad definition of acqFormatPix in the configuration file";
+                                throw "ERROR : Bad definition of ACQ_BIT_DEPTH in the configuration file";
                             }
 
                             //Control the mask for the frame of camera
-                            if(acqMaskEnable){
+                            if(ACQ_MASK_ENABLED){
 
                                 if(mask.rows != inputCam->getCameraHeight() || mask.cols!= inputCam->getCameraWidth()){
 
@@ -508,28 +509,28 @@ int main(int argc, const char ** argv){
 
                         }else{
 
-                            throw "ERROR : Can't load inputDeviceName from configuration file";
+                            throw "ERROR : Can't load CAMERA_NAME from configuration file";
 
                         }
 
-                    }else if(inputDevice == "SIMU"){
+                    }else if(INPUT == "SIMU"){
 
                         cout << "SIMU in input"<<endl;
                         BOOST_LOG_SEV(slg, notification) << "SIMU in input ";
                         inputCam = new CameraSimu(&queueRAM,&m_queueRAM, &c_queueRAM_Full,&c_queueRAM_New);
 
-                        acqFormatPix = 8;
+                        ACQ_BIT_DEPTH = 8;
 
-                    }else if(inputDevice == "VIDEO"){
+                    }else if(INPUT == "VIDEO"){
 
-                        initConfig.Get("debug", debug);
+                        initConfig.Get("DEBUG_ENABLED", DEBUG_ENABLED);
 
-                        if(initConfig.Get("inputVideoPath", inputVideoPath)){
+                        if(initConfig.Get("VIDEO_PATH", VIDEO_PATH)){
 
-                            cout << "Video in input : " << inputVideoPath <<endl;
-                            BOOST_LOG_SEV(slg, notification) << "Video in input : " << inputVideoPath;
+                            cout << "Video in input : " << VIDEO_PATH <<endl;
+                            BOOST_LOG_SEV(slg, notification) << "Video in input : " << VIDEO_PATH;
 
-                            inputCam = new CameraVideo( inputVideoPath,
+                            inputCam = new CameraVideo( VIDEO_PATH,
                                                         &queueRAM,
                                                         &m_queueRAM,
                                                         &c_queueRAM_Full,
@@ -537,7 +538,7 @@ int main(int argc, const char ** argv){
 
 
                             //Control the mask for the frame of camera
-                            if(acqMaskEnable){
+                            if(ACQ_MASK_ENABLED){
 
                                 if(mask.rows != inputCam->getCameraHeight() && mask.cols!= inputCam->getCameraWidth()){
 
@@ -556,21 +557,21 @@ int main(int argc, const char ** argv){
 
                         }else{
 
-                            throw "ERROR : Can't find the path defined in inputVideoPath in the configuration file";
+                            throw "ERROR : Can't find the path defined in VIDEO_PATH in the configuration file";
 
                         }
 
-                    }else if(inputDevice == "FRAME"){
+                    }else if(INPUT == "FRAME"){
 
-                        initConfig.Get("debug", debug);
+                        initConfig.Get("DEBUG_ENABLED", DEBUG_ENABLED);
 
-                        if( initConfig.Get("acqFramesDirectory", acqFramesDirectory)&&
-                            initConfig.Get("acqFrameNumStart", acqFrameNumStart)&&
-                            initConfig.Get("acqFrameNumStop", acqFrameNumStop)){
+                        if( initConfig.Get("FRAMES_PATH", FRAMES_PATH)&&
+                            initConfig.Get("FRAMES_START", FRAMES_START)&&
+                            initConfig.Get("FRAMES_STOP", FRAMES_STOP)){
 
-                            inputCam = new CameraFrames( acqFramesDirectory,
-                                                         acqFrameNumStart,
-                                                         acqFrameNumStop,
+                            inputCam = new CameraFrames( FRAMES_PATH,
+                                                         FRAMES_START,
+                                                         FRAMES_STOP,
                                                         &queueRAM,
                                                         &m_queueRAM,
                                                         &c_queueRAM_Full,
@@ -578,7 +579,7 @@ int main(int argc, const char ** argv){
                                                         fitsHeader);
 
                             //Control the mask for the frame of camera
-                            /*if(acqMaskEnable){
+                            /*if(ACQ_MASK_ENABLED){
 
                                 if(mask.rows != inputCam->getCameraHeight() && mask.cols!= inputCam->getCameraWidth()){
 
@@ -590,21 +591,21 @@ int main(int argc, const char ** argv){
 
                         }else{
 
-                            if(!initConfig.Get("acqFramesDirectory", acqFramesDirectory))
-                                throw "Can't find the path defined in acqFramesDirectory in the configuration file";
+                            if(!initConfig.Get("FRAMES_PATH", FRAMES_PATH))
+                                throw "Can't find the path defined in FRAMES_PATH in the configuration file";
 
-                            if(!initConfig.Get("acqFrameNumStart", acqFrameNumStart))
-                                throw "Can't load acqFrameNumStart from the configuration file";
+                            if(!initConfig.Get("FRAMES_START", FRAMES_START))
+                                throw "Can't load FRAMES_START from the configuration file";
 
-                            if(!initConfig.Get("acqFrameNumStop", acqFrameNumStop))
-                                throw "Can't load acqFrameNumStop from the configuration file";
+                            if(!initConfig.Get("FRAMES_STOP", FRAMES_STOP))
+                                throw "Can't load FRAMES_STOP from the configuration file";
 
                         }
 
 
                     }else{
 
-                        throw "Bad definition of inputDevice parameters in the configuration file. Possibilities : BASLER, VIDEO, FRAME";
+                        throw "Bad definition of INPUT parameters in the configuration file. Possibilities : BASLER, VIDEO, FRAME";
 
                     }
 
@@ -619,27 +620,27 @@ int main(int argc, const char ** argv){
                         RecThread *rec  = NULL;
                         AstThread *ast  = NULL;
 
-                        initConfig.Get("dataRecordPath", dataRecordPath);
+                        initConfig.Get("DATA_PATH", DATA_PATH);
 
                         ///************************* Create astrometry thread **************************\\
 
-                        if(imgAstroEnable){
+                        if(STACK_ENABLED){
 
-                            if( initConfig.Get("imgAstroExpTime",    imgAstroExpTime)&&
-                                initConfig.Get("imgAstroInterval",      imgAstroInterval)&&
-                                initConfig.Get("imgAstroMethod",        imgAstroMethod)&&
+                            if( initConfig.Get("STACK_TIME",    STACK_TIME)&&
+                                initConfig.Get("STACK_INTERVAL",      STACK_INTERVAL)&&
+                                initConfig.Get("STACK_MTHD",        STACK_MTHD)&&
                                 initConfig.Get("SITELONG",              longitude)){
 
-                                initConfig.Get("stationName", stationName);
+                                initConfig.Get("STATION_NAME", STATION_NAME);
 
-                                ast = new AstThread(dataRecordPath,
-                                                    stationName,
-                                                    imgAstroMethod,
+                                ast = new AstThread(DATA_PATH,
+                                                    STATION_NAME,
+                                                    STACK_MTHD,
                                                     configPath,
                                                     &queueRAM,
-                                                    imgAstroInterval,
-                                                    imgAstroExpTime,
-                                                    acqFormatPix,
+                                                    STACK_INTERVAL,
+                                                    STACK_TIME,
+                                                    ACQ_BIT_DEPTH,
                                                     longitude,
                                                     &m_queueRAM,
                                                     &c_queueRAM_Full,
@@ -650,14 +651,14 @@ int main(int argc, const char ** argv){
 
                             }else{
 
-                                if(!initConfig.Get("imgAstroExpTime", imgAstroExpTime))
-                                    throw "Can't load imgAstroExpTime from the configuration file";
+                                if(!initConfig.Get("STACK_TIME", STACK_TIME))
+                                    throw "Can't load STACK_TIME from the configuration file";
 
-                                if(!initConfig.Get("imgAstroInterval", imgAstroInterval))
-                                    throw "Can't load imgAstroInterval from the configuration file";
+                                if(!initConfig.Get("STACK_INTERVAL", STACK_INTERVAL))
+                                    throw "Can't load STACK_INTERVAL from the configuration file";
 
-                                if(!initConfig.Get("imgAstroMethod", imgAstroMethod))
-                                    throw "Can't load imgAstroMethod from the configuration file";
+                                if(!initConfig.Get("STACK_MTHD", STACK_MTHD))
+                                    throw "Can't load STACK_MTHD from the configuration file";
 
                                 if(!initConfig.Get("SITELONG", longitude))
                                     throw "Can't load SITELONG from the configuration file";
@@ -667,30 +668,28 @@ int main(int argc, const char ** argv){
 
                         ///************************* Create detection thread **************************\\
 
-                        if(detEnable){
+                        if(DET_ENABLED){
 
-                            if( initConfig.Get("detMethod",             detMethod)){
+                            if( initConfig.Get("DET_METHOD",             DET_METHOD)){
 
-                                initConfig.Get("detRecFits2D",          detRecFits2D);
-                                initConfig.Get("detRecPositions",       detRecPositions);
-                                initConfig.Get("detRecFits3D",          detRecFits3D);
-                                initConfig.Get("detRecBmp",             detRecBmp);
-                                initConfig.Get("detRecAvi",             detRecAvi);
-                                initConfig.Get("detRecMapGE",           detRecMapGE);
-                                initConfig.Get("detRecShape",           detRecShape);
-                                initConfig.Get("detRecTrail",           detRecTrail);
-                                initConfig.Get("geAfterTime",           geAfterTime);
-                                initConfig.Get("geMax",                 geMax);
-                                initConfig.Get("geMaxTime",             geMaxTime);
-                                initConfig.Get("stationName",           stationName);
-                                initConfig.Get("detMaskMoon",           detMaskMoon);
-                                initConfig.Get("detDownsample",         detDownsample);
-                                initConfig.Get("debugPath",             debugPath);
-                                initConfig.Get("saveMaskedMoon",        saveMaskedMoon);
+                                initConfig.Get("DET_SAVE_FITS2D",          DET_SAVE_FITS2D);
+                                initConfig.Get("DET_SAVE_POS",       DET_SAVE_POS);
+                                initConfig.Get("DET_SAVE_FITS3D",          DET_SAVE_FITS3D);
+                                initConfig.Get("DET_SAVE_BMP",             DET_SAVE_BMP);
+                                initConfig.Get("DET_SAVE_AVI",             DET_SAVE_AVI);
+                                initConfig.Get("DET_SAVE_GEMAP",           DET_SAVE_GEMAP);
+
+                                initConfig.Get("DET_SAVE_TRAIL",           DET_SAVE_TRAIL);
+                                initConfig.Get("DET_TIME_AFTER",           DET_TIME_AFTER);
+                                initConfig.Get("DET_GE_MAX",                 DET_GE_MAX);
+                                initConfig.Get("DET_TIME_MAX",             DET_TIME_MAX);
+                                initConfig.Get("STATION_NAME",           STATION_NAME);
+                                initConfig.Get("DET_DOWNSAMPLE_ENABLED",         DET_DOWNSAMPLE_ENABLED);
+                                initConfig.Get("DEBUG_PATH",             DEBUG_PATH);
 
                                 det  = new DetThread(   mask,
                                                         1,
-                                                        acqFormatPix,
+                                                        ACQ_BIT_DEPTH,
                                                         &queueRAM,
                                                         &m_queueRAM,
                                                         &c_queueRAM_Full,
@@ -698,46 +697,43 @@ int main(int argc, const char ** argv){
                                                         &c_queueEvToRecNew,
                                                         &m_queueEvToRec,
                                                         &queueEvToRec,
-                                                        geAfterTime,
-                                                        geMax,
-                                                        geMaxTime,
-                                                        dataRecordPath,
-                                                        stationName,
-                                                        debug,
-                                                        debugPath,
-                                                        detMaskMoon,
-                                                        saveMaskedMoon,
-                                                        detDownsample,
+                                                        DET_TIME_AFTER,
+                                                        DET_GE_MAX,
+                                                        DET_TIME_MAX,
+                                                        DATA_PATH,
+                                                        STATION_NAME,
+                                                        DEBUG_ENABLED,
+                                                        DEBUG_PATH,
+                                                        DET_DOWNSAMPLE_ENABLED,
                                                         fitsHeader);
 
                                 det->startDetectionThread();
 
                                 ///************************* Create record thread **************************\\
 
-                                initConfig.Get("detRecSum", detRecSum);
+                                initConfig.Get("DET_SAVE_SUM", DET_SAVE_SUM);
 
-                                rec = new RecThread(    dataRecordPath,
+                                rec = new RecThread(    DATA_PATH,
                                                         &queueEvToRec,
                                                         &m_queueEvToRec,
                                                         &c_queueEvToRecNew,
-                                                        acqFormatPix,
-                                                        detRecAvi,
-                                                        detRecFits3D,
-                                                        detRecFits2D,
-                                                        detRecSum,
-                                                        detRecPositions,
-                                                        detRecBmp,
-                                                        detRecTrail,
-                                                        detRecShape,
-                                                        detRecMapGE,
+                                                        ACQ_BIT_DEPTH,
+                                                        DET_SAVE_AVI,
+                                                        DET_SAVE_FITS3D,
+                                                        DET_SAVE_FITS2D,
+                                                        DET_SAVE_SUM,
+                                                        DET_SAVE_POS,
+                                                        DET_SAVE_BMP,
+                                                        DET_SAVE_TRAIL,
+                                                        DET_SAVE_GEMAP,
                                                         fitsHeader);
 
                                 rec->start();
 
                             }else{
 
-                                if(!initConfig.Get("detMethod", detMethod))
-                                    throw "Can't load detMethod from the configuration file";
+                                if(!initConfig.Get("DET_METHOD", DET_METHOD))
+                                    throw "Can't load DET_METHOD from the configuration file";
 
                             }
                         }
@@ -754,13 +750,13 @@ int main(int argc, const char ** argv){
                                 initConfig.Get("imgCapExpTime",         imgCapExpTime)&&
                                 initConfig.Get("imgCapInterval",        imgCapInterval)){
 
-                                imgCap = new ImgThread( dataRecordPath,
+                                imgCap = new ImgThread( DATA_PATH,
                                                         imgCapInterval,
                                                         imgCapExpTime,
                                                         imgCapGammaCorrEnable,
                                                         imgCapGammaCorrValue,
                                                         &queueRAM,
-                                                        acqFormatPix,
+                                                        ACQ_BIT_DEPTH,
                                                         &m_queueRAM,
                                                         &c_queueRAM_Full,
                                                         &c_queueRAM_New);
@@ -774,10 +770,10 @@ int main(int argc, const char ** argv){
                         BOOST_LOG_SEV(slg, notification) << "FreeTure is working...";
                         cout << "FreeTure is working..."<<endl;
 
-                        if(inputDevice == "BASLER" || inputDevice == "DMK"){
+                        if(INPUT == "BASLER" || INPUT == "DMK"){
 
-                            initConfig.Get("saveConfigFileCopy", saveConfigFileCopy);
-                            initConfig.Get("stationName",           stationName);
+                            initConfig.Get("COPY_CONFIGFILE_ENABLED", COPY_CONFIGFILE_ENABLED);
+                            initConfig.Get("STATION_NAME",           STATION_NAME);
 
 
 
@@ -798,7 +794,7 @@ int main(int argc, const char ** argv){
 
                             while(!sigTermFlag){
 
-                                if(saveConfigFileCopy){
+                                if(COPY_CONFIGFILE_ENABLED){
 
                                     namespace fs = boost::filesystem;
 
@@ -813,13 +809,13 @@ int main(int argc, const char ** argv){
                                         dateString.push_back(*tok_iter);
                                     }
 
-                                    string root = dataRecordPath + stationName + "_" + dateString.at(0) + dateString.at(1) + dateString.at(2) +"/";
+                                    string root = DATA_PATH + STATION_NAME + "_" + dateString.at(0) + dateString.at(1) + dateString.at(2) +"/";
 
                                     string cFile = root + "configuration.cfg";
 
                                     cout << cFile << endl;
 
-                                    path p(dataRecordPath);
+                                    path p(DATA_PATH);
 
                                     path p1(root);
 
@@ -976,26 +972,26 @@ int main(int argc, const char ** argv){
                 }else{
 
                     if(!mask.data)
-                        throw "Can't load the mask defined in acqMaskPath (see configuration file)";
+                        throw "Can't load the mask defined in ACQ_MASK_PATH (see configuration file)";
 
                 }
 
             }else{
 
-                if(!initConfig.Get("acqMaskEnable", acqMaskEnable))
-                    throw "acqMaskEnable not defined in the configuration file";
+                if(!initConfig.Get("ACQ_MASK_ENABLED", ACQ_MASK_ENABLED))
+                    throw "ACQ_MASK_ENABLED not defined in the configuration file";
 
-                if(!initConfig.Get("acqMaskPath", acqMaskPath))
-                    throw "acqMaskPath not defined in the configuration file";
+                if(!initConfig.Get("ACQ_MASK_PATH", ACQ_MASK_PATH))
+                    throw "ACQ_MASK_PATH not defined in the configuration file";
 
-                if(!initConfig.Get("inputDevice", inputDevice))
-                    throw "inputDevice not defined in the configuration file";
+                if(!initConfig.Get("INPUT", INPUT))
+                    throw "INPUT not defined in the configuration file";
 
-                if(!initConfig.Get("imgAstroEnable", imgAstroEnable))
-                    throw "imgAstroEnable not defined in the configuration file";
+                if(!initConfig.Get("STACK_ENABLED", STACK_ENABLED))
+                    throw "STACK_ENABLED not defined in the configuration file";
 
-                if(!initConfig.Get("detEnable", detEnable))
-                    throw "detEnable not defined in the configuration file";
+                if(!initConfig.Get("DET_ENABLED", DET_ENABLED))
+                    throw "DET_ENABLED not defined in the configuration file";
 
             }
 
@@ -1046,18 +1042,18 @@ int main(int argc, const char ** argv){
 
             initConfig.Load(configPath);
 
-            initConfig.Get("logPath", logPath);
+            initConfig.Get("LOG_PATH", LOG_PATH);
 
-            logPath = logPath + logDirName;
+            LOG_PATH = LOG_PATH + logDirName;
 
-            if(!ManageFiles::createDirectory( logPath )){
+            if(!ManageFiles::createDirectory( LOG_PATH )){
 
                 throw "Can't create location for log files";
 
             }
 
             // log configuration
-            init_log(logPath);
+            init_log(LOG_PATH);
             src::severity_logger< severity_level > slg;
             BOOST_LOG_SCOPED_THREAD_TAG("LogName", "mainThread");
 
@@ -1114,6 +1110,162 @@ int main(int argc, const char ** argv){
             }
 
             BOOST_LOG_SEV(slg, notification) << "End single capture";
+
+        }else if(mode == 5){
+
+
+            /*Mat img(960, 1280, CV_8UC3, Scalar(0,0,0));
+
+            for(int i = 0; i<25; i++){
+
+                for(int j = 0; j<25; j++){
+
+                    if(i!=0)
+                        img.at<Vec3b>(i,j) = Vec3b(0,0,255);
+
+                }
+
+            }
+
+            img.at<Vec3b>(500,500) = Vec3b(0,0,255);
+            img.at<Vec3b>(501,500) = Vec3b(0,0,255);
+            img.at<Vec3b>(500,501) = Vec3b(0,0,255);
+            img.at<Vec3b>(500,502) = Vec3b(0,255,255);
+            img.at<Vec3b>(502,500) = Vec3b(0,255,255);
+            img.at<Vec3b>(503,500) = Vec3b(0,255,255);
+            img.at<Vec3b>(500,503) = Vec3b(0,0,255);
+            img.at<Vec3b>(500,504) = Vec3b(0,0,255);
+            img.at<Vec3b>(505,500) = Vec3b(0,0,255);
+
+            imwrite( "/home/fripon/testImg.jpeg", img );*/
+
+
+            Fits fitsHeader;
+            fitsHeader.loadKeywordsFromConfigFile("/home/fripon/friponProject/friponCapture/configuration.cfg");
+
+            Camera *inputCam = NULL;
+
+            inputCam = new CameraBasler(200,
+                                        400,
+                                        false,
+                                        true,
+                                        8,
+                                        "/home/fripon/friponProject/friponCapture/configuration.cfg",
+                                        "/home/fripon/",
+                                        fitsHeader);
+
+            //list connected basler cameras
+            inputCam->getListCameras();
+
+            cout<< "Try to connect to the first in the list..."<<endl;
+
+            if(!inputCam->setSelectedDevice(0, "Basler-21418131")){
+
+                throw "Connection to the camera failed";
+
+            }else{
+
+                cout <<"Connection success"<<endl;
+
+                inputCam->setCameraPixelFormat(acqFormat);
+
+                inputCam->startGrab();
+
+                inputCam->grabOne();
+
+            }
+
+
+
+            vector<string> to;
+            to.push_back("yoan.audureau@gmail.com");
+            to.push_back("yoan.audureau@yahoo.fr");
+
+            vector<string> pathAttachments;
+            pathAttachments.push_back("/home/fripon/capture.bmp");
+
+            //pathAttachments.push_back("D:/logoFripon.png");
+
+            string acquisitionDate = TimeDate::localDateTime(second_clock::universal_time(),"%Y:%m:%d:%H:%M:%S");
+
+            SMTPClient mailc("smtp.u-psud.fr", 25, "u-psud.fr");
+            mailc.send("yoan.audureau@u-psud.fr", to, "station ORSAY "+acquisitionDate+" UT", "Test d'acquisition d'une frame sur la station d'Orsay à " + acquisitionDate, pathAttachments, true);
+
+
+
+        }else if(mode == 6){
+
+
+            namespace fs = boost::filesystem;
+
+            path p("/home/fripon/Orsay_20141122_191438UT-0.fit");
+
+
+            if(is_regular_file(p)){
+
+                Fits fitsHeader;
+                fitsHeader.loadKeywordsFromConfigFile("/home/fripon/friponProject/friponCapture/configuration.cfg");
+
+               /* Mat resMat;
+
+                Fits2D newFits("/home/fripon/Orsay_20141122_191438UT-0.fit",fitsHeader);
+                newFits.readFits(resMat, "/home/fripon/Orsay_20141122_191438UT-0.fit");
+
+
+                cout<< " Mat type : "<< Conversion::matTypeToString(resMat.type())<<endl;
+
+                double minVal, maxVal;
+                minMaxLoc(resMat, &minVal, &maxVal);
+
+                cout << "max value : "<< maxVal<<endl;
+                cout << "min value : "<< minVal<<endl;
+
+                Histogram newHist(resMat, 1000000);
+                imwrite("/home/fripon/hist.jpg",newHist.drawHist());
+
+                int newMaxValue = 200000;
+
+                Mat newMat(resMat.rows,resMat.cols, CV_16SC1, Scalar(0));
+
+
+                float* ptr;
+                short *ptr1;
+
+                for(int i = 0; i < resMat.rows; i++){
+
+                    ptr = resMat.ptr<float>(i);
+                    ptr1 = newMat.ptr<short>(i);
+
+                    for(int j = 0; j < resMat.cols; j++){
+
+                        ptr1[j] = (ptr[j] - ((minVal*32767 - (-32767) * newMaxValue)/(32767-(-32767))))/((minVal-newMaxValue)/((-32767)-32767));
+
+                    }
+                }
+
+
+                double newminVal, newmaxVal;
+                minMaxLoc(newMat, &newminVal, &newmaxVal);
+
+                cout << "max value : "<< newmaxVal<<endl;
+                cout << "min value : "<< newminVal<<endl;
+
+*/
+
+               /* Histogram newHist2(newMat, newmaxVal);
+                imwrite("/home/fripon/hist2.jpg",newHist.drawHist());
+*/
+
+                Mat newMat(960,1280,CV_16UC1, Scalar(1000));
+                Fits2D newFits2("/home/fripon/testfits",fitsHeader);
+                newFits2.writeFits(newMat, bit_depth_enum::US16, 0, true );
+
+
+
+            }
+
+
+
 
         }else{
 
