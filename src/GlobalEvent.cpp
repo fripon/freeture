@@ -37,11 +37,13 @@ GlobalEvent::GlobalEvent(vector<string> date, int imgH, int imgW, bool downsampl
 
     age             = 0;
     ageLastElem     = 0;
+    posFailed       = 0;
+    posSuccess      = 0;
 
     frameDownSampled = downsample;
 
     dateEvent       = date;
-    nbPt = 3;
+    nbPt = 4;
     LELinked = false;
 
     dirMask = Mat(imgH,imgW, CV_8UC1,Scalar(255));
@@ -140,6 +142,18 @@ vector<string> GlobalEvent::getDate(){
 
 }
 
+int GlobalEvent::getPosFailed(){
+
+    return posFailed;
+
+}
+
+int GlobalEvent::getPosSuccess(){
+
+    return posSuccess;
+
+}
+
 void GlobalEvent::setAge(int a){
 
     age = a;
@@ -169,67 +183,61 @@ bool GlobalEvent::addLE(LocalEvent le){
     Point center =  le.centerOfMass;
 
     if(frameDownSampled){
+
         center.x = center.x*2;
         center.y = center.y*2;
+
     }
 
-    if((listLocalEvent.size() + 1)%nbPt == 0){
+    //Add LE
+    listLocalEvent.push_back(le);
 
-        float sumX = 0, sumY =0, avgX = 0, avgY = 0;
+    if(listLocalEvent.size() == 0){
 
-        for(int i = 0; i<nbPt-1; i++){
+        mainPoints.push_back(center);
 
-            sumX+= listLocalEvent.at(listLocalEvent.size()- nbPt+1).centerOfMass.x;
-            sumY+= listLocalEvent.at(listLocalEvent.size()- nbPt+1).centerOfMass.y;
+    }else if((listLocalEvent.size())%nbPt == 0){
 
-        }
+        mainPoints.push_back(center);
 
-        sumX+= le.centerOfMass.x;
-        sumY+= le.centerOfMass.y;
+        if(mainPoints.size() >= 3){
 
-        avgX = sumX/nbPt;
-        avgY = sumY/nbPt;
+            Point   A   = Point(mainPoints.at(mainPoints.size()- 3)),
+                    B   = Point(mainPoints.at(mainPoints.size()- 2)),
+                    C   = Point(mainPoints.at(mainPoints.size()- 1));
 
-        avPos.push_back(Point(avgX, avgY));
+            Point   v1  = Point(B.x - A.x, B.y - A.y);
 
-        // Check linearity
-        if((avPos.size()+1)>=2){
+            Point   B2  = Point(B.x + v1.x, B.y + v1.y);
 
-            Point A1 = avPos.at(avPos.size() - 2);
-            Point B1 = avPos.at(avPos.size() - 1);
-            Point C1 = le.centerOfMass;
-
-            Point v1 = Point(B1.x - A1.x, B1.y - A1.y );
-
-            Point A2 = B1;
-            Point B2 = Point(B1.x + v1.x, B1.y + v1.y);
-
-            Point v2 = Point(C1.x - A2.x, C1.y - A2.y );
-            Point v3 = Point(B2.x - A2.x, B2.y - A2.y );
+            Point   v2  = Point(C.x - B.x, C.y - B.y);
+            Point   v3  = Point(B2.x - B.x, B2.y - B.y);
 
             float thetaRad = (v3.x*v2.x+v3.y*v2.y)/(sqrt(pow(v3.x,2)+pow(v3.y,2))*sqrt(pow(v2.x,2)+pow(v2.y,2)));
-
             float thetaDeg = (180 * acos(thetaRad))/3.14159265358979323846;
 
-            if(thetaDeg > 45.0 || thetaDeg < -45.0 ){
+            if(thetaDeg > 35.0 || thetaDeg < -35.0 ){
 
                 circle(dirMap, center, 5, Scalar(0,0,255), CV_FILLED, 8, 0);
+                posFailed++;
 
                 return false;
 
             }else{
-
+                posSuccess++;
                 circle(dirMap, center, 5, Scalar(0,255,0), CV_FILLED, 8, 0);
 
             }
+
+
         }
+
+
     }
 
-    circle(dirMap, center, 1, Scalar(255,0,0), 2, 8, 0);
+    circle(dirMap, center, 3, Scalar(255,0,0), CV_FILLED, 8, 0);
 
-    listLocalEvent.push_back(le);
 
-    cout << "list lE : " << listLocalEvent.size()<<endl;
 
     //reset ageLastELem
     ageLastElem = 0;

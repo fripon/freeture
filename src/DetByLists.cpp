@@ -600,6 +600,7 @@ void searchROI( Mat &area,                      //Region where to search ROI
                 // Current pixel value > threshold
                 if((int)ptr[j] > 0){
 
+
                     // Check if ROI is not out of range in the frame
                     if((areaPosition.y + i - roiSize[1]/2 > 0) && (areaPosition.y + i + roiSize[1]/2 < imgH) && ( areaPosition.x + j-roiSize[0]/2 > 0) && (areaPosition.x + j + roiSize[0]/2 < imgW)){
 
@@ -683,6 +684,8 @@ void searchROI( Mat &area,                      //Region where to search ROI
 
                                         }
                                     }
+
+
 
                                    // Color eventdMap's ROI with the color
                                    Mat roi(roiSize[1],roiSize[0],CV_8UC3,listColorInRoi.at(0));
@@ -993,6 +996,7 @@ bool DetByLists::detectionMethodByListManagement(   Frame                   f,
     currentFrame.copyTo(copyCurrWithoutMask);
     currentFrame.copyTo(copyCurr, mask);
 
+
     //cvtColor(copyCurrWithoutMask, copyCurrWithoutMask, CV_GRAY2BGR);
     cvtColor(currentFrame, currentFrame, CV_GRAY2BGR);
 
@@ -1030,7 +1034,7 @@ bool DetByLists::detectionMethodByListManagement(   Frame                   f,
     absdiff(copyCurr, mean, diff);
 
     //Eliminate negative pixels
-    if(pixelFormat == 12){
+    if(pixelFormat == MONO_12){
 
         unsigned short * ptrCurr;
         unsigned short * ptrPrev;
@@ -1057,8 +1061,7 @@ bool DetByLists::detectionMethodByListManagement(   Frame                   f,
         Conversion::convertTo8UC1(diff).copyTo(diff);
         Conversion::convertTo8UC1(maskNeighborhood).copyTo(maskNeighborhood);
 
-    }else if(pixelFormat == 8){
-
+    }else if(pixelFormat == MONO_8){
 
 
         unsigned char * ptrCurr;
@@ -1085,8 +1088,12 @@ bool DetByLists::detectionMethodByListManagement(   Frame                   f,
         }
     }
 
+    //SaveImg::saveBMP(diff, "/home/fripon/debug/diff/diff_"+Conversion::intToString(f.getNumFrame()));
+
     //White pixels in mapThreshold are those which exceed threshold
     threshold(diff, mapThreshold, defineThreshold(diff, mask), 255, THRESH_BINARY);
+
+   // SaveImg::saveBMP(mapThreshold, "/home/fripon/debug/thresh/thresh_"+Conversion::intToString(f.getNumFrame()));
 
     //mapThreshold's white pixels will be colored in black in the next operation. A copy is done to remember the mapThreshold
     mapThreshold.copyTo(copyMapThreshold);
@@ -1117,13 +1124,21 @@ bool DetByLists::detectionMethodByListManagement(   Frame                   f,
     //vector<Point> listSubdivPosition;
     //buildListSubdivisionOriginPoints(listSubdivPosition, 8, imgH, imgW);
 
+    int subn = 0;
+
     for(itR=listSubdivPosition.begin(); itR!=listSubdivPosition.end(); ++itR){
 
          Mat subdivision = mapThreshold(Rect((*itR).x, (*itR).y, imgW/8, imgH/8));
 
+        // SaveImg::saveBMP(subdivision, "/home/fripon/debug/sub_"+Conversion::intToString(subn)+"_f"+Conversion::intToString(f.getNumFrame()));
+
          searchROI( subdivision, mapThreshold, maskNeighborhood, eventMap, groupColor, listLocalEvents, imgH, imgW, roiSize, imgW/8, imgH/8, (*itR),pixelFormat);
 
+         subn++;
+
     }
+
+    //SaveImg::saveBMP(eventMap, "/home/fripon/debug/evMap/event"+Conversion::intToString(f.getNumFrame()));
 
     cout << "NB local event :  " << listLocalEvents.size() <<endl;
 
@@ -1155,6 +1170,8 @@ bool DetByLists::detectionMethodByListManagement(   Frame                   f,
 
     itLE = listLocalEvents.begin();
 
+    cout << "listLocalEvents : "<< listLocalEvents .size()<<endl;
+
     while(itLE != listLocalEvents.end()){
 
         bool LELinked = false;
@@ -1168,11 +1185,14 @@ bool DetByLists::detectionMethodByListManagement(   Frame                   f,
 
             int nbPixNonZero = countNonZero(res);
 
+
             if( nbPixNonZero > 0 ){
 
                 LELinked = true;
 
                 if(!firstGELinked){
+
+
 
                     firstGELinked = true;
 
@@ -1182,15 +1202,20 @@ bool DetByLists::detectionMethodByListManagement(   Frame                   f,
 
                     if((*itGE).getAge() > (*itLink).getAge()){
 
+
                         itLink = itGE;
 
                     }
                 }
+
+              //   itLink = itGE;
             }
         }
 
         // ADD LE to the correct GE
         if(LELinked){
+
+
 
             // Flag utilisé pour setter la propriété de nombre de frame sans qu'un GE ait été attaché à un LE
             (*itLink).setLELinked(true);
@@ -1207,6 +1232,8 @@ bool DetByLists::detectionMethodByListManagement(   Frame                   f,
             }
 
         }else{
+
+            cout << "nb GE"<<endl;
 
             if((listGlobalEvents.size()<  geMaxElement)){
 
@@ -1240,14 +1267,17 @@ bool DetByLists::detectionMethodByListManagement(   Frame                   f,
             }
 
         }
+ cout << "erase"<<endl;
 
         itLE = listLocalEvents.erase(itLE);
 
     }
 
+    cout << "geMap"<<endl;
+
     Mat geMap = Mat(imgH,imgW, CV_8UC1,Scalar(0));
 
-
+    cout << "loop ge list"<<endl;
 
     //Loop globalEvent's list
     for(itGE=listGlobalEvents.begin(); itGE!=listGlobalEvents.end(); ++itGE){
@@ -1288,16 +1318,13 @@ bool DetByLists::detectionMethodByListManagement(   Frame                   f,
         -> If a GE has not been updated for 10 frames and that the size of GE is enough, the GE is saved
         -> Else it is removed
     */
-
     double  tStep4      = (double)getTickCount();
 
     int     nbRmGE      = 0;
     int     nbSaveGE    = 0;
-
-    int trash_cpt = 0;
+    int     trash_cpt   = 0;
 
     cout << "#GE#       Age          AgeLast" << endl;
-
 
     if( listGlobalEvents.size() != 0 ){
 
@@ -1308,10 +1335,10 @@ bool DetByLists::detectionMethodByListManagement(   Frame                   f,
             cout << "#GE#      "<<(*itGE).getAge()<<"          "<<(*itGE).getAgeLastElem()<< endl;
 
             //No LE added to the current GE for more than 4 frames
-            if( (*itGE).getAgeLastElem() > 30 /*|| ((*itGE).getAge() > 500 && (*itGE).getAgeLastElem() > 10)*/ ){
+            if( (*itGE).getAgeLastElem() > geAfterTime || (*itGE).getPosFailed() > 2 /*|| ((*itGE).getAge() > 500 && (*itGE).getAgeLastElem() > 10)*/ ){
 
                 //Check if the current GE has the minimum required number of LE to considerate it as an event to record
-                if( (*itGE).getAvgPos().size() > 5 ){//getAvgPos().size()/*
+                if( (*itGE).getPosSuccess() >= 1 && (*itGE).getPosFailed() < 2 ){
 
                     struct evPathRes r;
 
@@ -1356,7 +1383,7 @@ bool DetByLists::detectionMethodByListManagement(   Frame                   f,
 
           /* if(f.getFrameRemaining()< 10 && f.getFrameRemaining() != 0){
 
-                if( (*itGE).getListLocalEvent()->size() /*getListLocalEvent()->size()*/ /*> 4 ){
+                if( (*itGE).getPosFailed() <= 2 && (*itGE).getPosSuccess() >= 2){
 
                     struct evPathRes r;
 
@@ -1369,7 +1396,7 @@ bool DetByLists::detectionMethodByListManagement(   Frame                   f,
                         nbSaveGE ++;
                         rec = true;
                         itGE = listGlobalEvents.erase(itGE);
-                       // break;
+                        break;
 
                     }
                 }

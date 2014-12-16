@@ -331,7 +331,7 @@ void RecThread::operator () (){
 
                     BOOST_LOG_SEV(log,notification) << "START to save fits3D ...";
 
-                    Fits3D fitsFile(listFrames.size(), listFrames.at(0).rows, listFrames.at(0).cols, &listFrames);
+                    Fits3D fitsFile(&listFrames);
 
                     if(pixelFormat == 8){
 

@@ -45,6 +45,7 @@
 #include "Fifo.h"
 #include "Fits2D.h"
 #include "EnumLog.h"
+#include "ECamBitDepth.h"
 #include <boost/filesystem.hpp>
 #include <iterator>
 #include <algorithm>

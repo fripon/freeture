@@ -1,5 +1,5 @@
 /*
-								Base64.h
+								EDetMeth.h
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 *
@@ -20,37 +20,23 @@
 *	You should have received a copy of the GNU General Public License
 *	along with FreeTure. If not, see <http://www.gnu.org/licenses/>.
 *
-*	Last modified:		26/11/2014
+*	Last modified:		01/12/2014
 *
 *%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%*/
 
-/**
- * @file    Base64.h
- * @author  Yoan Audureau -- FRIPON-GEOPS-UPSUD
- * @version 1.0
- * @date    26/11/2014
- */
-
 #pragma once
 
-#include "includes.h"
 
-#include <boost/archive/iterators/base64_from_binary.hpp>
-#include <boost/archive/iterators/transform_width.hpp>
-#include <boost/archive/iterators/ostream_iterator.hpp>
-#include <iterator>
-#include <algorithm>
+/**
+ * \brief       Possible meteor detection method.
+ */
+//namespace DetectionMthType{
 
-using namespace std;
+    enum DetMeth{
 
-class Base64{
+        HOUGH,      /*!< Lines detection using standard hough transform.*/
+        LIST        /*!< Detection using lists of globals and locals events.*/
 
-    public:
+    };
 
-        Base64();
-
-        static string encodeBase64(string data);
-
-};
-
-
+//}

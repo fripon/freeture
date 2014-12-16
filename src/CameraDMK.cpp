@@ -84,6 +84,8 @@ void    CameraDMK::join(){
 
 void     CameraDMK::startThread(){
 
+    camera->grabStart();
+
 	// Launch acquisition thread
 	m_thread = new boost::thread(boost::ref(*this));
     cout << "t"<<endl;
@@ -128,7 +130,9 @@ void	CameraDMK::getListCameras(){
 
 bool	CameraDMK::setSelectedDevice(int id, string name){
 
-    camera->chooseDevice(id, name);
+    camera->chooseDevice(1, "The Imaging Source Europe GmbH-17410147");
+
+    return true;
 
 }
 
@@ -149,11 +153,11 @@ void	CameraDMK::setCameraGain(int value){
     camera->setGain(value);
 
 }
-/*
+
 void CameraDMK::grabOne(){
 
     Frame *newFrame;
-    Mat img;
+    Mat img,imgFrame;
 
     namedWindow( "Grabbed frame", WINDOW_AUTOSIZE );// Create a window for display.
 
@@ -177,7 +181,7 @@ void CameraDMK::grabOne(){
         //conversion to 8UC
         }else if(camera->getPixelFormat() == 12){
 
-
+            cout << "12 bits image"<<endl;
 
         }
 
@@ -189,7 +193,7 @@ void CameraDMK::grabOne(){
 
     camera->grabStop();
 
-}*/
+}
 
 //https://github.com/xamox/aravis/blob/master/tests/arvheartbeattest.c
 //http://blogs.gnome.org/emmanuel/2010/04/03/chose-promise-chose-due/
@@ -202,9 +206,10 @@ void CameraDMK::operator()(){
 	BOOST_LOG_SCOPED_THREAD_TAG("LogName", "acqThread");
 	BOOST_LOG_SEV(log, notification) << "\n";
 	BOOST_LOG_SEV(log, notification) << "Acquisition thread started.";
-    camera->grabStart();
+    //camera->grabStart();
     camera->acqStart();
 
+    int c = 0;
     do {
 
                 Frame *newFrame;
@@ -220,6 +225,9 @@ void CameraDMK::operator()(){
                     framesQueue->pushInFifo(f);
 
                     lock.unlock();
+                    cout << "save : " << "testDMK-"+Conversion::intToString(c) <<endl;
+                    SaveImg::saveBMP(f.getImg(),"testDMK-"+Conversion::intToString(c));
+                    c++;
     /*
                     if(framesQueue->getFifoIsFull())
                         condQueueFill->notify_all();

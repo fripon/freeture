@@ -284,20 +284,27 @@ void CameraBasler::grabOne(){
     Mat img;
 
     if(camera->getPixelFormat() == 8){
-
+        cout << "format 8 bits "<< endl;
         img = Mat(camera->getHeight(), camera->getWidth(), CV_8UC1);
 
     }else if(camera->getPixelFormat() == 12){
-
+        cout << "format 12 bits "<< endl;
         img = Mat(camera->getHeight(), camera->getWidth(), CV_16UC1);
 
     }
 
     // Intialize exposition and gain
+    cout << "initialExpValue : " << initialExpValue<< endl;
     camera->setExposureTime((double)initialExpValue);
+    cout << "set gain : " << initialGainValue<< endl;
     camera->setGain(initialGainValue);
+
+    cout << "set format 12 bits "<< endl;
     camera->setPixelFormat(format);
 
+    if(camera->getPixelFormat() == 8){
+        cout << "format 8 bits "<< endl;
+    }
     camera->acqStart();
 
 
@@ -313,7 +320,7 @@ void CameraBasler::grabOne(){
 
         if(camera->getPixelFormat() == 8){
 
-            //SaveImg::saveBMP(f.getImg(),"/home/fripon/testcap");
+            SaveImg::saveBMP(f.getImg(),"/home/fripon/testcap");
 
             if(saveFits){
 
@@ -372,6 +379,9 @@ void CameraBasler::grabOne(){
 
             imshow( "Grabbed frame", res );
 
+
+
+
         }else
             cout << "Format Unknow"<<endl;
 
@@ -418,25 +428,24 @@ void    CameraBasler::operator()(){
     // Intialize gain
     BOOST_LOG_SEV(log,notification) << "Set gain value to : " << initialGainValue;
     camera->setGain(initialGainValue);
-  //   camera->setPixelFormat(8);
+
     camera->acqStart();
 
     int framebufferActualSize = 0;
 
-    double tMSMean =0.0;
-    double tLSMean=0.0;
-    double tBMPMean=0.0;
+    double tMSMean  = 0.0;
+    double tLSMean  = 0.0;
+    double tBMPMean = 0.0;
     int div = 1;
 
     bool saveISS = false;
-    string rep = "memoryTest/";//"ISS_20140925_070111";
+    string rep = "fitsTest/";//"ISS_20140925_070111";
     //ISS_20140923_052830
 
     int compteur = 0;
 
     vector<Mat> listForFits3D;
     bool savef3D = true;
-
 
     //Thread loop
     do{
@@ -466,18 +475,12 @@ void    CameraBasler::operator()(){
 
                 if(camera->getPixelFormat() != 8){
 
-                     Fits2D newFits("/home/fripon/memoryTest/fitsTest_"+Conversion::intToString(compteur),fitsHeader);
+                     Fits2D newFits("/home/fripon/fitsTest/fitsTest_"+Conversion::intToString(compteur),fitsHeader);
                     newFits.writeFits(newFrame->getImg(), US16, 0, false );
-/*
-                        Fits2D fit("/home/fripon/data/" + rep + "/MOON_"+Conversion::intToString(cpt), 0, "", 0, 30, 4095, 33333.0, 400, 0.0 );
-                        fit.loadKeywordsFromConfigFile("/home/fripon/friponProject/friponCapture/configuration.cfg");
-                        fit.writeimage(f.getImg(), 16, "" , false);
-                        Mat temp1;
-                       /* f.getImg().copyTo(temp1);
 
-                        SaveImg::saveBMP( Conversion::convertTo8UC1(temp1),"/home/fripon/data/" + rep +  "/ISS_BMP_" + Conversion::intToString(cpt) );
-*/
                 }else{
+
+
 
 
 
@@ -496,60 +499,6 @@ void    CameraBasler::operator()(){
                 compteur++;
             }
 
-
-
-
-           /* Fits fitsHeader;
-            fitsHeader.loadKeywordsFromConfigFile("/home/fripon/friponProject/friponCapture/configuration.cfg");
-
-            Fits2D newFits("/home/fripon/data2/",fitsHeader);
-            newFits.setOntime(0); // ontime/fps
-            newFits.setGaindb(850);
-            newFits.setObsmode(30);//fps
-            newFits.setDateobs("");//dateObs
-            newFits.setSaturate(255);
-            newFits.setRadesys("ICRS");
-            newFits.setEquinox(2000.0);
-            newFits.setCtype1("RA---ARC");
-            newFits.setCtype2("DEC---ARC");
-            newFits.setExposure(33333 * 1e-6);
-            newFits.setElaptime(0);
-            newFits.setCrval1(0);//sideraltime
-
-            if(newFits.writeimage(f.getImg(), 8, Conversion::intToString(compteur), true ))
-            cout << "saved"<<endl;
-            else
-            cout << "not saved"<<endl;
-
-            compteur++;
-*/
-
-            /*if(listForFits3D.size() < 80){
-
-
-                listForFits3D.push_back(f.getImg());
-
-
-
-            }else{
-
-
-
-                    Fits3D newF(listForFits3D.size(), f.getImg().rows,f.getImg().cols, &listForFits3D);
-
-                    if(newF.writeFits3D_UC("/home/fripon/saveFits3D_"+Conversion::intToString(compteur))){
-                        cout << "fits 3D saved" <<endl;
-
-                    }
-                    else
-                        cout << "fits 3D not saved" <<endl;
-
-
-                    compteur ++;
-                    listForFits3D.clear();
-
-
-            }*/
 
 
 

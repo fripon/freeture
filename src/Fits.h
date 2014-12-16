@@ -38,6 +38,7 @@
 
 #include <boost/filesystem.hpp>
 
+
 using namespace boost::filesystem;
 using namespace std;
 
@@ -52,8 +53,8 @@ using namespace std;
     7.  FILENAME    = 'stationOrsay_YYYYMMJJ_HHMMSS_UT.fits'    / name of the fits file
     8.  DATE        = 'YYYY-MM-JJT HH:MM:SS.SS'                 / date of the creation of the fits file
     9.  DATE-OBS    = 'YYYY-MM-JJT HH:MM:SS.SS'                 / acquisition date of the first frame
-    10. OBS_MODE    = SINGLE                                    / observation method to get this fits file 'SINGLE' 'SUM' 'AVERAGE' ('MEDIAN')
-    11. ELAPTIME    = 60                                        / end observation date - start observation date (sec.)
+    10. OBS_MODE    = SINGLE                                    / 'SINGLE' 'SUM' 'AVERAGE' ('MEDIAN')
+    11. ELAPTIME    = 60                                        / end obs. date - start obs. date (sec.)
     12. EXPOSURE    = 0.033                                     / integration time : 1/fps * nb_frames (sec.)
     13. ONTIME      = 0.033                                     / frame exposure time (sec.)
     14. FILTER      = "NONE"
@@ -69,7 +70,7 @@ using namespace std;
     24. XPIXEL      = 3.75
     25. YPIXEL      = 3.75
     26. GAINDB      = 400                                       / detector gain
-    27. SATURATE    = 4095                                      / saturation value or max value (not saturated) in case where OBS_MODE = SUM
+    27. SATURATE    = 4095                                      / saturated or max value (not saturated) in case where OBS_MODE = SUM
     28. PROGRAM     = 'FreeTure v0.1'                           / name of the acquisition software
     29. CREATOR     = 'FRIPON TEAM'                             / http://fripon.org
     30. BZERO       = 0
@@ -79,7 +80,7 @@ using namespace std;
     34. EQUINOX     = 2.000000000000E+03                        / equinox of equatorial coordinates
     35. CTYPE1      = 'RA---ARC'                                / projection and reference system
     36. CTYPE2      = 'DEC--ARC'                                / projection and reference system
-    37. CTYPE3      = 'UTC '                                    / time reference system (pour les 'videos' des detections)
+    37. CTYPE3      = 'UTC '                                    / time reference system
     38. TIMEUNIT    = 's '
     39. CD1_1       = 0.0                                       / deg/px
     40. CD1_2       = 0.17                                      / deg/px
@@ -146,6 +147,14 @@ class Fits{
         int     getElaptime();
         double  getCrval2();
         double  getCrval1();
+
+        double getBzero();
+        double getBscale();
+
+//%%%%%%%%%%%%%%%%%%% SETTER %%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+        void setBzero(double value);
+        void setBscale(double value);
 
         void setFilename(string filename);
         void setExposure(double exposure);

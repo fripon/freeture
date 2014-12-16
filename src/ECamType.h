@@ -1,5 +1,5 @@
 /*
-								Base64.h
+								ECamType.h
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 *
@@ -20,36 +20,22 @@
 *	You should have received a copy of the GNU General Public License
 *	along with FreeTure. If not, see <http://www.gnu.org/licenses/>.
 *
-*	Last modified:		26/11/2014
+*	Last modified:		01/12/2014
 *
 *%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%*/
 
-/**
- * @file    Base64.h
- * @author  Yoan Audureau -- FRIPON-GEOPS-UPSUD
- * @version 1.0
- * @date    26/11/2014
- */
-
 #pragma once
 
-#include "includes.h"
+/**
+ * \brief       Possible inputs supported by FreeTure.
+ */
 
-#include <boost/archive/iterators/base64_from_binary.hpp>
-#include <boost/archive/iterators/transform_width.hpp>
-#include <boost/archive/iterators/ostream_iterator.hpp>
-#include <iterator>
-#include <algorithm>
+enum CamType{
 
-using namespace std;
-
-class Base64{
-
-    public:
-
-        Base64();
-
-        static string encodeBase64(string data);
+    DMK,        /*!< Under Linux DMK GigE cameras use Aravis library.*/
+    BASLER,     /*!< Support of Basler cameras by using Aravis Library or Pylon.*/
+    VIDEO,      /*!< Used to support a simple .avi in input of FreeTure.*/
+    FRAMES      /*!< Used to send in input of FreeTure a set of single images (Fits2D, jpeg, bmp).*/
 
 };
 

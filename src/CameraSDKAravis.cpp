@@ -62,6 +62,7 @@ void    CameraSDKAravis::listCameras(){
 
 bool	CameraSDKAravis::chooseDevice(int id, string name){
 
+
     camera = arv_camera_new(name.c_str());
     if(camera!=NULL)
         return true;
@@ -295,12 +296,12 @@ bool	CameraSDKAravis::setPixelFormat(int depth){
 
 bool	CameraSDKAravis::grabImage(Frame *&newFrame, Mat newImage){
 
+//cout << "GRAB IMAGE ARAVIS !"<<endl;
     ArvBuffer *arv_buffer;
 
     bool res = true;
 
-    arv_buffer = arv_stream_timeout_pop_buffer(stream, 2000000);
-
+    arv_buffer = arv_stream_timeout_pop_buffer(stream, 2000000); //us
 
     if (arv_buffer == NULL){
         res = false;
@@ -308,6 +309,8 @@ bool	CameraSDKAravis::grabImage(Frame *&newFrame, Mat newImage){
 
     }else{
 
+        cout << "frame rate : " << arv_camera_get_frame_rate (camera)<<endl;
+        //arv_buffer = arv_stream_timout_pop_buffer(stream, 2000000);
         if (arv_buffer->status == ARV_BUFFER_STATUS_SUCCESS) {
 
             //Timestamping
@@ -331,6 +334,7 @@ bool	CameraSDKAravis::grabImage(Frame *&newFrame, Mat newImage){
                 img.copyTo(image);
 
             }
+
 
             image.copyTo(newImage);
             newFrame = new Frame(image,  arv_camera_get_gain (camera),arv_camera_get_exposure_time (camera), acquisitionDate);

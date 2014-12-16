@@ -79,6 +79,11 @@ class GlobalEvent{
         //! Frames after the event
         vector<Mat> eventAfterBuffer;
 
+        vector<Point> mainPoints;
+
+        int posFailed;
+        int posSuccess;
+
         //! Event direction mask
         Mat dirMask;
 
@@ -108,6 +113,8 @@ int cptt;
         vector<Mat> getEvBuffer();
         vector<Mat> getEvAfterBuffer();
         vector<Point> getAvgPos();
+        int getPosFailed();
+        int getPosSuccess();
         Mat getDirMap();
 
         void setAge(int a);

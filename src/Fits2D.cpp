@@ -46,7 +46,7 @@ Fits2D::~Fits2D(void){
 
 }
 
-bool Fits2D::writeKeywords(){
+bool Fits2D::writeKeywords(fitsfile *fptr){
 
     /*
 
@@ -61,7 +61,7 @@ bool Fits2D::writeKeywords(){
         7.  FILENAME    = 'stationOrsay_YYYYMMJJ_HHMMSS_UT.fits'    / name of the fits file
         8.  DATE        = 'YYYY-MM-JJT HH:MM:SS.SS'                 / date of the creation of the fits file
         9.  DATE-OBS    = 'YYYY-MM-JJT HH:MM:SS.SS'                 / acquisition date of the first frame
-        10. OBS_MODE    = SINGLE                                    / observation method used to get this fits file 'SINGLE' 'SUM' 'AVERAGE' ('MEDIAN')
+        10. OBS_MODE    = 'SINGLE'                                  / observation method used to get this fits file 'SINGLE' 'SUM' 'AVERAGE' ('MEDIAN')
         11. ELAPTIME    = 60                                        / end observation date - start observation date (sec.)
         12. EXPOSURE    = 0.033                                     / integration time : 1/fps * nb_frames (sec.)
         13. ONTIME      = 0.033                                     / frame exposure time (sec.)
@@ -800,6 +800,10 @@ bool Fits2D::writeFits( Mat img, bitdepth imgType, int nb, bool filenameWithDate
     kDATE = TimeDate::localDateTime(microsec_clock::universal_time(),"%Y-%m-%dT %H:%M:%S");
     string date	= TimeDate::localDateTime(microsec_clock::universal_time(),"%Y%m%d_%H%M%S");
 
+    fitsfile *fptr;
+
+    const char * filename;
+
     // Creation of the fits filename.
     if(nb == 0){
 
@@ -1150,7 +1154,7 @@ bool Fits2D::writeFits( Mat img, bitdepth imgType, int nb, bool filenameWithDate
 
     }
 
-    if(!writeKeywords()){
+    if(!writeKeywords(fptr)){
 
         if( fits_close_file(fptr, &status)){
 
@@ -1178,6 +1182,11 @@ bool Fits2D::readFits32F(Mat &img, string filePath){
     long naxes[2], fpixel, nbuffer, npixels;
 
     float  nullval;
+
+
+    fitsfile *fptr;
+
+    const char * filename;
 
     filename = filePath.c_str();
 
@@ -1247,6 +1256,11 @@ bool Fits2D::readFits16US(Mat &img, string filePath){
 
     float  nullval;
 
+
+    fitsfile *fptr;
+
+    const char * filename;
+
     filename = filePath.c_str();
 
     if(fits_open_file(&fptr, filename, READONLY, &status)){
@@ -1308,12 +1322,16 @@ bool Fits2D::readFits16US(Mat &img, string filePath){
 bool Fits2D::readFits16S(Mat &img, string filePath){
 
     short * ptr = NULL;
-    short  * ptr1 = NULL;
+    unsigned short  * ptr1 = NULL;
 
     int status = 0,  nfound, anynull;
     long naxes[2], fpixel, nbuffer, npixels;
 
     float  nullval;
+
+     fitsfile *fptr;
+
+    const char * filename;
 
     filename = filePath.c_str();
 
@@ -1345,18 +1363,18 @@ bool Fits2D::readFits16S(Mat &img, string filePath){
 
     memcpy(image.ptr(), buffer, npixels * 2);
 
-    Mat loadImg = Mat::zeros( naxes[1],naxes[0], CV_16SC1 );
+    Mat loadImg = Mat::zeros( naxes[1],naxes[0], CV_16UC1 );
 
     // y
     for(int i = 0; i < naxes[1]; i++){
 
         short * ptr = image.ptr<short>(i);
-        short * ptr1 = loadImg.ptr<short >(naxes[1] - 1 - i);
+        unsigned short * ptr1 = loadImg.ptr<unsigned short >(naxes[1] - 1 - i);
 
         // x
         for(int j = 0; j < naxes[0]; j++){
 
-            ptr1[j] = ptr[j];
+            ptr1[j] = ptr[j] + 32768;
 
         }
     }
@@ -1367,6 +1385,7 @@ bool Fits2D::readFits16S(Mat &img, string filePath){
 
         return printerror( status, "Fits2D::readFits16S() -> fits_close_file() failed" );
     }
+
 
     return true;
 
@@ -1382,6 +1401,10 @@ bool Fits2D::readFits8UC(Mat &img, string filePath){
     long naxes[2], fpixel, nbuffer, npixels;
 
     float  nullval;
+
+    fitsfile *fptr;
+
+    const char * filename;
 
     filename = filePath.c_str();
 
@@ -1450,6 +1473,10 @@ bool Fits2D::readFits8C(Mat &img, string filePath){
     long naxes[2], fpixel, nbuffer, npixels;
 
     float  nullval;
+
+    fitsfile *fptr;
+
+    const char * filename;
 
     filename = filePath.c_str();
 

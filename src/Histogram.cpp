@@ -72,6 +72,60 @@ Histogram::Histogram(Mat image, double maxVal){
 Histogram::~Histogram(){
 
 }
+/*
+void Histogram::printHist8UCImage(){
+
+    /// Load image
+    Mat src = imread( "/home/fripon/Histogram_Calculation_Original_Image.jpg", 1 );
+
+    cvtColor(src, src, CV_RGB2GRAY);
+
+    if( !src.data )
+    { return -1; }
+
+    /// Separate the image in 3 places ( B, G and R )
+    //vector<Mat> bgr_planes;
+    //split( src, bgr_planes );
+
+    /// Establish the number of bins
+    int histSize = 256;
+
+    /// Set the ranges ( for B,G,R) )
+    float range[] = { 0, 256 } ;
+    const float* histRange = { range };
+
+    bool uniform = true; bool accumulate = false;
+
+    Mat hist;
+
+    calcHist( &src, 1, 0, Mat(), hist, 1, &histSize, &histRange, uniform, accumulate );
+    // Draw the histograms for B, G and R
+    int hist_w = 1280;
+    int hist_h = 960;
+    int bin_w = cvRound( (double) hist_w/histSize );
+
+    Mat histImage( hist_h, hist_w, CV_8UC1, Scalar( 0) );
+
+    /// Normalize the result to [ 0, histImage.rows ]
+    normalize(hist, hist, 0, histImage.rows, NORM_MINMAX, -1, Mat() );
+
+    /// Draw
+    for( int i = 1; i < histSize; i++ )
+    {
+      line( histImage, Point( bin_w*(i-1), hist_h - cvRound(hist.at<float>(i-1)) ) ,
+                       Point( bin_w*(i), hist_h - cvRound(hist.at<float>(i)) ),
+                       Scalar( 255, 0, 0), 2, 8, 0  );
+
+    }
+
+    /// Display
+    namedWindow("calcHist Demo", CV_WINDOW_AUTOSIZE );
+    imshow("calcHist Demo", histImage );
+
+    waitKey(0);
+
+
+}*/
 
 Mat Histogram::drawHist(){
 

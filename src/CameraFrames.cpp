@@ -148,164 +148,94 @@ void CameraFrames::operator () (){
 
     if(fs::exists(p)){
 
-        std::cout << "Destination directory " << p.string() << " already exists." << '\n';
+        std::cout << "Directory " << p.string() << " exists." << '\n';
 
-        //Loop the pd directory
-        //for(directory_iterator file(p);file != directory_iterator(); ++file){
+        do{
 
+            string filename = "";
 
-            //path current(file->path());
+            for(directory_iterator file(p);file!= directory_iterator(); ++file){
 
-            //if(is_directory(current)){
+                path curr(file->path());
 
-                //cout<< "DIRECTORY : "<<file->path()<<endl;
+                if(is_regular_file(curr)){
 
-                Mat resImg = Mat::zeros(960,1280, CV_32FC1);
-                Mat img = Mat::zeros(960,1280,CV_32FC1);
+                    list<string> ch;
 
-                do{
+                    stringtok(ch,curr.filename().c_str(),"_");
 
-                    string fichier ="";
+                    std:list<string>::const_iterator lit(ch.begin()), lend(ch.end());
+                    int i = 0;
+                    int number = 0;
 
-                    for(directory_iterator file2(p);file2 != directory_iterator(); ++file2){
+                    for(;lit!=lend;++lit){
 
-                      //  cout<< "PATH : "<<file->path()<<endl;
-                        path current2(file2->path());
+                        if(i==1){
 
-                        if(is_regular_file(current2)){
-
-
-
-                            //cout<< "FILE : "<<file2->path()<<endl;
-
-                            list<string> ch;
-
-                            stringtok(ch,current2.filename().c_str(),"_");
-
-                           // list<string> ch2;
-                           // stringtok(ch2,ch.back().c_str(),".");
-
-                            //ch2.pop_back();
-
-                            std:list<string>::const_iterator lit(ch.begin()), lend(ch.end());
-                            int i = 0;
-                            int v=0;
-
-                            for(;lit!=lend;++lit){
-
-                                if(i==1){
-
-                                    v = atoi((*lit).c_str());
-                                    break;
-                                }
-
-                                i++;
-
-                                /* std::cout << *lit << ' ';
-                                std::cout << std::endl;*/
-                            }
-
-
-
-                            //int v = atoi(ch.at(1).c_str());
-                           // cout << v <<endl;
-
-                           // cout << "------>" << v << endl;
-
-                            if(v == numFrame){
-                                numFrame++;
-                                fileFound = true;
-                                cpt++;
-                                cout << "FILE:" << file2->path().c_str() << endl;
-
-                                fichier = file2->path().c_str() ;
-
-                                break;
-                            }
+                            number = atoi((*lit).c_str());
+                            break;
                         }
-                    }
 
-                    if(numFrame > frameStop_){
-
-                        endReadFrames = true;
-                        break;
-
-                    }else if(!fileFound){
-
-                        endReadFrames = true;
-                        break;
+                        i++;
 
                     }
 
-                    Mat resMat;
-                   /* Fits2D fit(fichier,0, "", 0, 30, 255, 33333.0, 850, 0.0 );
-                    fit.loadKeywordsFromConfigFile("/home/fripon/friponProject/friponCapture/configuration.cfg");
-                    fit.readFitsToMat(resMat, fichier);*/
+                    if(number == numFrame){
+                        numFrame++;
+                        fileFound = true;
+                        cpt++;
+                        cout << "FILE:" << file->path().c_str() << endl;
 
-                    Fits2D newFits(fichier,fitsHeader);
-                    newFits.readFits32F(resMat, fichier);
+                        filename = file->path().c_str() ;
 
-                    Mat i = Conversion::convertTo8UC1(resMat);
+                        break;
+                    }
+                }
+            }
 
+            if(numFrame > frameStop_){
 
-                    resMat.convertTo(img, CV_32FC1);
-                    accumulate(img,resImg);
+                endReadFrames = true;
 
-                    /*vector<int> compression_params;
-                    compression_params.push_back(CV_IMWRITE_PNG_COMPRESSION);
-                    compression_params.push_back(9);
-                    imwrite("/home/fripon/testSave"+Conversion::intToString(cpt)+".png", i, compression_params);
-    */
+            }else if(!fileFound){
 
-                    //Timestamping
+                endReadFrames = true;
 
-                    string acquisitionDate = TimeDate::localDateTime(second_clock::universal_time(),"%Y:%m:%d:%H:%M:%S");
+            }
 
-                    Frame newFrameRAM( i, 0, 0, acquisitionDate );
+            Mat resMat;
 
-                    newFrameRAM.setNumFrame(cpt);
+            Fits2D newFits(filename,fitsHeader);
+            newFits.readFits16S(resMat, filename);
 
-                    newFrameRAM.setFrameRemaining(frameStop_ - cpt);
+            //Timestamping
 
+            string acquisitionDate = TimeDate::localDateTime(second_clock::universal_time(),"%Y:%m:%d:%H:%M:%S");
 
-                    boost::mutex::scoped_lock lock(*mutexQueue);
+            Frame newFrameRAM( resMat, 0, 0, acquisitionDate );
+            newFrameRAM.setNumFrame(cpt);
+            newFrameRAM.setFrameRemaining(frameStop_ - cpt);
 
-                    frameQueue->pushInFifo(newFrameRAM);
+            boost::mutex::scoped_lock lock(*mutexQueue);
+            frameQueue->pushInFifo(newFrameRAM);
+            lock.unlock();
 
-                    lock.unlock();
+            if(frameQueue->getFifoIsFull()) condQueueFill->notify_all();
+            frameQueue->setThreadRead("imgCap", true);
+            frameQueue->setThreadRead("astCap", true);
+            frameQueue->setThreadRead("det", true);
+            condQueueNewElement->notify_all();
 
-                    if(frameQueue->getFifoIsFull()) condQueueFill->notify_all();
+            fileFound = false;
 
-                    frameQueue->setThreadRead("imgCap", true);
-                    frameQueue->setThreadRead("astCap", true);
-                    frameQueue->setThreadRead("det", true);
+            waitKey(100) ;
 
-                    condQueueNewElement->notify_all();
+        }while(!endReadFrames);
 
-                    fileFound = false;
+        endReadFrames = false;
+        cpt = 0;
+        numFrame = frameStart_;
 
-                     waitKey(100) ;
-
-                }while(!endReadFrames);
-
-                endReadFrames = false;
-                cpt = 0;
-                numFrame = frameStart_;
-
-                Fits2D sumFits("/home/fripon/data2/",fitsHeader);
-                sumFits.writeFits(resImg, F32, 0, false);
-
-               // fit.writeimage(resImg, 32, "", false);
-
-            //}
-
-            //Free the frameQueue
-           /* boost::mutex::scoped_lock lock(*mutexQueue);
-
-            frameQueue->
-
-            lock.unlock();*/
-        //}
     }
 
 	BOOST_LOG_SEV(log,notification) << "Acquisition thread terminated.";

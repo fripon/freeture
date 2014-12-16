@@ -29,29 +29,44 @@
  * @author  Yoan Audureau
  * @version 1.0
  * @date    01/12/2014
- * @section DESCRIPTION
- *
- * Class used to write fits cube with 8 bits unsigned char or 16 bits unsigned short values.
- * Keywords for fits cube have to be defined before to write the fits cube.
- * See settable keywords in the fits class.
  */
 
 #include "Fits3D.h"
 
-Fits3D::Fits3D(int dimT, int dimH, int dimW, vector <Mat> *frames){
+/**
+ * \brief       Fits3D class constructor.
+ * \details     The keywords and comments defined in Fits.h are used here.
+ * \param       frames  Buffer of opencv Mat object.
+ */
 
-    //ctor
-    imgW = dimW;
-    imgH = dimH;
-    imgT = dimT;
+Fits3D::Fits3D(vector <Mat> *frames){
 
     buffer = frames;
 
+    if(frames->size() > 0){
+
+        imgW = frames->at(0).cols;
+        imgH = frames->at(0).rows;
+        imgT = frames->size();
+
+    }else{
+
+        imgW = 0;
+        imgH = 0;
+        imgT = 0;
+
+    }
 }
 
 Fits3D::~Fits3D(){
     //dtor
 }
+
+/**
+ * \brief       Write keywords in fits cube.
+ * \details     The keywords and comments defined in Fits.h are used here.
+ * \return      A \e boolean which correspond of the success to write keywords.
+ */
 
 bool Fits3D::writeKeywords(){
 
@@ -96,7 +111,7 @@ bool Fits3D::writeKeywords(){
         34. EQUINOX     = 2.000000000000E+03                        / equinox of equatorial coordinates
         35. CTYPE1      = 'RA---ARC'                                / projection and reference system
         36. CTYPE2      = 'DEC--ARC'                                / projection and reference system
-        37. CTYPE3      = 'UTC '                                    / time reference system (pour les 'videos' des detections)
+        37. CTYPE3      = 'UTC '                                    / time reference system
         38. TIMEUNIT    = 's '
         39. CD1_1       = 0.0                                       / deg/px
         40. CD1_2       = 0.17                                      / deg/px
@@ -891,6 +906,13 @@ bool Fits3D::writeKeywords(){
 
 }
 
+/**
+ * \brief       Write a fits cube with 8 bits unsigned char data.
+ * \details     Use cfitsio library to write data in a fits cube.
+ * \param       file    Path of the future fits cube file.
+ * \return      A \e boolean which correspond of the success to write fits cube.
+ */
+
 //http://www.great08challenge.info/code/c/read_GREAT08_fits.c
 bool Fits3D::writeFits3d8uc(string file){
 
@@ -960,6 +982,13 @@ bool Fits3D::writeFits3d8uc(string file){
     return true;
 
 }
+
+/**
+ * \brief       Write a fits cube with 16 bits unsigned short data.
+ * \details     Use cfitsio library to write data in a fits cube.
+ * \param       file    Path of the future fits cube file.
+ * \return      A \e boolean which correspond of the success to write fits cube.
+ */
 
 bool Fits3D::writeFits3d16us(string file){
 

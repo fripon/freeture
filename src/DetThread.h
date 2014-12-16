@@ -52,6 +52,7 @@
 #include "RecEvent.h"
 #include "DetByLines.h"
 #include "DetByLists.h"
+#include "ECamBitDepth.h"
 
 //#include "serialize.h"
 #include <boost/filesystem.hpp>
@@ -107,7 +108,7 @@ class DetThread{
 
         Mat                         mask;
 
-        int                         imgFormat;
+        CamBitDepth                 imgFormat;
 
         vector <GlobalEvent>        listGlobalEvents;
 
@@ -137,7 +138,7 @@ class DetThread{
 
         DetThread(   Mat                        maskImg,
                      int                        mth,
-                     int                        acqFormatPix,
+                     CamBitDepth                acqFormatPix,
                      Fifo<Frame>                *queue,
                      boost::mutex               *m_mutex_queue,
                      boost::condition_variable  *m_cond_queue_fill,

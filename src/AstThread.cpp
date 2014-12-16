@@ -35,7 +35,7 @@
 
 AstThread::AstThread(   string                      recPath,
                         string                      station,
-                        string                      astMeth,
+                        AstStackMeth                      astMeth,
                         string                      configurationFilePath,
                         Fifo<Frame>                 *frame_queue,
                         int                         interval,
@@ -280,7 +280,7 @@ void AstThread::operator()(){
             cout << " Terminate to sum frames : "<< nbSummedImg <<endl;
 
             //moyenne
-            if(fitsMethod == "mean"){
+            if(fitsMethod == MEAN){
 
                 resImg = resImg/nbSummedImg;
             }

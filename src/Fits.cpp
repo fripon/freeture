@@ -54,7 +54,7 @@ Fits::Fits(){
     kPROGRAM    = "";
     kCREATOR    = "" ;
     kBZERO      = 0.0;
-    kBSCALE     = 0.0;
+    kBSCALE     = 1.0;
     kRADESYS    = "";
     kTIMESYS    = "UTC";
     kEQUINOX    = 0.0;
@@ -100,7 +100,7 @@ Fits::Fits(){
     cXPIXEL     = "";
     cYPIXEL     = "";
     cGAINDB     = "detector gain";
-    cSATURATE   = "saturation value or max value (OBS_MODE = SUM)";
+    cSATURATE   = "saturated or max value (not sat. when OBS_MODE = SUM)";
     cPROGRAM    = "name of the acquisition software";
     cCREATOR    = "http://fripon.org";
     cBZERO      = "";
@@ -138,40 +138,37 @@ Fits::~Fits(){
 
 bool Fits::loadKeywordsFromConfigFile(string configFile){
 
-    namespace fs = boost::filesystem;
-
     path p(configFile);
 
-    if(fs::exists(p)){
+    if(boost::filesystem::exists(p)){
 
-        Configuration getFitsKeys;
-        getFitsKeys.Load(configFile);
+        Configuration cfg;
+        cfg.Load(configFile);
 
-        getFitsKeys.Get("STATION_NAME", STATION);
-
-        getFitsKeys.Get("TELESCOP", kTELESCOP);
-        getFitsKeys.Get("OBSERVER", kOBSERVER);
-        getFitsKeys.Get("INSTRUME", kINSTRUME);
-        getFitsKeys.Get("CAMERA",   kCAMERA);
-        getFitsKeys.Get("FOCAL",    kFOCAL);
-        getFitsKeys.Get("APERTURE", kAPERTURE);
-        getFitsKeys.Get("SITELONG", kSITELONG);
-        getFitsKeys.Get("SITELAT",  kSITELAT);
-        getFitsKeys.Get("SITEELEV", kSITEELEV);
-        getFitsKeys.Get("CRPIX1",   kCRPIX1);
-        getFitsKeys.Get("CRPIX2",   kCRPIX2);
-        getFitsKeys.Get("K1",       kK1);
-        getFitsKeys.Get("K2",       kK2);
-        getFitsKeys.Get("PROGRAM",  kPROGRAM);
-        getFitsKeys.Get("FILTER",   kFILTER);
-        getFitsKeys.Get("CREATOR",  kCREATOR);
-        getFitsKeys.Get("CD1_1",    kCD1_1);
-        getFitsKeys.Get("CD1_2",    kCD1_2);
-        getFitsKeys.Get("CD2_1",    kCD2_1);
-        getFitsKeys.Get("CD2_2",    kCD2_2);
-        getFitsKeys.Get("XPIXEL",   kXPIXEL);
-        getFitsKeys.Get("YPIXEL",   kYPIXEL);
-        getFitsKeys.Get("COMMENT",  kCOMMENT);
+        cfg.Get("STATION_NAME", STATION);
+        cfg.Get("TELESCOP", kTELESCOP);
+        cfg.Get("OBSERVER", kOBSERVER);
+        cfg.Get("INSTRUME", kINSTRUME);
+        cfg.Get("CAMERA",   kCAMERA);
+        cfg.Get("FOCAL",    kFOCAL);
+        cfg.Get("APERTURE", kAPERTURE);
+        cfg.Get("SITELONG", kSITELONG);
+        cfg.Get("SITELAT",  kSITELAT);
+        cfg.Get("SITEELEV", kSITEELEV);
+        cfg.Get("CRPIX1",   kCRPIX1);
+        cfg.Get("CRPIX2",   kCRPIX2);
+        cfg.Get("K1",       kK1);
+        cfg.Get("K2",       kK2);
+        cfg.Get("PROGRAM",  kPROGRAM);
+        cfg.Get("FILTER",   kFILTER);
+        cfg.Get("CREATOR",  kCREATOR);
+        cfg.Get("CD1_1",    kCD1_1);
+        cfg.Get("CD1_2",    kCD1_2);
+        cfg.Get("CD2_1",    kCD2_1);
+        cfg.Get("CD2_2",    kCD2_2);
+        cfg.Get("XPIXEL",   kXPIXEL);
+        cfg.Get("YPIXEL",   kYPIXEL);
+        cfg.Get("COMMENT",  kCOMMENT);
 
         return true;
 
@@ -409,7 +406,32 @@ double Fits::getCrval1(){
 
 }
 
+
+double Fits::getBzero(){
+
+    return kBZERO;
+
+}
+
+double Fits::getBscale(){
+
+    return kBSCALE;
+
+}
+
 //%%%%%%%%%%%%%%%%%%% SETTER %%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+void Fits::setBzero(double value){
+
+    kBZERO = value;
+
+}
+
+void Fits::setBscale(double value){
+
+    kBSCALE = value;
+
+}
 
 void Fits::setFilename(string filename){
 

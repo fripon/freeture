@@ -70,6 +70,7 @@ class Fits3D : public Fits{
     private:
 
 		src::severity_logger< severity_level > log;
+
 		int imgW;
         int imgH;
         int imgT;
@@ -81,7 +82,7 @@ class Fits3D : public Fits{
 
     public:
 
-        Fits3D(int dimT, int dimH, int dimW, vector <Mat> *frames);
+        Fits3D(vector <Mat> *frames);
         ~Fits3D();
 
         bool writeFits3d8uc     (string file);

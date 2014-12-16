@@ -1,5 +1,5 @@
 /*
-								Base64.h
+								EnumParser.cpp
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 *
@@ -20,37 +20,46 @@
 *	You should have received a copy of the GNU General Public License
 *	along with FreeTure. If not, see <http://www.gnu.org/licenses/>.
 *
-*	Last modified:		26/11/2014
+*	Last modified:		04/12/2014
 *
 *%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%*/
 
 /**
- * @file    Base64.h
+ * @file    EnumParser.cpp
  * @author  Yoan Audureau -- FRIPON-GEOPS-UPSUD
  * @version 1.0
- * @date    26/11/2014
+ * @date    04/12/2014
+ *
  */
 
-#pragma once
+#include "EnumParser.h"
 
-#include "includes.h"
+template<> EnumParser<CamBitDepth>::EnumParser(){
 
-#include <boost/archive/iterators/base64_from_binary.hpp>
-#include <boost/archive/iterators/transform_width.hpp>
-#include <boost/archive/iterators/ostream_iterator.hpp>
-#include <iterator>
-#include <algorithm>
+    enumMap["MONO_8"]   = MONO_8;
+    enumMap["MONO_12"]  = MONO_12;
 
-using namespace std;
+}
 
-class Base64{
+template<> EnumParser<CamType>::EnumParser(){
+cout <<"here : " <<DMK << endl;
+    enumMap["DMK"]      = DMK;
+    enumMap["BASLER"]   = BASLER;
+    enumMap["VIDEO"]    = VIDEO;
+    enumMap["FRAMES"]   = FRAMES;
 
-    public:
+}
 
-        Base64();
+template<> EnumParser<AstStackMeth>::EnumParser(){
 
-        static string encodeBase64(string data);
+    enumMap["SUM"]      = SUM;
+    enumMap["MEAN"]     = MEAN;
 
-};
+}
 
+template<> EnumParser<DetMeth>::EnumParser(){
 
+    enumMap["HOUGH"]    = HOUGH;
+    enumMap["LIST"]     = LIST;
+
+}

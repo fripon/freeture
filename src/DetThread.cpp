@@ -35,7 +35,7 @@
 
 DetThread::DetThread(Mat                        maskImg,
                      int                        mth,
-                     int                        acqFormatPix,
+                     CamBitDepth                acqFormatPix,
                      Fifo<Frame>                *queue,
                      boost::mutex               *m_mutex_queue,
                      boost::condition_variable  *m_cond_queue_fill,
@@ -157,13 +157,13 @@ void DetThread::operator ()(){
 
 	Mat maskNeighborhood;
 
-	if(imgFormat == 8){
+	if(imgFormat == MONO_8){
 
         Mat maskTemp(3,3,CV_8UC1,Scalar(255));
         maskTemp.at<uchar>(1, 1) = 0;
         maskTemp.copyTo(maskNeighborhood);
 
-    }else if(imgFormat == 12){
+    }else if(imgFormat == MONO_12){
 
         Mat maskTemp(3,3,CV_16UC1,Scalar(4095));
         maskTemp.at<ushort>(1, 1) = 0;
@@ -309,7 +309,6 @@ void DetThread::operator ()(){
 
 
             //%%%%%%%%%%%%%%%%% CHOOSE A DETECTION METHOD %%%%%%%%%%%%%%%%%
-
 
 
 

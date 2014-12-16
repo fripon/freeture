@@ -45,7 +45,7 @@
 #include "Frame.h"
 #include "TimeDate.h"
 #include "EnumLog.h"
-
+#include "SaveImg.h"
 //DMK
 #include "glib.h"/*
 #include "gst/gst.h"
@@ -135,10 +135,10 @@ class CameraDMK: public Camera{
 		//! Set the gain
 		void	setCameraGain(int value);
 
-		/*void    startGrab();
+		void    startGrab(){};
 
-		void    stopGrab();
+		void    stopGrab(){};
 
-		void    grabOne();*/
+		void    grabOne();
 
 };

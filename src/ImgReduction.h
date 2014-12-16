@@ -1,5 +1,5 @@
 /*
-								Base64.h
+								ImgReduction.h
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 *
@@ -20,37 +20,37 @@
 *	You should have received a copy of the GNU General Public License
 *	along with FreeTure. If not, see <http://www.gnu.org/licenses/>.
 *
-*	Last modified:		26/11/2014
+*	Last modified:		12/12/2014
 *
 *%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%*/
 
 /**
- * @file    Base64.h
+ * @file    ImgReduction.h
  * @author  Yoan Audureau -- FRIPON-GEOPS-UPSUD
  * @version 1.0
- * @date    26/11/2014
+ * @date    12/12/2014
  */
 
 #pragma once
 
 #include "includes.h"
-
-#include <boost/archive/iterators/base64_from_binary.hpp>
-#include <boost/archive/iterators/transform_width.hpp>
-#include <boost/archive/iterators/ostream_iterator.hpp>
-#include <iterator>
-#include <algorithm>
+#include "Fits2D.h"
+#include "EnumBitdepth.h"
 
 using namespace std;
+using namespace cv;
 
-class Base64{
+class ImgReduction{
 
     public:
 
-        Base64();
+        ImgReduction();
 
-        static string encodeBase64(string data);
+        static Mat dynamicReductionBasedOnHistogram(double percent, Mat& img);
+
+		static Mat dynamicReductionByFactorDivision(Mat& img);
 
 };
+
 
 

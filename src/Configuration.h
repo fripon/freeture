@@ -61,10 +61,10 @@ class Configuration{
 
 	private:
 
-		// the container
+		// Container.
 		map<string,string> data;
 
-		// remove leading and trailing tabs and spaces
+		// Remove leading and trailing tabs and spaces.
 		static string Trim(const string& str);
 };
 

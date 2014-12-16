@@ -68,9 +68,7 @@ class Fits2D : public Fits{
 		string fitsPath;
 
         // Pointer to the FITS file, defined in fitsio.h
-		fitsfile *fptr;
 
-		const char * filename;
 
 	public:
 
@@ -94,8 +92,8 @@ class Fits2D : public Fits{
         bool    printerror      (int status, string errorMsg);
 		bool    printerror      (string errorMsg);
 		void    printerror      (int status);
-		bool    writeKeywords   ();
+		bool    writeKeywords   (fitsfile *fptr);
 
-    };
+};
 
 

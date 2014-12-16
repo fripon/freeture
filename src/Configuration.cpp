@@ -41,6 +41,7 @@ void Configuration::Clear(){
 }
 
 bool Configuration::Load(const string& file){
+
     ifstream inFile(file.c_str());
 
     if (!inFile.good()){
@@ -87,10 +88,12 @@ bool Configuration::Load(const string& file){
 }
 
 bool Configuration::Contains(const string& key) const{
+
     return data.find(key) != data.end();
 }
 
 bool Configuration::Get(const string& key, string& value) const{
+
     map<string,string>::const_iterator iter = data.find(key);
 
     if (iter != data.end()){
@@ -104,6 +107,7 @@ bool Configuration::Get(const string& key, string& value) const{
 }
 
 bool Configuration::Get(const string& key, int& value) const{
+
     string str;
 
     if (Get(key, str)){
@@ -118,6 +122,7 @@ bool Configuration::Get(const string& key, int& value) const{
 }
 
 bool Configuration::Get(const string& key, long& value) const{
+
     string str;
 
     if (Get(key, str)){
@@ -132,6 +137,7 @@ bool Configuration::Get(const string& key, long& value) const{
 }
 
 bool Configuration::Get(const string& key, double& value) const{
+
     string str;
 
     if (Get(key, str)){
@@ -146,6 +152,7 @@ bool Configuration::Get(const string& key, double& value) const{
 }
 
 bool Configuration::Get(const string& key, bool& value) const{
+
     string str;
 
     if (Get(key, str)){
@@ -160,6 +167,7 @@ bool Configuration::Get(const string& key, bool& value) const{
 }
 
 string Configuration::Trim(const string& str){
+
     int first = str.find_first_not_of(" \t");
 
     if (first != string::npos){

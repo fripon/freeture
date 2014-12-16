@@ -36,6 +36,7 @@
 #include "includes.h"
 #include "EnumLog.h"
 #include "EnumBitdepth.h"
+#include "EAstStackMeth.h"
 #include "Fifo.h"
 #include "Frame.h"
 #include "Fits.h"
@@ -155,7 +156,7 @@ class AstThread{
           Is define in the configuration file. To generate a fits, N frames are integrated during n seconds.
           This parameter is used to decide if we want to conserve the integration or if we want to do a mean to generate the final image.
         */
-		string                      fitsMethod;
+		AstStackMeth                      fitsMethod;
 
 		//! Longitude of the station's position
 		double longitude;
@@ -182,7 +183,7 @@ class AstThread{
 
         AstThread(  string recPath,
                     string station,
-                    string astMeth,
+                    AstStackMeth astMeth,
                     string configurationFilePath,
                     Fifo<Frame> *frame_queue,
                     int interval,

@@ -77,7 +77,7 @@ namespace expr		= boost::log::expressions;
 namespace keywords	= boost::log::keywords;
 
 using namespace logenum;
-using namespace bit_depth_enum;
+
 
 //!  Load a video and use it as a camera
 class CameraFrames : public Camera{
