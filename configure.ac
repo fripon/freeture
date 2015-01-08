@@ -5,10 +5,10 @@
 #
 #%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 #*
-#*	This file part of:	freeture
+#*	This file part of:	FreeTure
 #*
-#*	Copyright:		(C) 2014 Yoan Audureau, Chiara Marmo
-#*                                          FRIPON-GEOPS-UPSUD
+#*	Copyright:		(C) 2014-2015 Yoan Audureau, Chiara Marmo
+#*                              FRIPON-GEOPS-UPSUD-CNRS
 #*
 #*	License:		GNU General Public License
 #*

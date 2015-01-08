@@ -5,7 +5,7 @@ dnl Enable a reasonable set of optimization flags for the C compiler.
 dnl
 dnl %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 dnl
-dnl	This file part of:	AstrOmatic software
+dnl*	This file part of:	FreeTure
 dnl
 dnl	Copyrights:		(C) 2007-2011 Emmanuel Bertin -- IAP/CNRS/UPMC
 dnl				(C) 2007 Akim Demaille (original version)

@@ -5,10 +5,10 @@ dnl Figure out if the Pylon package is installed.
 dnl
 dnl%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 dnl*
-dnl*	This file part of:	friponCapture
+dnl*	This file part of:	FreeTure
 dnl*
-dnl*	Copyright:		(C) 2014 Yoan Audureau, Chiara Marmo
-dnl*                                     FRIPON-GEOPS-UPSUD
+dnl*	Copyright:		(C) 2014-2015 Yoan Audureau, Chiara Marmo
+dnl*                            FRIPON-GEOPS-UPSUD-CNRS
 dnl*
 dnl*	License:		GNU General Public License
 dnl*
