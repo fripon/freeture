@@ -49,31 +49,18 @@ CameraBasler::CameraBasler(){
         camera = new CameraSDKAravis();
     #endif
 
-     cpt = 0;
+     frameCpt = 0;
 
 }
 
+CameraBasler::CameraBasler( int         camExp,
+                            int         camGain,
+                            CamBitDepth camDepth){
 
-
-
-CameraBasler::CameraBasler( int     exposure,
-                            int     gain,
-                            bool    saveFits2D,
-                            bool    saveBmp,
-                            int     acqFormat,
-                            string  configPath,
-                            string saveLocation,
-                            Fits fitsHead){
-
-    m_thread			= NULL;
-    initialExpValue     = exposure;
-    initialGainValue    = gain;
-    saveFits          = saveFits2D;
-    saveImg             = saveBmp;
-    format              = acqFormat;
-    configFile          = configPath;
-    savePath            = saveLocation;
-    fitsHeader          = fitsHead;
+    m_thread	= NULL;
+    exposure    = camExp;
+    gain        = camGain;
+    bitdepth    = camDepth;
 
     #ifdef USE_PYLON
         camera = new CameraSDKPylon();
@@ -81,18 +68,18 @@ CameraBasler::CameraBasler( int     exposure,
         camera = new CameraSDKAravis();
     #endif
 
-     cpt = 0;
+    frameCpt = 0;
 
 }
 
 CameraBasler::CameraBasler( Fifo<Frame> *queueRam,
-						   boost::mutex *m_queue,
-						   boost::condition_variable *c_queueFull,
-						   boost::condition_variable *c_queueNew,
-						   int initialExposure,
-						   int initialGain,
-						   Mat frameMask,
-                           bool enableMask){
+                            boost::mutex *m_queue,
+                            boost::condition_variable *c_queueFull,
+                            boost::condition_variable *c_queueNew,
+                            int         camExp,
+                            int         camGain,
+                            CamBitDepth camDepth,
+                            int         camFPS){
 
     m_thread			= NULL;
     framesQueue			= queueRam;
@@ -100,10 +87,15 @@ CameraBasler::CameraBasler( Fifo<Frame> *queueRam,
     mustStop			= false;
     condQueueFill		= c_queueFull;
     condQueueNewElement	= c_queueNew;
-    initialExpValue     = initialExposure;
-    initialGainValue    = initialGain;
-    frameMask.copyTo(mask);
-    maskEnable          = enableMask;
+
+    threadStopped       = false;
+
+    exposure            = camExp;
+    gain                = camGain;
+    bitdepth            = camDepth;
+    fps                 = camFPS;
+
+    frameCpt = 0;
 
     #ifdef USE_PYLON
         camera = new CameraSDKPylon();
@@ -111,29 +103,15 @@ CameraBasler::CameraBasler( Fifo<Frame> *queueRam,
         camera = new CameraSDKAravis();
     #endif
 
-    cpt = 0;
-
-    threadStopped = false;
-
 }
 
 CameraBasler::~CameraBasler(void){
-BOOST_LOG_SEV(log, notification) << "CameraBasler destructor";
-    if (camera!=NULL){
 
-        BOOST_LOG_SEV(log, notification) << "delete camera";
+    if(camera != NULL)
         delete camera;
-    }
 
-
-	if (m_thread!=NULL){
-
-        BOOST_LOG_SEV(log, notification) << "delete acq thread";
+	if(m_thread != NULL)
         delete m_thread;
-
-	}else
-	BOOST_LOG_SEV(log, notification) << "no delete acq thread";
-
 }
 
 void    CameraBasler::join(){
@@ -148,13 +126,18 @@ bool    CameraBasler::setSelectedDevice(int id, string name){
 
 }
 
+bool    CameraBasler::setSelectedDevice(string name){
+
+    return camera->chooseDevice(name);
+
+}
+
 void    CameraBasler::getListCameras(){
 
     camera->listCameras();
 
 }
 
-// Stop the thread
 void    CameraBasler::stopThread(){
 
 	// Signal the thread to stop (thread-safe)
@@ -179,17 +162,18 @@ void    CameraBasler::startThread(){
     camera->grabStart();
 
     m_thread = new boost::thread(boost::ref(*this));
-    BOOST_LOG_SEV(log, notification) << "address: " << m_thread;
-
-   // camera->acqStart();
 
 }
 
-void    CameraBasler::startGrab(){
+bool    CameraBasler::startGrab(){
 
-    camera->grabStart();
+    return camera->grabStart();
 
-    //camera->acqStart();
+}
+
+bool    CameraBasler::getDeviceById(int id, string &device){
+
+    return camera->getDeviceById(id, device);
 
 }
 
@@ -211,21 +195,33 @@ int     CameraBasler::getCameraWidth(){
 
 }
 
-void    CameraBasler::setCameraExposureTime(double exposition){
+double	CameraBasler::getCameraExpoMin(){
 
-    camera->setExposureTime(exposition);
-
-}
-
-void    CameraBasler::setCameraGain(int gain){
-
-     camera->setGain(gain);
+    return camera->getExpoMin();
 
 }
 
-void    CameraBasler::setCameraPixelFormat(int depth){
+bool    CameraBasler::setCameraExposureTime(double exposition){
 
-    camera->setPixelFormat(depth);
+    return camera->setExposureTime(exposition);
+
+}
+
+bool    CameraBasler::setCameraGain(int gain){
+
+     return camera->setGain(gain);
+
+}
+
+bool    CameraBasler::setCameraFPS(int fps){
+
+     return camera->setFPS(fps);
+
+}
+
+bool    CameraBasler::setCameraPixelFormat(CamBitDepth depth){
+
+    return camera->setPixelFormat(depth);
 
 }
 
@@ -279,234 +275,118 @@ template <typename Container> void stringTOK(Container &container, string const 
 
 }
 
-void CameraBasler::grabOne(){
+bool CameraBasler::grabSingleFrame(Mat &frame, string &date){
 
     Mat img;
-
-    if(camera->getPixelFormat() == 8){
-        cout << "format 8 bits "<< endl;
-        img = Mat(camera->getHeight(), camera->getWidth(), CV_8UC1);
-
-    }else if(camera->getPixelFormat() == 12){
-        cout << "format 12 bits "<< endl;
-        img = Mat(camera->getHeight(), camera->getWidth(), CV_16UC1);
-
-    }
-
-    // Intialize exposition and gain
-    cout << "initialExpValue : " << initialExpValue<< endl;
-    camera->setExposureTime((double)initialExpValue);
-    cout << "set gain : " << initialGainValue<< endl;
-    camera->setGain(initialGainValue);
-
-    cout << "set format 12 bits "<< endl;
-    camera->setPixelFormat(format);
-
-    if(camera->getPixelFormat() == 8){
-        cout << "format 8 bits "<< endl;
-    }
-    camera->acqStart();
-
-
-    namedWindow( "Grabbed frame", WINDOW_AUTOSIZE );// Create a window for display.
-
     Frame *newFrame;
 
-    if(camera->grabImage(newFrame, img )){
+    switch(bitdepth){
 
-        Frame f;
+        case MONO_8 :
 
-        bool r = f.copyFrame(newFrame);
+            img = Mat(camera->getHeight(), camera->getWidth(), CV_8UC1);
 
-        if(camera->getPixelFormat() == 8){
+            break;
 
-            SaveImg::saveBMP(f.getImg(),"/home/fripon/testcap");
+        case MONO_12 :
 
-            if(saveFits){
+            img = Mat(camera->getHeight(), camera->getWidth(), CV_16UC1);
 
-                Fits2D newFits(savePath,fitsHeader);
-                newFits.setGaindb(initialGainValue);
-                //newFits.setDateobs("");//dateObs
-                newFits.setSaturate(255);
-                newFits.setRadesys("ICRS");
-                newFits.setEquinox(2000.0);
-                newFits.setCtype1("RA---ARC");
-                newFits.setCtype2("DEC---ARC");
-                newFits.setExposure(initialExpValue * 1e-6);
-                //newFits.setElaptime(0);
-                //newFits.setCrval1(0);//sideraltime
-                newFits.writeFits(f.getImg(), UC8, 0, true );
+            break;
 
-            }
+    }
 
-            if(saveImg){
+    camera->acqStart();
 
-                SaveImg::saveBMP(f.getImg(),savePath + "capture");
+    if(camera->grabImage(newFrame, img)){
 
-            }
+        date = newFrame->getAcqDate();
+        img.copyTo(frame);
 
-            imshow( "Grabbed frame", f.getImg() );                   // Show our image inside it.
-
-        //conversion to 8UC
-        }else if(camera->getPixelFormat() == 12){
-
-            Mat temp = f.getImg();
-            Mat res;
-            /*Mat res = */Conversion::convertTo8UC1(temp).copyTo(res);
-
-            if(saveFits){
-
-                Fits2D newFits(savePath,fitsHeader);
-                newFits.setGaindb(initialGainValue);
-                //newFits.setDateobs("");//dateObs
-                newFits.setSaturate(4095);
-                newFits.setRadesys("ICRS");
-                newFits.setEquinox(2000.0);
-                newFits.setCtype1("RA---ARC");
-                newFits.setCtype2("DEC---ARC");
-                newFits.setExposure(initialExpValue * 1e-6);
-                //newFits.setElaptime(0);
-                //newFits.setCrval1(0);//sideraltime
-                newFits.writeFits(f.getImg(), US16, 0, true );
-
-            }
-
-            if(saveImg){
-
-                SaveImg::saveBMP(res,savePath + "capture");
-
-            }
-
-            imshow( "Grabbed frame", res );
-
-
-
-
-        }else
-            cout << "Format Unknow"<<endl;
-
-        waitKey(0);
+        camera->acqStop();
+        camera->grabStop();
+        return true;
 
     }else{
 
-        cout << "Grab failed" << endl;
+        camera->acqStop();
+        camera->grabStop();
+        return false;
 
     }
-
-    camera->acqStop();
-
-    camera->grabStop();
-
 }
 
-// Thread function
 void    CameraBasler::operator()(){
 
 	bool stop;
 
-	BOOST_LOG_SCOPED_THREAD_TAG("LogName", "acqThread");
-	BOOST_LOG_SEV(log, critical) << "\n";
+	BOOST_LOG_SCOPED_THREAD_TAG("LogName", "ACQ_THREAD");
+
+	BOOST_LOG_SEV(log, critical)    << "\n";
 	BOOST_LOG_SEV(log,notification) << "-- Acquisition thread start. ---";
 
-    // Used to construct a frame
     Mat img;
 
-    if(camera->getPixelFormat() == 8){
-        BOOST_LOG_SEV(log,notification) << "Pixel format is 8 bits";
-        img = Mat(camera->getHeight(), camera->getWidth(), CV_8UC1);
+    switch(camera->getPixelFormat()){
 
-    }else if(camera->getPixelFormat() == 12){
-        BOOST_LOG_SEV(log,notification) << "Pixel format is 12 bits";
-        img = Mat(camera->getHeight(), camera->getWidth(), CV_16UC1);
+       case MONO_8 :
+
+            {
+
+            img = Mat(camera->getHeight(), camera->getWidth(), CV_8UC1);
+
+            }
+
+            break;
+
+       case MONO_12 :
+
+            {
+
+            img = Mat(camera->getHeight(), camera->getWidth(), CV_16UC1);
+
+            }
+
+            break;
 
     }
 
-    // Intialize exposition
-    BOOST_LOG_SEV(log,notification) << "Set exposure time value to : " << (double)initialExpValue;
-    camera->setExposureTime((double)initialExpValue);
-
-    // Intialize gain
-    BOOST_LOG_SEV(log,notification) << "Set gain value to : " << initialGainValue;
-    camera->setGain(initialGainValue);
-
     camera->acqStart();
-
-    int framebufferActualSize = 0;
-
-    double tMSMean  = 0.0;
-    double tLSMean  = 0.0;
-    double tBMPMean = 0.0;
-    int div = 1;
-
-    bool saveISS = false;
-    string rep = "fitsTest/";//"ISS_20140925_070111";
-    //ISS_20140923_052830
 
     int compteur = 0;
 
     vector<Mat> listForFits3D;
-    bool savef3D = true;
 
     //Thread loop
     do{
 
         Frame *newFrame;
-       // Mat img;
 
         double tacq = (double)getTickCount();
 
-        if(camera->grabImage(newFrame, img )){
+        if(camera->grabImage(newFrame, img)){
 
             Frame f;
 
-            if(maskEnable){
-
-                bool r = f.copyFrame(newFrame/*, mask*/);
-
-            }else{
-
-                bool r = f.copyFrame(newFrame);
-
-            }
+            bool r = f.copyFrame(newFrame);
 
             camera->getWidth();
 
-            if(saveISS && compteur < 9000){
-
-                if(camera->getPixelFormat() != 8){
-
-                     Fits2D newFits("/home/fripon/fitsTest/fitsTest_"+Conversion::intToString(compteur),fitsHeader);
-                    newFits.writeFits(newFrame->getImg(), US16, 0, false );
-
-                }else{
-
-
-
-
-
-                     Fits2D newFits("/home/fripon/data2/" + rep +  "/MOON_"+Conversion::intToString(compteur),fitsHeader);
-                    newFits.writeFits(newFrame->getImg(), UC8, 0, false );
-
-                      /*  Fits2D fit("/home/fripon/data/" + rep +  "/MOON_"+Conversion::intToString(cpt), 0, "", 0, 30, 255, 33333.0, 850, 0.0 );
-                        fit.loadKeywordsFromConfigFile("/home/fripon/friponProject/friponCapture/configuration.cfg");
-                        fit.writeimage(f.getImg(), 8, "", false );
-                        Mat temp1;
-                         f.getImg().copyTo(temp1);*/
-                        //temp1cd.convertTo(temp1, CV_8UC1, 255/4095, 0);
-                      // SaveImg::saveBMP(temp1,"/home/fripon/data/" + rep +  "/ISS_BMP_" + Conversion::intToString(cpt) );
-                }
-
-                compteur++;
-            }
-
-
-
-
-            f.setNumFrame(cpt);
+            f.setNumFrame(frameCpt);
 
             boost::mutex::scoped_lock lock(*mutexQueue);
 
             framesQueue->pushInFifo(f);
+
+           /* double t = (double)getTickCount();
+
+            Fits fitsheader;
+            fitsheader.setDateobs("2014-10-02T17:15:03");
+            Fits2D newfits("/home/fripon/freeture_frames/", fitsheader);
+            newfits.writeFits(img, US16, 0, false, "frame_" + Conversion::intToString(frameCpt));
+
+            t = (((double)getTickCount() - t)/getTickFrequency())*1000;
+            cout << "> Fits Time : " << t << endl;*/
 
             if(framesQueue->getFifoIsFull()) condQueueFill->notify_all();
 
@@ -517,10 +397,10 @@ void    CameraBasler::operator()(){
 
             lock.unlock();
 
-            cpt++;
+            frameCpt++;
 
-            cout<< "--------------- FRAME n°" << cpt << " ----------------- " << endl;
-            BOOST_LOG_SEV(log,notification) << "Grabbing frame n° " << cpt;
+            cout                            << "--------------- FRAME n°" << frameCpt << " ----------------- " << endl;
+            BOOST_LOG_SEV(log,notification) << "--------------- FRAME n°" << frameCpt << " ----------------- ";
 
             delete newFrame;
 
@@ -531,11 +411,9 @@ void    CameraBasler::operator()(){
         }
 
         tacq = (((double)getTickCount() - tacq)/getTickFrequency())*1000;
-        cout << " [ ACQ ] : " << tacq << " ms" << endl;
-      //  cout << "in "<<endl;
 
-      // BOOST_LOG_SEV(log, notification) << "Thread joinable : " << m_thread->joinable();
-        // Get the "must stop" state (thread-safe)
+        cout << " [ ACQ ] : " << tacq << " ms" << endl;
+
         mustStopMutex.lock();
         stop = mustStop;
         mustStopMutex.unlock();
@@ -543,10 +421,8 @@ void    CameraBasler::operator()(){
     }while(stop == false);
 
     camera->acqStop();
-
     camera->grabStop();
 
-    cout                                << "--- Acquisition thread terminated. ---" << endl;
-    BOOST_LOG_SEV(log, notification)    << "--- Acquisition thread terminated. ---";
+    BOOST_LOG_SEV(log, notification) << "--- Acquisition thread terminated. ---";
 
 }

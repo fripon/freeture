@@ -113,6 +113,8 @@ bool FreeTure::loadParameters(){
 		AstStackMeth id_stack_mth = stack_mth.parseEnum("STACK_MTHD", stack_method);
         STACK_MTHD = id_stack_mth;
 
+        cfg.Get("STACK_REDUCTION", 				STACK_REDUCTION);
+
 		/// Others parameters
 
 		cfg.Get("DEBUG_ENABLED", 				DEBUG_ENABLED);
@@ -199,6 +201,7 @@ void FreeTure::printParameters(){
     std::cout <<"=> STACK_TIME                  : " << STACK_TIME                       << endl;
     std::cout <<"=> STACK_INTERVAL              : " << STACK_INTERVAL                   << endl;
     std::cout <<"=> STACK_MTHD                  : " << STACK_MTHD                       << endl;
+    std::cout <<"=> STACK_REDUCTION             : " << STACK_REDUCTION                  << endl;
 
     std::cout << endl
               << "=========================== Others =============================="    << endl

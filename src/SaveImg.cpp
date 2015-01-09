@@ -60,11 +60,11 @@ void SaveImg::saveBMP(Mat img, string name){
 
 	if(res)
 
-		cout << "Save bmp worked." << endl;
+		cout << "> Save bmp worked." << endl;
 
 	else
 
-		cout << "Save bmp failed." << endl;
+		cout << "> Save bmp failed." << endl;
 
 }
 

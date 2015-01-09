@@ -141,8 +141,6 @@ Mat ImgReduction::dynamicReductionBasedOnHistogram(double percent, Mat& img ){
 
 	cout << "BZERO : " << Bzero<< endl;
 
-
-
 	for(int i = 0; i < img.rows; i++){
 
         ptr0 = img.ptr<float>(i);
@@ -167,44 +165,71 @@ Mat ImgReduction::dynamicReductionBasedOnHistogram(double percent, Mat& img ){
 
 }
 
-Mat ImgReduction::dynamicReductionByFactorDivision(Mat& img){
+Mat ImgReduction::dynamicReductionByFactorDivision(Mat& img, CamBitDepth bitpix, int imgToSum, float &bzero, float &bscale){
 
-    double minVal, maxVal;
-    minMaxLoc(img, &minVal, &maxVal);
+    Mat newMat;
 
-    cout << "maxVal : " << maxVal << endl;
+    float factor;
 
-    // Factor
+    switch(bitpix){
 
-    double factor = maxVal / 65535;
+        case MONO_8 :
 
-    cout << "factor : " << factor <<endl;
+            {
 
-    // Division by factor
-    Mat newMat(img.rows,img.cols, CV_16UC1, Scalar(0));
-    float * ptr;
-    short * ptr2;
+                newMat = Mat(img.rows,img.cols, CV_8SC1, Scalar(0));
+                factor = imgToSum;
+                bscale = factor;
+                bzero  = 128 * factor;
 
-    for(int i = 0; i < img.rows; i++){
+                float * ptr;
+                char * ptr2;
 
-        ptr = img.ptr<float>(i);
-        ptr2 = newMat.ptr<short>(i);
+                for(int i = 0; i < img.rows; i++){
 
-        for(int j = 0; j < img.cols; j++){
+                    ptr = img.ptr<float>(i);
+                    ptr2 = newMat.ptr<char>(i);
 
-            ptr2[j] = cvRound(ptr[j] / factor) - 32768;
+                    for(int j = 0; j < img.cols; j++){
 
+                        ptr2[j] = cvRound(ptr[j] / factor) - 128;
 
-        }
+                    }
+                }
+            }
+
+            break;
+
+        case MONO_12 :
+
+            {
+
+                newMat = Mat(img.rows,img.cols, CV_16SC1, Scalar(0));
+                factor = (4095.0f * imgToSum)/65535;
+
+                bscale = factor;
+                bzero  = 32768 * factor;
+
+                float * ptr;
+                short * ptr2;
+
+                for(int i = 0; i < img.rows; i++){
+
+                    ptr = img.ptr<float>(i);
+                    ptr2 = newMat.ptr<short>(i);
+
+                    for(int j = 0; j < img.cols; j++){
+
+                        ptr2[j] = cvRound(ptr[j] / factor) - 32768;
+
+                    }
+                }
+            }
+
+            break;
+
     }
 
-
-    double newMinValue, newMaxValue;
-    minMaxLoc(newMat, &newMinValue, &newMaxValue);
-
-    cout << "newMaxValue : " << newMaxValue <<endl;
-
     return newMat;
-
 
 }

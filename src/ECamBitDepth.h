@@ -35,6 +35,7 @@ enum CamBitDepth{
 
     MONO_8,     /*!< Pixel's values are coded on 8 bits*/
     MONO_12,    /*!< Pixel's values are coded on 12 bits*/
+    DEPTH_ERROR
 
 };
 

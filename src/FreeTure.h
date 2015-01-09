@@ -44,6 +44,8 @@
 
 #include <boost/filesystem.hpp>
 
+
+
 class FreeTure{
 
     private:
@@ -58,7 +60,7 @@ class FreeTure{
 
 		void printParameters();
 
-		EnumParser<CamType> cam_type;
+        EnumParser<CamType> cam_type;
 
 	    ///======= Input parameters =======
 
@@ -108,6 +110,7 @@ class FreeTure{
         double	        STACK_TIME;
         int		        STACK_INTERVAL;
         AstStackMeth    STACK_MTHD;
+        bool            STACK_REDUCTION;
 
         ///======= Others parameters ======
 

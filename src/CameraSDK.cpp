@@ -33,10 +33,6 @@
 
 #include "CameraSDK.h"
 
-CameraSDK::CameraSDK(void){
+CameraSDK::CameraSDK(void){}
 
-}
-
-CameraSDK::~CameraSDK(void){
-
-}
+CameraSDK::~CameraSDK(void){}

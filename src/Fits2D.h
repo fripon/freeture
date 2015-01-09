@@ -61,31 +61,38 @@ namespace keywords	= boost::log::keywords;
 
 class Fits2D : public Fits{
 
+    //Attributes.
+
 	private :
 
 		src::severity_logger< severity_level > log;
 
 		string fitsPath;
 
-        // Pointer to the FITS file, defined in fitsio.h
-
+    //Methods.
 
 	public:
 
-        Fits2D  (string recPath, const Fits & f):
-            fitsPath(recPath), Fits(f){};
+                Fits2D          (string recPath, const Fits & f):
+                                fitsPath(recPath), Fits(f){};
 
-        Fits2D  ();
-        ~Fits2D (void);
+                Fits2D          ();
 
-		bool    writeFits   (Mat img, bitdepth imgType,
-                            int nb, bool filenameWithDate);
+                ~Fits2D         (void);
 
-		bool    readFits32F (Mat &img, string filePath);
-		bool    readFits16US(Mat &img, string filePath);
-		bool    readFits16S (Mat &img, string filePath);
-		bool    readFits8UC (Mat &img, string filePath);
-		bool    readFits8C  (Mat &img, string filePath);
+		bool    writeFits       (Mat img,
+                                 bitdepth imgType,
+                                 int nb,
+                                 bool filenameWithDate,
+                                 string fileName);
+
+		bool    readFits32F     (Mat &img, string filePath);
+		bool    readFits16US    (Mat &img, string filePath);
+		bool    readFits16S     (Mat &img, string filePath);
+		bool    readFits8UC     (Mat &img, string filePath);
+		bool    readFits8C      (Mat &img, string filePath);
+
+		bool    readIntKeyword  (string filePath, string keyword, int &value);
 
     private:
 

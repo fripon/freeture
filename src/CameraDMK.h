@@ -37,8 +37,7 @@
 
 #include "Camera.h"
 #include "CameraSDK.h"
-
-//	#include "CameraSDKAravis.h"
+#include "ECamBitDepth.h"
 
 #include "Conversion.h"
 #include "Fifo.h"
@@ -47,11 +46,7 @@
 #include "EnumLog.h"
 #include "SaveImg.h"
 //DMK
-#include "glib.h"/*
-#include "gst/gst.h"
-#include "gst/gstbuffer.h"
-#include "gst/app/gstappsrc.h"
-#include <gst/app/gstappsink.h>*/
+#include "glib.h"
 
 namespace logging = boost::log;
 namespace sinks = boost::log::sinks;
@@ -71,74 +66,99 @@ class CameraDMK: public Camera{
 
 	private:
 
-		src::severity_logger< severity_level > log;			// logger
+        // Logger.
+		src::severity_logger< severity_level >  log;
 
-		Fifo<Frame>                 *framesQueue;
-		bool                        *mustStop;
-		boost::mutex                *mustStopMutex;
-		boost::mutex				*mutexQueue;
-		boost::condition_variable	*condQueueFill;
-		boost::condition_variable	*condQueueNewElement;
-        string cameraName;
-        int cameraFormat;
+        // Shared queue of frames.
+		Fifo<Frame>                             *framesQueue;
 
-		boost::thread *m_thread;
+		// Stop mutex.
+		bool                                    *mustStop;
+		boost::mutex                            *mustStopMutex;
 
-		CameraSDK *camera;
+		// Mutex for the access on the shared queue.
+		boost::mutex				            *mutexQueue;
+
+		// Condition if the shared queue is full.
+		boost::condition_variable	            *condQueueFill;
+
+		// Condition about new frame in the shared queue.
+		boost::condition_variable	            *condQueueNewElement;
+
+		// Acquisition thread for DMK.
+		boost::thread                           *m_thread;
+
+        // DMK camera.
+		CameraSDK                               *camera;
+
+		CamBitDepth bitpix;
+
+        unsigned int frameCpt;
 
 
-    public:
+
+    public :
 
         CameraDMK();
 
-		CameraDMK(  string cam,
-                    int format,
-                    Fifo<Frame> *queue,
-                    boost::mutex *m_mutex_queue,
-                    boost::condition_variable *m_cond_queue_fill,
-                    boost::condition_variable *m_cond_queue_new_element,
-                    boost::mutex *m_mutex_thread_terminated,
-                    bool *stop);
+		CameraDMK(  Fifo<Frame>                 *queue,
+                    boost::mutex                *m_mutex_queue,
+                    boost::condition_variable   *m_cond_queue_fill,
+                    boost::condition_variable   *m_cond_queue_new_element,
+                    boost::mutex                *m_mutex_thread_terminated,
+                    bool                        *stop);
+
+        CameraDMK(  int           camExp,
+                    int           camGain,
+                    CamBitDepth   camDepth);
 
 		~CameraDMK();
 
-        //! Get width
-		int		getCameraWidth();
+        //! List available cameras.
+        void	getListCameras();
 
-		//! Get height
-		int		getCameraHeight();
+        //! Select a device.
+        bool	setSelectedDevice(string name);
 
-        //! List connected cameras
-		void	getListCameras();
+        //! Grab a single frame.
+        bool    grabSingleFrame(Mat &frame, string &date);
 
-		//! Select a device by id or by name
-		bool	setSelectedDevice(int id, string name);
+        //! Wait the end of the acquisition thread.
+        void	join();
 
-		//! Wait the end of the acquisition thread
-		void	join();
-
-        //! Set the pixel format : 8 or 12
-		void	setCameraPixelFormat(int depth);
-
-        //! Acquisition thread operations
+        //! Acquisition thread operations.
 		void	operator()();
 
-		//! Stop the thread
+		//! Stop the acquisition thread for DMK.
 		void	stopThread();
 
-		//! Start the acquisition thread
+		//! Start the acquisition thread for DMK.
 		void	startThread();
 
-		//! Set the exposure time
-		void	setCameraExposureTime(double value);
+		//! Start grabbing frames.
+		bool    startGrab();
 
-		//! Set the gain
-		void	setCameraGain(int value);
-
-		void    startGrab(){};
-
+        //! Stop grabbing frames.
 		void    stopGrab(){};
 
-		void    grabOne();
+        //! Get width.
+		int		getCameraWidth();
+
+		//! Get height.
+		int		getCameraHeight();
+
+		bool    getDeviceById(int id, string &device);
+
+        //! Set the pixel format according to type in CamBitDepth enumeration.
+		bool	setCameraPixelFormat(CamBitDepth depth);
+
+		//! Set the exposure time.
+		bool	setCameraExposureTime(double value);
+
+		//! Set the gain.
+		bool	setCameraGain(int value);
+
+		//! Set FPS.
+		bool    setCameraFPS(int fps);
 
 };

@@ -32,6 +32,7 @@
  */
 
 #include "includes.h"
+#include <algorithm>
 #include "ImgReduction.h"
 #include "CameraSimu.h"
 #include "CameraVideo.h"
@@ -200,26 +201,24 @@ void init_log(string path){
 
 }
 
-/**
- * \brief Main entry of the FreeTure program
- * @param mode -m program exectution mode : scan connected devices, view configuration file, run detection, run single capture
- */
 int main(int argc, const char ** argv){
 
-    // declaration of supported program options
+    // Program options.
     po::options_description desc("Available options");
     desc.add_options()
-      ("mode,m",        po::value<int>(),                                                               "Run mode of the program : list connected devices, view configuration file parameters, meteor dectection, single capture")
-      ("exectime,t",    po::value<int>(),                                                               "Execution time of the program in seconds")
+      ("mode,m",        po::value<int>(),                                                               "Execution mode of the program")
+      ("time,t",        po::value<int>(),                                                               "Execution time of the program in seconds")
       ("help,h",                                                                                        "Print help messages")
-      ("config,c",      po::value<string>()->default_value(/*"./configuration.cfg"*/string(CFG_PATH) + "configuration.cfg"), "Define configuration file's path")
-      ("bitdepth,i",    po::value<int>()->default_value(8),                                             "Bit depth of a frame")
-      ("bmp,b",         po::value<bool>()->default_value(false),                                        "Save in .bmp")
-      ("fits,f",        po::value<bool>()->default_value(false),                                        "Save in fits2D")
+      ("config,c",      po::value<string>()->default_value(string(CFG_PATH) + "configuration.cfg"),     "Configuration file's path")
+      ("bitdepth,d",    po::value<int>()->default_value(8),                                             "Bit depth of a frame")
+      ("bmp",           po::value<bool>()->default_value(false),                                        "Save .bmp")
+      ("fits",          po::value<bool>()->default_value(false),                                        "Save fits2D")
       ("gain,g",        po::value<int>(),                                                               "Define gain")
       ("exposure,e",    po::value<int>(),                                                               "Define exposure")
       ("version,v",                                                                                     "Get program version")
-      ("device,d",      po::value<string>(),                                                            "Name of a device")
+      ("camtype",       po::value<string>()->default_value("basler"),                                   "Type of camera")
+      ("display",       po::value<bool>()->default_value(false),                                        "In mode 4 : Display the grabbed frame")
+      ("id",            po::value<int>(),                                                               "Camera ID")
       ("savepath,p",    po::value<string>()->default_value("./"),                                       "Save path");
 
     po::variables_map vm;
@@ -228,23 +227,28 @@ int main(int argc, const char ** argv){
 
         int     mode            = 0;
         int     executionTime   = 0;
-        string  configPath      = /*"./configuration.cfg";*/string(CFG_PATH) + "configuration.cfg";
+        string  configPath      = string(CFG_PATH) + "configuration.cfg";
         string  savePath        = "./";
-        string  device          = "";
         int     acqFormat       = 8;
         bool    saveBmp         = false;
         bool    saveFits2D      = false;
-        int     gain            = 300;
+        int     gain            = 100;
         int     exp             = 100;
-        string  version         =  /*"1";//;*/string(PACKAGE_VERSION);  //
+        string  version         = string(PACKAGE_VERSION);
+        string  camtype         = "basler";
+        bool    display         = false;
+        int     camID           = 0;
 
         po::store(po::parse_command_line(argc, argv, desc), vm);
 
-        if(vm.count("mode"))        mode            = vm["mode"].as<int>();
+        if(vm.count("mode"))
+            mode = vm["mode"].as<int>();
 
-        if(vm.count("exectime"))    executionTime   = vm["exectime"].as<int>();
+        if(vm.count("time"))
+            executionTime = vm["time"].as<int>();
 
-        if(vm.count("config"))      configPath      = vm["config"].as<string>();
+        if(vm.count("config"))
+            configPath = vm["config"].as<string>();
 
         if(vm.count("version")){
 
@@ -254,163 +258,634 @@ int main(int argc, const char ** argv){
 
             cout << desc;
 
-        ///%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-        ///%%%%%%%%%%%%%%%%%%%% MODE 1 : LIST CONNECTED CAMERAS %%%%%%%%%%%%%%%%%%
-        ///%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+        }else{
 
-        }else if(mode == 1){
+            namespace fs = boost::filesystem;
 
-            FreeTure ft(configPath);
-            ft.loadParameters();
+            path cPath(configPath);
 
-            string logpath = ft.LOG_PATH + "FreeTure_LOG" ;
+            if(!fs::exists(cPath) && mode != 4){
 
-            if(!ManageFiles::createDirectory( logpath )){
-
-                throw "Can't create location for FreeTure log files";
+                throw runtime_error("Configuration file not found. Check path : " + configPath);
 
             }
 
-            init_log(logpath);
-            src::severity_logger< severity_level > slg;
-            BOOST_LOG_SCOPED_THREAD_TAG("LogName", "mainThread");
+            switch(mode){
 
-            if ( ft.CAMERA_TYPE == BASLER ){
+                case 1 :
 
-                CameraBasler *baslerCam = new CameraBasler();
-                baslerCam->getListCameras();
-                if(baslerCam!= NULL) delete baslerCam;
+                    ///%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+                    ///%%%%%%%%%%%%%%%%%%%% MODE 1 : LIST CONNECTED CAMERAS %%%%%%%%%%%%%%%%%%
+                    ///%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
-            }else{
+                    {
+                        cout << "================================================" << endl;
+                        cout << "========= FREETURE - List device mode ==========" << endl;
+                        cout << "================================================" << endl << endl;
 
-                CameraDMK *dmkCam = new CameraDMK();
-                dmkCam->getListCameras();
-                if(dmkCam!= NULL) delete dmkCam;
+                        FreeTure ft(configPath);
+                        ft.loadParameters();
 
-            }
+                        EnumParser<CamType> cam_type;
+                        cout << "Type of device in configuration file : " << cam_type.getStringEnum(ft.CAMERA_TYPE) << endl;
 
-        ///%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-        ///%%%%%%%%%%%%%%% MODE 2 : VIEW/CHECK CONFIGURATION FILE %%%%%%%%%%%%%%%%
-        ///%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+                        switch(ft.CAMERA_TYPE){
 
-        }else if(mode == 2){
+                            case BASLER :
 
-            FreeTure ft(configPath);
-            ft.loadParameters();
-            ft.printParameters();
+                                {
 
-        ///%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-        ///%%%%%%%%%%%%%%%%%%%% MODE 3 : RUN METEOR DETECTION %%%%%%%%%%%%%%%%%%%%
-        ///%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+                                    CameraBasler *baslerCam = new CameraBasler();
+                                    baslerCam->getListCameras();
 
-        }else if(mode == 3){
+                                    if(baslerCam != NULL)
+                                        delete baslerCam;
 
-            /// ------------------------------------------------
-            /// Load FreeTure parameters from configuration file
-            /// ------------------------------------------------
+                                }
 
-            FreeTure ft(configPath);
-            ft.loadParameters();
+                                break;
 
-            Fits fitsHeader;
-            fitsHeader.loadKeywordsFromConfigFile(configPath);
+                            case DMK :
 
-            /// ------------------------------------------------
-            ///                   Manage Log
-            /// ------------------------------------------------
+                                {
 
-            string logpath = ft.LOG_PATH + "FreeTure_LOG";
+                                    CameraDMK *dmkCam = new CameraDMK();
+                                    dmkCam->getListCameras();
 
-            if(!ManageFiles::createDirectory( logpath )){
+                                    if(dmkCam != NULL)
+                                        delete dmkCam;
 
-                throw "Can't create location for log files";
+                                }
 
-            }
+                                break;
 
-            // log configuration
-            init_log(logpath);
-            src::severity_logger< severity_level > slg;
-            BOOST_LOG_SCOPED_THREAD_TAG("LogName", "mainThread");
+                        }
+                    }
+
+                    break;
+
+                case 2 :
+
+                    ///%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+                    ///%%%%%%%%%%%%%%% MODE 2 : VIEW/CHECK CONFIGURATION FILE %%%%%%%%%%%%%%%%
+                    ///%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+                    {
+
+                        FreeTure ft(configPath);
+                        ft.loadParameters();
+                        ft.printParameters();
+
+                    }
+
+                    break;
+
+                case 3 :
+
+                    ///%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+                    ///%%%%%%%%%%%%%%%%%%%% MODE 3 : RUN METEOR DETECTION %%%%%%%%%%%%%%%%%%%%
+                    ///%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+                    {
+
+                        cout << "================================================" << endl;
+                        cout << "======= FREETURE - Meteor detection mode =======" << endl;
+                        cout << "================================================" << endl << endl;
+
+                        /// ------------------------------------------------
+                        /// Load FreeTure parameters from configuration file
+                        /// ------------------------------------------------
+
+                        FreeTure ft(configPath);
+                        ft.loadParameters();
+
+                        Fits fitsHeader;
+                        fitsHeader.loadKeywordsFromConfigFile(configPath);
+
+                        /// ------------------------------------------------
+                        ///                   Manage Log
+                        /// ------------------------------------------------
+
+                        string logpath = ft.LOG_PATH;
+
+                        if(!ManageFiles::createDirectory( logpath )){
+
+                            throw "Can't create location for log files";
+
+                        }
+
+                        // log configuration
+                        init_log(logpath);
+                        src::severity_logger< severity_level > slg;
+                        BOOST_LOG_SCOPED_THREAD_TAG("LogName", "mainThread");
+
+                        boost::mutex                m_threadEnd;
+                        boost::mutex                m_queueRAM;
+                        boost::mutex                m_queueEvToRec;
+                        boost::condition_variable   c_queueRAM_Full;
+                        boost::condition_variable   c_queueRAM_New;
+                        boost::condition_variable   c_queueEvToRecNew;
+                        vector<RecEvent>            queueEvToRec;
+
+                        // The shared buffer
+                        Fifo<Frame> queueRAM;
+                        if(ft.DET_TIME_BEFORE == 0 )
+                            queueRAM = Fifo<Frame>(2, false, ft.STACK_ENABLED, ft.DET_ENABLED);
+                        else
+                            queueRAM = Fifo<Frame>((ft.DET_TIME_BEFORE * ft.ACQ_FPS), false, ft.STACK_ENABLED, ft.DET_ENABLED);
+
+                        // Input device type
+                        Camera      *inputCam   = NULL;
+                        DetThread   *det        = NULL;
+                        RecThread   *rec        = NULL;
+                        AstThread   *ast        = NULL;
+
+                        Mat mask;
+
+                        bool stopFlag = false;
+                        bool loopBroken = false;
+
+                        /// ------------------------------------------------
+                        ///                   Load Mask
+                        /// ------------------------------------------------
+
+                        if(ft.ACQ_MASK_ENABLED){
+
+                            mask = imread(ft.ACQ_MASK_PATH, CV_LOAD_IMAGE_GRAYSCALE);
+
+                        }
+
+                        /// ------------------------------------------------
+                        ///            Create acquisition thread
+                        /// ------------------------------------------------
+
+                        switch(ft.CAMERA_TYPE){
+
+                            case BASLER :
+
+                                BOOST_LOG_SEV(slg, notification) << " Basler in input ";
+
+                                inputCam = new CameraBasler(&queueRAM,
+                                                            &m_queueRAM,
+                                                            &c_queueRAM_Full,
+                                                            &c_queueRAM_New,
+                                                            ft.ACQ_EXPOSURE,
+                                                            ft.ACQ_GAIN,
+                                                            ft.ACQ_BIT_DEPTH,
+                                                            ft.ACQ_FPS
+                                                            );
+
+                                inputCam->getListCameras();
+
+                                if(!inputCam->setSelectedDevice(ft.CAMERA_NAME)){
+
+                                    throw runtime_error("Connection failed to the camera : " + ft.CAMERA_NAME);
+
+                                }else{
+
+                                    BOOST_LOG_SEV(slg, fail)    << " Connection success to the first BASLER camera. ";
+                                    cout                        << " Connection success to the first BASLER camera. " << endl;
+
+                                    switch(ft.ACQ_BIT_DEPTH){
+
+                                       case MONO_8 :
+
+                                            if(!inputCam->setCameraPixelFormat(MONO_8))
+                                                throw "ERROR :Failed to set camera with MONO_8";
+
+                                            break;
+
+                                       case MONO_12 :
+
+                                            if(!inputCam->setCameraPixelFormat(MONO_12))
+                                                throw "ERROR :Failed to set camera with MONO_12";
+
+                                            break;
+
+                                    }
+
+                                    if(!inputCam->setCameraExposureTime(ft.ACQ_EXPOSURE))
+                                        throw "> Failed to set camera exposure.";
+
+                                    if(!inputCam->setCameraGain(ft.ACQ_GAIN))
+                                        throw "> Failed to set camera gain.";
+
+                                    if(!inputCam->setCameraFPS(ft.ACQ_FPS))
+                                        throw "> Failed to set camera fps.";
+
+                                }
+
+                                break;
+
+                            case DMK:
+
+                                cout                                << " INPUT = DMK ";
+                                BOOST_LOG_SEV(slg, notification)    << " INPUT = DMK ";
+
+                                inputCam = new CameraDMK(   &queueRAM,
+                                                            &m_queueRAM,
+                                                            &c_queueRAM_Full,
+                                                            &c_queueRAM_New,
+                                                            &m_threadEnd,
+                                                            &stopFlag);
+
+                                inputCam->getListCameras();
+
+                                if(!inputCam->setSelectedDevice(ft.CAMERA_NAME)){
+
+                                    throw "ERROR : Connection failed to " + ft.CAMERA_NAME;
+
+                                }else{
+
+                                    BOOST_LOG_SEV(slg, fail)    << " Connection success to DMK. ";
+                                    cout                        << " Connection success to DMK. " << endl;
+
+                                    // Set bit depth.
+                                    switch(ft.ACQ_BIT_DEPTH){
+
+                                       case MONO_8 :
+
+                                            if(!inputCam->setCameraPixelFormat(MONO_8))
+                                                throw "ERROR :Failed to set camera with MONO_8";
+
+                                            break;
+
+                                       case MONO_12 :
+
+                                            if(!inputCam->setCameraPixelFormat(MONO_12))
+                                                throw "ERROR :Failed to set camera with MONO_12";
+
+                                            break;
+
+                                    }
+
+                                    if(!inputCam->setCameraExposureTime(ft.ACQ_EXPOSURE))
+                                        throw "> Failed to set camera exposure.";
+
+                                    if(!inputCam->setCameraGain(ft.ACQ_GAIN))
+                                        throw "> Failed to set camera gain.";
+
+                                    if(!inputCam->setCameraFPS(ft.ACQ_FPS))
+                                        throw "> Failed to set camera fps.";
+                                }
+
+                                break;
+
+                            case VIDEO :
+
+                                cout << "Video in input : " << ft.VIDEO_PATH <<endl;
+                                BOOST_LOG_SEV(slg, notification) << "Video in input : " << ft.VIDEO_PATH;
+
+                                inputCam = new CameraVideo( 	ft.VIDEO_PATH,
+                                                                &queueRAM,
+                                                                &m_queueRAM,
+                                                                &c_queueRAM_Full,
+                                                                &c_queueRAM_New);
+
+                                break;
+
+                            case FRAMES :
+
+                                {
+
+                                    cout << "> Single frames in input." << endl;
+
+                                    // Get frame format.
+                                    path p(ft.FRAMES_PATH);
+
+                                    namespace fs = boost::filesystem;
+
+                                    string filename = "";
+
+                                    if(fs::exists(p)){
+
+                                        std::cout << "> Frames directory " << p.string() << " exists." << '\n';
+
+                                        for(directory_iterator file(p);file!= directory_iterator(); ++file){
+
+                                            path curr(file->path());
+
+                                            if(is_regular_file(curr)){
+
+                                                filename = file->path().c_str() ;
+                                                break;
+
+                                            }
+                                        }
+
+                                    }else{
+
+                                        throw "> Frames directory not found.";
+
+                                    }
+
+                                    if(filename == "")
+                                        throw "> No file found in the frame directory.";
+
+                                    Mat resMat;
+
+                                    Fits2D newFits;
+                                    int format = 0;
+
+                                    if(!newFits.readIntKeyword(filename, "BITPIX", format))
+                                        throw "> Failed to read fits keyword : BITPIX";
+
+                                    inputCam = new CameraFrames(	ft.FRAMES_PATH,
+                                                                    ft.FRAMES_START,
+                                                                    ft.FRAMES_STOP,
+                                                                    &queueRAM,
+                                                                    &m_queueRAM,
+                                                                    &c_queueRAM_Full,
+                                                                    &c_queueRAM_New,
+                                                                    fitsHeader,
+                                                                    format);
+
+                                }
+
+                                break;
+
+                            default :
+
+                                break;
+
+                        }
 
 
 
-            boost::mutex                m_threadEnd;
-            boost::mutex                m_queueRAM;
-            boost::mutex                m_queueEvToRec;
-            boost::condition_variable   c_queueRAM_Full;
-            boost::condition_variable   c_queueRAM_New;
-            boost::condition_variable   c_queueEvToRecNew;
-            vector<RecEvent>            queueEvToRec;
+                        if( inputCam != NULL ){
 
-            // The shared buffer
-            Fifo<Frame> queueRAM;
-            if(ft.DET_TIME_BEFORE == 0 )
-                queueRAM = Fifo<Frame>(2, false, ft.STACK_ENABLED, ft.DET_ENABLED);
-            else
-                queueRAM = Fifo<Frame>((ft.DET_TIME_BEFORE * ft.ACQ_FPS), false, ft.STACK_ENABLED, ft.DET_ENABLED);
+                            BOOST_LOG_SEV(slg, notification) << "Program starting.";
 
-            // Input device type
-            Camera      *inputCam   = NULL;
-            DetThread   *det        = NULL;
-            RecThread   *rec        = NULL;
-            AstThread   *ast        = NULL;
-
-            Mat mask;
-
-            bool stopFlag = false;
-            bool loopBroken = false;
-
-            /// ------------------------------------------------
-            ///                   Load Mask
-            /// ------------------------------------------------
-
-            if(ft.ACQ_MASK_ENABLED){
-
-                mask = imread(ft.ACQ_MASK_PATH, CV_LOAD_IMAGE_GRAYSCALE);
-
-            }
-
-            /// ------------------------------------------------
-            ///            Create acquisition thread
-            /// ------------------------------------------------
-
-            switch(ft.CAMERA_TYPE){
-
-                case BASLER :
-
-                    BOOST_LOG_SEV(slg, notification) << " Basler in input ";
-
-                    inputCam = new CameraBasler(&queueRAM,
-                                                &m_queueRAM,
-                                                &c_queueRAM_Full,
-                                                &c_queueRAM_New,
-                                                ft.ACQ_EXPOSURE,
-                                                ft.ACQ_GAIN,
-                                                mask,
-                                                ft.ACQ_MASK_ENABLED);
-
-                    inputCam->getListCameras();
-
-                    cout << ft.CAMERA_ID<<endl;
-                    cout << ft.CAMERA_NAME<<endl;
+                            // start acquisition thread
+                            inputCam->startThread();
 
 
-                    if(!inputCam->setSelectedDevice(ft.CAMERA_ID, ft.CAMERA_NAME)){
+                            /// ------------------------------------------------
+                            ///               Create stack thread
+                            /// ------------------------------------------------
 
-                        throw "ERROR : Connection failed to the first BASLER camera.";
+                            if(ft.STACK_ENABLED){
 
-                    }else{
+                                ast = new AstThread(    ft.DATA_PATH,
+                                                        ft.STATION_NAME,
+                                                        ft.STACK_MTHD,
+                                                        configPath,
+                                                        &queueRAM,
+                                                        ft.STACK_INTERVAL,
+                                                        ft.STACK_TIME,
+                                                        ft.ACQ_BIT_DEPTH,
+                                                        ft.LONGITUDE,
+                                                        &m_queueRAM,
+                                                        &c_queueRAM_Full,
+                                                        &c_queueRAM_New,
+                                                        fitsHeader,
+                                                        ft.ACQ_FPS,
+                                                        ft.STACK_REDUCTION);
 
-                        BOOST_LOG_SEV(slg, fail)    << " Connection success to the first BASLER camera. ";
-                        cout                        << " Connection success to the first BASLER camera. " << endl;
+                                ast->startCapture();
 
-                        if(ft.ACQ_BIT_DEPTH == MONO_12){
+                            }
 
-                            inputCam->setCameraPixelFormat(12);
+                            /// ------------------------------------------------
+                            ///            Create detection thread
+                            /// ------------------------------------------------
 
-                        }else if(ft.ACQ_BIT_DEPTH == MONO_8){
+                            if(ft.DET_ENABLED){
 
-                            inputCam->setCameraPixelFormat(8);
+                                det  = new DetThread(   mask,
+                                                        1,
+                                                        ft.ACQ_BIT_DEPTH,
+                                                        &queueRAM,
+                                                        &m_queueRAM,
+                                                        &c_queueRAM_Full,
+                                                        &c_queueRAM_New,
+                                                        &c_queueEvToRecNew,
+                                                        &m_queueEvToRec,
+                                                        &queueEvToRec,
+                                                        30 * ft.DET_TIME_AFTER,
+                                                        ft.DET_GE_MAX,
+                                                        ft.DET_TIME_MAX,
+                                                        ft.DATA_PATH,
+                                                        ft.STATION_NAME,
+                                                        ft.DEBUG_ENABLED,
+                                                        ft.DEBUG_PATH,
+                                                        ft.DET_DOWNSAMPLE_ENABLED,
+                                                        fitsHeader);
+
+                                det->startDetectionThread();
+
+                                /// ------------------------------------------------
+                                ///            Create record thread
+                                /// ------------------------------------------------
+
+                                rec = new RecThread(    ft.DATA_PATH,
+                                                        &queueEvToRec,
+                                                        &m_queueEvToRec,
+                                                        &c_queueEvToRecNew,
+                                                        ft.ACQ_BIT_DEPTH,
+                                                        ft.DET_SAVE_AVI,
+                                                        ft.DET_SAVE_FITS3D,
+                                                        ft.DET_SAVE_FITS2D,
+                                                        ft.DET_SAVE_SUM,
+                                                        ft.DET_SAVE_POS,
+                                                        ft.DET_SAVE_BMP,
+                                                        ft.DET_SAVE_TRAIL,
+                                                        ft.DET_SAVE_GEMAP,
+                                                        fitsHeader);
+
+                                rec->start();
+
+                            }
+
+
+                            // main thread loop
+                            BOOST_LOG_SEV(slg, notification) << "FreeTure is working...";
+                            cout << "FreeTure is working..."<<endl;
+
+                            if(ft.CAMERA_TYPE == BASLER || ft.CAMERA_TYPE == DMK){
+
+                                #ifdef _WIN64_
+
+                                    BOOST_LOG_SEV(slg, notification) << "This is the process : " << (unsigned long)_getpid();
+
+                                #elif defined _LINUX_
+
+                                    BOOST_LOG_SEV(slg, notification) << "This is the process : " << (unsigned long)getpid();
+
+                                    memset(&act, 0, sizeof(act));
+                                    act.sa_sigaction = sigTermHandler;
+                                    act.sa_flags = SA_SIGINFO;
+                                    sigaction(SIGTERM,&act,NULL);
+
+                                #endif
+
+                                int cptTime = 0;
+
+                                while(!sigTermFlag){
+
+                                    if(ft.CFG_FILECOPY_ENABLED){
+
+                                        namespace fs = boost::filesystem;
+
+                                        string dateNow = TimeDate::localDateTime(second_clock::universal_time(),"%Y:%m:%d:%H:%M:%S");
+                                        vector<string> dateString;
+
+                                        typedef boost::tokenizer<boost::char_separator<char> > tokenizer;
+                                        boost::char_separator<char> sep(":");
+                                        tokenizer tokens(dateNow, sep);
+
+                                        for (tokenizer::iterator tok_iter = tokens.begin();tok_iter != tokens.end(); ++tok_iter){
+                                            dateString.push_back(*tok_iter);
+                                        }
+
+                                        string root = ft.DATA_PATH + ft.STATION_NAME + "_" + dateString.at(0) + dateString.at(1) + dateString.at(2) +"/";
+
+                                        string cFile = root + "configuration.cfg";
+
+                                        cout << cFile << endl;
+
+                                        path p(ft.DATA_PATH);
+
+                                        path p1(root);
+
+                                        path p2(cFile);
+
+                                        if(fs::exists(p)){
+
+                                            if(fs::exists(p1)){
+
+                                                BOOST_LOG_SEV(slg,notification) << "Destination directory " << p1.string() << " already exists.";
+
+                                                if(!fs::exists(p2)){
+
+                                                    path p3(configPath);
+
+                                                    if(fs::exists(p3)){
+
+                                                        fs::copy_file(p3,p2,copy_option::overwrite_if_exists);
+
+                                                    }else{
+
+                                                        //cout << "Failed to copy configuration file : " << p3.string() << " not exists." << endl;
+                                                        BOOST_LOG_SEV(slg,notification) << "Failed to copy configuration file : " << p3.string() << " not exists.";
+
+                                                    }
+
+                                                }
+
+                                            }else{
+
+                                                if(!fs::create_directory(p1)){
+
+                                                    BOOST_LOG_SEV(slg,notification) << "Unable to create destination directory" << p1.string();
+
+                                                }else{
+
+                                                    path p3(configPath);
+
+                                                    if(fs::exists(p3)){
+
+                                                        fs::copy_file(p3,p2,copy_option::overwrite_if_exists);
+
+                                                    }else{
+
+                                                        cout << "Failed to copy configuration file : " << p3.string() << " not exists." << endl;
+                                                        BOOST_LOG_SEV(slg,notification) << "Failed to copy configuration file : " << p3.string() << " not exists.";
+
+                                                    }
+                                                }
+                                            }
+
+                                        }else{
+
+                                            if(!fs::create_directory(p)){
+
+                                                BOOST_LOG_SEV(slg,notification) << "Unable to create destination directory" << p.string();
+
+                                            }else{
+
+                                                if(!fs::create_directory(p1)){
+
+                                                    BOOST_LOG_SEV(slg,notification) << "Unable to create destination directory" << p1.string();
+
+                                                }else{
+
+                                                    path p3(configPath);
+
+                                                    if(fs::exists(p3)){
+
+                                                        fs::copy_file(p3,p2,copy_option::overwrite_if_exists);
+
+                                                    }else{
+
+                                                        cout << "Failed to copy configuration file : " << p3.string() << " not exists." << endl;
+                                                        BOOST_LOG_SEV(slg,notification) << "Failed to copy configuration file : " << p3.string() << " not exists.";
+
+                                                    }
+                                                }
+                                            }
+                                        }
+                                    }
+
+                                    #ifdef _WIN64_
+                                        Sleep(1000);
+                                    #elif defined _LINUX_
+                                        sleep(1);
+                                    #endif
+
+                                    if(executionTime != 0){
+
+                                        if(cptTime > executionTime){
+
+                                            BOOST_LOG_SEV(slg, notification) << "Break main loop";
+                                            loopBroken = true;
+                                            break;
+                                        }
+                                        cptTime ++;
+
+                                    }
+
+                                }
+
+                            }else{
+
+                                inputCam->join();
+
+                            }
+
+                            cout << "\nFreeTure terminated"<<endl;
+                            BOOST_LOG_SEV(slg, notification) << "FreeTure terminated";
+
+                            if(det != NULL){
+                                cout << "Send signal to stop detection thread" << endl;
+                                BOOST_LOG_SEV(slg, notification) << "Send signal to stop detection thread.";
+                                det->stopDetectionThread();
+                                BOOST_LOG_SEV(slg, notification) << "detection thread stopped";
+                                BOOST_LOG_SEV(slg, notification) << "delete thread.";
+                                delete det;
+
+                                if(rec != NULL){
+                                    BOOST_LOG_SEV(slg, notification) << "Send signal to stop rec thread.";
+                                    rec->stop();
+                                    delete rec;
+                                }
+                            }
+
+
+                            if(ast!=NULL){
+                                cout << "Send signal to stop image capture thread for astrometry." << endl;
+                                BOOST_LOG_SEV(slg, notification) << "Send signal to stop image capture thread for astrometry.";
+                                ast->stopCapture();
+                                delete ast;
+
+                            }
+
+                            //stop acquisition thread
+                            BOOST_LOG_SEV(slg, notification) << "Send signal to stop acquisition thread.";
+                            inputCam->stopThread();
+
+                            if (inputCam!=NULL)
+                                delete inputCam;
 
                         }
 
@@ -418,618 +893,309 @@ int main(int argc, const char ** argv){
 
                     break;
 
-                case DMK:
+                case 4 :
 
-                    cout << "DMK in input: "<< ft.CAMERA_NAME <<endl;
-                    BOOST_LOG_SEV(slg, notification) << "DMK in input ";
+                    ///%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+                    ///%%%%%%%%%%%%%%%%%%%%%% MODE 4 : RUN ACQ TEST %%%%%%%%%%%%%%%%%%%%%%%%%%
+                    ///%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
-                    inputCam = new CameraDMK(   ft.CAMERA_NAME,
-                                                ft.ACQ_BIT_DEPTH,
-                                                &queueRAM,
-                                                &m_queueRAM,
-                                                &c_queueRAM_Full,
-                                                &c_queueRAM_New,
-                                                &m_threadEnd,
-                                                &stopFlag);
+                    {
 
-                    inputCam->getListCameras();
+                        cout << "================================================" << endl;
+                        cout << "======= FREETURE - Acquisition test mode =======" << endl;
+                        cout << "================================================" << endl << endl;
 
-                    if(!inputCam->setSelectedDevice(ft.CAMERA_ID, ft.CAMERA_NAME)){
+                        // Display or not the grabbed frame.
+                        if(vm.count("display"))     display     = vm["display"].as<bool>();
 
-                        throw "ERROR : Connection failed to the first BASLER camera.";
+                        // Path where to save files.
+                        if(vm.count("savepath"))    savePath    = vm["savepath"].as<string>();
 
-                    }else{
+                        // Acquisition format.
+                        if(vm.count("bitdepth"))    acqFormat   = vm["bitdepth"].as<int>();
 
-                        BOOST_LOG_SEV(slg, fail)    << " Connection success to the first BASLER camera. ";
-                        cout                        << " Connection success to the first BASLER camera. " << endl;
+                        CamBitDepth camFormat;
 
-                        if(ft.ACQ_BIT_DEPTH == 12){
+                        switch(acqFormat){
 
-                            inputCam->setCameraPixelFormat(12);
+                            case 8 :
 
-                        }else if(ft.ACQ_BIT_DEPTH == 8){
+                                {
+                                    camFormat = MONO_8;
+                                }
 
-                            inputCam->setCameraPixelFormat(8);
+                                break;
 
-                        }else if(ft.ACQ_BIT_DEPTH == 16){
+                            case 12 :
 
-                            inputCam->setCameraPixelFormat(12);
+                                {
+                                    camFormat = MONO_12;
+                                }
+
+                                break;
+
+                            default :
+
+                                    throw "> The acquisition format specified in program options is not allowed.";
+
+                                break;
+
+                        }
+
+                        // Cam id.
+                        if(vm.count("id"))          camID     = vm["id"].as<int>();
+
+                        // Save bmp.
+                        if(vm.count("bmp"))         saveBmp     = vm["bmp"].as<bool>();
+
+                        // Save fits.
+                        if(vm.count("fits"))        saveFits2D  = vm["fits"].as<bool>();
+
+                        // Type of camera in input.
+                        if(vm.count("camtype"))     camtype     = vm["camtype"].as<string>();
+
+                        EnumParser<CamType> cam_type;
+
+                        std::transform(camtype.begin(), camtype.end(),camtype.begin(), ::toupper);
+
+                        // Gain value.
+                        if(vm.count("gain"))
+
+                            gain = vm["gain"].as<int>();
+
+                        else{
+
+                            throw "Please define the gain value.";
+
+                        }
+
+                        // Exposure value.
+                        if(vm.count("exposure"))
+
+                           exp = vm["exposure"].as<int>();
+
+                        else{
+
+                            throw "Please define the exposure time value.";
+
+                        }
+
+                        Camera  *inputCam = NULL;
+                        string  cam;        // Camera name
+                        string  date = "";  // Acquisition date
+                        Mat     frame;      // Image data
+
+                        namedWindow( "Frame", WINDOW_AUTOSIZE );
+
+                        switch(cam_type.parseEnum("CAMERA_TYPE", camtype)){
+
+                            case BASLER :
+
+                                {
+
+                                    inputCam = new CameraBasler(exp, gain, camFormat);
+
+                                }
+
+                                break;
+
+                            case DMK :
+
+                                {
+
+                                    inputCam = new CameraDMK(exp, gain, camFormat);
+
+                                }
+
+                                break;
+
+                        }
+
+                        if(inputCam == NULL)
+                            throw "> Failed to create Camera object.";
+
+                        cout << "> Trying to get the camera." << endl;
+
+                        // Retrieve the camera device.
+                        if(inputCam->getDeviceById(camID,cam))
+
+                            cout << "> Camera found : " << cam << "." << endl;
+
+                        else
+
+                            throw "> No camera found.";
+
+                        cout<< "> Trying to connect to the camera ..."<<endl;
+
+                        // Select the first camera.
+                        if(!inputCam->setSelectedDevice(cam)){
+
+                            throw "> Connection failed.";
 
                         }else{
 
-                            throw "ERROR : Bad definition of ACQ_BIT_DEPTH in the configuration file";
+                            cout << "> Connection success." << endl;
 
+                            if(!inputCam->setCameraPixelFormat(camFormat))
+                                throw "> Failed to set camera bit depth.";
+
+                            if(!inputCam->setCameraExposureTime(exp))
+                                throw "> Failed to set camera exposure.";
+
+                            if(!inputCam->setCameraGain(gain))
+                                throw "> Failed to set camera gain.";
+
+                            if(!inputCam->startGrab())
+                                throw "> Failed to initialize the grab.";
+
+                            if(!inputCam->grabSingleFrame(frame, date))
+                                throw "> Failed to grab a single frame.";
+
+                            // Display the frame in an opencv window
+                            if(display){
+
+                                Mat temp;
+
+                                if(camFormat == MONO_12){
+
+                                    temp = Conversion::convertTo8UC1(frame);
+
+                                }else
+
+                                    frame.copyTo(temp);
+
+                                imshow( "Frame", temp );
+                                waitKey(0);
+
+                            }
+
+                            // Save the frame in BMP.
+                            if(saveBmp){
+
+                                Mat temp;
+
+                                if(camFormat == MONO_12){
+
+                                    temp = Conversion::convertTo8UC1(frame);
+
+                                }else
+
+                                    frame.copyTo(temp);
+
+                                SaveImg::saveBMP(temp, savePath + "frame");
+
+                            }
+
+                            // Save the frame in Fits 2D.
+                            if(saveFits2D){
+
+                                Fits fitsHeader;
+                                fitsHeader.setGaindb((int)gain);
+                                fitsHeader.setExposure(exp);
+
+                                Fits2D newFits(savePath + "frame",fitsHeader);
+
+                                switch(camFormat){
+
+                                    case MONO_8 :
+
+                                        {
+
+                                            if(newFits.writeFits(frame, UC8, 0, true,"" ))
+                                                cout << "> Fits saved in " << savePath << endl;
+                                            else
+                                                cout << "Failed to save Fits." << endl;
+
+                                        }
+
+                                        break;
+
+                                    case MONO_12 :
+
+                                        {
+
+                                            if(newFits.writeFits(frame, US16, 0, true,"" ))
+                                                cout << "> Fits saved in " << savePath << endl;
+                                            else
+                                                cout << "Failed to save Fits." << endl;
+
+                                        }
+
+                                        break;
+
+                                }
+                            }
                         }
                     }
 
                     break;
 
-                case VIDEO :
+                case 5 :
 
-                    cout << "Video in input : " << ft.VIDEO_PATH <<endl;
-                    BOOST_LOG_SEV(slg, notification) << "Video in input : " << ft.VIDEO_PATH;
+                    {
 
-                    inputCam = new CameraVideo( 	ft.VIDEO_PATH,
-                                                	&queueRAM,
-                                                	&m_queueRAM,
-                                               	 	&c_queueRAM_Full,
-                                                	&c_queueRAM_New);
 
-                    ft.ACQ_BIT_DEPTH = MONO_8;
+                        namespace fs = boost::filesystem;
 
-                    break;
+                        path p("/home/fripon/Orsay_20141122_191438UT-0.fit");
 
-                case FRAMES :
+                        if(is_regular_file(p)){
 
-                    inputCam = new CameraFrames(	ft.FRAMES_PATH,
-                                                	ft.FRAMES_START,
-                                                	ft.FRAMES_STOP,
-                                                	&queueRAM,
-                                                	&m_queueRAM,
-                                                	&c_queueRAM_Full,
-                                                	&c_queueRAM_New,
-                                                	fitsHeader);
+                            Fits fitsHeader;
+                            fitsHeader.loadKeywordsFromConfigFile("/home/fripon/fripon/freeture/share/configuration.cfg");
+
+                            Mat resMat, res;
+
+                            Fits2D newFits("/home/fripon/Orsay_20141122_191438UT-0.fit",fitsHeader);
+                            newFits.readFits32F(resMat, "/home/fripon/Orsay_20141122_191438UT-0.fit");
+                            resMat.copyTo(res);
+
+                            cout << "before"<<endl;
+                            Mat newMat ;
+                            float bz, bs;
+                            //ImgReduction::dynamicReductionBasedOnHistogram(99.5, resMat).copyTo(newMat);
+                            ImgReduction::dynamicReductionByFactorDivision(resMat,MONO_12,1800,bz,bs).copyTo(newMat);
+
+                            Fits2D newFits2("/home/fripon/testFits_",fitsHeader);
+
+
+                           //Rechercher la valeur max 7371000 par rapport au n * 4095
+
+                            newFits2.setBzero(bz/*32768*112.4725*/);
+                            newFits2.setBscale(bs/*112.4725*/);
+                            newFits2.writeFits(newMat, bit_depth_enum::S16, 0, true,"" );
+
+                            double minVal2, maxVal2;
+                            minMaxLoc(newMat, &minVal2, &maxVal2);
+
+                            cout << "> Max : "<< maxVal2<<endl;
+                            cout << "> Min : "<< minVal2<<endl<<endl;
+
+
+                        }
+
+                    }
 
                     break;
 
                 default :
 
+                    {
+
+                        cout << "Please choose a mode (example : -m 1 )"            << endl
+                                                                                    << endl;
+                        cout << "Available modes are :"                             << endl;
+                        cout << "1 : List connected devices"                        << endl;
+                        cout << "2 : Check and print configuration file"            << endl;
+                        cout << "3 : Run meteor detection"                          << endl;
+                        cout << "4 : Test a camera by single capture"               << endl;
+                        cout << "5 : Full FreeTure checkup"                         << endl;
+
+                    }
+
                     break;
 
             }
-
-
-
-            if( inputCam != NULL ){
-
-                BOOST_LOG_SEV(slg, notification) << "Program starting.";
-
-                // start acquisition thread
-                inputCam->startThread();
-
-                /// ------------------------------------------------
-                ///               Create stack thread
-                /// ------------------------------------------------
-
-                if(ft.STACK_ENABLED){
-
-                    ast = new AstThread(    ft.DATA_PATH,
-                                            ft.STATION_NAME,
-                                            ft.STACK_MTHD,
-                                            configPath,
-                                            &queueRAM,
-                                            ft.STACK_INTERVAL,
-                                            ft.STACK_TIME,
-                                            ft.ACQ_BIT_DEPTH,
-                                            ft.LONGITUDE,
-                                            &m_queueRAM,
-                                            &c_queueRAM_Full,
-                                            &c_queueRAM_New,
-                                            fitsHeader);
-
-                    ast->startCapture();
-
-                }
-
-                /// ------------------------------------------------
-                ///            Create detection thread
-                /// ------------------------------------------------
-
-                if(ft.DET_ENABLED){
-
-                    det  = new DetThread(   mask,
-                                            1,
-                                            ft.ACQ_BIT_DEPTH,
-                                            &queueRAM,
-                                            &m_queueRAM,
-                                            &c_queueRAM_Full,
-                                            &c_queueRAM_New,
-                                            &c_queueEvToRecNew,
-                                            &m_queueEvToRec,
-                                            &queueEvToRec,
-                                            ft.DET_TIME_AFTER,
-                                            ft.DET_GE_MAX,
-                                            ft.DET_TIME_MAX,
-                                            ft.DATA_PATH,
-                                            ft.STATION_NAME,
-                                            ft.DEBUG_ENABLED,
-                                            ft.DEBUG_PATH,
-                                            ft.DET_DOWNSAMPLE_ENABLED,
-                                            fitsHeader);
-
-                    det->startDetectionThread();
-
-                    /// ------------------------------------------------
-                    ///            Create record thread
-                    /// ------------------------------------------------
-
-                    rec = new RecThread(    ft.DATA_PATH,
-                                            &queueEvToRec,
-                                            &m_queueEvToRec,
-                                            &c_queueEvToRecNew,
-                                            ft.ACQ_BIT_DEPTH,
-                                            ft.DET_SAVE_AVI,
-                                            ft.DET_SAVE_FITS3D,
-                                            ft.DET_SAVE_FITS2D,
-                                            ft.DET_SAVE_SUM,
-                                            ft.DET_SAVE_POS,
-                                            ft.DET_SAVE_BMP,
-                                            ft.DET_SAVE_TRAIL,
-                                            ft.DET_SAVE_GEMAP,
-                                            fitsHeader);
-
-                    rec->start();
-
-                }
-
-
-                // main thread loop
-                BOOST_LOG_SEV(slg, notification) << "FreeTure is working...";
-                cout << "FreeTure is working..."<<endl;
-
-                if(ft.CAMERA_TYPE == BASLER || ft.CAMERA_TYPE == DMK){
-
-                    #ifdef _WIN64_
-
-                        BOOST_LOG_SEV(slg, notification) << "This is the process : " << (unsigned long)_getpid();
-
-                    #elif defined _LINUX_
-
-                        BOOST_LOG_SEV(slg, notification) << "This is the process : " << (unsigned long)getpid();
-
-                        memset(&act, 0, sizeof(act));
-                        act.sa_sigaction = sigTermHandler;
-                        act.sa_flags = SA_SIGINFO;
-                        sigaction(SIGTERM,&act,NULL);
-
-                    #endif
-
-                    int cptTime = 0;
-
-                    while(!sigTermFlag){
-
-                        if(ft.CFG_FILECOPY_ENABLED){
-
-                            namespace fs = boost::filesystem;
-
-                            string dateNow = TimeDate::localDateTime(second_clock::universal_time(),"%Y:%m:%d:%H:%M:%S");
-                            vector<string> dateString;
-
-                            typedef boost::tokenizer<boost::char_separator<char> > tokenizer;
-                            boost::char_separator<char> sep(":");
-                            tokenizer tokens(dateNow, sep);
-
-                            for (tokenizer::iterator tok_iter = tokens.begin();tok_iter != tokens.end(); ++tok_iter){
-                                dateString.push_back(*tok_iter);
-                            }
-
-                            string root = ft.DATA_PATH + ft.STATION_NAME + "_" + dateString.at(0) + dateString.at(1) + dateString.at(2) +"/";
-
-                            string cFile = root + "configuration.cfg";
-
-                            cout << cFile << endl;
-
-                            path p(ft.DATA_PATH);
-
-                            path p1(root);
-
-                            path p2(cFile);
-
-                            if(fs::exists(p)){
-
-                                if(fs::exists(p1)){
-
-                                    BOOST_LOG_SEV(slg,notification) << "Destination directory " << p1.string() << " already exists.";
-
-                                    if(!fs::exists(p2)){
-
-                                        path p3(configPath);
-
-                                        if(fs::exists(p3)){
-
-                                            fs::copy_file(p3,p2,copy_option::overwrite_if_exists);
-
-                                        }else{
-
-                                            //cout << "Failed to copy configuration file : " << p3.string() << " not exists." << endl;
-                                            BOOST_LOG_SEV(slg,notification) << "Failed to copy configuration file : " << p3.string() << " not exists.";
-
-                                        }
-
-                                    }
-
-                                }else{
-
-                                    if(!fs::create_directory(p1)){
-
-                                        BOOST_LOG_SEV(slg,notification) << "Unable to create destination directory" << p1.string();
-
-                                    }else{
-
-                                        path p3(configPath);
-
-                                        if(fs::exists(p3)){
-
-                                            fs::copy_file(p3,p2,copy_option::overwrite_if_exists);
-
-                                        }else{
-
-                                            cout << "Failed to copy configuration file : " << p3.string() << " not exists." << endl;
-                                            BOOST_LOG_SEV(slg,notification) << "Failed to copy configuration file : " << p3.string() << " not exists.";
-
-                                        }
-                                    }
-                                }
-
-                            }else{
-
-                                if(!fs::create_directory(p)){
-
-                                    BOOST_LOG_SEV(slg,notification) << "Unable to create destination directory" << p.string();
-
-                                }else{
-
-                                    if(!fs::create_directory(p1)){
-
-                                        BOOST_LOG_SEV(slg,notification) << "Unable to create destination directory" << p1.string();
-
-                                    }else{
-
-                                        path p3(configPath);
-
-                                        if(fs::exists(p3)){
-
-                                            fs::copy_file(p3,p2,copy_option::overwrite_if_exists);
-
-                                        }else{
-
-                                            cout << "Failed to copy configuration file : " << p3.string() << " not exists." << endl;
-                                            BOOST_LOG_SEV(slg,notification) << "Failed to copy configuration file : " << p3.string() << " not exists.";
-
-                                        }
-                                    }
-                                }
-                            }
-                        }
-
-                        #ifdef _WIN64_
-                            Sleep(1000);
-                        #elif defined _LINUX_
-                            sleep(1);
-                        #endif
-
-                        if(executionTime != 0){
-
-                            if(cptTime > executionTime){
-
-                                BOOST_LOG_SEV(slg, notification) << "Break main loop";
-                                loopBroken = true;
-                                break;
-                            }
-                            cptTime ++;
-
-                        }
-
-                    }
-
-                }else{
-
-                    inputCam->join();
-
-                }
-
-                cout << "\nFreeTure terminated"<<endl;
-                BOOST_LOG_SEV(slg, notification) << "FreeTure terminated";
-
-                if(det != NULL){
-                    cout << "Send signal to stop detection thread" << endl;
-                    BOOST_LOG_SEV(slg, notification) << "Send signal to stop detection thread.";
-                    det->stopDetectionThread();
-                    BOOST_LOG_SEV(slg, notification) << "detection thread stopped";
-                    BOOST_LOG_SEV(slg, notification) << "delete thread.";
-                    delete det;
-
-                    if(rec != NULL){
-                        BOOST_LOG_SEV(slg, notification) << "Send signal to stop rec thread.";
-                        rec->stop();
-                        delete rec;
-                    }
-                }
-
-
-                if(ast!=NULL){
-                    cout << "Send signal to stop image capture thread for astrometry." << endl;
-                    BOOST_LOG_SEV(slg, notification) << "Send signal to stop image capture thread for astrometry.";
-                    ast->stopCapture();
-                    delete ast;
-
-                }
-
-                //stop acquisition thread
-                BOOST_LOG_SEV(slg, notification) << "Send signal to stop acquisition thread.";
-                inputCam->stopThread();
-
-                if (inputCam!=NULL)
-                    delete inputCam;
-
-            }
-
-        ///%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-        ///%%%%%%%%%%%%%%%%%%%%%% MODE 4 : RUN ACQ TEST %%%%%%%%%%%%%%%%%%%%%%%%%%
-        ///%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-
-        }else if(mode == 4){
-
-            FreeTure ft(configPath);
-            ft.loadParameters();
-
-            if(vm.count("savepath"))    savePath        = vm["savepath"].as<string>();
-
-            if(vm.count("device")){
-
-                  device = vm["device"].as<string>();
-
-            }else{
-
-                throw "Please define the name of the camera device to capture a single frame";
-
-            }
-
-            if(vm.count("format"))      acqFormat       = vm["format"].as<int>();
-
-            if(vm.count("bmp"))         saveBmp         = vm["bmp"].as<bool>();
-
-            if(vm.count("fits2D"))      saveFits2D      = vm["fits2D"].as<bool>();
-
-            if(vm.count("gain")){
-
-                gain = vm["gain"].as<int>();
-
-            }else{
-
-                throw "Please define the gain value";
-
-            }
-
-            if(vm.count("exposure")){
-
-               exp = vm["exposure"].as<int>();
-
-            }else{
-
-                throw "Please define the exposure time value";
-
-            }
-
-            string logpath = ft.LOG_PATH + "FreeTure_LOG";
-
-            if(!ManageFiles::createDirectory( logpath )){
-
-                throw "Can't create location for log files";
-
-            }
-
-            // log configuration
-            init_log(logpath);
-            src::severity_logger< severity_level > slg;
-            BOOST_LOG_SCOPED_THREAD_TAG("LogName", "mainThread");
-
-            Fits fitsHeader;
-            fitsHeader.loadKeywordsFromConfigFile(configPath);
-
-            cout << "camera name : " << device   << endl;
-            cout << "FORMAT :        " << acqFormat     << endl;
-            cout << "EXPOSURE TIME : " << exp           << endl;
-            cout << "GAIN :          " << gain          << endl;
-            cout << "SAVE FITS2D :   " << saveFits2D    << endl;
-            cout << "SAVE BMP :      " << saveBmp       << endl;
-            cout << "SAVE LOCATION : " << savePath      << endl;
-
-            if(acqFormat==16){
-
-                acqFormat = 12;
-
-            }else if(acqFormat!=8 && acqFormat!=16 && acqFormat!=12){
-
-                acqFormat = 8;
-
-            }
-
-            Camera *inputCam = NULL;
-
-            inputCam = new CameraBasler(exp,
-                                        gain,
-                                        saveFits2D,
-                                        saveBmp,
-                                        acqFormat,
-                                        configPath,
-                                        savePath,
-                                        fitsHeader);
-
-            //list connected basler cameras
-            inputCam->getListCameras();
-
-            cout<< "Try to connect to the first in the list..."<<endl;
-
-            if(!inputCam->setSelectedDevice(0, device)){
-
-                throw "Connection to the camera failed";
-
-            }else{
-
-                cout <<"Connection success"<<endl;
-
-                inputCam->setCameraPixelFormat(acqFormat);
-
-                inputCam->startGrab();
-
-                inputCam->grabOne();
-
-            }
-
-            BOOST_LOG_SEV(slg, notification) << "End single capture";
-
-        ///%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-        ///%%%%%%%%%%%%%%%%%% MODE 5 : FULL FreeTure checkup %%%%%%%%%%%%%%%%%%%%%
-        ///%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-
-        }else if(mode == 5){
-
-
-            /*Mat img(960, 1280, CV_8UC3, Scalar(0,0,0));
-
-            for(int i = 0; i<25; i++){
-
-                for(int j = 0; j<25; j++){
-
-                    if(i!=0)
-                        img.at<Vec3b>(i,j) = Vec3b(0,0,255);
-
-                }
-
-            }
-
-            img.at<Vec3b>(500,500) = Vec3b(0,0,255);
-            img.at<Vec3b>(501,500) = Vec3b(0,0,255);
-            img.at<Vec3b>(500,501) = Vec3b(0,0,255);
-            img.at<Vec3b>(500,502) = Vec3b(0,255,255);
-            img.at<Vec3b>(502,500) = Vec3b(0,255,255);
-            img.at<Vec3b>(503,500) = Vec3b(0,255,255);
-            img.at<Vec3b>(500,503) = Vec3b(0,0,255);
-            img.at<Vec3b>(500,504) = Vec3b(0,0,255);
-            img.at<Vec3b>(505,500) = Vec3b(0,0,255);
-
-            imwrite( "/home/fripon/testImg.jpeg", img );*/
-
-
-            Fits fitsHeader;
-            fitsHeader.loadKeywordsFromConfigFile("/home/fripon/friponProject/friponCapture/configuration.cfg");
-
-            Camera *inputCam = NULL;
-
-            inputCam = new CameraBasler(1000,
-                                        400,
-                                        false,
-                                        true,
-                                        12,
-                                        "/home/fripon/friponProject/friponCapture/configuration.cfg",
-                                        "/home/fripon/",
-                                        fitsHeader);
-
-            //list connected basler cameras
-            inputCam->getListCameras();
-
-            cout<< "Try to connect to the first in the list..."<<endl;
-
-            if(!inputCam->setSelectedDevice(0, "Basler-21418131")){
-
-                throw "Connection to the camera failed";
-
-            }else{
-
-                cout <<"Connection success"<<endl;
-
-                inputCam->setCameraPixelFormat(acqFormat);
-
-                inputCam->startGrab();
-
-                inputCam->grabOne();
-
-            }
-
-
-
-         /*   vector<string> to;
-            to.push_back("yoan.audureau@gmail.com");
-            to.push_back("yoan.audureau@yahoo.fr");
-
-            vector<string> pathAttachments;
-            pathAttachments.push_back("/home/fripon/capture.bmp");
-
-            //pathAttachments.push_back("D:/logoFripon.png");
-
-            string acquisitionDate = TimeDate::localDateTime(second_clock::universal_time(),"%Y:%m:%d:%H:%M:%S");
-
-            SMTPClient mailc("smtp.u-psud.fr", 25, "u-psud.fr");
-            mailc.send("yoan.audureau@u-psud.fr", to, "station ORSAY "+acquisitionDate+" UT", "Test d'acquisition d'une frame sur la station d'Orsay à " + acquisitionDate, pathAttachments, true);
-
-*/
-
-
-
-
-
-        }else if(mode == 6){
-
-
-            namespace fs = boost::filesystem;
-
-            path p("/home/fripon/Orsay_20141122_191438UT-0.fit");
-
-            if(is_regular_file(p)){
-
-                Fits fitsHeader;
-                fitsHeader.loadKeywordsFromConfigFile("/home/fripon/fripon/freeture/share/configuration.cfg");
-
-                Mat resMat, res;
-
-                Fits2D newFits("/home/fripon/Orsay_20141122_191438UT-0.fit",fitsHeader);
-                newFits.readFits32F(resMat, "/home/fripon/Orsay_20141122_191438UT-0.fit");
-				resMat.copyTo(res);
-
-                cout << "before"<<endl;
-                Mat newMat ;
-                //ImgReduction::dynamicReductionBasedOnHistogram(99.5, resMat).copyTo(newMat);
-                ImgReduction::dynamicReductionByFactorDivision(resMat).copyTo(newMat);
-
-                Fits2D newFits2("/home/fripon/testFits_",fitsHeader);
-
-
-               //Rechercher la valeur max 7371000 par rapport au n * 4095
-
-                newFits2.setBzero(32768*112.4725);
-                newFits2.setBscale(112.4725);
-                newFits2.writeFits(newMat, bit_depth_enum::S16, 0, true );
-
-                double minVal2, maxVal2;
-                minMaxLoc(newMat, &minVal2, &maxVal2);
-
-                cout << "> Max : "<< maxVal2<<endl;
-                cout << "> Min : "<< minVal2<<endl<<endl;
-
-
-            }
-
-        }else{
-
-            cout << "Please choose an existing mode (example : -m 1 )"  << endl
-                                                                        << endl;
-            cout << "Available modes are :"                             << endl;
-            cout << "1 : List connected devices"                        << endl;
-            cout << "2 : Check and print configuration file"            << endl;
-            cout << "3 : Run meteor detection"                          << endl;
-            cout << "4 : Test a camera by single capture"               << endl;
-            cout << "5 : Full FreeTure checkup"                         << endl;
 
         }
 
@@ -1046,5 +1212,141 @@ int main(int argc, const char ** argv){
     po::notify(vm);
 
 	return 0 ;
+
 }
+
+
+
+
+/*
+            ///%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+            ///%%%%%%%%%%%%%%%%%% MODE 5 : FULL FreeTure checkup %%%%%%%%%%%%%%%%%%%%%
+            ///%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+            }else if(mode == 5){
+
+
+                /*Mat img(960, 1280, CV_8UC3, Scalar(0,0,0));
+
+                for(int i = 0; i<25; i++){
+
+                    for(int j = 0; j<25; j++){
+
+                        if(i!=0)
+                            img.at<Vec3b>(i,j) = Vec3b(0,0,255);
+
+                    }
+
+                }
+
+                img.at<Vec3b>(500,500) = Vec3b(0,0,255);
+                img.at<Vec3b>(501,500) = Vec3b(0,0,255);
+                img.at<Vec3b>(500,501) = Vec3b(0,0,255);
+                img.at<Vec3b>(500,502) = Vec3b(0,255,255);
+                img.at<Vec3b>(502,500) = Vec3b(0,255,255);
+                img.at<Vec3b>(503,500) = Vec3b(0,255,255);
+                img.at<Vec3b>(500,503) = Vec3b(0,0,255);
+                img.at<Vec3b>(500,504) = Vec3b(0,0,255);
+                img.at<Vec3b>(505,500) = Vec3b(0,0,255);
+
+                imwrite( "/home/fripon/testImg.jpeg", img );*/
+    /*
+
+                Fits fitsHeader;
+                fitsHeader.loadKeywordsFromConfigFile("/home/fripon/friponProject/friponCapture/configuration.cfg");
+
+                Camera *inputCam = NULL;
+
+                inputCam = new CameraBasler(1000,
+                                            400,
+                                            false,
+                                            true,
+                                            12,
+                                            "/home/fripon/friponProject/friponCapture/configuration.cfg",
+                                            "/home/fripon/",
+                                            fitsHeader);
+
+                //list connected basler cameras
+                inputCam->getListCameras();
+
+                cout<< "Try to connect to the first in the list..."<<endl;
+
+                if(!inputCam->setSelectedDevice(0, "Basler-21418131")){
+
+                    throw "Connection to the camera failed";
+
+                }else{
+
+                    cout <<"Connection success"<<endl;
+
+                    inputCam->setCameraPixelFormat(acqFormat);
+
+                    inputCam->startGrab();
+
+                    inputCam->grabOne();
+
+                }
+
+    */
+
+             /*   vector<string> to;
+                to.push_back("yoan.audureau@gmail.com");
+                to.push_back("yoan.audureau@yahoo.fr");
+
+                vector<string> pathAttachments;
+                pathAttachments.push_back("/home/fripon/capture.bmp");
+
+                //pathAttachments.push_back("D:/logoFripon.png");
+
+                string acquisitionDate = TimeDate::localDateTime(second_clock::universal_time(),"%Y:%m:%d:%H:%M:%S");
+
+                SMTPClient mailc("smtp.u-psud.fr", 25, "u-psud.fr");
+                mailc.send("yoan.audureau@u-psud.fr", to, "station ORSAY "+acquisitionDate+" UT", "Test d'acquisition d'une frame sur la station d'Orsay à " + acquisitionDate, pathAttachments, true);
+
+    */
+
+
+
+
+/*
+            }else if(mode == 6){
+
+
+                namespace fs = boost::filesystem;
+
+                path p("/home/fripon/Orsay_20141122_191438UT-0.fit");
+
+                if(is_regular_file(p)){
+
+                    Fits fitsHeader;
+                    fitsHeader.loadKeywordsFromConfigFile("/home/fripon/fripon/freeture/share/configuration.cfg");
+
+                    Mat resMat, res;
+
+                    Fits2D newFits("/home/fripon/Orsay_20141122_191438UT-0.fit",fitsHeader);
+                    newFits.readFits32F(resMat, "/home/fripon/Orsay_20141122_191438UT-0.fit");
+                    resMat.copyTo(res);
+
+                    cout << "before"<<endl;
+                    Mat newMat ;
+                    //ImgReduction::dynamicReductionBasedOnHistogram(99.5, resMat).copyTo(newMat);
+                    ImgReduction::dynamicReductionByFactorDivision(resMat).copyTo(newMat);
+
+                    Fits2D newFits2("/home/fripon/testFits_",fitsHeader);
+
+
+                   //Rechercher la valeur max 7371000 par rapport au n * 4095
+
+                    newFits2.setBzero(32768*112.4725);
+                    newFits2.setBscale(112.4725);
+                    newFits2.writeFits(newMat, bit_depth_enum::S16, 0, true );
+
+                    double minVal2, maxVal2;
+                    minMaxLoc(newMat, &minVal2, &maxVal2);
+
+                    cout << "> Max : "<< maxVal2<<endl;
+                    cout << "> Min : "<< minVal2<<endl<<endl;
+
+
+                }*/
 

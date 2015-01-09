@@ -35,6 +35,7 @@
 
 #include "includes.h"
 #include "Frame.h"
+#include "ECamBitDepth.h"
 
 using namespace std;
 
@@ -53,10 +54,12 @@ class CameraSDK{
 		virtual void	listCameras(void)                           {};
 
 		//! Select a connected device
+		virtual bool	chooseDevice(string)                   {return false;};
+
 		virtual bool	chooseDevice(int, string)                   {return false;};
 
 		//! Start grabbing images
-		virtual int		grabStart()							        {return -1;};
+		virtual bool		grabStart()							        {return -1;};
 
 		//! Start acquisition
 		virtual void	acqStart()							        {};
@@ -86,7 +89,7 @@ class CameraSDK{
 		virtual	int		getGainMax(void)						    {return	-1;};
 
 		//! Get the pixel's format
-		virtual	int		getPixelFormat(void)					    {return	-1;};
+		virtual	CamBitDepth		getPixelFormat(void)					    {return	DEPTH_ERROR;};
 
 		//! Get the width
 		virtual	int		getWidth(void)						        {return	-1;};
@@ -118,6 +121,8 @@ class CameraSDK{
         */
 		virtual bool	setGain(int)						        {return false;};
 
+		virtual bool	setFPS(int)						            {return false;};
+
 		//! Get the gain
         /*!
           \param gain
@@ -128,7 +133,9 @@ class CameraSDK{
         /*!
           \param format 12 or 8 bits
         */
-		virtual	bool	setPixelFormat(int PixelFormatEnums)	    {return false;};
+		virtual	bool	setPixelFormat(CamBitDepth depth)	    {return false;};
+
+		virtual bool    getDeviceById(int id, string &device){return false;}
 
 };
 

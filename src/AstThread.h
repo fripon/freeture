@@ -36,6 +36,7 @@
 #include "includes.h"
 #include "EnumLog.h"
 #include "EnumBitdepth.h"
+#include "ECamBitDepth.h"
 #include "EAstStackMeth.h"
 #include "Fifo.h"
 #include "Frame.h"
@@ -43,6 +44,7 @@
 #include "Fits2D.h"
 #include "Histogram.h"
 #include "TimeDate.h"
+#include "ImgReduction.h"
 
 #include <boost/filesystem.hpp>
 #include <iterator>
@@ -143,7 +145,7 @@ class AstThread{
         /*!
           Is define in the configuration file.
         */
-		int formatPixel ;
+		CamBitDepth camFormat ;
 
 		//! Path of the configuration file
         /*!
@@ -156,7 +158,7 @@ class AstThread{
           Is define in the configuration file. To generate a fits, N frames are integrated during n seconds.
           This parameter is used to decide if we want to conserve the integration or if we want to do a mean to generate the final image.
         */
-		AstStackMeth                      fitsMethod;
+		AstStackMeth                      stackMthd;
 
 		//! Longitude of the station's position
 		double longitude;
@@ -164,6 +166,10 @@ class AstThread{
 		string stationName;
 
 		Fits fitsHeader;
+
+		int camFPS;
+
+		bool stackReduction;
 
 	public:
 
@@ -188,12 +194,14 @@ class AstThread{
                     Fifo<Frame> *frame_queue,
                     int interval,
                     double expTime,
-                    int acqFormat,
+                    CamBitDepth acqFormat,
                     double longi,
                     boost::mutex *m_frame_queue,
                     boost::condition_variable *c_queue_full,
                     boost::condition_variable *c_queue_new,
-                    Fits fitsHead);
+                    Fits fitsHead,
+                    int fps,
+                    bool reduction);
 
         //! Destructor
         ~AstThread(void);

@@ -35,24 +35,27 @@
 
 AstThread::AstThread(   string                      recPath,
                         string                      station,
-                        AstStackMeth                      astMeth,
+                        AstStackMeth                astMeth,
                         string                      configurationFilePath,
                         Fifo<Frame>                 *frame_queue,
                         int                         interval,
                         double                      expTime,
-                        int                         acqFormat,
+                        CamBitDepth                 acqFormat,
                         double                      longi,
                         boost::mutex                *m_frame_queue,
                         boost::condition_variable   *c_queue_full,
                         boost::condition_variable   *c_queue_new,
-                        Fits fitsHead){
+                        Fits fitsHead,
+                        int fps,
+                        bool reduction){
 
+    stackReduction          = reduction;
     fitsHeader              = fitsHead;
     stationName             = station;
     longitude               = longi;
-    fitsMethod              = astMeth;
+    stackMthd              = astMeth;
     configFile              = configurationFilePath;
-    formatPixel				= acqFormat;
+    camFormat				= acqFormat;
 	thread      			= NULL;
 	path_					= recPath;
 	framesQueue				= frame_queue;
@@ -63,6 +66,7 @@ AstThread::AstThread(   string                      recPath,
 	mustStop				= false;
 	exposureTime    		= expTime;
 	threadStopped           = false;
+	camFPS = fps;
 
 }
 
@@ -104,23 +108,25 @@ void AstThread::stopCapture(){
 void AstThread::operator()(){
 
 	BOOST_LOG_SCOPED_THREAD_TAG("LogName", "imgAstThread");
-	BOOST_LOG_SEV(log, critical) << "\n";
-	BOOST_LOG_SEV(log,notification) << "Astro thread started.";
+	BOOST_LOG_SEV(log,notification) << "\n Astro thread started.";
 
+    // Flag to know if the thread has to be stopped.
     bool stop = false;
 
-    int totalImgToSummed = exposureTime * 30;
+    // Number of frames to sum.
+    // If we want to sum 1 minute of frames with a camera which can grabs 30 frames per seconds,
+    // we have finally to sum 60 * 30 = 1800 frames.
+    int imgToSum = exposureTime * camFPS;
 
-    Mat resImg, img;
-
-    int nbSummedImg = 0;
+    // Total number of sum images.
+    int imgSum;
 
     bool recDateObs = true;
     string dateObs ="";
     vector <int> dateObsDeb;
     vector <int> dateObsEnd;
-    int gain;
-    int exposure;
+    int camGain;
+    int camExp;
 
     do{
 
@@ -128,19 +134,23 @@ void AstThread::operator()(){
 
             namespace fs = boost::filesystem;
 
-            nbSummedImg     = 0;
+            imgSum     = 0;
             recDateObs      = true;
             dateObs         ="";
             dateObsDeb.clear();
+
             dateObsEnd.clear();
-            gain = 0;
-            exposure = 0;
+            camGain = 0;
+            camExp = 0;
 
             boost::this_thread::sleep(boost::posix_time::millisec(capInterval*1000));
 
             boost::mutex::scoped_lock lock(*m_mutex_queue);
 
             while (!framesQueue->getFifoIsFull()) condFill->wait(lock);
+
+
+
 
             string root = path_ + stationName + "_" + framesQueue->getFifoElementAt(0).getDateString().at(0) + framesQueue->getFifoElementAt(0).getDateString().at(1) + framesQueue->getFifoElementAt(0).getDateString().at(2) +"/";
 
@@ -242,12 +252,15 @@ void AstThread::operator()(){
                 }
             }
 
-            resImg = Mat::zeros(framesQueue->getFifoElementAt(0).getImg().rows,framesQueue->getFifoElementAt(0).getImg().cols, CV_32FC1);
-            img = Mat::zeros(framesQueue->getFifoElementAt(0).getImg().rows,framesQueue->getFifoElementAt(0).getImg().cols,CV_32FC1);
+
+
+            // Container of 32 bits to accumulate frames.
+            Mat resImg = Mat::zeros(framesQueue->getFifoElementAt(0).getImg().rows,framesQueue->getFifoElementAt(0).getImg().cols, CV_32FC1);
+            Mat img = Mat::zeros(framesQueue->getFifoElementAt(0).getImg().rows,framesQueue->getFifoElementAt(0).getImg().cols,CV_32FC1);
 
             double t = (double)getTickCount();
 
-            while(nbSummedImg<totalImgToSummed){
+            while(imgSum < imgToSum){
 
                 BOOST_LOG_SEV(log,notification) << "Wait new image";
 
@@ -259,9 +272,9 @@ void AstThread::operator()(){
                     dateObs = framesQueue->getFifoElementAt(0).getAcqDate();
                     dateObsDeb = framesQueue->getFifoElementAt(0).getDate();
 
-                    gain = framesQueue->getFifoElementAt(0).getGain();
+                    camGain = framesQueue->getFifoElementAt(0).getGain();
 
-                    exposure = framesQueue->getFifoElementAt(0).getExposure();
+                    camExp = framesQueue->getFifoElementAt(0).getExposure();
 
                     recDateObs = false;
 
@@ -272,52 +285,117 @@ void AstThread::operator()(){
 
                 framesQueue->getFifoElementAt(0).getImg().convertTo(img, CV_32FC1);
                 accumulate(img,resImg);
-                nbSummedImg++;
+                imgSum++;
 
             };
 
             BOOST_LOG_SEV(log,notification) << "Terminate to sum frames";
-            cout << " Terminate to sum frames : "<< nbSummedImg <<endl;
+            cout << " Terminate to sum frames : "<< imgSum <<endl;
 
-            //moyenne
-            if(fitsMethod == MEAN){
+            int     debObsInSeconds = dateObsDeb.at(3)*3600 + dateObsDeb.at(4)*60 + dateObsDeb.at(5);
+            int     endObsInSeconds = dateObsEnd.at(3)*3600 + dateObsEnd.at(4)*60 + dateObsEnd.at(5);
+            int     elapTime        = endObsInSeconds - debObsInSeconds;
+            double  julianDate      = TimeDate::gregorianToJulian_2(dateObsDeb);
+            double  julianCentury   = TimeDate::julianCentury(julianDate);
+            double  sideralT        = TimeDate::localSideralTime_2(julianCentury, dateObsDeb.at(3), dateObsDeb.at(4), dateObsDeb.at(5), longitude);
 
-                resImg = resImg/nbSummedImg;
+            // Fits creation.
+            Fits2D newFits(finalPath,fitsHeader);
+            // Frame exposure time (sec.)
+            newFits.setOntime(camExp);
+            // Detector gain
+            newFits.setGaindb(camGain);
+            // Acquisition date of the first frame 'YYYY-MM-JJTHH:MM:SS.SS'
+            newFits.setDateobs(dateObs);
+            // Integration time : 1/fps * nb_frames (sec.)
+            newFits.setExposure((1.0f/camFPS)*imgSum);
+            // end obs. date - start obs. date (sec.)
+            newFits.setElaptime(elapTime);
+            // Sideral time
+            newFits.setCrval1(sideralT);
+            // Fps
+            newFits.setCd3_3((double)camFPS);
+
+            switch(stackMthd){
+
+                case MEAN :
+
+                    {
+                        // 'SINGLE' 'SUM' 'AVERAGE' ('MEDIAN')
+                        newFits.setObsmode("AVERAGE");
+                        resImg = resImg/imgSum;
+                        double minVal, maxVal;
+                        minMaxLoc(resImg, &minVal, &maxVal);
+
+                        // Saturated or max value (not saturated) in case where OBS_MODE = SUM
+                        newFits.setSaturate(maxVal);
+
+                    }
+
+                    break;
+
+                case SUM :
+
+                    {
+                        // 'SINGLE' 'SUM' 'AVERAGE' ('MEDIAN')
+                        newFits.setObsmode("SUM");
+                        double minVal, maxVal;
+                        minMaxLoc(resImg, &minVal, &maxVal);
+
+                        // Saturated or max value (not saturated) in case where OBS_MODE = SUM
+                        newFits.setSaturate(maxVal);
+
+                    }
+
+                    break;
+
             }
 
-            int debObsInSeconds = dateObsDeb.at(3)*3600 + dateObsDeb.at(4)*60 + dateObsDeb.at(5);
-            int endObsInSeconds = dateObsEnd.at(3)*3600 + dateObsEnd.at(4)*60 + dateObsEnd.at(5);
-            int elapTime = endObsInSeconds - debObsInSeconds;
+            if(stackReduction){
 
+                Mat newMat ;
 
-            double julianDate = TimeDate::gregorianToJulian_2(dateObsDeb);
-            double julianCentury = TimeDate::julianCentury(julianDate);
+                float bzero     = 0.0;
+                float bscale    = 1.0;
 
-            double sideralT = TimeDate::localSideralTime_2(julianCentury, dateObsDeb.at(3), dateObsDeb.at(4), dateObsDeb.at(5), longitude);
+                ImgReduction::dynamicReductionByFactorDivision(resImg, camFormat, imgSum, bzero, bscale).copyTo(newMat);
 
-            //Création d'un fits 2D
-            Fits2D newFits(finalPath,fitsHeader);
-            newFits.setOntime(totalImgToSummed / 30);
-            newFits.setGaindb(gain);
-            newFits.setObsmode("30");
-            newFits.setDateobs(dateObs);//dateObs
-            newFits.setSaturate(pow(2,formatPixel) - 1);
-            newFits.setRadesys("ICRS");
-            newFits.setEquinox(2000.0);
-            newFits.setCtype1("RA---ARC");
-            newFits.setCtype2("DEC--ARC");
-            newFits.setExposure(exposure * 1e-6);
-            newFits.setElaptime(elapTime);
-            newFits.setCrval1(sideralT);//sideraltime
+                newFits.setBzero(bzero);
+                newFits.setBscale(bscale);
 
-            if(newFits.writeFits(resImg, F32 , 0, true ))
-                cout << "Fits saved" << endl;
-            else
-                cout << "Fits not saved" << endl;
+                switch(camFormat){
 
+                    case MONO_8 :
+
+                        {
+
+                             newFits.writeFits(newMat, bit_depth_enum::C8, 0, true,"" );
+
+                        }
+
+                        break;
+
+                    case MONO_12 :
+
+                        {
+
+                             newFits.writeFits(newMat, bit_depth_enum::S16, 0, true,"" );
+
+                        }
+
+                        break;
+
+                }
+
+            }else{
+
+                // Save fits in 32 bits.
+                newFits.writeFits(resImg, F32 , 0, true,"" );
+
+            }
 
             t = (((double)getTickCount() - t)/getTickFrequency())*1000;
-            cout << "Astro thread time : " <<std::setprecision(5)<< std::fixed<< t << " ms"<< endl;
+            cout << "Astro thread time : " << std::setprecision(5) << std::fixed << t << " ms" << endl;
 
             //Get the "must stop" state (thread-safe)
             mustStopMutex.lock();

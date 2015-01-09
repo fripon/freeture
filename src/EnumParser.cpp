@@ -34,6 +34,8 @@
 
 #include "EnumParser.h"
 
+
+
 template<> EnumParser<CamBitDepth>::EnumParser(){
 
     enumMap["MONO_8"]   = MONO_8;
@@ -42,7 +44,8 @@ template<> EnumParser<CamBitDepth>::EnumParser(){
 }
 
 template<> EnumParser<CamType>::EnumParser(){
-cout <<"here : " <<DMK << endl;
+
+//cout << "in template camtype"<<endl;
     enumMap["DMK"]      = DMK;
     enumMap["BASLER"]   = BASLER;
     enumMap["VIDEO"]    = VIDEO;
@@ -61,5 +64,13 @@ template<> EnumParser<DetMeth>::EnumParser(){
 
     enumMap["HOUGH"]    = HOUGH;
     enumMap["LIST"]     = LIST;
+
+}
+
+
+template <> string EnumParser<CamType>::test(){
+
+    cout << "test function"<<endl;
+
 
 }

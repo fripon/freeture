@@ -604,13 +604,13 @@ void searchROI( Mat &area,                      //Region where to search ROI
                     // Check if ROI is not out of range in the frame
                     if((areaPosition.y + i - roiSize[1]/2 > 0) && (areaPosition.y + i + roiSize[1]/2 < imgH) && ( areaPosition.x + j-roiSize[0]/2 > 0) && (areaPosition.x + j + roiSize[0]/2 < imgW)){
 
-                        Mat testNeighborhood = frame(Rect(areaPosition.x + j - 1,areaPosition.y + i -1,3,3));
+                       // Mat testNeighborhood = frame(Rect(areaPosition.x + j - 1,areaPosition.y + i -1,3,3));
 
-                        Mat resTest = testNeighborhood & maskNeighborhood;
+                      //  Mat resTest = testNeighborhood & maskNeighborhood;
 
-                        int nbPixNonZero = countNonZero(resTest);
+                        //int nbPixNonZero = countNonZero(resTest);
 
-                        if(nbPixNonZero > 1){
+                        //if(nbPixNonZero > 1){
 
                             vector<PixelEvent> listPixInRoi = createListPixSupThreshold(frame, roiSize, Point(areaPosition.x + j, areaPosition.y + i)/*, pixelFormat*/);
 
@@ -871,7 +871,7 @@ void searchROI( Mat &area,                      //Region where to search ROI
 
                                 }
                             }
-                        }
+                       // }
                     }
                 }
             }
@@ -971,136 +971,182 @@ bool DetByLists::detectionMethodByListManagement(   Frame                   f,
                                                     bool                    debug,
                                                     vector<Point>           listSubdivPosition,
 
-                                                    bool                    downsample           ){
+                                                    bool                    downsample,
+                                                    Mat &prevthresh           ){
 
     src::severity_logger< severity_level > log;
 
-    BOOST_LOG_SEV(log,notification) << " FRAME NUMBER : " << f.getNumFrame();
-
     bool rec = false;
 
+    bool saveDiff       = false;
+    bool saveThresh     = false;
+    bool saveThresh2    = false;
+    bool saveEventmap   = false;
+
+    // Height of the frame.
     int imgH = currentFrame.rows;
+
+    // Width of the frame.
     int imgW = currentFrame.cols;
 
-    //Iterator on list of global event
+    // Iterator on list of global event.
     vector<GlobalEvent>::iterator itGE;
 
-    //Iterator on list of local event
+    // Iterator on list of local event.
     vector<LocalEvent>::iterator itLE;
 
-    //Iterator on list of regions
+    // List of localEvent objects.
+    vector <LocalEvent> listLocalEvents;
+
+    // Iterator on list of sub-regions.
     vector<Point>::iterator itR;
 
-    Mat diff, copyCurr, copyCurrWithoutMask;
+    // Current frame with a mask.
+    Mat currImg;
+    currentFrame.copyTo(currImg, mask);
 
-    currentFrame.copyTo(copyCurrWithoutMask);
-    currentFrame.copyTo(copyCurr, mask);
-
-
-    //cvtColor(copyCurrWithoutMask, copyCurrWithoutMask, CV_GRAY2BGR);
-    cvtColor(currentFrame, currentFrame, CV_GRAY2BGR);
-
-    //List of localEvent detected in the frame's difference
-    vector <LocalEvent> listLocalEvents;
+    // Previous frame with a mask.
+    Mat prevImg;
+    previousFrame.copyTo(prevImg, mask);
 
     /// %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
     /// %%%%%%%%%%%%%%%%%%%%%%%%%%% STEP 1 : FILETRING / THRESHOLDING %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
     /// %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
     /*
-        -> Absolute difference between the last grabbed frame and mean of n frames
-        -> Remove negative difference
+        -> Frame difference
         -> Compute threshold using standard deviation
         -> Get a binary threshold map
     */
 
-    double  tStep1      = (double)getTickCount();
+    //cout << "### Starting step 1. ###" << endl;
 
-    mean.copyTo(mean, mask);
+    // Execution time.
+    double tStep1 = (double)getTickCount();
 
-    Mat mapThreshold, copyMapThreshold;
+    //cout << "> Downsample : " << downsample << endl;
 
+    double tdownsample = (double)getTickCount();
+
+    // According to DET_DOWNSAMPLE_ENABLED's parameter in configuration file.
     if(downsample){
 
-        imgH = imgH/2;
-        imgW = imgW/2;
+        imgH /= 2;
+        imgW /= 2;
+        double tdowncurr = (double)getTickCount();
+        pyrDown( currImg, currImg, Size( currImg.cols/2, currImg.rows/2 ) );
+        tdowncurr = (((double)getTickCount() - tdowncurr)/getTickFrequency())*1000;
+        //cout << "> tdowncurr Time : " << tdowncurr << endl;
 
-        pyrDown( copyCurr, copyCurr, Size( copyCurr.cols/2, copyCurr.rows/2 ) );
-        pyrDown( mean, mean, Size( mean.cols/2, mean.rows/2 ) );
+        double tdownprev = (double)getTickCount();
+        pyrDown( prevImg, prevImg, Size( prevImg.cols/2, prevImg.rows/2 ) );
+        tdownprev = (((double)getTickCount() - tdownprev)/getTickFrequency())*1000;
+        //cout << "> tdownprev Time : " << tdownprev << endl;
+
+
+        double tdownmask = (double)getTickCount();
         pyrDown( mask, mask, Size( mask.cols/2, mask.rows/2 ) );
+        tdownmask = (((double)getTickCount() - tdownmask)/getTickFrequency())*1000;
+        //cout << "> tdownmask Time : " << tdownmask << endl;
+
 
     }
 
-    mapThreshold = Mat(imgH,imgW, CV_8UC1,Scalar(0));
-    absdiff(copyCurr, mean, diff);
+    tdownsample = (((double)getTickCount() - tdownsample)/getTickFrequency())*1000;
+    //cout << "> Downsample Time : " << tdownsample << endl;
 
-    //Eliminate negative pixels
+    //cout << "> Compute difference." << endl;
+
+    double tdiff = (double)getTickCount();
+
+    // Difference between current and previous frame.
+    Mat diff;
+    absdiff(currImg, prevImg, diff);
+
     if(pixelFormat == MONO_12){
-
-        unsigned short * ptrCurr;
-        unsigned short * ptrPrev;
-        unsigned short * ptrDiff;
-
-        //height
-        for(int i = 0; i < imgH; i++){
-
-            ptrCurr = copyCurr.ptr<unsigned short>(i);
-            ptrPrev = mean.ptr<unsigned short>(i);
-            ptrDiff = diff.ptr<unsigned short>(i);
-
-            //width
-            for(int j = 0; j < imgW; j++){
-
-                if((ptrCurr[j] - ptrPrev[j]) < 0){
-
-                    ptrDiff[j] = 0;
-
-                }
-            }
-        }
 
         Conversion::convertTo8UC1(diff).copyTo(diff);
         Conversion::convertTo8UC1(maskNeighborhood).copyTo(maskNeighborhood);
 
-    }else if(pixelFormat == MONO_8){
+    }
 
+    tdiff = (((double)getTickCount() - tdiff)/getTickFrequency())*1000;
+    cout << "> Difference Time : " << tdiff << endl;
 
-        unsigned char * ptrCurr;
-        unsigned char * ptrPrev;
-        unsigned char * ptrDiff;
+    if(saveDiff)
+        SaveImg::saveBMP(diff, "/home/fripon/debug/diff/diff_"+Conversion::intToString(f.getNumFrame()));
 
-        //height
-        for(int i = 0; i < imgH; i++){
+    //cout << "> Thresholding" << endl;
 
-            ptrCurr = copyCurr.ptr<unsigned char>(i);
-            ptrPrev = mean.ptr<unsigned char>(i);
-            ptrDiff = diff.ptr<unsigned char>(i);
+    double tthresh = (double)getTickCount();
 
-            //width
-            for(int j = 0; j < imgW; j++){
+    // Threshold map.
+    Mat mapThreshold = Mat(imgH,imgW, CV_8UC1,Scalar(0));
 
+    // Thresholding diff.
+    threshold(diff, mapThreshold, defineThreshold(diff, mask), 255, THRESH_BINARY);
 
-                if((ptrCurr[j] - ptrPrev[j]) < 0){
+    tthresh = (((double)getTickCount() - tthresh)/getTickFrequency())*1000;
+    cout << "> Threshold Time : " << tthresh << endl;
 
-                    ptrDiff[j] = 0;
+    if(saveThresh)
+        SaveImg::saveBMP(mapThreshold, "/home/fripon/debug/thresh/thresh_"+Conversion::intToString(f.getNumFrame()));
+
+    double tthresh2 = (double)getTickCount();
+
+    // Remove single white pixel.
+    unsigned char * ptrT;
+
+    Mat black(3,3,CV_8UC1,Scalar(0));
+
+    for(int i = 0; i < imgH; i++){
+
+        ptrT = mapThreshold.ptr<unsigned char>(i);
+
+        for(int j = 0; j < imgW; j++){
+
+            if(ptrT[j] > 0){
+
+                Mat t = mapThreshold(Rect( j - 1, i -1,3,3));
+
+                Mat res = t & maskNeighborhood;
+
+                int n = countNonZero(res);
+
+                if(n == 0){
+
+                    if(j-1 > 0 && j+1 < imgW && i-1 > 0 && i +1 < imgH){
+
+                        black.copyTo(mapThreshold(Rect(j-1, i-1, 3, 3)));
+
+                    }
                 }
-
             }
         }
     }
 
-    //SaveImg::saveBMP(diff, "/home/fripon/debug/diff/diff_"+Conversion::intToString(f.getNumFrame()));
+    tthresh2 = (((double)getTickCount() - tthresh2)/getTickFrequency())*1000;
+    //cout << "> Eliminate single white pixels Time : " << tthresh2 << endl;
 
-    //White pixels in mapThreshold are those which exceed threshold
-    threshold(diff, mapThreshold, defineThreshold(diff, mask), 255, THRESH_BINARY);
+    Mat threshANDprev;
 
-   // SaveImg::saveBMP(mapThreshold, "/home/fripon/debug/thresh/thresh_"+Conversion::intToString(f.getNumFrame()));
+    if(prevthresh.data){
 
-    //mapThreshold's white pixels will be colored in black in the next operation. A copy is done to remember the mapThreshold
-    mapThreshold.copyTo(copyMapThreshold);
+        threshANDprev = mapThreshold & prevthresh;
+
+        //SaveImg::saveBMP(threshANDprev, "/home/fripon/debug/resET_"+Conversion::intToString(f.getNumFrame()));
+
+    }else{
+
+        //cout << "pas encore de data dans prevthresh" << endl;
+    }
+
+    mapThreshold.copyTo(prevthresh);
 
     tStep1 = (((double)getTickCount() - tStep1)/getTickFrequency())*1000;
+    cout << "> Time 1) : " << tStep1 << endl << endl;
 
-    cout << "Time step1 : " << tStep1 << endl;
+    if(saveThresh2)
+        SaveImg::saveBMP(mapThreshold, "/home/fripon/debug/thresh2/thresh_"+Conversion::intToString(f.getNumFrame()));
 
     /// %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
     /// %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%% STEP 2 : FIND LOCAL EVENT %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
@@ -1110,9 +1156,12 @@ bool DetByLists::detectionMethodByListManagement(   Frame                   f,
         -> For each white pixel, a region of interest of 10x10 is defined around. This ROI is linked to an existing LE or become a new LE.
     */
 
-    double  tStep2      = (double)getTickCount();
+    cout << "### Starting step 2. ###" <<endl;
 
-    //Initialize event map for the current frame
+    // Execution time.
+    double tStep2 = (double)getTickCount();
+
+    // Event map for the current frame.
     Mat eventMap = Mat(imgH,imgW, CV_8UC3,Scalar(0,0,0));
 
     //Color used in eventMap to identify localEvents
@@ -1121,30 +1170,24 @@ bool DetByLists::detectionMethodByListManagement(   Frame                   f,
     groupColor.val[1] = 0;      // G
     groupColor.val[2] = 0;      // R
 
-    //vector<Point> listSubdivPosition;
-    //buildListSubdivisionOriginPoints(listSubdivPosition, 8, imgH, imgW);
+    if(threshANDprev.data){
 
-    int subn = 0;
+        for(itR = listSubdivPosition.begin(); itR != listSubdivPosition.end(); ++itR){
 
-    for(itR=listSubdivPosition.begin(); itR!=listSubdivPosition.end(); ++itR){
+             Mat subdivision = threshANDprev(Rect((*itR).x, (*itR).y, imgW/8, imgH/8));
 
-         Mat subdivision = mapThreshold(Rect((*itR).x, (*itR).y, imgW/8, imgH/8));
+             searchROI( subdivision, threshANDprev, maskNeighborhood, eventMap, groupColor, listLocalEvents, imgH, imgW, roiSize, imgW/8, imgH/8, (*itR),pixelFormat);
 
-        // SaveImg::saveBMP(subdivision, "/home/fripon/debug/sub_"+Conversion::intToString(subn)+"_f"+Conversion::intToString(f.getNumFrame()));
-
-         searchROI( subdivision, mapThreshold, maskNeighborhood, eventMap, groupColor, listLocalEvents, imgH, imgW, roiSize, imgW/8, imgH/8, (*itR),pixelFormat);
-
-         subn++;
-
+        }
     }
 
-    //SaveImg::saveBMP(eventMap, "/home/fripon/debug/evMap/event"+Conversion::intToString(f.getNumFrame()));
-
-    cout << "NB local event :  " << listLocalEvents.size() <<endl;
+    cout << "> LE number : " << listLocalEvents.size() << endl;
 
     tStep2 = (((double)getTickCount() - tStep2)/getTickFrequency())*1000;
+    cout << "> Time 2) : " << tStep2 << endl << endl;
 
-    cout << "Time step2 : " << tStep2 << endl;
+    if(saveEventmap)
+        SaveImg::saveBMP(eventMap, "/home/fripon/debug/evMap/event"+Conversion::intToString(f.getNumFrame()));
 
     /// %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
     /// %%%%%%%%%%%%%%%%%%%%%%%%%% STEP 3 : ATTACH LE TO GE OR CREATE NEW ONE %%%%%%%%%%%%%%%%%%%%%%%%%
@@ -1161,16 +1204,16 @@ bool DetByLists::detectionMethodByListManagement(   Frame                   f,
         .
     */
 
+    cout << "### Starting step 3. ###" <<endl;
+
     int nbLink_dir1     = 0;    // Link realized because checking direction is available but not done
     int nbLink_dir2     = 0;    // Link realized because checking direction is available and done
     int nbLink_noDir    = 0;    // Link realized because checking direction is not available
     int nbNewGe         = 0;    // Number of local event transformed in new global event
 
-    double  tStep3      = (double)getTickCount();
+    double tStep3 = (double)getTickCount();
 
     itLE = listLocalEvents.begin();
-
-    cout << "listLocalEvents : "<< listLocalEvents .size()<<endl;
 
     while(itLE != listLocalEvents.end()){
 
@@ -1179,7 +1222,7 @@ bool DetByLists::detectionMethodByListManagement(   Frame                   f,
         vector<GlobalEvent>::iterator itLink;
 
         //Loop globalEvent's list
-        for(itGE=listGlobalEvents.begin(); itGE!=listGlobalEvents.end(); ++itGE){
+        for(itGE = listGlobalEvents.begin(); itGE!=listGlobalEvents.end(); ++itGE){
 
             Mat res = (*itLE).getMap() & (*itGE).getMapEvent();
 
@@ -1214,8 +1257,6 @@ bool DetByLists::detectionMethodByListManagement(   Frame                   f,
 
         // ADD LE to the correct GE
         if(LELinked){
-
-
 
             // Flag utilisé pour setter la propriété de nombre de frame sans qu'un GE ait été attaché à un LE
             (*itLink).setLELinked(true);
@@ -1300,15 +1341,14 @@ bool DetByLists::detectionMethodByListManagement(   Frame                   f,
 
       //  if((*itGE).getEvBuffer().size() != 0){
 
-            (*itGE).setEvBuffer(copyCurrWithoutMask);
+            (*itGE).setEvBuffer(currentFrame);
 
         //}
 
     }
 
     tStep3 = (((double)getTickCount() - tStep3)/getTickFrequency())*1000;
-
-    cout << "Time step3 : " << tStep3 << endl;
+    cout << "> Time 3) : " << tStep3 << endl;
 
     /// %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
     /// %%%%%%%%%%%%%%%%%%%%%%%%%%%%%% STEP 4 : MANAGE LIST GLOBAL EVENT %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
@@ -1318,6 +1358,9 @@ bool DetByLists::detectionMethodByListManagement(   Frame                   f,
         -> If a GE has not been updated for 10 frames and that the size of GE is enough, the GE is saved
         -> Else it is removed
     */
+
+    cout << "### Starting step 4. ###" <<endl;
+
     double  tStep4      = (double)getTickCount();
 
     int     nbRmGE      = 0;
@@ -1335,10 +1378,10 @@ bool DetByLists::detectionMethodByListManagement(   Frame                   f,
             cout << "#GE#      "<<(*itGE).getAge()<<"          "<<(*itGE).getAgeLastElem()<< endl;
 
             //No LE added to the current GE for more than 4 frames
-            if( (*itGE).getAgeLastElem() > geAfterTime || (*itGE).getPosFailed() > 2 /*|| ((*itGE).getAge() > 500 && (*itGE).getAgeLastElem() > 10)*/ ){
+            if( (*itGE).getAgeLastElem() > (geAfterTime + 5)|| (*itGE).getPosFailed() > 2 /*|| ((*itGE).getAge() > 500 && (*itGE).getAgeLastElem() > 10)*/ ){
 
                 //Check if the current GE has the minimum required number of LE to considerate it as an event to record
-                if( (*itGE).getPosSuccess() >= 1 && (*itGE).getPosFailed() < 2 ){
+                if( (*itGE).getPosSuccess() >= 2 && (*itGE).getPosFailed() <= 2 ){
 
                     struct evPathRes r;
 
@@ -1477,8 +1520,8 @@ bool DetByLists::detectionMethodByListManagement(   Frame                   f,
                 SaveImg::saveBMP(geMap,"/home/fripon/data2/ge/geMap_" + Conversion::intToString(f.getNumFrame()));
 
             }*/
-        //}
-
+      //  }
+/*
         VIDEO_finalFrame        = Mat(960,1280, CV_8UC3,Scalar(255,255,255));
 
         VIDEO_originalFrame     = Mat(470,630, CV_8UC3,Scalar(0,0,0));
@@ -1520,7 +1563,7 @@ bool DetByLists::detectionMethodByListManagement(   Frame                   f,
 
             videoDebug<<VIDEO_finalFrame;
 
-        }
+        }*/
 
     }
 

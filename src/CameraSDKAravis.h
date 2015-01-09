@@ -15,6 +15,7 @@
 #include "TimeDate.h"
 #include "arv.h"
 #include "arvinterface.h"
+#include "ECamBitDepth.h"
 
 namespace logging = boost::log;
 namespace sinks = boost::log::sinks;
@@ -52,6 +53,7 @@ class CameraSDKAravis: public CameraSDK{
         double          gainMin,
                         gainMax;
         unsigned int    payload;
+
         const char      *pixel_format_string;
         double          exposureMin,
                         exposureMax;
@@ -75,10 +77,10 @@ class CameraSDKAravis: public CameraSDK{
 		void	listCameras(void);
 
 		//! Select a connected device
-		bool	chooseDevice(int, string);
+		bool	chooseDevice(string);
 
 		//! Start grabbing images
-		int		grabStart();
+		bool		grabStart();
 
 		//! Stop grabbing images
 		void	grabStop();
@@ -102,7 +104,7 @@ class CameraSDKAravis: public CameraSDK{
 		int		getGainMax(void);
 
 		//! Get the pixel's format
-		int		getPixelFormat(void);
+		CamBitDepth		getPixelFormat(void);
 
 		//! Get the width
 		int		getWidth(void);
@@ -116,6 +118,8 @@ class CameraSDKAravis: public CameraSDK{
 		//! Get the camera's model name
 		string	getModelName();
 
+		bool    getDeviceById(int id, string &device);
+
         //! Set the exposure time
         /*!
           \param exp exposure time
@@ -128,11 +132,13 @@ class CameraSDKAravis: public CameraSDK{
         */
 		bool	setGain(int gain);
 
+		bool    setFPS(int fps);
+
 		//! Set the pixel format
         /*!
           \param format 12 or 8 bits
         */
-		bool	setPixelFormat(int depth);
+		bool	setPixelFormat(CamBitDepth depth);
 
 		void    acqStart();
 

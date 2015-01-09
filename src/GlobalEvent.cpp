@@ -195,6 +195,7 @@ bool GlobalEvent::addLE(LocalEvent le){
     if(listLocalEvent.size() == 0){
 
         mainPoints.push_back(center);
+        circle(dirMap, center, 5, Scalar(0,255,0), CV_FILLED, 8, 0);
 
     }else if((listLocalEvent.size())%nbPt == 0){
 
@@ -228,16 +229,10 @@ bool GlobalEvent::addLE(LocalEvent le){
                 circle(dirMap, center, 5, Scalar(0,255,0), CV_FILLED, 8, 0);
 
             }
-
-
         }
-
-
     }
 
     circle(dirMap, center, 3, Scalar(255,0,0), CV_FILLED, 8, 0);
-
-
 
     //reset ageLastELem
     ageLastElem = 0;

@@ -48,6 +48,7 @@
 #include "Conversion.h"
 #include "EnumLog.h"
 #include "EnumBitdepth.h"
+#include "ECamBitDepth.h"
 //#include "serialize.h"
 #include <boost/filesystem.hpp>
 #include <iterator>
@@ -80,64 +81,52 @@ class CameraBasler : public Camera{
 
 	private:
 
-        //! A logger
-        /*!
-          Logger used to manage messages added to the log file
-        */
+        //! Logger.
 		src::severity_logger< severity_level > log;
 
-        //! Pointer on the shared queue
-        /*!
-          The grabbed images by this acquisition thread will be push in this shared queue
-        */
-		Fifo<Frame> * framesQueue;
+        //! Shared queue of frames.
+		Fifo<Frame> *framesQueue;
 
-		//! Stop flag of the thread
+		//! Stop flag of the thread.
 		bool mustStop;
 
-		//! Mutex on the stop flag
+		//! Mutex on the stop flag.
 		boost::mutex mustStopMutex;
 
-		//! Mutex on the shared queue
-		boost::mutex				*mutexQueue;
+		//! Mutex on the shared queue.
+		boost::mutex *mutexQueue;
 
-		//! Condition if the shared queue is full
-		boost::condition_variable	*condQueueFill;
+		//! Condition if the shared queue is full.
+		boost::condition_variable *condQueueFill;
 
-		//! Condition if the shared queue has a new element
-		boost::condition_variable	*condQueueNewElement;
+		//! Condition if the shared queue has a new element.
+		boost::condition_variable *condQueueNewElement;
 
-        //! Pointer on the acquisition thread
+        //! Acquisition thread.
 		boost::thread *m_thread;
 
-        //! Location on the buffer on the disk
-		string bufferDiskPath;
-
-		//! Size of the buffer on the disk
-		int bufferDiskSize;
-
+        //! Camera object.
 		CameraSDK *camera;
 
 		bool threadStopped;
 
-		unsigned int cpt;
+        //! Exposure value.
+		int exposure;
 
-		int initialExpValue;
-        int initialGainValue;
+		//! Gain value.
+        int gain;
 
+        int fps;
 
-        boost::mutex				*m_BufferDiskNames;
-        vector<Frame>               *bufferDiskNames;
+        //! Bit depth.
+        CamBitDepth bitdepth;
 
-        bool saveFits;
-        bool saveImg;
-        int format;
-        Mat mask;
-        bool maskEnable;
+        //! Path of the configuration file.
         string configFile;
+
         string savePath;
 
-        Fits fitsHeader;
+        unsigned int frameCpt;
 
 	public:
 
@@ -152,20 +141,15 @@ class CameraBasler : public Camera{
                                                                 boost::mutex *m_queue,
                                                                 boost::condition_variable *c_queueFull,
                                                                 boost::condition_variable *c_queueNew,
-                                                                int initialExposure,
-                                                                int initialGain,
-                                                                Mat frameMask,
-                                                                bool enableMask);
+                                                                int         camExp,
+                                                                int         camGain,
+                                                                CamBitDepth camDepth,
+                                                                int         camFPS);
 
 
-        CameraBasler( int exposure,
-                      int gain,
-                      bool saveFits2D,
-                      bool saveBmp,
-                      int acqFormat,
-                      string configPath,
-                      string saveLocation,
-                      Fits fitsHead);
+        CameraBasler( int           camExp,
+                      int           camGain,
+                      CamBitDepth   camDepth);
 
 
 		//! Constructor
@@ -180,17 +164,25 @@ class CameraBasler : public Camera{
 		//! Get height
 		int		getCameraHeight();
 
+		double	getCameraExpoMin();
+
         //! List connected cameras
 		void	getListCameras();
 
+		bool    getDeviceById(int id, string &device);
+
 		//! Select a device by id or by name
 		bool	setSelectedDevice(int id, string name);
+
+		bool	setSelectedDevice(string name);
+
+        bool    setCameraFPS(int fps);
 
 		//! Wait the end of the acquisition thread
 		void	join();
 
         //! Set the pixel format : 8 or 12
-		void	setCameraPixelFormat(int depth);
+		bool	setCameraPixelFormat(CamBitDepth depth);
 
         //! Acquisition thread operations
 		void	operator()();
@@ -202,212 +194,14 @@ class CameraBasler : public Camera{
 		void	startThread();
 
 		//! Set the exposure time
-		void	setCameraExposureTime(double value);
+		bool	setCameraExposureTime(double value);
 
 		//! Set the gain
-		void	setCameraGain(int);
+		bool	setCameraGain(int);
 
-		void    startGrab();
+		bool    startGrab();
 
 		void    stopGrab();
 
-		void    grabOne();
+		bool    grabSingleFrame(Mat &frame, string &date);
 };
-
-
-
-
-
-/*
-// pylon api
-#include <pylon/PylonIncludes.h>
-#ifdef PYLON_WIN_BUILD
-	#include <pylon/PylonGUI.h>
-#endif
-#include <pylon/gige/BaslerGigEInstantCamera.h>
-#include <pylon/gige/BaslerGigECamera.h>
-
-namespace logging = boost::log;
-namespace sinks = boost::log::sinks;
-namespace attrs = boost::log::attributes;
-namespace src = boost::log::sources;
-namespace expr = boost::log::expressions;
-namespace keywords = boost::log::keywords;
-
-using boost::shared_ptr;
-
-using namespace Pylon;
-using namespace GenApi;
-using namespace cv;
-using namespace std;
-
-using namespace Basler_GigECameraParams;
-
-// buffer's number used for grabbing
-static const uint32_t nbBuffers = 20;
-
-
-//! Thread class for acquisition with Basler cameras
-/*!
-  This class uses Pylon SDK
-*/
-/*class CameraBasler : public Camera{
-
-    public:
-
-        /** Severity level enumeration for log file.
-         */
-     /*   enum severity_level{
-                normal,         /**< enum normal */
-        //        notification,   /**< enum notification */
-        //        warning,        /**< enum warning */
-        //        fail,           /**< enum fail */
-        //        critical        /**< enum critical */
-       // };
-/*
-	private:
-
-        //! A logger
-        /*!
-          Logger used to manage messages added to the log file
-        */
-		/*src::severity_logger< severity_level > log;
-
-		Pylon::PylonAutoInitTerm autoInitTerm;
-
-        //! Pointer on the shared queue
-        /*!
-          The grabbed images by this acquisition thread will be push in this shared queue
-        */
-	/*	Fifo<Frame> * framesQueue;
-
-		//! Stop flag of the thread
-		bool mustStop;
-
-		//! Mutex on the stop flag
-		boost::mutex mustStopMutex;
-
-		//! Mutex on the shared queue
-		boost::mutex				*mutexQueue;
-
-		//! Condition if the shared queue is full
-		boost::condition_variable	*condQueueFill;
-
-		//! Condition if the shared queue has a new element
-		boost::condition_variable	*condQueueNewElement;
-
-        //! Pointer on the acquisition thread
-		boost::thread *m_thread;
-
-        //! Buffer for the grabbed images in 8 bits format
-		uint8_t* ppBuffersUC[nbBuffers];
-
-		//! Buffer for the grabbed images in 8 bits format
-		uint16_t* ppBuffersUS[nbBuffers];
-
-		StreamBufferHandle handles[nbBuffers];
-
-        //! Pointer on the transport layer
-		CTlFactory			*pTlFactory;
-
-		//! Pointer on basler camera
-		CBaslerGigECamera	*pCamera;
-
-		//! Pointer on device
-		IPylonDevice		*pDevice;
-
-		//! List of basler connected cameras
-		DeviceInfoList_t	 devices;
-
-		CBaslerGigECamera::EventGrabber_t	* pEventGrabber;
-
-		IEventAdapter						* pEventAdapter;
-
-		CBaslerGigECamera::StreamGrabber_t	* pStreamGrabber;
-
-		int nbEventBuffers;
-
-        //! Location on the buffer on the disk
-		string bufferDiskPath;
-
-		//! Size of the buffer on the disk
-		int bufferDiskSize;
-
-	public:
-
-        //! Constructor
-        /*!
-          \param queue pointer on the shared queue
-          \param m_mutex_queue pointer on a mutex used for the shared queue
-          \param m_cond_queue_fill pointer on a condition used to notify when the shared queue is full
-          \param m_cond_queue_new_element pointer on a condition used to notify when the shared queue has received a new frame
-        */
-	/*	CameraBasler										(   Fifo<Frame> *queue,
-                                                                boost::mutex *m_mutex_queue,
-                                                                boost::condition_variable *m_cond_queue_fill,
-                                                                boost::condition_variable *m_cond_queue_new_element,
-                                                                string frameBufferPath,
-                                                                int frameBufferSize);
-
-		//! Constructor
-		CameraBasler										();
-
-		//! Destructor
-		~CameraBasler(void);
-
-        //! Get width
-        /*!
-          \return width
-        */
-	/*	int			getWidth                                ();
-
-		//! Get height
-        /*!
-          \return height
-        */
-		/*int			getHeight                               ();
-
-        //! List connected cameras
-		void		listCameras								();
-
-		//! Choose a device
-        /*!
-          \param id id of the selected device
-          \return success to choose the selected device
-        */
-	/*	bool		chooseDevice							(int id);
-
-		//! Start grabbing
-		int			grabStart								();
-
-		//! Stop grabbing
-		void		grabStop								();
-
-		//! Wait the end of the acquisition thread
-		void		join									();
-
-        //! Set the pixel format
-        /*!
-          \param format 8 or 12 bits
-        */
-	/*	void		setPixelFormat	                        (int depth);
-
-        //! Acquisition thread operations
-		void		operator								()();
-
-		//! Stop the thread
-		void		stopThread();
-
-		//! Set the exposure time
-        /*!
-          \param exp
-        */
-		/*void		setExposureTime							(double value);
-
-		//! Set the gain
-        /*!
-          \param gain
-        */
-	/*	void		setGain					(int)			;
-};*/
-

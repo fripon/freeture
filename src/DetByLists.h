@@ -97,7 +97,8 @@ class DetByLists{
                                                     VideoWriter &videoDebug,
                                                     bool debug,
                                                     vector<Point> listSubdivPosition,
-                                                    bool downsample  );
+                                                    bool downsample,
+                                                    Mat &prevthresh  );
 
         static void buildListSubdivisionOriginPoints(
                                                         vector<Point> &listSubdivPosition,

@@ -42,7 +42,6 @@
 
 using namespace std;
 
-
 //http://stackoverflow.com/questions/726664/string-to-enum-in-c
 
 template<typename T>
@@ -52,7 +51,7 @@ class EnumParser{
 
 	    map<string, T> enumMap;
 
-		EnumParser(){cout << "here" << endl;};
+		EnumParser();
 
 		T parseEnum(string paramName, const string & value){
 
@@ -87,4 +86,10 @@ class EnumParser{
                     return it->first;
             }
 		}
+
+		string test();
+
 };
+
+
+

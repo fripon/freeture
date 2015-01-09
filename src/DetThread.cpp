@@ -83,6 +83,7 @@ DetThread::DetThread(Mat                        maskImg,
 
 	nbDet                           =   0;
 
+
 }
 
 DetThread::~DetThread(void){
@@ -339,7 +340,8 @@ void DetThread::operator ()(){
                                                                         videoDebug,
                                                                         debug,
                                                                         listSubdivPosition,
-                                                                        downsample);
+                                                                        downsample,
+                                                                        prevthresh);
 
            // }
 

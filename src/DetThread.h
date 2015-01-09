@@ -134,6 +134,8 @@ class DetThread{
 
         Fits fitsHeader;
 
+        Mat prevthresh;
+
 	public:
 
         DetThread(   Mat                        maskImg,

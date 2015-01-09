@@ -41,8 +41,11 @@ CameraFrames::CameraFrames( string dir,
                             boost::mutex *m_mutex_queue,
                             boost::condition_variable *m_cond_queue_fill,
                             boost::condition_variable *m_cond_queue_new_element,
-                            Fits fitsHead){
-    fitsHeader = fitsHead;
+                            Fits fitsHead,
+                            int bitdepth){
+
+    bitpix              = bitdepth;
+    fitsHeader          = fitsHead;
 	dirPath             = dir;
 	thread              = NULL;
 	frameQueue          = queue;
@@ -148,11 +151,11 @@ void CameraFrames::operator () (){
 
     if(fs::exists(p)){
 
-        std::cout << "Directory " << p.string() << " exists." << '\n';
-
         do{
 
             string filename = "";
+
+            /// === Search a frame in the directory. ===
 
             for(directory_iterator file(p);file!= directory_iterator(); ++file){
 
@@ -181,6 +184,7 @@ void CameraFrames::operator () (){
                     }
 
                     if(number == numFrame){
+
                         numFrame++;
                         fileFound = true;
                         cpt++;
@@ -189,6 +193,7 @@ void CameraFrames::operator () (){
                         filename = file->path().c_str() ;
 
                         break;
+
                     }
                 }
             }
@@ -203,10 +208,26 @@ void CameraFrames::operator () (){
 
             }
 
-            Mat resMat;
+            /// === Read the frame. ===
 
-            Fits2D newFits(filename,fitsHeader);
-            newFits.readFits16S(resMat, filename);
+            Mat resMat;
+            Fits2D newFits;
+
+            switch(bitpix){
+
+                case 8 :
+
+                    newFits.readFits8UC(resMat, filename);
+
+                    break;
+
+                case 16 :
+
+                    newFits.readFits16S(resMat, filename);
+
+                    break;
+
+            }
 
             //Timestamping
 
@@ -235,6 +256,10 @@ void CameraFrames::operator () (){
         endReadFrames = false;
         cpt = 0;
         numFrame = frameStart_;
+
+    }else{
+
+        cout << "Path of frames " << dirPath << "doesn't exist." << endl;
 
     }
 

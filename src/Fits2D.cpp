@@ -93,12 +93,13 @@ bool Fits2D::writeKeywords(fitsfile *fptr){
         39. CD1_2       = 0.17                                      / deg/px
         40. CD2_1       = 0.17                                      / deg/pix
         41. CD2_2       = 0.0                                       / deg/pix
-        42. CRPIX1      = 640
-        43. CRPIX2      = 480
-        44. CRVAL1      =                                           / Sidereal time (decimal degree)
-        45. CRVAL2      =                                           / latitude observatory (decimal degree)
-        46. K1          =
-        47. K2          =
+        42. CD3_3       = 30                                        / fps
+        43. CRPIX1      = 640
+        44. CRPIX2      = 480
+        45. CRVAL1      =                                           / Sidereal time (decimal degree)
+        46. CRVAL2      =                                           / latitude observatory (decimal degree)
+        47. K1          =
+        48. K2          =
 
     */
 
@@ -272,8 +273,8 @@ bool Fits2D::writeKeywords(fitsfile *fptr){
 
     /// 16. %%%%%%%%%%%%%%%%%%%%%%%%%%%%% OBSERVER %%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
-    char * cobserver = new char[cTELESCOP.length()+1];
-    strcpy(cobserver,cTELESCOP.c_str());
+    char * cobserver = new char[cOBSERVER.length()+1];
+    strcpy(cobserver,cOBSERVER.c_str());
 
     char * o = new char[kOBSERVER.length()+1];
     strcpy(o,kOBSERVER.c_str());
@@ -346,7 +347,7 @@ bool Fits2D::writeKeywords(fitsfile *fptr){
     char * caperture = new char[cAPERTURE.length()+1];
     strcpy(caperture,cAPERTURE.c_str());
 
-    if(fits_write_key(fptr,TDOUBLE,"APERTURE",&kAPERTURE,"",&status)){
+    if(fits_write_key(fptr,TDOUBLE,"APERTURE",&kAPERTURE,caperture,&status)){
 
         delete caperture;
         return printerror(status, "Error fits_write_key(APERTURE)");
@@ -685,7 +686,21 @@ bool Fits2D::writeKeywords(fitsfile *fptr){
 
     delete ccd2_2;
 
-    /// 42. %%%%%%%%%%%%%%%%%%%%%%%%%%%%% CRPIX1 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+    /// 42. %%%%%%%%%%%%%%%%%%%%%%%%%%%%% CD3_3 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+    char * ccd3_3 = new char[cCD3_3.length()+1];
+    strcpy(ccd3_3,cCD3_3.c_str());
+
+    if(fits_write_key(fptr,TDOUBLE,"CD3_3",&kCD3_3,ccd3_3,&status)){
+
+        delete ccd3_3;
+        return printerror(status, "Error fits_write_key(CD3_3)");
+
+    }
+
+    delete ccd3_3;
+
+    /// 43. %%%%%%%%%%%%%%%%%%%%%%%%%%%%% CRPIX1 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
     char * ccrpix1 = new char[cCRPIX1.length()+1];
     strcpy(ccrpix1,cCRPIX1.c_str());
@@ -699,7 +714,7 @@ bool Fits2D::writeKeywords(fitsfile *fptr){
 
     delete ccrpix1;
 
-    /// 43. %%%%%%%%%%%%%%%%%%%%%%%%%%%%% CRPIX2 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+    /// 44. %%%%%%%%%%%%%%%%%%%%%%%%%%%%% CRPIX2 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
     char * ccrpix2 = new char[cCRPIX2.length()+1];
     strcpy(ccrpix2,cCRPIX2.c_str());
@@ -713,7 +728,7 @@ bool Fits2D::writeKeywords(fitsfile *fptr){
 
     delete ccrpix2;
 
-    /// 44. %%%%%%%%%%%%%%%%%%%%%%%%%%%%% CRVAL1 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+    /// 45. %%%%%%%%%%%%%%%%%%%%%%%%%%%%% CRVAL1 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
     char * ccrval1 = new char[cCRVAL1.length()+1];
     strcpy(ccrval1,cCRVAL1.c_str());
@@ -727,7 +742,7 @@ bool Fits2D::writeKeywords(fitsfile *fptr){
 
     delete ccrval1;
 
-    /// 45. %%%%%%%%%%%%%%%%%%%%%%%%%%%%% CRVAL2 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+    /// 46. %%%%%%%%%%%%%%%%%%%%%%%%%%%%% CRVAL2 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
     char * ccrval2 = new char[cCRVAL2.length()+1];
     strcpy(ccrval2,cCRVAL2.c_str());
@@ -741,7 +756,7 @@ bool Fits2D::writeKeywords(fitsfile *fptr){
 
     delete ccrval2;
 
-    /// 46. %%%%%%%%%%%%%%%%%%%%%%%%%%%%% K1 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+    /// 47. %%%%%%%%%%%%%%%%%%%%%%%%%%%%% K1 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
     char * ck1 = new char[cK1.length()+1];
     strcpy(ck1,cK1.c_str());
@@ -755,7 +770,7 @@ bool Fits2D::writeKeywords(fitsfile *fptr){
 
     delete ck1;
 
-    /// 47. %%%%%%%%%%%%%%%%%%%%%%%%%%%%% K2 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+    /// 48. %%%%%%%%%%%%%%%%%%%%%%%%%%%%% K2 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
     char * ck2 = new char[cK2.length()+1];
     strcpy(ck2,cK2.c_str());
@@ -778,7 +793,7 @@ bool Fits2D::writeKeywords(fitsfile *fptr){
 /* Create a FITS primary array containing a 2-D image */
 /******************************************************/
 
-bool Fits2D::writeFits( Mat img, bitdepth imgType, int nb, bool filenameWithDate){
+bool Fits2D::writeFits( Mat img, bitdepth imgType, int nb, bool filenameWithDate, string fileName){
 
     int status = 0;
 
@@ -797,7 +812,7 @@ bool Fits2D::writeFits( Mat img, bitdepth imgType, int nb, bool filenameWithDate
     nbelements = naxes[0] * naxes[1];
 
     // Get current date.
-    kDATE = TimeDate::localDateTime(microsec_clock::universal_time(),"%Y-%m-%dT %H:%M:%S");
+    kDATE = TimeDate::localDateTime(microsec_clock::universal_time(),"%Y-%m-%dT%H:%M:%S");
     string date	= TimeDate::localDateTime(microsec_clock::universal_time(),"%Y%m%d_%H%M%S");
 
     fitsfile *fptr;
@@ -823,7 +838,7 @@ bool Fits2D::writeFits( Mat img, bitdepth imgType, int nb, bool filenameWithDate
 
     }else{
 
-        pathAndname		= fitsPath+".fit";
+        pathAndname		= fitsPath+fileName+".fit";
 
     }
 
@@ -986,6 +1001,9 @@ bool Fits2D::writeFits( Mat img, bitdepth imgType, int nb, bool filenameWithDate
 
                  return printerror( status, "Fits2D::writeimage() case 16 bits -> fits_create_file() failed" );
             }
+
+           // fits_set_compression_type(fptr, GZIP_1, &status);
+
 
 
             if ( fits_create_img(fptr,  USHORT_IMG, naxis, naxes, &status)){
@@ -1534,6 +1552,37 @@ bool Fits2D::readFits8C(Mat &img, string filePath){
     return true;
 
 }
+
+bool Fits2D::readIntKeyword(string filePath, string keyword, int &value){
+
+    char *ptr = NULL;
+
+    int status = 0;
+
+    fitsfile *fptr;
+
+    const char * filename;
+
+    filename = filePath.c_str();
+
+    if(fits_open_file(&fptr, filename, READONLY, &status)){
+
+        return printerror( status, "> Failed to open the fits file." );
+    }
+
+    char * key = new char[keyword.length()+1];
+    strcpy(key,keyword.c_str());
+
+    if(fits_read_key(fptr, TINT, key, &value, NULL, &status)){
+
+        return printerror( status, "> Failed to read the fits keyword." );
+    }
+
+    delete key;
+
+    return true;
+}
+
 
 bool Fits2D::printerror( int status, string errorMsg){
 

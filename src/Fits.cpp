@@ -340,6 +340,12 @@ double Fits::getCd2_2(){
 
 }
 
+double Fits::getCd3_3(){
+
+    return kCD3_3;
+
+}
+
 string Fits::getObsmode(){
 
     return kOBSMODE;
@@ -586,6 +592,12 @@ void Fits::setCd2_1(double cd2_1){
 void Fits::setCd2_2(double cd2_2){
 
     kCD2_2 = cd2_2;
+
+}
+
+void Fits::setCd3_3(double cd3_3){
+
+    kCD3_3 = cd3_3;
 
 }
 

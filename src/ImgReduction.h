@@ -36,6 +36,7 @@
 #include "includes.h"
 #include "Fits2D.h"
 #include "EnumBitdepth.h"
+#include "ECamBitDepth.h"
 
 using namespace std;
 using namespace cv;
@@ -48,7 +49,7 @@ class ImgReduction{
 
         static Mat dynamicReductionBasedOnHistogram(double percent, Mat& img);
 
-		static Mat dynamicReductionByFactorDivision(Mat& img);
+		static Mat dynamicReductionByFactorDivision(Mat& img, CamBitDepth bitpix, int imgToSum, float &bzero, float &bscale);
 
 };
 

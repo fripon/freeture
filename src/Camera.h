@@ -34,8 +34,10 @@
 #pragma once
 
 #include "includes.h"
+#include "ECamBitDepth.h"
 
 using namespace std;
+using namespace cv;
 
 //! Camera class
 class Camera{
@@ -54,6 +56,8 @@ class Camera{
 		//! Select a connected device
 		virtual bool	setSelectedDevice(int, string)                  {return false;};
 
+		virtual bool	setSelectedDevice(string)                  {return false;};
+
         //! Wait the end of the acquisition thread
 		virtual void    join()                                          {};
 
@@ -63,11 +67,11 @@ class Camera{
 		//! Start the acquisition thread
 		virtual void	startThread()                                   {};
 
-		virtual void    startGrab()                                     {};
+		virtual bool    startGrab()                                     {};
 
 		virtual void    stopGrab()                                      {};
 
-		virtual void    grabOne()                                       {};
+		virtual bool    grabSingleFrame(Mat &frame, string &date)                      {};
 
         //! Get the minimum exposition value
 		virtual double	getCameraExpoMin(void)						    {return -1;};
@@ -97,19 +101,24 @@ class Camera{
 		virtual	string	getCameraModelName()							{return "";};
 
         //! Set the exposure time
-		virtual void	setCameraExposureTime(double)					{};
+		virtual bool	setCameraExposureTime(double)					{};
 
         //! Get the exposure time
 		virtual double	getCameraExposureTime()					        {};
 
 		//! Set the gain
-		virtual void	setCameraGain(int)						        {};
+		virtual bool	setCameraGain(int)						        {};
+
+		//! Set FPS.
+		virtual bool    setCameraFPS(int)                               {};
 
 		//! Get the gain
 		virtual int	    getCameraGain()						            {return	-1;};
 
 		//! Set the pixel format
-		virtual	void	setCameraPixelFormat(int PixelFormatEnums)		{};
+		virtual	bool	setCameraPixelFormat(CamBitDepth depth)		{};
+
+		virtual bool    getDeviceById(int id, string &device){return false;}
 
 };
 

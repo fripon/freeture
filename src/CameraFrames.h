@@ -127,6 +127,8 @@ class CameraFrames : public Camera{
 
         int frameStop_;
 
+        int bitpix;
+
         Fits fitsHeader;
 
 	public:
@@ -146,7 +148,8 @@ class CameraFrames : public Camera{
                     boost::mutex *m_mutex_queue,
                     boost::condition_variable *m_cond_queue_fill,
                     boost::condition_variable *m_cond_queue_new_element,
-                    Fits fitsHead);
+                    Fits fitsHead,
+                    int bitdepth);
 
         //! Destructor
 		~CameraFrames(void);

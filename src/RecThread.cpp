@@ -287,12 +287,12 @@ void RecThread::operator () (){
                             if(pixelFormat == 8){
 
                                 Fits2D newFits(fits2DPath + "f_"+ Conversion::numbering(digits, num) + Conversion::intToString(num) + "_",fitsHeader);
-                                newFits.writeFits((*it2), UC8, 0, true );
+                                newFits.writeFits((*it2), UC8, 0, true,"" );
 
                             }else{
 
                                 Fits2D newFits(fits2DPath + "f_"+ Conversion::numbering(digits, num) + Conversion::intToString(num) + "_",fitsHeader);
-                                newFits.writeFits((*it2), US16, 0, true );
+                                newFits.writeFits((*it2), US16, 0, true,"" );
                             }
 
                             num++;
@@ -304,12 +304,12 @@ void RecThread::operator () (){
                             if(pixelFormat == 8){
 
                                 Fits2D newFits(fits2DPath + "f_"+ Conversion::numbering(digits, num) + Conversion::intToString(num) + "_",fitsHeader);
-                                newFits.writeFits((*it2), UC8, 0, true );
+                                newFits.writeFits((*it2), UC8, 0, true,"" );
 
                             }else{
 
                                 Fits2D newFits(fits2DPath + "f_"+ Conversion::numbering(digits, num) + Conversion::intToString(num) + "_",fitsHeader);
-                                newFits.writeFits((*it2), US16, 0, true );
+                                newFits.writeFits((*it2), US16, 0, true,"" );
                             }
 
                             num++;
@@ -378,7 +378,7 @@ void RecThread::operator () (){
                     }
 
                     Fits2D newFits(r.getPath() + "sum",fitsHeader);
-                    newFits.writeFits(resImg, F32, 0, true );
+                    newFits.writeFits(resImg, F32, 0, true,"" );
 
                     BOOST_LOG_SEV(log,notification) << "END recSum ...";
 

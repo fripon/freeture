@@ -51,8 +51,8 @@ using namespace std;
     6.  EXTEND      = T                                         / FITS dataset may contain extensions
 
     7.  FILENAME    = 'stationOrsay_YYYYMMJJ_HHMMSS_UT.fits'    / name of the fits file
-    8.  DATE        = 'YYYY-MM-JJT HH:MM:SS.SS'                 / date of the creation of the fits file
-    9.  DATE-OBS    = 'YYYY-MM-JJT HH:MM:SS.SS'                 / acquisition date of the first frame
+    8.  DATE        = 'YYYY-MM-JJTHH:MM:SS.SS'                  / date of the creation of the fits file
+    9.  DATE-OBS    = 'YYYY-MM-JJTHH:MM:SS.SS'                  / acquisition date of the first frame
     10. OBS_MODE    = SINGLE                                    / 'SINGLE' 'SUM' 'AVERAGE' ('MEDIAN')
     11. ELAPTIME    = 60                                        / end obs. date - start obs. date (sec.)
     12. EXPOSURE    = 0.033                                     / integration time : 1/fps * nb_frames (sec.)
@@ -136,6 +136,7 @@ class Fits{
         double  getCd1_2();
         double  getCd2_1();
         double  getCd2_2();
+        double  getCd3_3();
         string  getObsmode();
         string  getDateobs();
         double  getSaturate();
@@ -182,6 +183,7 @@ class Fits{
         void setCd1_2(double cd1_2);
         void setCd2_1(double cd2_1);
         void setCd2_2(double cd2_2);
+        void setCd3_3(double cd3_3);
         void setObsmode(string obsmode);
         void setDateobs(string dateobs);
         void setSaturate(double saturate);
