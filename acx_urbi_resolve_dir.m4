@@ -1,7 +1,7 @@
 dnl
 dnl				acx_urbi_resolve_dir.m4
 dnl
-dnl Enable a reasonable set of optimization flags for the C compiler. 
+dnl Return a directory with all inner variables expanded.
 dnl
 dnl %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 dnl

@@ -1,11 +1,12 @@
 /*
-								PixelEvent.h
+				PixelEvent.h
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 *
 *	This file is part of:	freeture
 *
-*	Copyright:		(C) 2014 Yoan Audureau -- FRIPON-GEOPS-UPSUD
+*	Copyright:		(C) 2014-2015 Yoan Audureau
+*                               FRIPON-GEOPS-UPSUD-CNRS
 *
 *	License:		GNU General Public License
 *
