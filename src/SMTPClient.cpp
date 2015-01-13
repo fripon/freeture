@@ -132,7 +132,7 @@ string SMTPClient::message(){
 	string message;
 
 	// In case where mail client doesn't support HTML.
-	string rawMessage;
+	string rawMessage = mailMessage;
 
 	// Used to separate different mail formats.
 	string section = "08zs01293eraf47a7804dcd17b1e";
@@ -182,33 +182,33 @@ string SMTPClient::message(){
 
 	*/
 
-	message += "Content-Type: multipart/mixed; boundary=" + section  + "\r\n";
-	message += "\r\n";
+	////message += "Content-Type: multipart/mixed; boundary=" + section  + "\r\n";
+	//message += "\r\n";
 
-		message += "Content-Type: multipart/alternative; boundary=" + section + "\r\n";
-		message += "\r\n";
+		//message += "Content-Type: multipart/alternative; boundary=" + section + "\r\n";
+		//message += "\r\n";
 
 			// Raw text.
-			message += "\r\n--" + section  + "\r\n";
+			//message += "\r\n--" + section  + "\r\n";
 
 			message += "Content-type: text/plain; charset=ISO-8859-1\r\n";
 			message += "\r\n";
 			message += rawMessage;
 			message += "\r\n";
 
-			message += "\r\n--" + section  + "\r\n";
+			//message += "\r\n--" + section  + "\r\n";
 
-			message += "Content-Type: multipart/related; boundary=" + section  + "\r\n";
-			message += "\r\n";
+			//message += "Content-Type: multipart/related; boundary=" + section  + "\r\n";
+			//message += "\r\n";
 
 				// HTML text.
-				message += "--" + section  + "\r\n";
+				/*message += "--" + section  + "\r\n";
 				message += "Content-type: text/html; charset=ISO-8859-1\r\n";
 				message += "\r\n";
 				message += htmlMessage ;
 				message += "\r\n";
 
-				message += "\r\n--" + section  + "\r\n";
+				message += "\r\n--" + section  + "\r\n";*/
 
 				// IMAGE inline.
 				if(imageInline){
@@ -346,7 +346,7 @@ string SMTPClient::message(){
 		}
 
 	// Mail end.
-	message += "\r\n--" + section  + "--\r\n";
+	//message += "\r\n--" + section  + "--\r\n";
 
 	return message;
 

@@ -54,7 +54,10 @@ RecThread::RecThread(   string recpath,
                         bool bmp,
                         bool trail,
                         bool mapGE,
-                        Fits fitsHead  ){
+                        Fits fitsHead,
+                        vector<string> recipients,
+                        string station,
+                        bool mail ){
 
     fitsHeader              = fitsHead;
     pixelFormat             = pixFormat;
@@ -72,6 +75,9 @@ RecThread::RecThread(   string recpath,
 	recMapGE                = mapGE;
     mustStop				        =	false;
 	threadStopped           = false;
+	mailTo = recipients;
+	stationName = station;
+	mailEnable = mail;
 
 }
 
@@ -388,6 +394,18 @@ void RecThread::operator () (){
                 imwrite(r.getPath() + "dirMap.bmp", r.getDirMap());
 
                 lock.lock();
+
+                if(mailEnable){
+
+                    string acq = TimeDate::localDateTime(second_clock::universal_time(),"%Y:%m:%d:%H:%M:%S");
+                    vector<string> pathAttachments;
+                    SMTPClient mailc("10.8.0.1", 25, "u-psud.fr");
+                    mailc.send("yoan.audureau@u-psud.fr",
+                               mailTo,
+                               "Detection by " + stationName + "'s station - " + acq +" UT",
+                               stationName + "\n" + acq + " UT \n" + r.getPath() , pathAttachments, false);
+
+                }
 
                 if(listEventToRec->size() != 0)
                     recStatus = true;

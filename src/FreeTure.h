@@ -113,6 +113,11 @@ class FreeTure{
         AstStackMeth    STACK_MTHD;
         bool            STACK_REDUCTION;
 
+        ///======== Mail notifications ========
+
+        vector<string> MAIL_RECIPIENT;
+        bool MAIL_ENABLE;
+
         ///======= Others parameters ======
 
         bool            DEBUG_ENABLED;

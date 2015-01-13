@@ -116,6 +116,22 @@ bool FreeTure::loadParameters(){
 
         cfg.Get("STACK_REDUCTION", 				STACK_REDUCTION);
 
+        /// Mail notifications
+
+        string mailRecipients;
+
+        cfg.Get("MAIL_RECIPIENT",               mailRecipients);
+
+        typedef boost::tokenizer<boost::char_separator<char> > tokenizer;
+        boost::char_separator<char> sep(";");
+        tokenizer tokens(mailRecipients, sep);
+
+        for (tokenizer::iterator tok_iter = tokens.begin();tok_iter != tokens.end(); ++tok_iter){
+            MAIL_RECIPIENT.push_back(*tok_iter);
+        }
+
+        cfg.Get("MAIL_ENABLE",               MAIL_ENABLE);
+
 		/// Others parameters
 
 		cfg.Get("DEBUG_ENABLED", 				DEBUG_ENABLED);

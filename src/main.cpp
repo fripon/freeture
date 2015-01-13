@@ -692,7 +692,10 @@ int main(int argc, const char ** argv){
                                                         ft.DET_SAVE_BMP,
                                                         ft.DET_SAVE_TRAIL,
                                                         ft.DET_SAVE_GEMAP,
-                                                        fitsHeader);
+                                                        fitsHeader,
+                                                        ft.MAIL_RECIPIENT,
+                                                        ft.STATION_NAME,
+                                                        ft.MAIL_ENABLE);
 
                                 rec->start();
 
@@ -1173,7 +1176,51 @@ int main(int argc, const char ** argv){
                             cout << "> Min : "<< minVal2<<endl<<endl;
 
 
+
+
+
+
                         }
+
+                    }
+
+                    break;
+
+                case 6:
+
+                    {
+
+
+                        FreeTure ft(configPath);
+                        ft.loadParameters();
+
+                        for(int i = 0; i < ft.MAIL_RECIPIENT.size(); i++){
+
+                            cout << ft.MAIL_RECIPIENT.at(i) << endl;
+
+                        }
+
+
+
+
+
+
+                        vector<string> to;
+                        to.push_back("yoan.audureau@gmail.com");
+                        to.push_back("fripon@ceres.geol.u-psud.fr");
+
+                        vector<string> pathAttachments;
+                        //pathAttachments.push_back("/home/fripon/frame.bmp");
+
+                        //pathAttachments.push_back("D:/logoFripon.png");
+
+                        string acquisitionDate = TimeDate::localDateTime(second_clock::universal_time(),"%Y:%m:%d:%H:%M:%S");
+
+                        //SMTPClient mailc("smtp.u-psud.fr", 25, "u-psud.fr");
+
+                        SMTPClient mailc("10.8.0.1", 25, "u-psud.fr");
+                        mailc.send("yoan.audureau@u-psud.fr", to, "station ORSAY "+acquisitionDate+" UT", "Test d'acquisition à " + acquisitionDate, pathAttachments, true);
+
 
                     }
 

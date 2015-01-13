@@ -50,6 +50,7 @@
 #include <boost/filesystem.hpp>
 #include <iterator>
 #include <algorithm>
+#include "SMTPClient.h"
 
 using namespace boost::filesystem;
 
@@ -145,6 +146,10 @@ class RecThread{
 		int pixelFormat;
 
 		Fits fitsHeader;
+		vector<string> mailTo;
+		string stationName;
+
+		bool mailEnable;
 
 	public:
 
@@ -168,7 +173,10 @@ class RecThread{
                     bool bmp,
                     bool trail,
                     bool mapGE,
-                    Fits fitsHead );
+                    Fits fitsHead,
+                    vector<string> recipients,
+                    string station,
+                    bool mail);
 
 
         //! Destructor
