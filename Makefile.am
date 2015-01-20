@@ -22,13 +22,13 @@
 #*	You should have received a copy of the GNU General Public License
 #*	along with FreeTure. If not, see <http://www.gnu.org/licenses/>.
 #*
-#*	Last modified:		20/10/2014
+#*	Last modified:		20/01/2015
 #*
 #*%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%*/
 
 AUTOMAKE_OPTIONS	= foreign no-dependencies
 SUBDIRS			= doc src
-#dist_pkgdata_DATA	= 
+dist_pkgdata_DATA	= share/configuration.cfg
 EXTRA_DIST		= README NEWS INSTALL acx_boost.m4 acx_cfitsio.m4 \
 			acx_opencv.m4 acx_pylon.m4 acx_urbi_resolve_dir.m4 \
 			bootstrap.sh 

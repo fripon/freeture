@@ -184,7 +184,7 @@ PKG_CHECK_MODULES(GST01, gstreamer-0.10,
 ###################### handle the ARAVIS library ######################
 PKG_CHECK_MODULES(ARV, aravis-0.4,
 	[LIBS="$ARV_LIBS $LIBS"]
-	[AM_CPPFLAGS="$AM_CPPFLAGS $ARV_CFLAGS"],,
+	[AM_CPPFLAGS="$AM_CPPFLAGS $ARV_CFLAGS"],
 	[AC_MSG_ERROR([$ARV_ERROR Exiting.])])
 							
 AC_SUBST(AM_CFLAGS)
