@@ -5,8 +5,7 @@
 *
 *	This file is part of:	freeture
 *
-*	Copyright:		(C) 2014-2015 Yoan Audureau
-*                               FRIPON-GEOPS-UPSUD-CNRS
+*	Copyright:		(C) 2014-2015 Yoan Audureau -- FRIPON-GEOPS-UPSUD
 *
 *	License:		GNU General Public License
 *
@@ -34,26 +33,34 @@
 
 #include "DetThread.h"
 
-DetThread::DetThread(Mat                        maskImg,
-                     int                        mth,
-                     CamBitDepth                acqFormatPix,
-                     Fifo<Frame>                *queue,
-                     boost::mutex               *m_mutex_queue,
-                     boost::condition_variable  *m_cond_queue_fill,
-                     boost::condition_variable  *m_cond_queue_new_element,
-                     boost::condition_variable  *newElem_listEventToRecord,
-                     boost::mutex               *mutex_listEventToRecord,
-                     vector<RecEvent>           *listEventToRecord,
-                     int                        geAfterTime,
-                     int                        geMax,
-                     int                        geMaxTime,
-                     string                     recPath,
-                     string                     stationName,
-                     bool                       detDebug,
-                     string                     debugPath,
-                     bool                       detDownsample,
-                     Fits fitsHead){
+DetThread::DetThread(Mat                            maskImg,
+                     int                            mth,
+                     CamBitDepth                    acqFormatPix,
+                     DetMeth                        detMthd,
+                     int                            geAfterTime,
+                     int                            bufferSize,
+                     int                            geMax,
+                     int                            geMaxTime,
+                     string                         recPath,
+                     string                         stationName,
+                     bool                           detDebug,
+                     string                         debugPath,
+                     bool                           detDownsample,
+                     Fits                           fitsHead,
+                     boost::circular_buffer<Frame>  *cb,
+                     boost::mutex                   *m_cb,
+                     boost::condition_variable      *c_newElemCb,
+                     bool                           *newFrameForDet,
+                     boost::mutex                   *m_newFrameForDet,
+                     boost::condition_variable      *c_newFrameForDet,
+                     RecEvent                       *recEvent
+                     ){
 
+    mthd = detMthd;
+
+    newFrameDet = newFrameForDet;
+    m_newFrameDet = m_newFrameForDet;
+    c_newFrameDet = c_newFrameForDet;
 
     fitsHeader  = fitsHead;
     downsample                      =   detDownsample;
@@ -65,25 +72,22 @@ DetThread::DetThread(Mat                        maskImg,
 	m_thread					        =	NULL;
 	mustStop				        =	false;
 	detMeth					        =	mth;
-	framesQueue				        =	queue;
 
 	imgFormat                       =   acqFormatPix;
 
     maskImg.copyTo(mask);
-	mutexQueue				        =	m_mutex_queue;
-	condQueueFill			        =	m_cond_queue_fill;
-	condQueueNewElement		        =	m_cond_queue_new_element;
-	condNewElemOn_ListEventToRec    =   newElem_listEventToRecord;
-	mutex_listEvToRec               =   mutex_listEventToRecord;
-	listEvToRec                     =   listEventToRecord;
 
-    geMaxDuration                   =   geMaxTime;
-    geMaxInstance                   =   geMax;
-    geAfterDuration                 =   geAfterTime;
-    //threadStopped                   =   false;
+	frameBuffer = cb;
+    m_frameBuffer = m_cb;
+    c_newElemFrameBuffer = c_newElemCb;
+
+    timeMax                         =   geMaxTime;
+    nbGE                            =   geMax;
+    timeAfter                       =   geAfterTime;
 
 	nbDet                           =   0;
-
+	eventToRec = recEvent;
+	frameBufferMaxSize      = bufferSize;
 
 }
 
@@ -110,274 +114,238 @@ void DetThread::startDetectionThread(){
 void DetThread::stopDetectionThread(){
 
 	// Signal the thread to stop (thread-safe)
-	BOOST_LOG_SEV(log, logenum::notification) << "mustStop: " << mustStop;
+	BOOST_LOG_SEV(log, notification) << "mustStop: " << mustStop;
 	mustStopMutex.lock();
 	mustStop=true;
 	mustStopMutex.unlock();
-	BOOST_LOG_SEV(log, logenum::notification) << "mustStop: " << mustStop;
-    BOOST_LOG_SEV(log, logenum::notification) << "Wait join";
+	BOOST_LOG_SEV(log, notification) << "mustStop: " << mustStop;
+    BOOST_LOG_SEV(log, notification) << "Wait join";
 	// Wait for the thread to finish.
     if (m_thread!=NULL) m_thread->join();
 
-    BOOST_LOG_SEV(log, logenum::notification) << "Thread stopped";
+    BOOST_LOG_SEV(log, notification) << "Thread stopped";
 
 }
 
 void DetThread::operator ()(){
 
-	bool stop = false;
-
 	BOOST_LOG_SCOPED_THREAD_TAG("LogName", "detThread");
-	BOOST_LOG_SEV(log,logenum::notification) << "\n Detection thread started.";
+	BOOST_LOG_SEV(log,notification) << "\n";
+    BOOST_LOG_SEV(log,notification) << "==============================================";
+	BOOST_LOG_SEV(log,notification) << "=========== Start detection thread ===========";
+	BOOST_LOG_SEV(log,notification) << "==============================================";
 
-	bool detFlag = false;
-
-	bool computeRegion = false;
-	vector<Point> listSubdivPosition;
-
-	vector<Mat> moonList;
-	vector<Point> listROI;
-	Mat tempROI;
-	Mat lastMoonCap;
-	Point moonPos = Point(0,0);
+	bool detectionStatus    = false;
+    bool stopThread         = false;
+	bool computeRegion      = false;
 
 
+	vector<Point> regionsPos;
 
 	int roiSize[2] = {10, 10};
 
-	int cptNoMoon = 0;
-
-    //%%%%%%%%%%% STORE THE POSITION OF N LAST DETECTED EVENTS  %%%%%%%%%%%
-
 	vector<Point> lastDetectionPosition;
 
-    //%%%%%%%%%%%%%%%%%%%%%%%%%% CREATE MASK %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+	vector<Scalar> listColors; // B, G, R
+	listColors.push_back(Scalar(0,0,139));      // DarkRed
+	listColors.push_back(Scalar(0,0,255));      // Red
+	listColors.push_back(Scalar(60,20,220));    // Crimson
+	listColors.push_back(Scalar(0,100,100));    // IndianRed
+	listColors.push_back(Scalar(92,92,205));    // Salmon
+	listColors.push_back(Scalar(0,140,255));    // DarkOrange
+	listColors.push_back(Scalar(30,105,210));   // Chocolate
+	listColors.push_back(Scalar(0,255,255));    // Yellow
+	listColors.push_back(Scalar(140,230,240));  // Khaki
+	listColors.push_back(Scalar(224,255,255));  // LightYellow
+	listColors.push_back(Scalar(211,0,148));    // DarkViolet
+	listColors.push_back(Scalar(147,20,255));   // DeepPink
+	listColors.push_back(Scalar(255,0,255));    // Magenta
+	listColors.push_back(Scalar(0,100,0));      // DarkGreen
+	listColors.push_back(Scalar(0,128,128));    // Olive
+	listColors.push_back(Scalar(0,255,0));      // Lime
+	listColors.push_back(Scalar(212,255,127));  // Aquamarine
+	listColors.push_back(Scalar(208,224,64));   // Turquoise
+	listColors.push_back(Scalar(205,0,0));      // Blue
+	listColors.push_back(Scalar(255,191,0));    // DeepSkyBlue
+	listColors.push_back(Scalar(255,255,0));    // Cyan
 
-    // Mask of 3x3                          | | | |
-    // Black pixel in the middle            | |X| |
-    //                                      | | | |
+    /// Create local mask to eliminate single white pixels.
 
-	Mat maskNeighborhood;
+	Mat localMask;
 
 	if(imgFormat == MONO_8){
 
         Mat maskTemp(3,3,CV_8UC1,Scalar(255));
         maskTemp.at<uchar>(1, 1) = 0;
-        maskTemp.copyTo(maskNeighborhood);
+        maskTemp.copyTo(localMask);
 
     }else if(imgFormat == MONO_12){
 
         Mat maskTemp(3,3,CV_16UC1,Scalar(4095));
         maskTemp.at<ushort>(1, 1) = 0;
-        maskTemp.copyTo(maskNeighborhood);
+        maskTemp.copyTo(localMask);
 
     }
 
-    //%%%%%%%%%%%%%%%%% USED TO DEBUG DETECTION ON VIDEOS %%%%%%%%%%%%%%%%%
+    /// Create a video to debug.
 
-    VideoWriter videoDebug;
+    /*VideoWriter videoDebug;
 
     if(debug){
 
         Size frameSize(static_cast<int>(1280), static_cast<int>(960));
-
         videoDebug = VideoWriter(debugLocation + "debug.avi", CV_FOURCC('M  ', 'J', 'P', 'G'), 5, frameSize, true); //initialize the VideoWriter object
 
-    }
+    }*/
 
-    //%%%%%%%%%%%%%%% START MAIN LOOP OF DETECTION THREAD %%%%%%%%%%%%%%%%%
+    vector<GlobalEvent>::iterator itGEToSave;
+    bool breakAnalyse = false;
+    int downtime = 0;
+
+    /// Thread loop.
 
 	do{
 
         try{
 
-            //%%%%%%%%%%%%%%%%%%%%%% GET NEW FRAME %%%%%%%%%%%%%%%%%%%%%%%%
-
-            BOOST_LOG_SEV(log, logenum::notification) << "\n \n";
-
-            boost::mutex::scoped_lock lock(*mutexQueue);
-            BOOST_LOG_SEV(log,logenum::notification) << "Wait framesQueue full";
-            while (!framesQueue->getFifoIsFull()) condQueueFill->wait(lock);
-            BOOST_LOG_SEV(log,logenum::notification) << "FramesQueue full";
-            BOOST_LOG_SEV(log,logenum::notification) << "Wait new frame";
-            while (!framesQueue->getThreadReadStatus("det")) condQueueNewElement->wait(lock);
-            BOOST_LOG_SEV(log,logenum::notification) << "New frame received";
-            framesQueue->setThreadRead("det",false);
-
-            double t = (double)getTickCount();
-
-            Mat currentFrame, previousFrame;
-
-            BOOST_LOG_SEV(log,logenum::notification) << "Get current frame from framesQueue";
-            Frame f = framesQueue->getFifoElementAt(0);
-            f.getImg().copyTo(currentFrame);
 
 
-            BOOST_LOG_SEV(log,logenum::notification) << "Get previous frame from framesQueue";
-            framesQueue->getFifoElementAt(1).getImg().copyTo(previousFrame);
+            /// Wait new frame.
 
-
-            BOOST_LOG_SEV(log,logenum::notification) << "Get current frame's date";
-
-            vector<string> date = framesQueue->getFifoElementAt(0).getDateString();
-
-            BOOST_LOG_SEV(log,logenum::notification) << "****************************************************";
-            BOOST_LOG_SEV(log,logenum::notification) << "                   Frame " << f.getNumFrame();
-            BOOST_LOG_SEV(log,logenum::notification) << "****************************************************";
-
-
-
-            //%%%%%%%%%%%%%%%% COMPUTE REGION %%%%%%%%%%%%%%%
-            if(!computeRegion){
-                if(downsample)
-                    DetByLists::buildListSubdivisionOriginPoints(listSubdivPosition, 8, currentFrame.rows/2, currentFrame.cols/2);
-                else
-                    DetByLists::buildListSubdivisionOriginPoints(listSubdivPosition, 8, currentFrame.rows, currentFrame.cols);
-                computeRegion = true;
-
-            }
-
-            //%%%%%%%%%%%%%%%% IF NO MASK, CREATE WHITE ONE %%%%%%%%%%%%%%%
-
-            if(!mask.data){
-
-                Mat tempMat(currentFrame.rows,currentFrame.cols,CV_8UC1,Scalar(255));
-                tempMat.copyTo(mask);
-
-            }
-
-            //%%%%%%%%%%%%%%%%%%% MEAN N PREVIOUS FRAMES %%%%%%%%%%%%%%%%%%
-
-            /*double tMean = (double)getTickCount();
-
-            Mat meanFrames;
-            Mat res = Mat::zeros(currentFrame.rows,currentFrame.cols,CV_32FC1);
-            Mat img = Mat::zeros(currentFrame.rows,currentFrame.cols,CV_32FC1);
-
-            int nbImgToMean = 3;
-
-            if(imgFormat == 8){
-
-                if(framesQueue->getSizeQueue() > nbImgToMean ){
-
-                    for(int i = 1; i <= nbImgToMean ; i++){
-
-                        framesQueue->getFifoElementAt(i).getImg().convertTo(img, CV_32FC1);
-                        accumulate(img,res);
-
-                    }
-
-                    res = res/nbImgToMean;
-
-                    meanFrames = Conversion::convertTo8UC1(res);
-
-                }else{
-
-                    previousFrame.copyTo(meanFrames);
-
-                }
-
-            }else if(imgFormat == 12){
-
-                if(framesQueue->getSizeQueue() > nbImgToMean ){
-
-                    for(int i = 1; i <= nbImgToMean ; i++){
-
-                        framesQueue->getFifoElementAt(i).getImg().convertTo(img, CV_32FC1);
-                        accumulate(img,res);
-
-                    }
-
-                    res = res/nbImgToMean;
-
-                    res.convertTo(meanFrames, CV_16UC1);
-
-                }else{
-
-                    previousFrame.copyTo(meanFrames);
-
-                }
-
-            }else{
-
-                throw "Image format unknown";
-
-            }
-
-            tMean = (((double)getTickCount() - tMean)/getTickFrequency())*1000;
-            cout << "tMean: " << tMean << endl;
-*/
+            boost::mutex::scoped_lock lock(*m_newFrameDet);
+            while (!(*newFrameDet)) c_newFrameDet->wait(lock);
+            *newFrameDet = false;
             lock.unlock();
 
+            /// Get last frames.
 
-            //%%%%%%%%%%%%%%%%% CHOOSE A DETECTION METHOD %%%%%%%%%%%%%%%%%
+            Frame currentFrame, previousFrame;
 
+            // Get access on frame buffer.
+            boost::mutex::scoped_lock lock2(*m_frameBuffer);
 
+            // Uptime
+            double t = (double)getTickCount();
 
-          //   if(moonList.size() == 5){
+            // At least two frames are in the frame buffer.
+            if(frameBuffer->size() > 2){
 
-                // Meteor detection by pixel tresholding and by lists management
-                detFlag = DetByLists::detectionMethodByListManagement(  f,
-                                                                        date,
-                                                                        currentFrame,
-                                                                        previousFrame,
-                                                                        previousFrame,
-                                                                        roiSize,
-                                                                        listGlobalEvents,
-                                                                        mask,
-                                                                        *mutex_listEvToRec,
-                                                                        *mutexQueue,
-                                                                        *listEvToRec,
-                                                                        *framesQueue,
-                                                                        recordingPath,
-                                                                        station,
-                                                                        nbDet,
-                                                                        geMaxDuration,
-                                                                        geMaxInstance,
-                                                                        geAfterDuration,
-                                                                        imgFormat,
-                                                                        lastDetectionPosition,
-                                                                        maskNeighborhood,
-                                                                        videoDebug,
-                                                                        debug,
-                                                                        listSubdivPosition,
-                                                                        downsample,
-                                                                        prevthresh);
-
-           // }
-
-            if(detFlag){
-
-                BOOST_LOG_SEV(log,logenum::notification) << "!!!!!!!!!! - DETECTION - !!!!!!!!!!";
-
-                //Send notification to the record thread
-                condNewElemOn_ListEventToRec->notify_one();
-                detFlag = false;
+                currentFrame    = frameBuffer->back();
+                previousFrame   = frameBuffer->at(frameBuffer->size()-2);
 
             }
 
-            t = (((double)getTickCount() - t)/getTickFrequency())*1000;
-            cout    << " [-DETECTION-]    Time: "
-                    << std::setprecision(3)
-                    << std::fixed
-                    << t
-                    << " ms "
-                    << endl;
+            //Release frame buffer.
+            lock2.unlock();
 
-            cout    << " DET STATS ---> "
-                    << nbDet
-                    << endl;
+            if(currentFrame.getImg().data && previousFrame.getImg().data){
 
-            BOOST_LOG_SEV(log,logenum::notification) << " [-DETECTION-]    Time: "
-                                            << std::setprecision(3)
-                                            << std::fixed
-                                            << t
-                                            << " ms  -->> DETECTION STATS -->> "
-                                            << nbDet;
+                /// Compute regions.
 
-            // Get the "must stop" state (thread-safe)
+                if(!computeRegion){
+
+                    if(downsample)
+                        DetByLists::buildListSubdivisionOriginPoints(regionsPos, 8, currentFrame.getImg().rows/2, currentFrame.getImg().cols/2);
+                    else
+                        DetByLists::buildListSubdivisionOriginPoints(regionsPos, 8, currentFrame.getImg().rows, currentFrame.getImg().cols);
+
+                    computeRegion = true;
+
+                }
+
+                /// Mask.
+
+                if(!mask.data){
+
+                    Mat tempMat(currentFrame.getImg().rows,currentFrame.getImg().cols,CV_8UC1,Scalar(255));
+                    tempMat.copyTo(mask);
+
+                }
+
+                /// Meteor detection.
+
+                switch(mthd){
+
+                    case TEMPORAL_MTHD :
+
+                        {
+
+                            if(!breakAnalyse)
+
+                            detectionStatus = DetByLists::detectionMethodByListManagement(  currentFrame,           // Last grabbed frame
+                                                                                            previousFrame,          // Previous grabbed frame
+                                                                                            roiSize,                // Size of a region of interest
+                                                                                            listGlobalEvents,       // Global events to analyze
+                                                                                            listColors,
+                                                                                            mask,                   // Frame Mask
+                                                                                            timeMax,                // Maximum duration for an event
+                                                                                            nbGE,                   // Maximum of allowed global event
+                                                                                            timeAfter,              // Maximum time after an event
+                                                                                            imgFormat,
+                                                                                            localMask,
+                                                                                            debug,
+                                                                                            regionsPos,
+                                                                                            downsample,
+                                                                                            prevthresh,
+                                                                                            nbDet,
+                                                                                            itGEToSave);
+
+                        }
+
+                        break;
+
+                    case HOUGH_MTHD :
+
+                        {
+
+                        }
+
+                        break;
+
+                }
+
+                /// Save datas if a "meteor" has been detected.
+
+                if(detectionStatus){
+
+                    breakAnalyse = true;
+
+                    (*itGEToSave).setAgeLastElem((*itGEToSave).getAgeLastElem() + 1);
+                    (*itGEToSave).setAge((*itGEToSave).getAge() + 1);
+
+                    if((*itGEToSave).getAgeLastElem() > timeAfter ||
+                       (currentFrame.getFrameRemaining() < 10 && currentFrame.getFrameRemaining()!= 0)){
+
+                        eventToRec->buildEventLocation((*itGEToSave).getDate());
+
+                        eventToRec->saveGE(listGlobalEvents, itGEToSave);
+
+                        listGlobalEvents.clear();
+
+                        detectionStatus = false;
+                        breakAnalyse = false;
+
+                    }
+                }
+
+                /// Infos.
+
+                t = (((double)getTickCount() - t)/getTickFrequency())*1000;
+                cout    << " [-DETECTION-]    Time: "
+                        << std::setprecision(3)
+                        << std::fixed
+                        << t
+                        << " ms "
+                        << endl;
+
+                cout    << " DET STATS ---> "
+                        << nbDet
+                        << endl;
+
+            }
+
             mustStopMutex.lock();
-            stop = mustStop;
+            stopThread = mustStop;
             mustStopMutex.unlock();
 
 		}catch(const boost::thread_interrupted&){
@@ -391,10 +359,8 @@ void DetThread::operator ()(){
 
         }
 
-	}while (stop==false);
+	}while(stopThread == false);
 
-	//threadStopped = true;
-
-	BOOST_LOG_SEV(log, logenum::notification) << "Exit detection thread loop ";
+	BOOST_LOG_SEV(log, notification) << "Exit detection thread loop ";
 
 }

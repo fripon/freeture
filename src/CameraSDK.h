@@ -1,12 +1,11 @@
 /*
-				CameraSDK.h
+								CameraSDK.h
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 *
 *	This file is part of:	freeture
 *
-*	Copyright:		(C) 2014-2015 Yoan Audureau
-*                               FRIPON-GEOPS-UPSUD-CNRS
+*	Copyright:		(C) 2014-2015 Yoan Audureau -- FRIPON-GEOPS-UPSUD
 *
 *	License:		GNU General Public License
 *
@@ -21,122 +20,107 @@
 *	You should have received a copy of the GNU General Public License
 *	along with FreeTure. If not, see <http://www.gnu.org/licenses/>.
 *
-*	Last modified:		20/10/2014
+*	Last modified:		21/01/2015
 *
 *%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%*/
 
 /**
- * @file    CameraSDK.h
- * @author  Yoan Audureau -- FRIPON-GEOPS-UPSUD
- * @version 1.0
- * @date    30/06/2014
+ * \file    CameraSDK.h
+ * \author  Yoan Audureau -- FRIPON-GEOPS-UPSUD
+ * \version 1.0
+ * \date    21/01/2015
+ * \brief   Parent class of Camera's SDK.
  */
 
 #pragma once
 
-#include "includes.h"
 #include "Frame.h"
 #include "ECamBitDepth.h"
 
 using namespace std;
 
-//! Camera's SDK class
 class CameraSDK{
 
 	public:
 
-        //! Constructor
 		CameraSDK(void);
 
-		//! Destructor
-		~CameraSDK(void);
+		virtual ~CameraSDK(void);
 
-        //! List connected cameras
+        //! Print a list of available cameras.
 		virtual void	listCameras(void)                           {};
 
-		//! Select a connected device
-		virtual bool	chooseDevice(string)                   {return false;};
+		//! Select a camera by its name.
+		//! \param cameraName
+		//! \return Boolean value according to connexion success status
+		virtual bool	chooseDevice(string)                        {return false;};
 
 		virtual bool	chooseDevice(int, string)                   {return false;};
 
-		//! Start grabbing images
-		virtual bool		grabStart()							        {return -1;};
+		//! Prepare the grabbing of frames.
+		virtual bool	grabStart()							        {return -1;};
 
-		//! Start acquisition
-		virtual void	acqStart()							        {};
+		//! Start acquisition.
+		virtual void	acqStart(bool continuousAcquisition)        {};
 
-		//! Stop acquisition
+		//! Stop acquisition and clean ressources.
 		virtual void	acqStop()							        {};
 
-		//! Stop grabbing images
+		//! Stop grabbing frames and clean ressources.
 		virtual void	grabStop()							        {};
 
-        //! Grab an image
-        virtual bool    grabImage(Frame*& newFrame, Mat newImage)   {return false;};
+        //! Grab a frame.
+        virtual bool    grabImage(Frame &newFrame)                  {return false;};
 
 		//! Restart grabbing images
 		virtual void	grabRestart()				                {};
 
-        //! Get the minimum exposition value
+        //! Get the minimum available exposition value.
 		virtual double	getExpoMin(void)						    {return -1;};
 
-		//! Get the maximum exposition value
+		//! Get the maximum available exposition value.
 		virtual double	getExpoMax(void)						    {return -1;};
 
-		//! Get the minimum gain value
+		//! Get the minimum available gain value.
 		virtual	int		getGainMin(void)						    {return	-1;};
 
-		//! Get the maximum exposition value
+		//! Get the maximum available exposition value.
 		virtual	int		getGainMax(void)						    {return	-1;};
 
-		//! Get the pixel's format
-		virtual	CamBitDepth		getPixelFormat(void)					    {return	DEPTH_ERROR;};
+		//! Get frame's bit depth.
+		virtual	bool	getPixelFormat(CamBitDepth &format)		    {return false;};
 
-		//! Get the width
+		//! Get frame's width.
 		virtual	int		getWidth(void)						        {return	-1;};
 
-		//! Get the height
+		//! Get frame's height.
 		virtual	int		getHeight(void)						        {return	-1;};
 
-		//! Get the frame per second rate
+		//! Get camera's fps.
 		virtual	double	getFPS(void)						        {return -1;};
 
-		//! Get the camera's model name
+		//! Get camera's model name.
 		virtual	string	getModelName()							    {return "";};
 
-        //! Set the exposure time
-        /*!
-          \param exp exposure time
-        */
+        //! Set camera's exposure time.
 		virtual bool	setExposureTime(double)					    {return false;};
 
-		//! Get the exposure time
-        /*!
-          \param exp exposure time
-        */
+		//! Get camera's exposure time.
 		virtual double	getExposureTime()					        {return -1.0;};
 
-		//! Set the gain
-        /*!
-          \param gain
-        */
+		//! Set camera's gain.
 		virtual bool	setGain(int)						        {return false;};
 
+        //! Set camera's fps.
 		virtual bool	setFPS(int)						            {return false;};
 
-		//! Get the gain
-        /*!
-          \param gain
-        */
-		virtual int	getGain()						                {return -1;};
+		//! Get camera's gain.
+		virtual int	    getGain()						            {return -1;};
 
-		//! Set the pixel format
-        /*!
-          \param format 12 or 8 bits
-        */
-		virtual	bool	setPixelFormat(CamBitDepth depth)	    {return false;};
+		//! Set frame's bit depth.
+		virtual	bool	setPixelFormat(CamBitDepth depth)	        {return false;};
 
-		virtual bool    getDeviceById(int id, string &device){return false;}
+        //! Get camera's name by its id.
+		virtual bool    getDeviceById(int id, string &device)       {return false;}
 
 };
-

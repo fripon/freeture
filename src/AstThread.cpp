@@ -5,8 +5,7 @@
 *
 *	This file is part of:	freeture
 *
-*	Copyright:		(C) 2014-2015 Yoan Audureau
-*                               FRIPON-GEOPS-UPSUD-CNRS
+*	Copyright:		(C) 2014-2015 Yoan Audureau -- FRIPON-GEOPS-UPSUD
 *
 *	License:		GNU General Public License
 *
@@ -21,53 +20,53 @@
 *	You should have received a copy of the GNU General Public License
 *	along with FreeTure. If not, see <http://www.gnu.org/licenses/>.
 *
-*	Last modified:		20/10/2014
+*	Last modified:		21/01/2015
 *
 *%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%*/
 
 /**
- * @file    AstThread.cpp
- * @author  Yoan Audureau -- FRIPON-GEOPS-UPSUD
- * @version 1.0
- * @date    20/10/2014
+ * \file    AstThread.cpp
+ * \author  Yoan Audureau -- FRIPON-GEOPS-UPSUD
+ * \version 1.0
+ * \date    21/01/2015
+ * \brief   Produce a thread for stacking frames. Save stacks which will be
+ *          use to make astrometry.
  */
 
 #include "AstThread.h"
 
-AstThread::AstThread(   string                      recPath,
-                        string                      station,
-                        AstStackMeth                astMeth,
-                        string                      configurationFilePath,
-                        Fifo<Frame>                 *frame_queue,
-                        int                         interval,
-                        double                      expTime,
-                        CamBitDepth                 acqFormat,
-                        double                      longi,
-                        boost::mutex                *m_frame_queue,
-                        boost::condition_variable   *c_queue_full,
-                        boost::condition_variable   *c_queue_new,
-                        Fits fitsHead,
-                        int fps,
-                        bool reduction){
+AstThread::AstThread(   string                                  recPath,
+                        string                                  station,
+                        StackMeth                               astMeth,
+                        string                                  configurationFilePath,
+                        double                                  expTime,
+                        CamBitDepth                             acqFormat,
+                        double                                  longi,
+                        Fits                                    fitsHead,
+                        int                                     fps,
+                        bool                                    reduction,
+                        boost::circular_buffer<StackedFrames>   *stackedFb,
+                        boost::mutex                            *m_stackedFb,
+                        boost::condition_variable               *c_newElemStackedFb){
 
     stackReduction          = reduction;
     fitsHeader              = fitsHead;
     stationName             = station;
     longitude               = longi;
-    stackMthd              = astMeth;
+    stackMthd               = astMeth;
     configFile              = configurationFilePath;
     camFormat				= acqFormat;
 	thread      			= NULL;
 	path_					= recPath;
-	framesQueue				= frame_queue;
-	m_mutex_queue			= m_frame_queue;
-	capInterval				= interval;
-	condFill        		= c_queue_full;
-	condNewElem             = c_queue_new;
+
 	mustStop				= false;
 	exposureTime    		= expTime;
 	threadStopped           = false;
-	camFPS = fps;
+	camFPS                  = fps;
+
+    stackedFramesBuffer             = stackedFb;
+    m_stackedFramesBuffer           = m_stackedFb;
+    c_newElemStackedFramesBuffer    = c_newElemStackedFb;
 
 }
 
@@ -77,35 +76,26 @@ AstThread::~AstThread(void){
 
 }
 
-void AstThread::startCapture(){
+void AstThread::startThread(){
 
-    BOOST_LOG_SEV(log, notification) << " Astro thread memory allocation ";
     thread = new boost::thread(boost::ref(*this));
 
 }
 
-void AstThread::stopCapture(){
+void AstThread::stopThread(){
 
 	// Signal the thread to stop (thread-safe)
 	mustStopMutex.lock();
-	mustStop=true;
+	mustStop =true;
 	mustStopMutex.unlock();
-
-    BOOST_LOG_SEV(log, notification) << "Wait 1 seconds for astro cap thread finish...";
 
     while(thread->timed_join(boost::posix_time::seconds(2)) == false){
 
-        BOOST_LOG_SEV(log, notification) << "Thread not stopped, interrupt it now";
         thread->interrupt();
-        BOOST_LOG_SEV(log, notification) << "Interrupt Request sent";
 
     }
-
-    BOOST_LOG_SEV(log, notification) << "Astro thread stopped";
-
 }
 
-// Thread function
 void AstThread::operator()(){
 
 	BOOST_LOG_SCOPED_THREAD_TAG("LogName", "imgAstThread");
@@ -114,89 +104,55 @@ void AstThread::operator()(){
     // Flag to know if the thread has to be stopped.
     bool stop = false;
 
-    // Number of frames to sum.
-    // If we want to sum 1 minute of frames with a camera which can grabs 30 frames per seconds,
-    // we have finally to sum 60 * 30 = 1800 frames.
-    int imgToSum = exposureTime * camFPS;
-
-    // Total number of sum images.
-    int imgSum;
-
-    bool recDateObs = true;
-    string dateObs ="";
-    vector <int> dateObsDeb;
-    vector <int> dateObsEnd;
-    int camGain;
-    int camExp;
-
     do{
 
         try{
 
             namespace fs = boost::filesystem;
 
-            imgSum     = 0;
-            recDateObs      = true;
-            dateObs         ="";
-            dateObsDeb.clear();
+            boost::mutex::scoped_lock lock(*m_stackedFramesBuffer);
+            while (stackedFramesBuffer->empty()) c_newElemStackedFramesBuffer->wait(lock);
 
-            dateObsEnd.clear();
-            camGain = 0;
-            camExp = 0;
+            double t = (double)getTickCount();
 
-            boost::this_thread::sleep(boost::posix_time::millisec(capInterval*1000));
+            vector<string> firstDateString  = TimeDate::splitStringToStringVector(stackedFramesBuffer->front().startDate);
+            vector<int> firstDateInt        = TimeDate::splitStringToIntVector(stackedFramesBuffer->front().startDate);
+            vector<int> lastDateInt         = TimeDate::splitStringToIntVector(stackedFramesBuffer->front().endDate);
+            string date                     = firstDateString.at(0)+"-"+firstDateString.at(1)+"-"+firstDateString.at(2)+"T"+firstDateString.at(3)+":"+firstDateString.at(4)+":"+firstDateString.at(5);
+            int camGain                     = stackedFramesBuffer->front().gain;
+            int camExp                      = stackedFramesBuffer->front().exp;
+            int imgSum                      = stackedFramesBuffer->front().imgSum;
 
-            boost::mutex::scoped_lock lock(*m_mutex_queue);
+            Mat stackImg;
+            stackedFramesBuffer->front().stackedImg.copyTo(stackImg);
+            stackedFramesBuffer->pop_front();
 
-            while (!framesQueue->getFifoIsFull()) condFill->wait(lock);
+            lock.unlock();
 
-
-
-
-            string root = path_ + stationName + "_" + framesQueue->getFifoElementAt(0).getDateString().at(0) + framesQueue->getFifoElementAt(0).getDateString().at(1) + framesQueue->getFifoElementAt(0).getDateString().at(2) +"/";
-
-            string subDir =  "astro/";
-
-            string finalPath = root + subDir;
+            string root                     = path_ + stationName + "_" + firstDateString.at(0) + firstDateString.at(1) + firstDateString.at(2) +"/";
+            string subDir                   = "astro/";
+            string finalPath                = root + subDir;
 
             path p(path_);
-
             path p1(root);
-
             path p2(root + subDir);
 
             if(fs::exists(p)){
 
-                cout << "directory exist: " << p.string() << endl;
-
                 if(fs::exists(p1)){
 
-                    cout << "directory exist : " << p1.string() << endl;
-
-                    BOOST_LOG_SEV(log,notification) << "Destination directory " << p1.string() << " already exists.";
-
-                    if(fs::exists(p2)){
-
-                        cout << "directory exist : " << p2.string() << endl;
-
-
-                        BOOST_LOG_SEV(log,notification) << "Destination directory " << p2.string() << " already exists.";
-
-                    }else{
+                    if(!fs::exists(p2)){
 
                         cout << "directory not exist : " << p2.string() << endl;
 
-
                         if(!fs::create_directory(p2)){
 
-                             cout << "directory not created : " << p2.string() << endl;
-
+                            cout << "directory not created : " << p2.string() << endl;
                             BOOST_LOG_SEV(log,notification) << "Unable to create destination directory" << p2.string();
 
                         }else{
 
                             cout << "directory created : " << p2.string() << endl;
-
                             BOOST_LOG_SEV(log,notification) << "Following directory created : " << p2.string();
 
                         }
@@ -254,51 +210,12 @@ void AstThread::operator()(){
             }
 
 
-
-            // Container of 32 bits to accumulate frames.
-            Mat resImg = Mat::zeros(framesQueue->getFifoElementAt(0).getImg().rows,framesQueue->getFifoElementAt(0).getImg().cols, CV_32FC1);
-            Mat img = Mat::zeros(framesQueue->getFifoElementAt(0).getImg().rows,framesQueue->getFifoElementAt(0).getImg().cols,CV_32FC1);
-
-            double t = (double)getTickCount();
-
-            while(imgSum < imgToSum){
-
-                BOOST_LOG_SEV(log,notification) << "Wait new image";
-
-                while (!framesQueue->getThreadReadStatus("astCap")) condNewElem->wait(lock);
-                framesQueue->setThreadRead("astCap",false);
-
-                if(recDateObs){
-
-                    dateObs = framesQueue->getFifoElementAt(0).getAcqDate();
-                    dateObsDeb = framesQueue->getFifoElementAt(0).getDate();
-
-                    camGain = framesQueue->getFifoElementAt(0).getGain();
-
-                    camExp = framesQueue->getFifoElementAt(0).getExposure();
-
-                    recDateObs = false;
-
-                }
-
-                dateObsEnd.clear();
-                dateObsEnd = framesQueue->getFifoElementAt(0).getDate();
-
-                framesQueue->getFifoElementAt(0).getImg().convertTo(img, CV_32FC1);
-                accumulate(img,resImg);
-                imgSum++;
-
-            };
-
-            BOOST_LOG_SEV(log,notification) << "Terminate to sum frames";
-            cout << " Terminate to sum frames : "<< imgSum <<endl;
-
-            int     debObsInSeconds = dateObsDeb.at(3)*3600 + dateObsDeb.at(4)*60 + dateObsDeb.at(5);
-            int     endObsInSeconds = dateObsEnd.at(3)*3600 + dateObsEnd.at(4)*60 + dateObsEnd.at(5);
+            int     debObsInSeconds = firstDateInt.at(3)*3600 + firstDateInt.at(4)*60 + firstDateInt.at(5);
+            int     endObsInSeconds = lastDateInt.at(3)*3600 + lastDateInt.at(4)*60 + lastDateInt.at(5);
             int     elapTime        = endObsInSeconds - debObsInSeconds;
-            double  julianDate      = TimeDate::gregorianToJulian_2(dateObsDeb);
+            double  julianDate      = TimeDate::gregorianToJulian_2(firstDateInt);
             double  julianCentury   = TimeDate::julianCentury(julianDate);
-            double  sideralT        = TimeDate::localSideralTime_2(julianCentury, dateObsDeb.at(3), dateObsDeb.at(4), dateObsDeb.at(5), longitude);
+            double  sideralT        = TimeDate::localSideralTime_2(julianCentury, firstDateInt.at(3), firstDateInt.at(4), firstDateInt.at(5), longitude);
 
             // Fits creation.
             Fits2D newFits(finalPath,fitsHeader);
@@ -307,7 +224,7 @@ void AstThread::operator()(){
             // Detector gain
             newFits.setGaindb(camGain);
             // Acquisition date of the first frame 'YYYY-MM-JJTHH:MM:SS.SS'
-            newFits.setDateobs(dateObs);
+            newFits.setDateobs(date);
             // Integration time : 1/fps * nb_frames (sec.)
             newFits.setExposure((1.0f/camFPS)*imgSum);
             // end obs. date - start obs. date (sec.)
@@ -324,9 +241,9 @@ void AstThread::operator()(){
                     {
                         // 'SINGLE' 'SUM' 'AVERAGE' ('MEDIAN')
                         newFits.setObsmode("AVERAGE");
-                        resImg = resImg/imgSum;
+                        stackImg = stackImg/imgSum;
                         double minVal, maxVal;
-                        minMaxLoc(resImg, &minVal, &maxVal);
+                        minMaxLoc(stackImg, &minVal, &maxVal);
 
                         // Saturated or max value (not saturated) in case where OBS_MODE = SUM
                         newFits.setSaturate(maxVal);
@@ -341,7 +258,7 @@ void AstThread::operator()(){
                         // 'SINGLE' 'SUM' 'AVERAGE' ('MEDIAN')
                         newFits.setObsmode("SUM");
                         double minVal, maxVal;
-                        minMaxLoc(resImg, &minVal, &maxVal);
+                        minMaxLoc(stackImg, &minVal, &maxVal);
 
                         // Saturated or max value (not saturated) in case where OBS_MODE = SUM
                         newFits.setSaturate(maxVal);
@@ -359,7 +276,7 @@ void AstThread::operator()(){
                 float bzero     = 0.0;
                 float bscale    = 1.0;
 
-                ImgReduction::dynamicReductionByFactorDivision(resImg, camFormat, imgSum, bzero, bscale).copyTo(newMat);
+                ImgReduction::dynamicReductionByFactorDivision(stackImg, camFormat, imgSum, bzero, bscale).copyTo(newMat);
 
                 newFits.setBzero(bzero);
                 newFits.setBscale(bscale);
@@ -370,7 +287,7 @@ void AstThread::operator()(){
 
                         {
 
-                             newFits.writeFits(newMat, bit_depth_enum::C8, 0, true,"" );
+                             newFits.writeFits(newMat, C8, 0, true,"" );
 
                         }
 
@@ -380,7 +297,7 @@ void AstThread::operator()(){
 
                         {
 
-                             newFits.writeFits(newMat, bit_depth_enum::S16, 0, true,"" );
+                             newFits.writeFits(newMat, S16, 0, true,"" );
 
                         }
 
@@ -391,7 +308,7 @@ void AstThread::operator()(){
             }else{
 
                 // Save fits in 32 bits.
-                newFits.writeFits(resImg, F32 , 0, true,"" );
+                newFits.writeFits(stackImg, F32 , 0, true,"" );
 
             }
 

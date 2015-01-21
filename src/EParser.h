@@ -1,5 +1,5 @@
 /*
-				EnumParser.h
+				EParser.h
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 *
@@ -26,7 +26,7 @@
 *%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%*/
 
 /**
- * @file    EnumParser.h
+ * @file    EParser.h
  * @author  Yoan Audureau -- FRIPON-GEOPS-UPSUD
  * @version 1.0
  * @date    04/12/2014
@@ -39,20 +39,20 @@
 #include "ECamType.h"
 #include "ECamBitDepth.h"
 #include "EDetMeth.h"
-#include "EAstStackMeth.h"
+#include "EStackMeth.h"
 
 using namespace std;
 
 //http://stackoverflow.com/questions/726664/string-to-enum-in-c
 
 template<typename T>
-class EnumParser{
+class EParser{
 
 	public:
 
 	    map<string, T> enumMap;
 
-		EnumParser();
+		EParser();
 
 		T parseEnum(string paramName, const string & value){
 
@@ -87,8 +87,6 @@ class EnumParser{
                     return it->first;
             }
 		}
-
-		string test();
 
 };
 

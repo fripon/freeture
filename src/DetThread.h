@@ -1,12 +1,11 @@
 /*
-				DetThread.h
+								DetThread.h
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 *
 *	This file is part of:	freeture
 *
-*	Copyright:		(C) 2014-2015 Yoan Audureau
-*                               FRIPON-GEOPS-UPSUD-CNRS
+*	Copyright:		(C) 2014-2015 Yoan Audureau -- FRIPON-GEOPS-UPSUD
 *
 *	License:		GNU General Public License
 *
@@ -35,8 +34,8 @@
 #pragma once
 
 #include "includes.h"
-#include "EnumLog.h"
-#include "Fifo.h"
+#include "ELogSeverityLevel.h"
+
 #include "Frame.h"
 #include "Fits.h"
 #include "Fits2D.h"
@@ -54,6 +53,8 @@
 #include "DetByLines.h"
 #include "DetByLists.h"
 #include "ECamBitDepth.h"
+#include "EDetMeth.h"
+#include <boost/circular_buffer.hpp>
 
 //#include "serialize.h"
 #include <boost/filesystem.hpp>
@@ -75,15 +76,13 @@ namespace src		= boost::log::sources;
 namespace expr		= boost::log::expressions;
 namespace keywords	= boost::log::keywords;
 
-using namespace logenum;
-
 #define DEG2RAD 0.017453293f
 
 class DetThread{
 
 	private:
 
-        src::severity_logger< severity_level > log;			// logger
+        src::severity_logger< LogSeverityLevel > log;			// logger
 
         boost::thread				*m_thread;				// The thread runs this object
 
@@ -93,39 +92,24 @@ class DetThread{
 
         int							detMeth;				// Indicates the detection method wanted
 
-        Fifo<Frame>					*framesQueue;			// Shared queue between process that contains grabbed frames
-
-        boost::mutex				*mutexQueue;
-
-        boost::condition_variable	*condQueueFill;
-
-        boost::condition_variable	*condQueueNewElement;
-
-        boost::condition_variable	*condNewElemOn_ListEventToRec;
-
-        boost::mutex				*mutex_listEvToRec;
-
-        vector<RecEvent>            *listEvToRec;
-
         Mat                         mask;
 
         CamBitDepth                 imgFormat;
 
-        vector <GlobalEvent>        listGlobalEvents;
+        vector<GlobalEvent>         listGlobalEvents;
 
         int                         nbDet;
 
-        int                         geMaxDuration;
+        int                         timeMax;
 
-        int                         geMaxInstance;
+        int                         nbGE;
 
-        int                         geAfterDuration;
+        int                         timeAfter;
+        int                         frameBufferMaxSize;
 
         string                      recordingPath;
 
         string                      station;
-
-        //bool threadStopped;
 
         bool                        debug;
 
@@ -137,39 +121,50 @@ class DetThread{
 
         Mat prevthresh;
 
+        DetMeth mthd;
+
+        boost::circular_buffer<Frame>   *frameBuffer;
+        boost::mutex                    *m_frameBuffer;
+        boost::condition_variable       *c_newElemFrameBuffer;
+
+        bool                            *newFrameDet;
+        boost::mutex                    *m_newFrameDet;
+        boost::condition_variable       *c_newFrameDet;
+
+        RecEvent                        *eventToRec;
+
 	public:
 
-        DetThread(   Mat                        maskImg,
-                     int                        mth,
-                     CamBitDepth                acqFormatPix,
-                     Fifo<Frame>                *queue,
-                     boost::mutex               *m_mutex_queue,
-                     boost::condition_variable  *m_cond_queue_fill,
-                     boost::condition_variable  *m_cond_queue_new_element,
-                     boost::condition_variable  *newElem_listEventToRecord,
-                     boost::mutex               *mutex_listEventToRecord,
-                     vector<RecEvent>           *listEventToRecord,
-                     int                        geAfterTime,
-                     int                        geMax,
-                     int                        geMaxTime,
-                     string                     recPath,
-                     string                     stationName,
-                     bool                       detDebug,
-                     string                     debugPath,
-                     bool                       detDownsample,
-                     Fits fitsHead
-                 );
+        DetThread(   Mat                            maskImg,
+                     int                            mth,
+                     CamBitDepth                    acqFormatPix,
+                     DetMeth                        detMthd,
+                     int                            geAfterTime,
+                     int                            bufferSize,
+                     int                            geMax,
+                     int                            geMaxTime,
+                     string                         recPath,
+                     string                         stationName,
+                     bool                           detDebug,
+                     string                         debugPath,
+                     bool                           detDownsample,
+                     Fits                           fitsHead,
+                     boost::circular_buffer<Frame>  *cb,
+                     boost::mutex                   *m_cb,
+                     boost::condition_variable      *c_newElemCb,
+                     bool                           *newFrameForDet,
+                     boost::mutex                   *m_newFrameForDet,
+                     boost::condition_variable      *c_newFrameForDet,
+                     RecEvent                       *recEvent);
 
 
-		~DetThread( void );
-
-		void join();
-
-		void startDetectionThread();
+		~DetThread();
 
 		void operator()();
 
+        void startDetectionThread();
 		void stopDetectionThread();
+		void join();
 
 };
 

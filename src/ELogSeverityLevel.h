@@ -1,5 +1,5 @@
 /*
-				SaveImg.h
+				ELogSeverityLevel.h
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 *
@@ -25,32 +25,14 @@
 *
 *%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%*/
 
-/**
- * @file    SaveImg.h
- * @author  Yoan Audureau -- FRIPON-GEOPS-UPSUD
- * @version 1.0
- * @date    17/06/2014
- */
-
 #pragma once
 
-#include "opencv2/highgui/highgui.hpp"
-#include <opencv2/imgproc/imgproc.hpp>
+enum LogSeverityLevel{
 
-using namespace std;
-using namespace cv;
-
-class SaveImg{
-
-    public:
-
-        SaveImg(){};
-        ~SaveImg(){};
-
-        static bool saveJPEG(Mat img, string name);
-
-        static bool saveBMP(Mat img, string name);
-
-        static bool savePNG(Mat img, string name);
+    normal,
+    notification,
+    warning,
+    fail,
+    critical
 
 };

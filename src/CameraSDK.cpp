@@ -5,8 +5,7 @@
 *
 *	This file is part of:	freeture
 *
-*	Copyright:		(C) 2014-2015 Yoan Audureau
-*                               FRIPON-GEOPS-UPSUD-CNRS
+*	Copyright:		(C) 2014-2015 Yoan Audureau -- FRIPON-GEOPS-UPSUD
 *
 *	License:		GNU General Public License
 *
@@ -26,10 +25,11 @@
 *%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%*/
 
 /**
- * @file    CameraSDK.cpp
- * @author  Yoan Audureau -- FRIPON-GEOPS-UPSUD
- * @version 1.0
- * @date    01/07/2014
+ * \file    CameraSDK.cpp
+ * \author  Yoan Audureau -- FRIPON-GEOPS-UPSUD
+ * \version 1.0
+ * \date    20/10/2014
+ * \brief   Parent class of Camera's SDK.
  */
 
 #include "CameraSDK.h"

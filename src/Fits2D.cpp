@@ -794,7 +794,7 @@ bool Fits2D::writeKeywords(fitsfile *fptr){
 /* Create a FITS primary array containing a 2-D image */
 /******************************************************/
 
-bool Fits2D::writeFits( Mat img, bitdepth imgType, int nb, bool filenameWithDate, string fileName){
+bool Fits2D::writeFits( Mat img, ImgBitDepth imgType, int nb, bool filenameWithDate, string fileName){
 
     int status = 0;
 

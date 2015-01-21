@@ -38,345 +38,154 @@
 
 #include "RecEvent.h"
 
-RecEvent::RecEvent(){
+RecEvent::RecEvent( boost::circular_buffer<Frame> *cb,
+                    boost::mutex *m_cb,
+                    string path,
+                    string station,
+                    CamBitDepth  bitdepth,
+                    bool avi,
+                    bool fits3D,
+                    bool fits2D,
+                    bool sum,
+                    bool pos,
+                    bool bmp,
+                    bool mapGE,
+                    Fits fitsHead,
+                    int tBefore,
+                    int tAfter,
+                    int bufferSize){
 
+    frameBuffer             = cb;
+    m_frameBuffer           = m_cb;
+    fitsHeader              = fitsHead;
+    pixelFormat             = bitdepth;
+    eventPath               = path;
+    recAvi                  = avi;
+    recFits3D               = fits3D;
+    recFits2D               = fits2D;
+	recPos                  = pos;
+	recSum                  = sum;
+	recBmp                  = bmp;
+	recMapGE                = mapGE;
+	timeAfter               = tAfter;
+	timeBefore              = tBefore;
+	frameBufferMaxSize      = bufferSize;
 
-    //ctor
+	if(station == "")
+        stationName = "station";
+    else
+        stationName = station;
+
 }
 
 RecEvent::~RecEvent(){
-
-cout << "destructor recEvent"<<endl;
-
     //dtor
 }
 
-void RecEvent::setMapEvent(Mat mapE){
-
-    mapE.copyTo(mapEvent);
-
-}
-
-Mat RecEvent::getMapEvent(){
-
-    return mapEvent;
-
-}
-
-void RecEvent::setListMetPos(vector<Point> l){
-
-    meteorPos = l;
-
-}
-
-void RecEvent::setBuffer(vector<Mat> b){
-
-    buffer = b;
-
-}
-
-void RecEvent::setPrevFrames(vector<Frame> prev){
-
-    previousFrames = prev;
-
-}
-
-void RecEvent::setFramesDisk(vector<int> f){
-
-    diskFrames = f;
-
-}
-
-void RecEvent::setFrameBufferLocation(string path){
-
-    bufferPath = path;
-
-}
-
-void RecEvent::setPositionInBuffer(vector<int> l){
-
-    posInBuffer = l;
-
-}
-
-vector<int> RecEvent::getPositionInBuffer(){
-
-    return posInBuffer;
-
-}
-
-vector<Point> RecEvent::getListMetPos(){
-
-    return meteorPos;
-
-}
-
-void RecEvent::setBufferFileName(vector<Frame> l){
-
-     bufferFileName = l;
-
-}
-
-void RecEvent::setPathOfFrames(string newPath){
-
-     pathOfFrames = newPath;
-
-}
-
-string RecEvent::getPathOfFrames(){
-
-     return pathOfFrames;
-
-}
-
-string RecEvent::getPath(){
-
-     return path;
-
-}
-
-void RecEvent::setPath(string newPath){
-
-     path = newPath;
-
-}
-
-vector<Frame>  RecEvent::getBufferFileName(){
-
-    return bufferFileName;
-
-}
-
-bool RecEvent::copyFromRecEvent(RecEvent ev){
-
-    meteorPos       = ev.getListMetPos();
-    posInBuffer     = ev.getPositionInBuffer();
-    path            = ev.getPath();
-    mapEvent        = ev.getMapEvent();
-    dateEv          = ev.getDateEvent();
-    buffer          = ev.getBuffer();
-    prevBuffer      = ev.getPrevBuffer();
-    mapDir          = ev.getDirMap();
-
-}
-
-void RecEvent::setPrevBuffer(vector<Mat> eventPrevBuffer){
-
-     prevBuffer = eventPrevBuffer;
-
-}
-
-vector<Mat> RecEvent::getPrevBuffer(){
-
-    return prevBuffer;
-
-}
-
-void RecEvent::setDirMap(Mat dirMap){
-
-     mapDir = dirMap;
-
-}
-
-Mat RecEvent::getDirMap(){
-
-    return mapDir;
-
-}
-
-vector<Frame> RecEvent::getPrevFrames(){
-
-    return previousFrames;
-
-}
-
-vector<int> RecEvent::getFramesDisk(){
-
-    return diskFrames;
-
-}
-
-vector<Mat> RecEvent::getBuffer(){
-
-    return buffer;
-
-}
-
-string RecEvent::getFrameBufferLocation(){
-
-    return bufferPath;
-
-}
-
-void RecEvent::setDateEvent(vector<string> date){
-
-    dateEv =  date;
-
-}
-
-vector<string> RecEvent::getDateEvent(){
-
-    return dateEv;
-
-}
-
-
-/*
-  int numEvent = 0;
-
-    //Get the event's date
-    vector<int> eventDate = gEvent.getDate();
-
-    //Directory of day event : ../ORSAY_DD-MM-AA/
-    string root = recPath + stationName + Conversion::intToString(eventDate.at(2)) + "-" + Conversion::intToString(eventDate.at(1)) + "-" + Conversion::intToString(eventDate.at(0)) +"/";
-
-    //Directory of hour's event: ../HH_UT/
-    string sub1 = Conversion::intToString(eventDate.at(3)) + "_UT/";
-
-    //Directory of an event: ../ev_ORSAY_DDMMAA_HHMMSS_num_UT/
-    string sub2 = "ev_"+ stationName + "_" + Conversion::intToString(eventDate.at(2))
-                                           + Conversion::intToString(eventDate.at(1))
-                                           + Conversion::intToString(eventDate.at(0)) + "_"
-                                           + Conversion::intToString(eventDate.at(3))
-                                           + Conversion::intToString(eventDate.at(4))
-                                           + Conversion::intToString(eventDate.at(5)) + "_"
-                                           + Conversion::intToString(0) + "_UT/";
+bool RecEvent::buildEventLocation(vector<string> eventDate){
 
     namespace fs = boost::filesystem;
 
-    path p1(root);
+    //STATION_AAMMDD
+    string root = eventPath + stationName + "_" + eventDate.at(0) + eventDate.at(1) + eventDate.at(2) +"/";
 
-    string path2 = root + sub1;
+    //events
+    string sub0 = "events/";
+
+    //STATION_AAAAMMDD_HHMMSS_UT
+    string sub1 = stationName + "_" + eventDate.at(0)
+                                    + eventDate.at(1)
+                                    + eventDate.at(2) + "_"
+                                    + eventDate.at(3)
+                                    + eventDate.at(4)
+                                    + eventDate.at(5) + "_UT/";
+
+    currentEventPath = root + sub0 + sub1;
+
+    // DataLocation/
+    path p(eventPath);
+
+    // DataLocation/STATION_AAMMDD/
+    path p0(root);
+
+    // DataLocation/STATION_AAMMDD/events/
+    string path1 = root + sub0;
+    path p1(path1);
+
+    // DataLocation/STATION_AAMMDD/events/STATION_AAAAMMDD_HHMMSS_UT/
+    string path2 = root + sub0 + sub1;
     path p2(path2);
 
-    string path3 = root + sub1 + sub2;
-    path p3(path3);
+    // If DataLocation/ exists.
+    if(fs::exists(p)){
 
-    if(fs::exists(p1)){
+        // If DataLocation/STATION_AAMMDD/ exists.
+        if(fs::exists(p0)){
 
-        std::cerr << "Destination directory " << p1.string() << " already exists." << '\n';
-        //return false;
+            // If DataLocation/STATION_AAMMDD/events/ exists.
+            if(fs::exists(p1)){
 
-        if(fs::exists(p2)){
+                // If DataLocation/STATION_AAMMDD/events/STATION_AAAAMMDD_HHMMSS_UT/ exists.
+                if(!fs::exists(p2)){
 
-            std::cerr << "Destination directory " << p2.string() << " already exists." << '\n';
+                    if(!fs::create_directory(p2)){
 
+                        return false;
 
-            if(fs::exists(p3)){
+                    }else{
 
-                std::cerr << "Destination directory " << p3.string() << " already exists." << '\n';
-
-                //copy of the frame buffer
-                string path4 = path3 + "buffer/";
-                path p4(path4);
-
-                if(!fs::create_directory(p4)){
-                    std::cerr << "Unable to create destination directory" << p3.string() << '\n';
-                    //return false;
-
-                }else{
-
-                    /// SAVE
-
-                    boost::unique_lock<boost::mutex> lock_eventToRec(mutex_listEventToRecord);
-                    lock_eventToRec.lock();
-
-                    //copy of the frame buffer
-                    path sourceBufferDisk(bufferDiskPath);
-                    ManageFiles::copyDirectory( sourceBufferDisk ,p4 );
-
-
-
-
-
-
-                    lock_eventToRec.unlock();
-
-
-
-
-
-
-                    //copie de la liste des noms de frames du buffer sur le disque
-
-
-                    rec->setBufferFileName(imageOfBufferOnDisk);
-
-                    lock_eventToRec.unlock();
-
-                    //Ajout du chemin des frames du buffer
-                    rec->setPathOfFrames(path4);
-
-                    //Ajout du chemin où les images et vidéos seront enregistrées
-                    rec->setPath(path3);
-
-                    //copie du buffer dans le chemin path4
-
-                    path ps("./framebuffer/");
-                    path pd(p4);
-
-                    ManageFiles::copyDirectory( ps, pd);
-
-                    //Ajout du recEvent à la liste des évènement à enregistrer
-                    boost::unique_lock<boost::mutex> lock(mutex_imageOfBufferOnDisk);
-                    lock.lock();
-
-                    listEventToRecord.push_back(*rec);
-
-                    lock.unlock();
-
-                    //Envoie d'une notification au thread d'enregistrement
-                    //condNewElemOn_ListEventToRec->notify_all();
-                    returnStatus = true;
-
-                    //delete rec;
-
-                    //cout << "save"<<endl;
-                   // saveBMP(metImg, path3+"met_"+Conversion::intToString(moveObjCpt));
-
+                        return true;
+                    }
 
                 }
 
             }else{
 
                 // Create the destination directory
-                if(!fs::create_directory(p3)){
-                    std::cerr << "Unable to create destination directory" << p3.string() << '\n';
-                    //return false;
+                if(!fs::create_directory(p1)){
 
+                    return false;
 
                 }else{
 
-                     /// SAVE
-                    cout << "save"<<endl;
-                    //saveBMP(metImg, path3+"met_"+Conversion::intToString(moveObjCpt));
+                    // Create the destination directory
+                    if(!fs::create_directory(p2)){
 
+                        return false;
+
+                    }else{
+
+                        return true;
+
+                    }
 
                 }
-
             }
-
 
         }else{
 
             // Create the destination directory
-            if(!fs::create_directory(p2)){
-                std::cerr << "Unable to create destination directory" << p2.string() << '\n';
-                //return false;
+            if(!fs::create_directory(p0)){
+
+                return false;
 
             }else{
 
+                if(!fs::create_directory(p1)){
 
-                // Create the destination directory
-                if(!fs::create_directory(p3)){
-                    std::cerr << "Unable to create destination directory" << p3.string() << '\n';
-                    //return false;
+                    return false;
 
                 }else{
 
-                    /// SAVE
-                    cout << "save"<<endl;
-                    //saveBMP(metImg, path3+"met_"+Conversion::intToString(moveObjCpt));
+                    if(!fs::create_directory(p2)){
+
+                        return false;
+
+                    }else{
+
+                        return true;
+
+                    }
 
                 }
             }
@@ -384,38 +193,260 @@ vector<string> RecEvent::getDateEvent(){
 
     }else{
 
-        // Create the destination directory
-        if(!fs::create_directory(p1)){
+        if(!fs::create_directory(p)){
 
-            std::cerr << "Unable to create destination directory" << p1.string() << '\n';
-            //return false;
-
+            return false;
 
         }else{
 
-            if(!fs::create_directory(p2)){
-                std::cerr << "Unable to create destination directory" << p2.string() << '\n';
-                //return false;
+            // Create the destination directory
+            if(!fs::create_directory(p0)){
+
+                return false;
 
             }else{
 
+                if(!fs::create_directory(p1)){
 
-                // Create the destination directory
-                if(!fs::create_directory(p3)){
-                    std::cerr << "Unable to create destination directory" << p3.string() << '\n';
-                    //return false;
-
+                    return false;
 
                 }else{
 
-                    /// SAVE
-                    cout << "save"<<endl;
-                   // saveBMP(metImg, path3+"met_"+Conversion::intToString(moveObjCpt));
+                    if(!fs::create_directory(p2)){
 
+                        return false;
+
+
+                    }else{
+
+                        return true;
+
+                    }
                 }
             }
         }
     }
 
+    return false;
+}
 
-*/
+bool RecEvent::saveGE(vector<GlobalEvent> &GEList, vector<GlobalEvent>::iterator itGE){
+
+    namespace fs = boost::filesystem;
+
+    /// POSITIONS FILE
+
+    if(recPos){
+
+        ofstream posFile;
+        string posFilePath = currentEventPath + "positions.txt";
+        posFile.open(posFilePath.c_str());
+        posFile << "num_frame (x;y)\n";
+
+        // infos
+
+        posFile.close();
+
+    }
+
+    /// SAVE mapGE
+
+    if(recMapGE){
+
+        SaveImg::saveBMP((*itGE).getMapEvent(), currentEventPath + "GEMap");
+
+    }
+
+    int numFirstFrameEvent = (*itGE).getNumFirstFrame();
+    int numLastFrameEvent = (*itGE).getNumLastFrame();
+
+    int numFirstFrameToSave = numFirstFrameEvent - timeBefore;
+    int numLastFrameToSave = numLastFrameEvent - timeAfter;
+
+    int c = 1;
+
+    boost::mutex::scoped_lock lock(*m_frameBuffer);
+
+    if(frameBuffer->front().getNumFrame() > numFirstFrameToSave)
+        numFirstFrameToSave = frameBuffer->front().getNumFrame();
+
+    if(frameBuffer->back().getNumFrame() < numLastFrameToSave)
+        numLastFrameToSave = frameBuffer->back().getNumFrame();
+
+    /// SAVE AVI
+
+    VideoWriter oVideoWriter;
+
+    if(recAvi){
+
+        Size frameSize(static_cast<int>(frameBuffer->front().getImg().cols), static_cast<int>(frameBuffer->front().getImg().cols));
+        oVideoWriter = VideoWriter(currentEventPath + "video_" +".avi", CV_FOURCC('D', 'I', 'V', 'X'), 15, frameSize, false);
+
+    }
+
+    /// SAVE FITS3D
+
+    cout << " recFits3D : " << recFits3D << endl;
+
+    Fits3D fits3d;
+
+    if(recFits3D)
+        fits3d = Fits3D(pixelFormat, frameBuffer->front().getImg().rows, frameBuffer->front().getImg().cols, (numLastFrameToSave - numFirstFrameToSave +1));
+
+    cout << ">> " << numLastFrameToSave - numFirstFrameToSave << endl;
+
+
+    Mat stackEvent = Mat::zeros(frameBuffer->front().getImg().rows, frameBuffer->front().getImg().cols, CV_32FC1);
+
+    boost::circular_buffer<Frame>::iterator it;
+
+    for(it = frameBuffer->begin(); it != frameBuffer->end(); ++it){
+
+        if((*it).getNumFrame() >= numFirstFrameToSave && (*it).getNumFrame() <= numLastFrameToSave){
+
+            Mat currFrame;
+            (*it).getImg().copyTo(currFrame);
+
+            Mat temp;
+
+            if(pixelFormat == MONO_12)
+                currFrame.convertTo(temp, CV_8UC1, 255, 0);
+
+
+            /// SAVE BMP
+
+            if(recBmp){
+
+                path p(currentEventPath + "BMP/");
+
+                if(!fs::exists(p))
+                    fs::create_directory(p);
+
+                imwrite(currentEventPath + "BMP/frame_" + Conversion::intToString(c) + ".bmp", temp);
+
+            }
+
+            /// SAVE AVI
+
+            if(recAvi){
+
+                if(oVideoWriter.isOpened())
+                    oVideoWriter << temp;
+
+            }
+
+            /// SAVE FITS2D
+
+            if(recFits2D){
+
+                string fits2DPath = currentEventPath + "fits2D/";
+
+                path p(fits2DPath);
+
+                if(!fs::exists(p))
+                    fs::create_directory(p);
+
+                if(fs::exists(p)){
+
+                    if(pixelFormat == MONO_8){
+
+                        Fits2D newFits(fits2DPath + "frame_" + Conversion::intToString(c) + "_",fitsHeader);
+                        newFits.writeFits((*it).getImg(), UC8, 0, true,"" );
+
+                    }else{
+
+                        Fits2D newFits(fits2DPath + "frame_" + Conversion::intToString(c) + "_",fitsHeader);
+                        newFits.writeFits((*it).getImg(), US16, 0, true,"" );
+                    }
+                }
+
+
+            }
+
+            /// SAVE FITS3D
+
+            if(recFits3D){
+
+                cout << "addData" << endl;
+
+                fits3d.addImageToFits3D((*it).getImg());
+
+            }
+
+            c++;
+
+            accumulate((*it).getImg(), stackEvent);
+
+        }
+    }
+
+    /// SAVE FITS3D
+
+    if(recFits3D){
+
+        cout << "save : " << currentEventPath + "fits3D" << endl;
+
+        fits3d.writeFits3D(currentEventPath + "fits3D");
+
+    }
+
+
+    /// SAVE SUM
+
+    if(recSum){
+
+        bool stackReduction = true;
+
+        Fits2D newFits(currentEventPath + "sum",fitsHeader);
+
+        if(stackReduction){
+
+            Mat newMat ;
+
+            float bzero     = 0.0;
+            float bscale    = 1.0;
+
+            ImgReduction::dynamicReductionByFactorDivision(stackEvent, pixelFormat, c, bzero, bscale).copyTo(newMat);
+
+            newFits.setBzero(bzero);
+            newFits.setBscale(bscale);
+
+            switch(pixelFormat){
+
+                case MONO_8 :
+
+                    {
+
+                         newFits.writeFits(newMat, C8, 0, true,"" );
+
+                    }
+
+                    break;
+
+                case MONO_12 :
+
+                    {
+
+                         newFits.writeFits(newMat, S16, 0, true,"" );
+
+                    }
+
+                    break;
+
+            }
+
+        }else{
+
+            // Save fits in 32 bits.
+            newFits.writeFits(stackEvent, F32 , 0, true,"" );
+
+        }
+
+    }
+
+    lock.unlock();
+
+    return true;
+
+}
+

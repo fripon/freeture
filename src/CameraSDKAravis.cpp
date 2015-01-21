@@ -5,8 +5,7 @@
 *
 *	This file is part of:	freeture
 *
-*	Copyright:		(C) 2014-2015 Yoan Audureau
-*                               FRIPON-GEOPS-UPSUD-CNRS
+*	Copyright:		(C) 2014-2015 Yoan Audureau -- FRIPON-GEOPS-UPSUD
 *
 *	License:		GNU General Public License
 *
@@ -21,43 +20,42 @@
 *	You should have received a copy of the GNU General Public License
 *	along with FreeTure. If not, see <http://www.gnu.org/licenses/>.
 *
-*	Last modified:		22/12/2014
+*	Last modified:		21/01/2015
 *
 *%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%*/
 
 /**
- * @file    CameraSDKAravis.cpp
- * @author  Yoan Audureau -- FRIPON-GEOPS-UPSUD
- * @version 1.0
- * @date    22/12/2014
+ * \file    CameraSDKAravis.cpp
+ * \author  Yoan Audureau -- FRIPON-GEOPS-UPSUD
+ * \version 1.0
+ * \date    21/01/2015
+ * \brief   Use Aravis library to pilot GigE Cameras.
+ *          https://wiki.gnome.org/action/show/Projects/Aravis?action=show&redirect=Aravis
  */
 
 #include "CameraSDKAravis.h"
 
-            CameraSDKAravis::CameraSDKAravis(){}
+CameraSDKAravis::CameraSDKAravis(){}
 
-            CameraSDKAravis::~CameraSDKAravis(){}
+CameraSDKAravis::~CameraSDKAravis(){}
 
-/// ACQUISITION FUNCTIONS
-
-void        CameraSDKAravis::listCameras(){
+void CameraSDKAravis::listCameras(){
 
     arv_update_device_list ();
 
-	unsigned int n_devices = arv_get_n_devices ();
+	int n_devices = arv_get_n_devices ();
 
-    cout << endl;
-    cout << "********** DETECTED CAMERAS WITH ARAVIS ************ " << endl;
+    cout << "******** DETECTED CAMERAS WITH ARAVIS ********** " << endl;
     cout << "*" << endl;
 
 	for(int i = 0; i< n_devices; i++){
 
-        cout << "* ->"<< arv_get_device_id (i)<<endl;
+        cout << "* -> [" << Conversion::intToString(i) << "] " << arv_get_device_id (i)<<endl;
 
 	}
 
     cout << "*" << endl;
-	cout << "**************************************************** " << endl << endl;
+	cout << "************************************************ " << endl;
 
 }
 
@@ -65,7 +63,7 @@ bool CameraSDKAravis::getDeviceById(int id, string &device){
 
     arv_update_device_list();
 
-	unsigned int n_devices = arv_get_n_devices();
+    int n_devices = arv_get_n_devices();
 
 	for(int i = 0; i< n_devices; i++){
 
@@ -76,14 +74,13 @@ bool CameraSDKAravis::getDeviceById(int id, string &device){
             return true;
 
         }
-
 	}
 
 	return false;
 
 }
 
-bool	    CameraSDKAravis::chooseDevice(string name){
+bool CameraSDKAravis::chooseDevice(string name){
 
     camera = arv_camera_new(name.c_str());
 
@@ -94,9 +91,7 @@ bool	    CameraSDKAravis::chooseDevice(string name){
 
 }
 
-
-
-bool		CameraSDKAravis::grabStart(){
+bool CameraSDKAravis::grabStart(){
 
     payload = arv_camera_get_payload (camera);
 
@@ -104,156 +99,148 @@ bool		CameraSDKAravis::grabStart(){
 
     pixFormat = arv_camera_get_pixel_format (camera);
 
-    pixel_format_string = arv_camera_get_pixel_format_as_string (camera);
-
     arv_camera_get_exposure_time_bounds (camera, &exposureMin, &exposureMax);
 
     arv_camera_get_gain_bounds (camera, &gainMin, &gainMax);
 
     arv_camera_set_frame_rate (camera, 30);
 
-    fps = arv_camera_get_frame_rate (camera);
+    fps = arv_camera_get_frame_rate(camera);
 
-    caps_string = arv_pixel_format_to_gst_caps_string (pixFormat);
+    caps_string = arv_pixel_format_to_gst_caps_string(pixFormat);
 
-    if (caps_string == NULL) {
-
-        g_message ("GStreamer cannot understand the camera pixel format: 0x%x!\n", (int) pixFormat);
-
-    }
-
-    gain = arv_camera_get_gain (camera);
-
-    exp =  arv_camera_get_exposure_time (camera);
+    gain    = arv_camera_get_gain(camera);
+    exp     = arv_camera_get_exposure_time(camera);
 
     cout << endl;
 
     cout << "DEVICE SELECTED : " << arv_camera_get_device_id(camera)    << endl;
-
     cout << "DEVICE NAME     : " << arv_camera_get_model_name(camera)   << endl;
-
     cout << "DEVICE VENDOR   : " << arv_camera_get_vendor_name(camera)  << endl;
-
     cout << "PAYLOAD         : " << payload                             << endl;
-
     cout << "Width           : " << width                               << endl
-
          << "Height          : " << height                              << endl;
-
-    //cout << "Format          : " << pixel_format_string                 << endl;
-
     cout << "Exp Range       : [" << exposureMin    << " - " << exposureMax   << "]"  << endl;
-
     cout << "Exp             : " << exp                                 << endl;
-
     cout << "Gain Range      : [" << gainMin        << " - " << gainMax       << "]"  << endl;
-
     cout << "Gain            : " << gain                                << endl;
-
     cout << "Fps             : " << fps                                 << endl;
-
     cout << "Type            : " << caps_string                         << endl;
-
-    const char * feature;
-
-    string stfeature = "TemperatureAbs";
-
-    feature                = stfeature.c_str();
-
-   // cout << "Temperature : " << arv_device_get_string_feature_value (camera, feature);
 
     cout << endl;
 
-
-
+    // Create a new stream object. Open stream on Camera.
     stream = arv_camera_create_stream(camera, NULL, NULL);
 
-    if (stream == NULL) {
+    if(stream == NULL)
+        cout << "stream is null " << endl;
 
-        g_object_unref(camera);
-        camera = NULL;
+    if (ARV_IS_GV_STREAM(stream)){
 
-        return false;
+        bool            arv_option_auto_socket_buffer   = true;
+        bool            arv_option_no_packet_resend     = true;
+        unsigned int    arv_option_packet_timeout       = 20;
+        unsigned int    arv_option_frame_retention      = 100;
 
-    }else{
+        if(arv_option_auto_socket_buffer){
 
-        if (ARV_IS_GV_STREAM (stream)) {
-
-            g_object_set (stream,
-
-                        //ARV_GV_STREAM_SOCKET_BUFFER_FIXED : socket buffer is set to a given fixed value
-                        //ARV_GV_STREAM_SOCKET_BUFFER_AUTO: sockect buffer is set with respect to the payload size
-                        "socket-buffer", ARV_GV_STREAM_SOCKET_BUFFER_AUTO,
-
-                        //Socket buffer size, in bytes.
-                        //Allowed values: >= G_MAXULONG
-                        //Default value: 0
-                        "socket-buffer-size", 0,
-
-                        //Packet timeout, in µs.
-                        //Allowed values: [1000,10000000]
-                        //Default value: 40000
-                        "packet-timeout", (unsigned) 10000000,
-
-                        //Packet retention, in µs.
-                        //Allowed values: [1000,10000000]
-                        //Default value: 200000
-                        "frame-retention", (unsigned) 200000,
-
-                        //ARV_GV_STREAM_PACKET_RESEND_NEVER: never request a packet resend
-                        //ARV_GV_STREAM_PACKET_RESEND_ALWAYS: request a packet resend if a packet was missing
-                        //Default value: ARV_GV_STREAM_PACKET_RESEND_ALWAYS
-                        "packet-resend", ARV_GV_STREAM_PACKET_RESEND_NEVER,
-
-                        NULL);
-
-        }else{
-
-            return false;
+            g_object_set(stream,
+                         // ARV_GV_STREAM_SOCKET_BUFFER_FIXED : socket buffer is set to a given fixed value.
+                         // ARV_GV_STREAM_SOCKET_BUFFER_AUTO: socket buffer is set with respect to the payload size.
+                         "socket-buffer", ARV_GV_STREAM_SOCKET_BUFFER_AUTO,
+                         // Socket buffer size, in bytes.
+                         // Allowed values: >= G_MAXULONG
+                         // Default value: 0
+                         "socket-buffer-size", 0, NULL);
 
         }
 
-        for (int i = 0; i < 50; i++)
-            arv_stream_push_buffer (stream, arv_buffer_new (payload, NULL));
+        if(arv_option_no_packet_resend){
 
-        return true;
+            // # packet-resend : Enables or disables the packet resend mechanism
+
+            // If packet resend is disabled and a packet has been lost during transmission,
+            // the grab result for the returned buffer holding the image will indicate that
+            // the grab failed and the image will be incomplete.
+            //
+            // If packet resend is enabled and a packet has been lost during transmission,
+            // a request is sent to the camera. If the camera still has the packet in its
+            // buffer, it will resend the packet. If there are several lost packets in a
+            // row, the resend requests will be combined.
+
+            g_object_set(stream,
+                         // ARV_GV_STREAM_PACKET_RESEND_NEVER: never request a packet resend
+                         // ARV_GV_STREAM_PACKET_RESEND_ALWAYS: request a packet resend if a packet was missing
+                         // Default value: ARV_GV_STREAM_PACKET_RESEND_ALWAYS
+                         "packet-resend", ARV_GV_STREAM_PACKET_RESEND_NEVER, NULL);
+
+        }
+
+        g_object_set(stream,
+                     // # packet-timeout
+
+                     // The Packet Timeout parameter defines how long (in milliseconds) we will wait for
+                     // the next expected packet before it initiates a resend request.
+
+                     // Packet timeout, in µs.
+                     // Allowed values: [1000,10000000]
+                     // Default value: 40000
+                     "packet-timeout",/* (unsigned) arv_option_packet_timeout * 1000*/(unsigned)10000000,
+                     // # frame-retention
+
+                     // The Frame Retention parameter sets the timeout (in milliseconds) for the
+                     // frame retention timer. Whenever detection of the leader is made for a frame,
+                     // the frame retention timer starts. The timer resets after each packet in the
+                     // frame is received and will timeout after the last packet is received. If the
+                     // timer times out at any time before the last packet is received, the buffer for
+                     // the frame will be released and will be indicated as an unsuccessful grab.
+
+                     // Packet retention, in µs.
+                     // Allowed values: [1000,10000000]
+                     // Default value: 200000
+                     "frame-retention", /*(unsigned) arv_option_frame_retention * 1000*/(unsigned) 200000,NULL);
 
     }
 
+    // Push 50 buffer in the stream input buffer queue.
+    for (int i = 0; i < 50; i++)
+        arv_stream_push_buffer(stream, arv_buffer_new(payload, NULL));
+
+    return true;
+
 }
 
-void        CameraSDKAravis::acqStart(){
+void CameraSDKAravis::acqStart(bool continuousAcquisition){
 
-    arv_camera_set_acquisition_mode(camera, ARV_ACQUISITION_MODE_CONTINUOUS);
+    if(continuousAcquisition)
+        arv_camera_set_acquisition_mode(camera, ARV_ACQUISITION_MODE_CONTINUOUS);
+    else
+        arv_camera_set_acquisition_mode(camera, ARV_ACQUISITION_MODE_SINGLE_FRAME);
+
     arv_camera_start_acquisition(camera);
 
 }
 
-void        CameraSDKAravis::acqStop(){
+void CameraSDKAravis::acqStop(){
 
-     arv_camera_stop_acquisition (camera);
+    arv_stream_get_statistics(stream, &n_completed_buffers, &n_failures, &n_underruns);
 
-}
+    cout << "Completed buffers = " << (unsigned long long) n_completed_buffers  << endl;
+    cout << "Failures          = " << (unsigned long long) n_failures           << endl;
+    cout << "Underruns         = " << (unsigned long long) n_underruns          << endl;
 
-void	    CameraSDKAravis::grabStop(){
+    arv_camera_stop_acquisition(camera);
 
-    arv_stream_get_statistics(stream,&n_completed_buffers,&n_failures,&n_underruns);
-
-    cout << "Completed buffers = " << (unsigned long long) n_completed_buffers<<endl;
-    cout << "Failures          = " << (unsigned long long) n_failures<<endl;
-    cout << "Underruns         = "<< (unsigned long long) n_underruns<<endl;
-
-    // Free ressources
-    g_object_unref (stream);
-    g_object_unref (camera);
+    g_object_unref(stream);
+    g_object_unref(camera);
 
 }
 
-void	    CameraSDKAravis::grabRestart(){
+void CameraSDKAravis::grabStop(){}
 
-}
+void CameraSDKAravis::grabRestart(){}
 
-bool	    CameraSDKAravis::grabImage(Frame *&newFrame, Mat newImage){
+bool CameraSDKAravis::grabImage(Frame &newFrame){
 
     ArvBuffer *arv_buffer;
 
@@ -261,20 +248,14 @@ bool	    CameraSDKAravis::grabImage(Frame *&newFrame, Mat newImage){
 
     if (arv_buffer == NULL){
 
-        return false;
+        throw runtime_error("arv_buffer is NULL");
 
     }else{
 
         if (arv_buffer->status == ARV_BUFFER_STATUS_SUCCESS){
 
-            //cout << "frame id: "<< arv_buffer->frame_id <<endl;
-           // cout << "timepstamp : " <<arv_buffer->timestamp_ns <<endl;
-
             //Timestamping.
             string acquisitionDate = TimeDate::localDateTime(second_clock::universal_time(),"%Y:%m:%d:%H:%M:%S");
-
-            //Get frame size.
-            int width = arv_buffer->width, height = arv_buffer->height;
 
             Mat image;
 
@@ -283,43 +264,41 @@ bool	    CameraSDKAravis::grabImage(Frame *&newFrame, Mat newImage){
                 Mat img(height, width, CV_8UC1, arv_buffer->data);
                 img.copyTo(image);
 
-            }else{
+            }else if(pixFormat == ARV_PIXEL_FORMAT_MONO_12){
 
                 Mat img(height, width, CV_16UC1, arv_buffer->data);
                 img.copyTo(image);
 
             }
 
-            image.copyTo(newImage);
-            newFrame = new Frame(image, arv_camera_get_gain(camera), arv_camera_get_exposure_time(camera), acquisitionDate);
-            cout << "exp : " << arv_camera_get_exposure_time(camera) << endl;
+            newFrame = Frame(image, arv_camera_get_gain(camera), arv_camera_get_exposure_time(camera), acquisitionDate);
 
         }else{
 
             switch(arv_buffer->status){
 
-                case 1 :
+                case 0 :
                     cout << "ARV_BUFFER_STATUS_SUCCESS : the buffer contains a valid image"<<endl;
                     break;
-                case 2 :
+                case 1 :
                     cout << "ARV_BUFFER_STATUS_CLEARED: the buffer is cleared"<<endl;
                     break;
-                case 3 :
+                case 2 :
                     cout << "ARV_BUFFER_STATUS_TIMEOUT: timeout was reached before all packets are received"<<endl;
                     break;
-                case 4 :
+                case 3 :
                     cout << "ARV_BUFFER_STATUS_MISSING_PACKETS: stream has missing packets"<<endl;
                     break;
-                case 5 :
+                case 4 :
                     cout << "ARV_BUFFER_STATUS_WRONG_PACKET_ID: stream has packet with wrong id"<<endl;
                     break;
-                case 6 :
+                case 5 :
                     cout << "ARV_BUFFER_STATUS_SIZE_MISMATCH: the received image didn't fit in the buffer data space"<<endl;
                     break;
-                case 7 :
+                case 6 :
                     cout << "ARV_BUFFER_STATUS_FILLING: the image is currently being filled"<<endl;
                     break;
-                case 8 :
+                case 7 :
                     cout << "ARV_BUFFER_STATUS_ABORTED: the filling was aborted before completion"<<endl;
                     break;
 
@@ -335,9 +314,7 @@ bool	    CameraSDKAravis::grabImage(Frame *&newFrame, Mat newImage){
     return true;
 }
 
-/// GETTER FUNCTIONS
-
-double	    CameraSDKAravis::getExpoMin(void){
+double CameraSDKAravis::getExpoMin(void){
 
     double exposureMin = 0.0;
     double exposureMax = 0.0;
@@ -349,7 +326,7 @@ double	    CameraSDKAravis::getExpoMin(void){
 
 }
 
-double	    CameraSDKAravis::getExpoMax(void){
+double CameraSDKAravis::getExpoMax(void){
 
     double exposureMin = 0.0;
     double exposureMax = 0.0;
@@ -361,19 +338,19 @@ double	    CameraSDKAravis::getExpoMax(void){
 
 }
 
-int		    CameraSDKAravis::getGainMin(void){
+int CameraSDKAravis::getGainMin(void){
 
-        double gainMin = 0.0;
-        double gainMax = 0.0;
+    double gainMin = 0.0;
+    double gainMax = 0.0;
 
-        // Get bounds for the gain.
-        arv_camera_get_gain_bounds(camera, &gainMin, &gainMax);
+    // Get bounds for the gain.
+    arv_camera_get_gain_bounds(camera, &gainMin, &gainMax);
 
-        return (int)gainMin;
+    return (int)gainMin;
 
 }
 
-int		    CameraSDKAravis::getGainMax(void){
+int CameraSDKAravis::getGainMax(void){
 
     double gainMin = 0.0;
     double gainMax = 0.0;
@@ -385,65 +362,68 @@ int		    CameraSDKAravis::getGainMax(void){
 
 }
 
-CamBitDepth CameraSDKAravis::getPixelFormat(void){
+bool CameraSDKAravis::getPixelFormat(CamBitDepth &format){
 
     ArvPixelFormat pixFormat = arv_camera_get_pixel_format(camera);
-    const char *pixel_format_string;
 
     switch(pixFormat){
 
         case ARV_PIXEL_FORMAT_MONO_8 :
 
-                return MONO_8;
+                format = MONO_8;
 
             break;
 
         case ARV_PIXEL_FORMAT_MONO_12 :
 
-                return MONO_12;
+                format = MONO_12;
 
             break;
 
         default :
 
-                return DEPTH_ERROR;
+                return false;
 
             break;
 
     }
+
+    return true;
 }
 
-int		    CameraSDKAravis::getWidth(void){
+int CameraSDKAravis::getWidth(void){
 
-    int width = 0, height = 0;
-    arv_camera_get_region(camera, NULL, NULL, &width, &height);
-    return width;
+    int w = 0, h = 0;
 
-}
+    arv_camera_get_region(camera, NULL, NULL, &w, &h);
 
-int		    CameraSDKAravis::getHeight(void){
-
-    int width = 0, height = 0;
-    arv_camera_get_region(camera, NULL, NULL, &width, &height);
-    return height;
+    return w;
 
 }
 
-double	    CameraSDKAravis::getFPS(void){
+int CameraSDKAravis::getHeight(void){
+
+    int w = 0, h = 0;
+
+    arv_camera_get_region(camera, NULL, NULL, &w, &h);
+
+    return h;
+
+}
+
+double CameraSDKAravis::getFPS(void){
 
     return arv_camera_get_frame_rate(camera);
 
 }
 
-string	    CameraSDKAravis::getModelName(){
+string CameraSDKAravis::getModelName(){
 
     return arv_camera_get_model_name(camera);
 
 }
 
-/// SETTER FUNCTIONS
-
-bool	    CameraSDKAravis::setFPS(int fps){
+bool CameraSDKAravis::setFPS(int fps){
 
     if (camera != NULL){
 
@@ -457,7 +437,7 @@ bool	    CameraSDKAravis::setFPS(int fps){
 
 }
 
-bool	    CameraSDKAravis::setExposureTime(double val){
+bool CameraSDKAravis::setExposureTime(double val){
 
     double expMin, expMax;
 
@@ -466,10 +446,14 @@ bool	    CameraSDKAravis::setExposureTime(double val){
     if (camera != NULL){
 
         if(val >= expMin && val <= expMax)
+
             arv_camera_set_exposure_time(camera, val);
+
         else{
+
             cout << "> Exposure value (" << val << ") is not in range [ " << expMin << " - " << expMax << " ]" << endl;
             return false;
+
         }
 
         return true;
@@ -479,7 +463,7 @@ bool	    CameraSDKAravis::setExposureTime(double val){
     return false;
 }
 
-bool	    CameraSDKAravis::setGain(int val){
+bool CameraSDKAravis::setGain(int val){
 
     double gMin, gMax;
 
@@ -488,10 +472,14 @@ bool	    CameraSDKAravis::setGain(int val){
     if (camera != NULL){
 
         if(val >= gMin && val <= gMax)
+
             arv_camera_set_gain (camera, val);
+
         else{
+
             cout << "> Gain value (" << val << ") is not in range [ " << gMin << " - " << gMax << " ]" << endl;
             return false;
+
         }
 
         return true;
@@ -502,7 +490,7 @@ bool	    CameraSDKAravis::setGain(int val){
 
 }
 
-bool	    CameraSDKAravis::setPixelFormat(CamBitDepth depth){
+bool CameraSDKAravis::setPixelFormat(CamBitDepth depth){
 
     if (camera != NULL){
 

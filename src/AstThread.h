@@ -1,12 +1,11 @@
 /*
-		                AstThread.h
+								AstThread.h
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 *
 *	This file is part of:	freeture
 *
-*	Copyright:		(C) 2014-2015 Yoan Audureau
-*                               FRIPON-GEOPS-UPSUD-CNRS
+*	Copyright:		(C) 2014-2015 Yoan Audureau -- FRIPON-GEOPS-UPSUD
 *
 *	License:		GNU General Public License
 *
@@ -26,30 +25,31 @@
 *%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%*/
 
 /**
- * @file    AstThread.h
- * @author  Yoan Audureau -- FRIPON-GEOPS-UPSUD
- * @version 1.0
- * @date    03/06/2014
+ * \file    AstThread.h
+ * \author  Yoan Audureau -- FRIPON-GEOPS-UPSUD
+ * \version 1.0
+ * \date    21/01/2015
+ * \brief   Produce a thread for stacking frames. Save stacks which will be
+ *          use to make astrometry.
  */
 
 #pragma once
 
-#include "includes.h"
-#include "EnumLog.h"
-#include "EnumBitdepth.h"
+#include <iostream>
+#include "ELogSeverityLevel.h"
+#include "EImgBitDepth.h"
 #include "ECamBitDepth.h"
-#include "EAstStackMeth.h"
-#include "Fifo.h"
+#include "EStackMeth.h"
+
 #include "Frame.h"
 #include "Fits.h"
 #include "Fits2D.h"
-#include "Histogram.h"
 #include "TimeDate.h"
 #include "ImgReduction.h"
+#include "StackedFrames.h"
 
 #include <boost/filesystem.hpp>
-#include <iterator>
-#include <algorithm>
+#include <boost/circular_buffer.hpp>
 
 using namespace boost::filesystem;
 
@@ -64,156 +64,86 @@ namespace src		= boost::log::sources;
 namespace expr		= boost::log::expressions;
 namespace keywords	= boost::log::keywords;
 
-using namespace logenum;
-using namespace bit_depth_enum;
-
-//!  A thread class to make captures regurlarly in fits format.
-/*!
-  This class launchs a thread to make regular captures in fits format for astrometry.
-*/
 class AstThread{
 
 	private:
 
-        //! A logger
-        /*!
-          Logger used to manage messages added to the log file
-        */
-		src::severity_logger< severity_level > log;
+		src::severity_logger< LogSeverityLevel > log;
 
-		//! A thread
-        /*!
-          This class has a proper thread
-        */
-		boost::thread               *thread;
+		//! Thread declaration.
+		boost::thread *thread;
 
-		//! A shared queue
-        /*!
-          This is a buffer shared between threads.
-          It contains the n last frames captured by the acquisition process.
-        */
-		Fifo<Frame>                 *framesQueue;
-
-		//! Mutex on the shared queue
-        /*!
-          This is a mutex used to synchronise access to the buffer shared.
-        */
-		boost::mutex                *m_mutex_queue;
-
-		//! Condition on the shared queue if it's full
-        /*!
-          Used to check if the shared queue is full
-        */
-		boost::condition_variable   *condFill;
-
-		//! Condition on the shared queue if there is new frame
-        /*!
-          Used to check if a new element has been added in the shared queue
-        */
-		boost::condition_variable   *condNewElem;
-
-		//! Path of images captured
-        /*!
-          Define the path where the fits files will be save
-        */
-		string                      path_;
+		//! Location where to save stacks.
+		string path_;
 
 		bool threadStopped;
 
-		//! Capture time interval
-        /*!
-          Time interval between captures
-        */
-		int                         capInterval;
+		//! Interval between two stacks (In number of frames).
+		int capInterval;
 
-		//! Exposure time used for capture images
-        /*!
-          This is the maximum value of the camera's exposure time to be at the maximum frame per second rate.
-          This value is configurate in the configuration file
-        */
-		double                      exposureTime;
+		//! Time of stacking frames (In number of frames to stack).
+		double exposureTime;
 
-		//! Flag to stop the thread
-        /*!
-          Flag used to stop the thread
-        */
-		bool                        mustStop;
+		//! Flag used to stop the thread.
+		bool mustStop;
 
-		//! Mutex on the stop flag
-		boost::mutex                mustStopMutex;
+		//! Mutex on the stop flag.
+		boost::mutex mustStopMutex;
 
-		//! Format of the captures
-        /*!
-          Is define in the configuration file.
-        */
+		//! Bit depth of frames.
 		CamBitDepth camFormat ;
 
-		//! Path of the configuration file
-        /*!
-          Is define in argument of the program
-        */
-		string                      configFile;
+		//! Location of the configuration file.
+		string configFile;
 
-		//! Method of the fits creation
-        /*!
-          Is define in the configuration file. To generate a fits, N frames are integrated during n seconds.
-          This parameter is used to decide if we want to conserve the integration or if we want to do a mean to generate the final image.
-        */
-		AstStackMeth                      stackMthd;
+		//! Method to use to get the final stacked frame.
+		StackMeth stackMthd;
 
-		//! Longitude of the station's position
+		//! Longitude of the station's position.
 		double longitude;
 
+        //! Name of the station.
 		string stationName;
 
+        //! Contain fits keywords defined in the configuration file.
 		Fits fitsHeader;
 
+        //! Camera's fps.
 		int camFPS;
 
+        //! If it's disabled, the final stacked frame will be saved in 32 bits.
+        //! If it's enabled, it will be saved in 16 bits.
 		bool stackReduction;
+
+		boost::circular_buffer<StackedFrames> *stackedFramesBuffer;
+        boost::mutex *m_stackedFramesBuffer;
+        boost::condition_variable *c_newElemStackedFramesBuffer;
 
 	public:
 
-        //! Constructor
-        /*!
-          \param recPath location of the captured images
-          \param astMeth mean or sum
-          \param configurationFilePath location of the configuration file
-          \param frame_queue pointer on the shared queue which contains last grabbed frames
-          \param interval capture's time interval in seconds
-          \param expTime integration time
-          \param acqFormat format of grabbed image
-          \param m_frame_queue pointer on a mutex used for the shared queue
-          \param c_queue_full pointer on a condition used to notify when the shared queue is full
-          \param c_queue_new pointer on a condition used to notify when the shared queue has received a new frame
-        */
+        AstThread(  string                                  recPath,
+                    string                                  station,
+                    StackMeth                               astMeth,
+                    string                                  configurationFilePath,
+                    double                                  expTime,
+                    CamBitDepth                             acqFormat,
+                    double                                  longi,
+                    Fits                                    fitsHead,
+                    int                                     fps,
+                    bool                                    reduction,
+                    boost::circular_buffer<StackedFrames>   *stackedFb,
+                    boost::mutex                            *m_stackedFb,
+                    boost::condition_variable               *c_newElemStackedFb);
 
-        AstThread(  string recPath,
-                    string station,
-                    AstStackMeth astMeth,
-                    string configurationFilePath,
-                    Fifo<Frame> *frame_queue,
-                    int interval,
-                    double expTime,
-                    CamBitDepth acqFormat,
-                    double longi,
-                    boost::mutex *m_frame_queue,
-                    boost::condition_variable *c_queue_full,
-                    boost::condition_variable *c_queue_new,
-                    Fits fitsHead,
-                    int fps,
-                    bool reduction);
-
-        //! Destructor
         ~AstThread(void);
 
-        //! Create a thread
-		void startCapture();
+        //! Create a thread.
+		void startThread();
 
-		//! Stop the thread
-		void stopCapture();
+		//! Stop the thread.
+		void stopThread();
 
-        //! Thread operations
+        //! Thread operations.
 		void operator()();
 
 };

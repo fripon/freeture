@@ -39,17 +39,19 @@
 
 #include "includes.h"
 #include "Camera.h"
-#include "Fifo.h"
+
 #include "Frame.h"
 #include "SaveImg.h"
 #include "TimeDate.h"
 #include "Conversion.h"
 #include "ManageFiles.h"
-#include "EnumLog.h"
+#include "ELogSeverityLevel.h"
 //#include "serialize.h"
 #include <boost/filesystem.hpp>
 #include <iterator>
 #include <algorithm>
+
+#include <boost/circular_buffer.hpp>
 
 #include <boost/archive/binary_oarchive.hpp>
 #include <boost/archive/binary_iarchive.hpp>
@@ -68,10 +70,8 @@ namespace src		= boost::log::sources;
 namespace expr		= boost::log::expressions;
 namespace keywords	= boost::log::keywords;
 
-using namespace logenum;
-
 //!  Load a video and use it as a camera
-class CameraVideo : public Camera{
+class CameraVideo{
 
 	private:
 
@@ -79,7 +79,7 @@ class CameraVideo : public Camera{
         /*!
           Logger used to manage messages added to the log file
         */
-		src::severity_logger< severity_level > log;
+		src::severity_logger< LogSeverityLevel > log;
 
 		//! Video's location
 		string videoPath;
@@ -87,26 +87,13 @@ class CameraVideo : public Camera{
 		//! Thread
 		boost::thread *thread;
 
-		//! Pointer on the shared queue
-        /*!
-          The thread of this class will push frames in the shared queue
-        */
-		Fifo<Frame> *frameQueue;
-
 		//! Pointer on a terminated flag
 		/*!
           Use to indicate the end of reading the video
         */
 		bool *terminatedThread;
 
-		//! Mutex on the shared queue
-		boost::mutex				*mutexQueue;
 
-		//! Condition to notify that the queue is full
-		boost::condition_variable	*condQueueFill;
-
-		//! Condition to notify that a new frame has been added to the queue
-		boost::condition_variable	*condQueueNewElement;
 
 		//! Height of the video's frames
 		int imgH;
@@ -115,6 +102,14 @@ class CameraVideo : public Camera{
 		int imgW;
 
 		VideoCapture cap;
+
+		boost::circular_buffer<Frame> *frameBuffer;
+        boost::mutex *m_frameBuffer;
+        boost::condition_variable *c_newElemFrameBuffer;
+
+        bool *newFrameDet;
+        boost::mutex *m_newFrameDet;
+        boost::condition_variable *c_newFrameDet;
 
 	public:
 
@@ -127,10 +122,13 @@ class CameraVideo : public Camera{
           \param m_cond_queue_new_element condition to notify that a new frame has been added to the queue
         */
 		CameraVideo(string video_path,
-                    Fifo<Frame> *queue,
-                    boost::mutex *m_mutex_queue,
-                    boost::condition_variable *m_cond_queue_fill,
-                    boost::condition_variable *m_cond_queue_new_element);
+
+                    boost::circular_buffer<Frame> *cb,
+                    boost::mutex *m_cb,
+                    boost::condition_variable *c_newElemCb,
+                    bool *newFrameForDet,
+                    boost::mutex *m_newFrameForDet,
+                    boost::condition_variable *c_newFrameForDet);
 
         //! Destructor
 		~CameraVideo(void);

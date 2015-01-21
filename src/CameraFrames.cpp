@@ -38,25 +38,31 @@
 CameraFrames::CameraFrames( string dir,
                             int frameStart,
                             int frameStop,
-                            Fifo<Frame> *queue,
-                            boost::mutex *m_mutex_queue,
-                            boost::condition_variable *m_cond_queue_fill,
-                            boost::condition_variable *m_cond_queue_new_element,
                             Fits fitsHead,
-                            int bitdepth){
+                            int bitdepth,
+                            boost::circular_buffer<Frame> *cb,
+                            boost::mutex *m_cb,
+                            boost::condition_variable *c_newElemCb,
+                            bool *newFrameForDet,
+                            boost::mutex *m_newFrameForDet,
+                            boost::condition_variable *c_newFrameForDet){
 
     bitpix              = bitdepth;
     fitsHeader          = fitsHead;
 	dirPath             = dir;
 	thread              = NULL;
-	frameQueue          = queue;
-	mutexQueue			= m_mutex_queue;
-	condQueueFill		= m_cond_queue_fill;
-	condQueueNewElement	= m_cond_queue_new_element;
+
 	imgH = 0;
 	imgW = 0;
 	frameStart_   = frameStart;
 	frameStop_    = frameStop;
+
+	newFrameDet = newFrameForDet;
+    m_newFrameDet = m_newFrameForDet;
+    c_newFrameDet = c_newFrameForDet;
+    frameBuffer = cb;
+    m_frameBuffer = m_cb;
+    c_newElemFrameBuffer = c_newElemCb;
 }
 
 CameraFrames::~CameraFrames(void){
@@ -234,11 +240,11 @@ void CameraFrames::operator () (){
 
             string acquisitionDate = TimeDate::localDateTime(second_clock::universal_time(),"%Y:%m:%d:%H:%M:%S");
 
-            Frame newFrameRAM( resMat, 0, 0, acquisitionDate );
-            newFrameRAM.setNumFrame(cpt);
-            newFrameRAM.setFrameRemaining(frameStop_ - cpt);
+            Frame newFrame( resMat, 0, 0, acquisitionDate );
+            newFrame.setNumFrame(cpt);
+            newFrame.setFrameRemaining(frameStop_ - cpt);
 
-            boost::mutex::scoped_lock lock(*mutexQueue);
+            /*boost::mutex::scoped_lock lock(*mutexQueue);
             frameQueue->pushInFifo(newFrameRAM);
             lock.unlock();
 
@@ -246,7 +252,17 @@ void CameraFrames::operator () (){
             frameQueue->setThreadRead("imgCap", true);
             frameQueue->setThreadRead("astCap", true);
             frameQueue->setThreadRead("det", true);
-            condQueueNewElement->notify_all();
+            condQueueNewElement->notify_all();*/
+
+
+            boost::mutex::scoped_lock lock(*m_frameBuffer);
+            frameBuffer->push_back(newFrame);
+            lock.unlock();
+
+            boost::mutex::scoped_lock lock2(*m_newFrameDet);
+            *newFrameDet = true;
+            c_newFrameDet->notify_one();
+            lock2.unlock();
 
             fileFound = false;
 

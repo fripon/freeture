@@ -5,8 +5,7 @@
 *
 *	This file is part of:	freeture
 *
-*	Copyright:		(C) 2014-2015 Yoan Audureau
-*                               FRIPON-GEOPS-UPSUD-CNRS
+*	Copyright:		(C) 2014-2015 Yoan Audureau -- FRIPON-GEOPS-UPSUD
 *
 *	License:		GNU General Public License
 *
@@ -35,18 +34,13 @@
 #include "includes.h"
 #include <algorithm>
 #include "ImgReduction.h"
-#include "CameraSimu.h"
 #include "CameraVideo.h"
 #include "CameraFrames.h"
-#include "CameraBasler.h"
-#include "CameraDMK.h"
+#include "Camera.h"
 #include "Configuration.h"
-#include "Fifo.h"
 #include "Frame.h"
 #include "DetThread.h"
-#include "ImgThread.h"
 #include "AstThread.h"
-#include "RecThread.h"
 #include "RecEvent.h"
 #include "SaveImg.h"
 #include "Conversion.h"
@@ -54,21 +48,16 @@
 #include "ManageFiles.h"
 #include "TimeDate.h"
 #include "Histogram.h"
-#include "EnumBitdepth.h"
+#include "EImgBitDepth.h"
 #include "SMTPClient.h"
 #include "FreeTure.h"
 #include "ECamType.h"
-#include "EnumParser.h"
+#include "EParser.h"
 #define BOOST_NO_SCOPED_ENUMS
 #include <boost/filesystem.hpp>
+#include <boost/circular_buffer.hpp>
 
 using namespace boost::filesystem;
-
-#ifdef CFITSIO_H
-  #include CFITSIO_H
-#else
-  #include "fitsio.h"
-#endif
 
 using namespace std;
 
@@ -152,7 +141,7 @@ struct sigaction act;
 
 void sigTermHandler(int signum, siginfo_t *info, void *ptr){
 
-	src::severity_logger< logenum::severity_level > lg;
+	src::severity_logger< LogSeverityLevel > lg;
 
 	BOOST_LOG_SEV(lg, notification) << "Received signal : "<< signum << " from : "<< (unsigned long)info->si_pid;
 
@@ -181,12 +170,13 @@ void init_log(string path){
 
     // Set the log record formatter
     sink->set_formatter(
-        expr::format("%1%: [%2%] [%3%] <%4%> - %5%")
-            % expr::attr< unsigned int >("RecordID")
+        expr::format(/*"%1%: [%2%]*/" [%1%] [%2%] <%3%> >> %4%")
+            //% expr::attr< unsigned int >("RecordID")
             % expr::attr< boost::posix_time::ptime >("TimeStamp")
-            % expr::attr< attrs::current_thread_id::value_type >("ThreadID")
+            % expr::format_date_time< attrs::timer::value_type >("Uptime", "%O:%M:%S")
+            //% expr::attr< attrs::current_thread_id::value_type >("ThreadID")
             //% expr::format_named_scope("Scope", keywords::format = "%n (%f:%l)")
-            % expr::attr< severity_level >("Severity")
+            % expr::attr< LogSeverityLevel >("Severity")
             % expr::smessage
     );
 
@@ -196,8 +186,8 @@ void init_log(string path){
     // Add some attributes too
     logging::add_common_attributes();
     logging::core::get()->add_global_attribute("TimeStamp", attrs::local_clock());
-    logging::core::get()->add_global_attribute("RecordID", attrs::counter< unsigned int >());
-    logging::core::get()->add_global_attribute("ThreadID", attrs::current_thread_id());
+    //logging::core::get()->add_global_attribute("RecordID", attrs::counter< unsigned int >());
+    //logging::core::get()->add_global_attribute("ThreadID", attrs::current_thread_id());
     //logging::core::get()->add_thread_attribute("Scope", attrs::named_scope());
 
 }
@@ -265,7 +255,7 @@ int main(int argc, const char ** argv){
 
             path cPath(configPath);
 
-            if(!fs::exists(cPath) && mode != 4){
+            if(!fs::exists(cPath) && mode != 4 && mode != 1 ){
 
                 throw runtime_error("Configuration file not found. Check path : " + configPath);
 
@@ -281,46 +271,23 @@ int main(int argc, const char ** argv){
 
                     {
                         cout << "================================================" << endl;
-                        cout << "========= FREETURE - List device mode ==========" << endl;
+                        cout << "========= FREETURE - Available cameras =========" << endl;
                         cout << "================================================" << endl << endl;
 
-                        FreeTure ft(configPath);
-                        ft.loadParameters();
+                        if(vm.count("camtype")) camtype = vm["camtype"].as<string>();
 
-                        EnumParser<CamType> cam_type;
-                        cout << "Type of device in configuration file : " << cam_type.getStringEnum(ft.CAMERA_TYPE) << endl;
+                        EParser<CamType> cam_type;
 
-                        switch(ft.CAMERA_TYPE){
+                        std::transform(camtype.begin(), camtype.end(),camtype.begin(), ::toupper);
 
-                            case BASLER :
+                        cout << "Searching " << camtype << " cameras..." << endl << endl;
 
-                                {
+                        Camera *cam = new Camera(cam_type.parseEnum("CAMERA_TYPE", camtype));
+                        cam->getListCameras();
 
-                                    CameraBasler *baslerCam = new CameraBasler();
-                                    baslerCam->getListCameras();
+                        if(cam != NULL)
+                            delete cam;
 
-                                    if(baslerCam != NULL)
-                                        delete baslerCam;
-
-                                }
-
-                                break;
-
-                            case DMK :
-
-                                {
-
-                                    CameraDMK *dmkCam = new CameraDMK();
-                                    dmkCam->getListCameras();
-
-                                    if(dmkCam != NULL)
-                                        delete dmkCam;
-
-                                }
-
-                                break;
-
-                        }
                     }
 
                     break;
@@ -367,44 +334,47 @@ int main(int argc, const char ** argv){
                         ///                   Manage Log
                         /// ------------------------------------------------
 
-                        string logpath = ft.LOG_PATH;
+                        path pLog(ft.LOG_PATH);
 
-                        if(!ManageFiles::createDirectory( logpath )){
+                        if(!boost::filesystem::exists(pLog)){
 
-                            throw "Can't create location for log files";
-
+                            if(!create_directory(pLog))
+                                throw "> Failed to create a directory for logs files.";
                         }
 
                         // log configuration
-                        init_log(logpath);
-                        src::severity_logger< severity_level > slg;
+                        init_log(ft.LOG_PATH);
+                        src::severity_logger< LogSeverityLevel > slg;
                         BOOST_LOG_SCOPED_THREAD_TAG("LogName", "mainThread");
 
-                        boost::mutex                m_threadEnd;
-                        boost::mutex                m_queueRAM;
-                        boost::mutex                m_queueEvToRec;
-                        boost::condition_variable   c_queueRAM_Full;
-                        boost::condition_variable   c_queueRAM_New;
-                        boost::condition_variable   c_queueEvToRecNew;
-                        vector<RecEvent>            queueEvToRec;
 
-                        // The shared buffer
-                        Fifo<Frame> queueRAM;
-                        if(ft.DET_TIME_BEFORE == 0 )
-                            queueRAM = Fifo<Frame>(2, false, ft.STACK_ENABLED, ft.DET_ENABLED);
-                        else
-                            queueRAM = Fifo<Frame>((ft.DET_TIME_BEFORE * ft.ACQ_FPS), false, ft.STACK_ENABLED, ft.DET_ENABLED);
+
+
+                        // Circular buffer for last frames.
+                        boost::circular_buffer<Frame> framesBuffer(ft.ACQ_BUFFER_SIZE * ft.ACQ_FPS);
+                        boost::mutex m_framesBuffer;
+                        boost::condition_variable c_newElemFramesBuffer;
+
+                        bool newFrameForDet = false;
+                        boost::mutex m_newFrameForDet;
+                        boost::condition_variable c_newFrameForDet;
+
+                        // Circular buffer for stacked frames.
+                        boost::circular_buffer<StackedFrames> stackedFramesBuffer(2);
+                        boost::mutex m_stackedFramesBuffer;
+                        boost::condition_variable c_newElemStackedFramesBuffer;
+
 
                         // Input device type
-                        Camera      *inputCam   = NULL;
+                        Camera          *inputCam       = NULL;
+                        CameraVideo     *inputCamVideo  = NULL;
+                        CameraFrames    *inputCamFrame  = NULL;
                         DetThread   *det        = NULL;
-                        RecThread   *rec        = NULL;
                         AstThread   *ast        = NULL;
 
                         Mat mask;
 
-                        bool stopFlag = false;
-                        bool loopBroken = false;
+
 
                         /// ------------------------------------------------
                         ///                   Load Mask
@@ -413,6 +383,9 @@ int main(int argc, const char ** argv){
                         if(ft.ACQ_MASK_ENABLED){
 
                             mask = imread(ft.ACQ_MASK_PATH, CV_LOAD_IMAGE_GRAYSCALE);
+
+                            if(!mask.data)
+                                throw "Can't load the mask.";
 
                         }
 
@@ -423,18 +396,27 @@ int main(int argc, const char ** argv){
                         switch(ft.CAMERA_TYPE){
 
                             case BASLER :
+                            case DMK :
 
                                 BOOST_LOG_SEV(slg, notification) << " Basler in input ";
 
-                                inputCam = new CameraBasler(&queueRAM,
-                                                            &m_queueRAM,
-                                                            &c_queueRAM_Full,
-                                                            &c_queueRAM_New,
-                                                            ft.ACQ_EXPOSURE,
-                                                            ft.ACQ_GAIN,
-                                                            ft.ACQ_BIT_DEPTH,
-                                                            ft.ACQ_FPS
-                                                            );
+                                inputCam = new Camera(  ft.CAMERA_TYPE,
+                                                        ft.ACQ_EXPOSURE,
+                                                        ft.ACQ_GAIN,
+                                                        ft.ACQ_BIT_DEPTH,
+                                                        ft.ACQ_FPS,
+                                                        ft.STACK_TIME * ft.ACQ_FPS,
+                                                        ft.STACK_INTERVAL * ft.ACQ_FPS,
+                                                        ft.STACK_ENABLED,
+                                                        &framesBuffer,
+                                                        &m_framesBuffer,
+                                                        &c_newElemFramesBuffer,
+                                                        &stackedFramesBuffer,
+                                                        &m_stackedFramesBuffer,
+                                                        &c_newElemStackedFramesBuffer,
+                                                        &newFrameForDet,
+                                                        &m_newFrameForDet,
+                                                        &c_newFrameForDet);
 
                                 inputCam->getListCameras();
 
@@ -444,8 +426,8 @@ int main(int argc, const char ** argv){
 
                                 }else{
 
-                                    BOOST_LOG_SEV(slg, fail)    << " Connection success to the first BASLER camera. ";
-                                    cout                        << " Connection success to the first BASLER camera. " << endl;
+                                    BOOST_LOG_SEV(slg, fail)    << "Connection success to the " << ft.CAMERA_NAME << " camera.";
+                                    cout                        << "> Connection success to the " << ft.CAMERA_NAME << " camera." << endl;
 
                                     switch(ft.ACQ_BIT_DEPTH){
 
@@ -474,60 +456,6 @@ int main(int argc, const char ** argv){
                                     if(!inputCam->setCameraFPS(ft.ACQ_FPS))
                                         throw "> Failed to set camera fps.";
 
-                                }
-
-                                break;
-
-                            case DMK:
-
-                                cout                                << " INPUT = DMK ";
-                                BOOST_LOG_SEV(slg, notification)    << " INPUT = DMK ";
-
-                                inputCam = new CameraDMK(   &queueRAM,
-                                                            &m_queueRAM,
-                                                            &c_queueRAM_Full,
-                                                            &c_queueRAM_New,
-                                                            &m_threadEnd,
-                                                            &stopFlag);
-
-                                inputCam->getListCameras();
-
-                                if(!inputCam->setSelectedDevice(ft.CAMERA_NAME)){
-
-                                    throw "ERROR : Connection failed to " + ft.CAMERA_NAME;
-
-                                }else{
-
-                                    BOOST_LOG_SEV(slg, fail)    << " Connection success to DMK. ";
-                                    cout                        << " Connection success to DMK. " << endl;
-
-                                    // Set bit depth.
-                                    switch(ft.ACQ_BIT_DEPTH){
-
-                                       case MONO_8 :
-
-                                            if(!inputCam->setCameraPixelFormat(MONO_8))
-                                                throw "ERROR :Failed to set camera with MONO_8";
-
-                                            break;
-
-                                       case MONO_12 :
-
-                                            if(!inputCam->setCameraPixelFormat(MONO_12))
-                                                throw "ERROR :Failed to set camera with MONO_12";
-
-                                            break;
-
-                                    }
-
-                                    if(!inputCam->setCameraExposureTime(ft.ACQ_EXPOSURE))
-                                        throw "> Failed to set camera exposure.";
-
-                                    if(!inputCam->setCameraGain(ft.ACQ_GAIN))
-                                        throw "> Failed to set camera gain.";
-
-                                    if(!inputCam->setCameraFPS(ft.ACQ_FPS))
-                                        throw "> Failed to set camera fps.";
                                 }
 
                                 break;
@@ -537,11 +465,13 @@ int main(int argc, const char ** argv){
                                 cout << "Video in input : " << ft.VIDEO_PATH <<endl;
                                 BOOST_LOG_SEV(slg, notification) << "Video in input : " << ft.VIDEO_PATH;
 
-                                inputCam = new CameraVideo( 	ft.VIDEO_PATH,
-                                                                &queueRAM,
-                                                                &m_queueRAM,
-                                                                &c_queueRAM_Full,
-                                                                &c_queueRAM_New);
+                                inputCamVideo = new CameraVideo( 	ft.VIDEO_PATH,
+                                                                    &framesBuffer,
+                                                                    &m_framesBuffer,
+                                                                    &c_newElemFramesBuffer,
+                                                                    &newFrameForDet,
+                                                                    &m_newFrameForDet,
+                                                                    &c_newFrameForDet);
 
                                 break;
 
@@ -591,15 +521,17 @@ int main(int argc, const char ** argv){
                                     if(!newFits.readIntKeyword(filename, "BITPIX", format))
                                         throw "> Failed to read fits keyword : BITPIX";
 
-                                    inputCam = new CameraFrames(	ft.FRAMES_PATH,
-                                                                    ft.FRAMES_START,
-                                                                    ft.FRAMES_STOP,
-                                                                    &queueRAM,
-                                                                    &m_queueRAM,
-                                                                    &c_queueRAM_Full,
-                                                                    &c_queueRAM_New,
-                                                                    fitsHeader,
-                                                                    format);
+                                    inputCamFrame = new CameraFrames(	ft.FRAMES_PATH,
+                                                                        ft.FRAMES_START,
+                                                                        ft.FRAMES_STOP,
+                                                                        fitsHeader,
+                                                                        format,
+                                                                        &framesBuffer,
+                                                                        &m_framesBuffer,
+                                                                        &c_newElemFramesBuffer,
+                                                                        &newFrameForDet,
+                                                                        &m_newFrameForDet,
+                                                                        &c_newFrameForDet);
 
                                 }
 
@@ -631,19 +563,18 @@ int main(int argc, const char ** argv){
                                                         ft.STATION_NAME,
                                                         ft.STACK_MTHD,
                                                         configPath,
-                                                        &queueRAM,
-                                                        ft.STACK_INTERVAL,
                                                         ft.STACK_TIME,
                                                         ft.ACQ_BIT_DEPTH,
                                                         ft.LONGITUDE,
-                                                        &m_queueRAM,
-                                                        &c_queueRAM_Full,
-                                                        &c_queueRAM_New,
                                                         fitsHeader,
                                                         ft.ACQ_FPS,
-                                                        ft.STACK_REDUCTION);
+                                                        ft.STACK_REDUCTION,
+                                                        &stackedFramesBuffer,
+                                                        &m_stackedFramesBuffer,
+                                                        &c_newElemStackedFramesBuffer
+                                                    );
 
-                                ast->startCapture();
+                                ast->startThread();
 
                             }
 
@@ -653,17 +584,32 @@ int main(int argc, const char ** argv){
 
                             if(ft.DET_ENABLED){
 
+                                RecEvent ev = RecEvent( &framesBuffer,
+                                                        &m_framesBuffer,
+                                                        ft.DATA_PATH,
+                                                        ft.STATION_NAME,
+                                                        ft.ACQ_BIT_DEPTH,
+                                                        ft.DET_SAVE_AVI,
+                                                        ft.DET_SAVE_FITS3D,
+                                                        ft.DET_SAVE_FITS2D,
+                                                        ft.DET_SAVE_SUM,
+                                                        ft.DET_SAVE_POS,
+                                                        ft.DET_SAVE_BMP,
+                                                        ft.DET_SAVE_GEMAP,
+                                                        fitsHeader,
+                                                        ft.ACQ_FPS * ft.DET_TIME_BEFORE,
+                                                        ft.ACQ_FPS * ft.DET_TIME_AFTER,
+                                                        ft.ACQ_BUFFER_SIZE * ft.ACQ_FPS);
+
+                                cout << "before : " << ft.ACQ_FPS * ft.DET_TIME_BEFORE << endl;
+                                cout << "after : " << ft.ACQ_FPS * ft.DET_TIME_AFTER << endl;
+
                                 det  = new DetThread(   mask,
                                                         1,
                                                         ft.ACQ_BIT_DEPTH,
-                                                        &queueRAM,
-                                                        &m_queueRAM,
-                                                        &c_queueRAM_Full,
-                                                        &c_queueRAM_New,
-                                                        &c_queueEvToRecNew,
-                                                        &m_queueEvToRec,
-                                                        &queueEvToRec,
-                                                        30 * ft.DET_TIME_AFTER,
+                                                        ft.DET_METHOD,
+                                                        ft.ACQ_FPS * ft.DET_TIME_AFTER,
+                                                        ft.ACQ_BUFFER_SIZE * ft.ACQ_FPS,
                                                         ft.DET_GE_MAX,
                                                         ft.DET_TIME_MAX,
                                                         ft.DATA_PATH,
@@ -671,7 +617,14 @@ int main(int argc, const char ** argv){
                                                         ft.DEBUG_ENABLED,
                                                         ft.DEBUG_PATH,
                                                         ft.DET_DOWNSAMPLE_ENABLED,
-                                                        fitsHeader);
+                                                        fitsHeader,
+                                                        &framesBuffer,
+                                                        &m_framesBuffer,
+                                                        &c_newElemFramesBuffer,
+                                                        &newFrameForDet,
+                                                        &m_newFrameForDet,
+                                                        &c_newFrameForDet,
+                                                        &ev);
 
                                 det->startDetectionThread();
 
@@ -679,7 +632,8 @@ int main(int argc, const char ** argv){
                                 ///            Create record thread
                                 /// ------------------------------------------------
 
-                                rec = new RecThread(    ft.DATA_PATH,
+                                /*rec = new RecThread(    ft.DATA_PATH,
+                                                        ft.STATION_NAME,
                                                         &queueEvToRec,
                                                         &m_queueEvToRec,
                                                         &c_queueEvToRecNew,
@@ -693,11 +647,18 @@ int main(int argc, const char ** argv){
                                                         ft.DET_SAVE_TRAIL,
                                                         ft.DET_SAVE_GEMAP,
                                                         fitsHeader,
-                                                        ft.MAIL_RECIPIENT,
-                                                        ft.STATION_NAME,
-                                                        ft.MAIL_ENABLE);
+                                                        &framesBuffer,
+                                                        &m_framesBuffer,
+                                                        &c_newElemFramesBuffer,
+                                                        &saveEvent,
+                                                        &m_saveEvent,
+                                                        &c_saveEvent,
+                                                        &itSaveEvent,
+                                                        &m_itSaveEvent,
+                                                        &GEList,
+                                                        &m_GEList);
 
-                                rec->start();
+                                rec->start();*/
 
                             }
 
@@ -842,7 +803,7 @@ int main(int argc, const char ** argv){
                                         if(cptTime > executionTime){
 
                                             BOOST_LOG_SEV(slg, notification) << "Break main loop";
-                                            loopBroken = true;
+
                                             break;
                                         }
                                         cptTime ++;
@@ -868,18 +829,18 @@ int main(int argc, const char ** argv){
                                 BOOST_LOG_SEV(slg, notification) << "delete thread.";
                                 delete det;
 
-                                if(rec != NULL){
+                              /*  if(rec != NULL){
                                     BOOST_LOG_SEV(slg, notification) << "Send signal to stop rec thread.";
                                     rec->stop();
                                     delete rec;
-                                }
+                                }*/
                             }
 
 
                             if(ast!=NULL){
                                 cout << "Send signal to stop image capture thread for astrometry." << endl;
                                 BOOST_LOG_SEV(slg, notification) << "Send signal to stop image capture thread for astrometry.";
-                                ast->stopCapture();
+                                ast->stopThread();
                                 delete ast;
 
                             }
@@ -888,8 +849,9 @@ int main(int argc, const char ** argv){
                             BOOST_LOG_SEV(slg, notification) << "Send signal to stop acquisition thread.";
                             inputCam->stopThread();
 
-                            if (inputCam!=NULL)
-                                delete inputCam;
+                            if(inputCam != NULL) delete inputCam;
+                            if(inputCamVideo != NULL) delete inputCamVideo;
+                            if(inputCamFrame != NULL) delete inputCamFrame;
 
                         }
 
@@ -958,7 +920,7 @@ int main(int argc, const char ** argv){
                         // Type of camera in input.
                         if(vm.count("camtype"))     camtype     = vm["camtype"].as<string>();
 
-                        EnumParser<CamType> cam_type;
+                        EParser<CamType> cam_type;
 
                         std::transform(camtype.begin(), camtype.end(),camtype.begin(), ::toupper);
 
@@ -991,29 +953,8 @@ int main(int argc, const char ** argv){
 
                         namedWindow( "Frame", WINDOW_AUTOSIZE );
 
-                        switch(cam_type.parseEnum("CAMERA_TYPE", camtype)){
+                        inputCam = new Camera(cam_type.parseEnum("CAMERA_TYPE", camtype), exp, gain, camFormat);
 
-                            case BASLER :
-
-                                {
-
-                                    inputCam = new CameraBasler(exp, gain, camFormat);
-
-                                }
-
-                                break;
-
-                            case DMK :
-
-                                {
-
-                                    inputCam = new CameraDMK(exp, gain, camFormat);
-
-                                }
-
-                                break;
-
-                        }
 
                         if(inputCam == NULL)
                             throw "> Failed to create Camera object.";
@@ -1049,8 +990,13 @@ int main(int argc, const char ** argv){
                             if(!inputCam->setCameraGain(gain))
                                 throw "> Failed to set camera gain.";
 
+
+
                             if(!inputCam->startGrab())
                                 throw "> Failed to initialize the grab.";
+
+                            /*if(!inputCam->setCameraFPS(30));
+                                throw "> Failed to set camera fps.";*/
 
                             if(!inputCam->grabSingleFrame(frame, date))
                                 throw "> Failed to grab a single frame.";
@@ -1167,7 +1113,7 @@ int main(int argc, const char ** argv){
 
                             newFits2.setBzero(bz/*32768*112.4725*/);
                             newFits2.setBscale(bs/*112.4725*/);
-                            newFits2.writeFits(newMat, bit_depth_enum::S16, 0, true,"" );
+                            newFits2.writeFits(newMat, S16, 0, true,"" );
 
                             double minVal2, maxVal2;
                             minMaxLoc(newMat, &minVal2, &maxVal2);
@@ -1176,9 +1122,83 @@ int main(int argc, const char ** argv){
                             cout << "> Min : "<< minVal2<<endl<<endl;
 
 
+                        }
+
+                    }
+
+                    break;
+
+                case 6 :
+
+                    {
+                        int sizebuffer = 10;
+
+                        Mat f = Mat(960,1280,CV_16UC1,Scalar(120));
+
+                        boost::circular_buffer<Frame>::iterator it;
+
+                        boost::circular_buffer<Frame> cb(sizebuffer);
+                        cb.set_capacity(10);
+
+                        cout << "max size: " << cb.max_size() <<endl;
+
+                        for(int i = 1; i<sizebuffer; i++){
+
+                            Frame fr = Frame(f, 400+i, 25, "2014:10:25::10:25:22");
+                            cb.push_back(fr);
+
+                        }
+
+                        for(it = cb.begin(); it != cb.end(); ++it){
+
+                            cout << (*it).getGain() << " | ";
+
+                        }
+
+                        cout <<endl << "nb elements : " << cb.size() << endl << endl;
+
+                        Frame fr1(f, 450, 25, "2014:10:25::10:25:22");
+                        cb.push_back(fr1);
+
+                        Frame fr2(f, 500, 25, "2014:10:25::10:25:22");
+                        cb.push_back(fr2);
 
 
+                        for(it = cb.begin(); it != cb.end(); ++it){
 
+                            cout << (*it).getGain() << " | ";
+
+                        }
+
+                        cout << "select the last : " << endl;
+                        //it= cb.end() - 1;
+                        cout << cb.back().getGain()<<endl;
+
+                        cout << "select the prev before last : "<< endl;
+
+                        boost::circular_buffer<Frame>::reverse_iterator rit;
+
+                        //for(int;rit!=)
+                        cout << cb.at(cb.size()-2).getGain()<<endl;
+
+
+                        /*Frame *a = cb.linearize();
+                        Frame *dest;
+
+                        memcpy(&dest, &a, sizeof(a));*/
+
+                        //copy(buf.begin(), buf.end(), ostream_iterator<T>(cout, " "));
+
+                        vector<Frame>::iterator it2;
+                        vector<Frame> cb2;
+
+                        //std::copy ( cb.begin(), cb.end(), cb2.begin() );
+
+                        cb2.assign(cb.begin()+2,cb.end());
+
+                         for(it2 = cb2.begin(); it2 != cb2.end(); ++it2){
+
+                            cout << (*it2).getGain() << " | ";
 
                         }
 
@@ -1186,40 +1206,27 @@ int main(int argc, const char ** argv){
 
                     break;
 
-                case 6:
+                case 7 :
 
                     {
 
 
-                        FreeTure ft(configPath);
-                        ft.loadParameters();
+                        Fits3D fits3d(MONO_12, 960, 1280, 1000);
 
-                        for(int i = 0; i < ft.MAIL_RECIPIENT.size(); i++){
 
-                            cout << ft.MAIL_RECIPIENT.at(i) << endl;
+                        for(int i = 0; i< 1000; i++){
+
+                            Mat frame = Mat(960, 1280, CV_16UC1, Scalar(i*4));
+
+                            cout << "add " << i << endl;
+                            fits3d.addImageToFits3D(frame);
+
 
                         }
 
-
-
-
-
-
-                        vector<string> to;
-                        to.push_back("yoan.audureau@gmail.com");
-                        to.push_back("fripon@ceres.geol.u-psud.fr");
-
-                        vector<string> pathAttachments;
-                        //pathAttachments.push_back("/home/fripon/frame.bmp");
-
-                        //pathAttachments.push_back("D:/logoFripon.png");
-
-                        string acquisitionDate = TimeDate::localDateTime(second_clock::universal_time(),"%Y:%m:%d:%H:%M:%S");
-
-                        //SMTPClient mailc("smtp.u-psud.fr", 25, "u-psud.fr");
-
-                        SMTPClient mailc("10.8.0.1", 25, "u-psud.fr");
-                        mailc.send("yoan.audureau@u-psud.fr", to, "station ORSAY "+acquisitionDate+" UT", "Test d'acquisition à " + acquisitionDate, pathAttachments, true);
+                        fits3d.writeFits3D("/home/fripon/data2/nex");
+                        cout << "end "<<endl;
+                        getchar();
 
 
                     }
@@ -1274,7 +1281,7 @@ int main(int argc, const char ** argv){
             }else if(mode == 5){
 
 
-                /*Mat img(960, 1280, CV_8UC3, Scalar(0,0,0));
+                Mat img(960, 1280, CV_8UC3, Scalar(0,0,0));
 
                 for(int i = 0; i<25; i++){
 

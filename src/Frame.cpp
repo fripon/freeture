@@ -5,8 +5,7 @@
 *
 *	This file is part of:	freeture
 *
-*	Copyright:		(C) 2014-2015 Yoan Audureau
-*                               FRIPON-GEOPS-UPSUD-CNRS
+*	Copyright:		(C) 2014-2015 Yoan Audureau -- FRIPON-GEOPS-UPSUD
 *
 *	License:		GNU General Public License
 *
@@ -40,7 +39,7 @@ Frame::Frame(Mat capImg, int g, int e, string acquisitionDate){
 	gain        = g;
     pathOnDisk  = "";
     fileName    = "";
-    acqDate     = acquisitionDate;
+    rawDate     = acquisitionDate;
     capImg.copyTo(img);
     frameRemaining = 0;
 
@@ -210,6 +209,11 @@ void Frame::setFrameRemaining(int val){
 
 }
 
+string  Frame::getRawDate() {return rawDate;}
+void    Frame::setRawDate(string d) {rawDate = d;}
+
+
+
 Mat Frame::getImg(){
 
 	return img;
@@ -221,6 +225,17 @@ void Frame::setImg(Mat i){
 	i.copyTo(img);
 
 }
+
+
+void    Frame::useMask(Mat mask){
+
+    Mat temp;
+    img.copyTo(temp, mask);
+    temp.copyTo(img);
+
+}
+
+
 
 int Frame::getExposure(){
 

@@ -32,7 +32,7 @@
  * \details     The final stacked frame can result from the sum or average of n frames.
  */
 
-enum AstStackMeth{
+enum StackMeth{
 
     SUM,        /*!< Sum of n frames.*/
     MEAN        /*!< Mean of n frames.*/

@@ -37,7 +37,7 @@
 #include "includes.h"
 #include "Frame.h"
 #include "LocalEvent.h"
-#include "RecEvent.h"
+//#include "RecEvent.h"
 #include "SaveImg.h"
 
 using namespace cv;
@@ -47,85 +47,51 @@ class GlobalEvent{
 
     private:
 
-        //! Age in frames since its creation
-        int age;
-
-        //! Age in frames since 0 LocalEvent have been added
-        int ageLastElem;
-
-        //! Creation date
-        vector<string> dateEvent;
-
-        //! Local events
-        vector<LocalEvent> listLocalEvent;
-
-        //! Event frames with a LE
-        vector<int> numEvFrameWithLE;
-
-        //! Event map
-        Mat mapEvent;
-
-        //! Number of points to average to get a position
-        int nbPt; // 3
-
-        //! Averages position of the event
-        vector<Point> avPos;
-
-        //! Frames before the event
-        vector<Mat> eventPrevBuffer;
-
-        //! Frames of the event
-        vector<Mat> eventBuffer;
-
-        //! Frames after the event
-        vector<Mat> eventAfterBuffer;
-
-        vector<Point> mainPoints;
-
-        int posFailed;
-        int posSuccess;
-
-        //! Event direction mask
-        Mat dirMask;
-
-        Mat dirMap;
-
-        bool LELinked;
-
-        bool frameDownSampled;
-
-
+        int             geAge;
+        int             geAgeLastLE;
+        vector<string>  geDate;
+        Mat             geMap;
+        int             numFirstFrame;
+        int             numLastFrame;
+        vector<Point>   mainPoints;
+        Mat             dirMap;
+        float           velocity;
+        bool            newLEAdded;
+        bool            linear;
+        int             badPoint;
+        int             goodPoint;
 
     public:
-int cptt;
-        GlobalEvent(/*LocalEvent f, Mat mapp,*/ vector<string> date,int imgH, int imgW, bool downsample);
+
+        vector<LocalEvent> LEList;
+        vector<Mat> eventBuffer;
+        vector<bool> pos;
+
+        GlobalEvent(vector<string> frameDate, int frameNum, int frameHeight, int frameWidth);
 
         ~GlobalEvent();
 
-        RecEvent extractEventRecInfos();
+        Mat             getMapEvent             ()          {return geMap;};
+        Mat             getDirMap               ()          {return dirMap;};
+        int             getAge                  ()          {return geAge;};
+        int             getAgeLastElem          ()          {return geAgeLastLE;};
+        vector<string>  getDate                 ()          {return geDate;};
+        bool            getLinearStatus         ()          {return linear;};
+        float           getVelocity             ()          {return velocity;};
+        bool            getNewLEStatus          ()          {return newLEAdded;};
+        int             getBadPos               ()          {return badPoint;};
+        int             getGoodPos              ()          {return goodPoint;};
+        int             getNumFirstFrame        ()          {return numFirstFrame;};
+        int             getNumLastFrame         ()          {return numLastFrame;};
 
-        int getAge();
-        int getAgeLastElem();
-        vector<string> getDate();
-        vector<LocalEvent> *getListLocalEvent();
-        Mat getMapEvent();
-        bool getLELinked();
-        vector<Mat> getEvPrevBuffer();
-        vector<Mat> getEvBuffer();
-        vector<Mat> getEvAfterBuffer();
-        vector<Point> getAvgPos();
-        int getPosFailed();
-        int getPosSuccess();
-        Mat getDirMap();
-
-        void setAge(int a);
-        void setAgeLastElem(int a);
-        void setMapEvent(Mat m);
-        void setLELinked(bool state);
-        void setEvPrevBuffer(Mat f);
-        void setEvBuffer(Mat f);
-        void setEvAfterBuffer(Mat f);
+        void            setAge                  (int a)     {geAge = a;};
+        void            setAgeLastElem          (int a)     {geAgeLastLE = a;};
+        void            setMapEvent             (Mat m)     {m.copyTo(geMap);};
+        void            setNewLEStatus          (bool s)    {newLEAdded = s;};
+        void            setNumFirstFrame        (int n)     {numFirstFrame = n;};
+        void            setNumLastFrame         (int n)     {numLastFrame = n;};
 
         bool addLE(LocalEvent le);
+        bool continuousGoodPos(int n);
 
 };

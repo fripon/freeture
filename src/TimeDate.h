@@ -1,12 +1,11 @@
 /*
-				TimeDate.h
+								TimeDate.h
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 *
 *	This file is part of:	freeture
 *
-*	Copyright:		(C) 2014-2015 Yoan Audureau
-*                               FRIPON-GEOPS-UPSUD-CNRS
+*	Copyright:		(C) 2014-2015 Yoan Audureau -- FRIPON-GEOPS-UPSUD
 *
 *	License:		GNU General Public License
 *
@@ -66,6 +65,10 @@ class TimeDate{
         static double localSideralTime_2(double julianCentury, int gregorianH, int gregorianMin, int gregorianS, int longitude);
 
         static double localSideralTime_1(double JD0, int gregorianH, int gregorianMin, int gregorianS);
+
+        static vector<string> splitStringToStringVector(string str);
+
+        static vector<int> splitStringToIntVector(string str);
 
 };
 

@@ -1,12 +1,11 @@
 /*
-				Frame.h
+								Frame.h
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 *
 *	This file is part of:	freeture
 *
-*	Copyright:		(C) 2014-2015 Yoan Audureau
-*                               FRIPON-GEOPS-UPSUD-CNRS
+*	Copyright:		(C) 2014-2015 Yoan Audureau -- FRIPON-GEOPS-UPSUD
 *
 *	License:		GNU General Public License
 *
@@ -36,6 +35,7 @@
 
 #include "includes.h"
 #include "Conversion.h"
+#include "SaveImg.h"
 
 using namespace std;
 using namespace cv;
@@ -50,6 +50,8 @@ class Frame{
 
 		//! Date of acquisition in a vector
         vector<int> date;
+
+        string rawDate;
 
         //! Gain value of the frame
         int gain;
@@ -113,6 +115,10 @@ class Frame{
 
 		void setNumFrame(int n);
 
+		string getRawDate();
+
+		void setRawDate(string d);
+
 
 		int getFrameRemaining();
 
@@ -127,7 +133,7 @@ class Frame{
         //! Getter on the Mat
 		Mat getImg();
 
-
+        void useMask(Mat mask);
 
         //! Setter on the Mat
         void setImg(Mat i);

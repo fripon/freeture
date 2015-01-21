@@ -5,8 +5,7 @@
 *
 *	This file is part of:	freeture
 *
-*	Copyright:		(C) 2014-2015 Yoan Audureau
-*                               FRIPON-GEOPS-UPSUD-CNRS
+*	Copyright:		(C) 2014-2015 Yoan Audureau -- FRIPON-GEOPS-UPSUD
 *
 *	License:		GNU General Public License
 *
@@ -64,7 +63,7 @@ bool FreeTure::loadParameters(){
 
 		string acq_bit_depth;
 		cfg.Get("ACQ_BIT_DEPTH", acq_bit_depth);
-		EnumParser<CamBitDepth> cam_bit_depth;
+		EParser<CamBitDepth> cam_bit_depth;
 		CamBitDepth id_cam_bit_depth = cam_bit_depth.parseEnum("ACQ_BIT_DEPTH", acq_bit_depth);
         ACQ_BIT_DEPTH = id_cam_bit_depth;
 
@@ -77,6 +76,7 @@ bool FreeTure::loadParameters(){
 		cfg.Get("ACQ_SAVE_FRAMES_TYPE",			ACQ_SAVE_FRAMES_TYPE);
 		cfg.Get("ACQ_SAVE_FRAMES_PATH",			ACQ_SAVE_FRAMES_PATH);
 		cfg.Get("ACQ_SAVE_FRAMES_BUFFER_SIZE",	ACQ_SAVE_FRAMES_BUFFER_SIZE);
+		cfg.Get("ACQ_BUFFER_SIZE",              ACQ_BUFFER_SIZE);
 
 		/// Detection parameters
 
@@ -84,11 +84,11 @@ bool FreeTure::loadParameters(){
 
 		string det_method;
 		cfg.Get("DET_METHOD", det_method);
-		EnumParser<DetMeth> det_mth;
+		EParser<DetMeth> det_mth;
 		DetMeth id_det_mth = det_mth.parseEnum("DET_METHOD", det_method);
         DET_METHOD = id_det_mth;
 
-		cfg.Get("DET_SAVE_FITS3D ", 			DET_SAVE_FITS3D );
+		cfg.Get("DET_SAVE_FITS3D", 			    DET_SAVE_FITS3D);
 		cfg.Get("DET_SAVE_FITS2D", 				DET_SAVE_FITS2D);
 		cfg.Get("DET_SAVE_BMP", 				DET_SAVE_BMP);
 		cfg.Get("DET_SAVE_SUM", 				DET_SAVE_SUM);
@@ -110,8 +110,8 @@ bool FreeTure::loadParameters(){
 
 		string stack_method;
 		cfg.Get("STACK_MTHD", stack_method);
-		EnumParser<AstStackMeth> stack_mth;
-		AstStackMeth id_stack_mth = stack_mth.parseEnum("STACK_MTHD", stack_method);
+		EParser<StackMeth> stack_mth;
+		StackMeth id_stack_mth = stack_mth.parseEnum("STACK_MTHD", stack_method);
         STACK_MTHD = id_stack_mth;
 
         cfg.Get("STACK_REDUCTION", 				STACK_REDUCTION);
@@ -119,18 +119,16 @@ bool FreeTure::loadParameters(){
         /// Mail notifications
 
         string mailRecipients;
-
         cfg.Get("MAIL_RECIPIENT",               mailRecipients);
-
         typedef boost::tokenizer<boost::char_separator<char> > tokenizer;
         boost::char_separator<char> sep(";");
         tokenizer tokens(mailRecipients, sep);
 
         for (tokenizer::iterator tok_iter = tokens.begin();tok_iter != tokens.end(); ++tok_iter){
             MAIL_RECIPIENT.push_back(*tok_iter);
-        }
 
-        cfg.Get("MAIL_ENABLE",               MAIL_ENABLE);
+        }
+        cfg.Get("MAIL_ENABLED",                 MAIL_ENABLED);
 
 		/// Others parameters
 
@@ -143,6 +141,8 @@ bool FreeTure::loadParameters(){
 		cfg.Get("LOG_PATH", 					LOG_PATH);
 		cfg.Get("SITELONG", 					LONGITUDE);
 
+		return true;
+
     }else{
 
         std::cout << " The path of the configuration file (" << cfgFile << ") doesn't exists" << endl;
@@ -151,7 +151,6 @@ bool FreeTure::loadParameters(){
 
     }
 
-    return true;
 }
 
 void FreeTure::printParameters(){

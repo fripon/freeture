@@ -1,5 +1,5 @@
 /*
-				Base64.h
+                                    Base64.h
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 *
@@ -26,21 +26,19 @@
 *%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%*/
 
 /**
- * @file    Base64.h
- * @author  Yoan Audureau -- FRIPON-GEOPS-UPSUD
- * @version 1.0
- * @date    26/11/2014
+ * \file    Base64.h
+ * \author  Yoan Audureau -- FRIPON-GEOPS-UPSUD
+ * \version 1.0
+ * \date    26/11/2014
+ * \brief   Handle Base64 encryption.
  */
 
 #pragma once
 
-#include "includes.h"
-
+#include <sstream>
 #include <boost/archive/iterators/base64_from_binary.hpp>
 #include <boost/archive/iterators/transform_width.hpp>
 #include <boost/archive/iterators/ostream_iterator.hpp>
-#include <iterator>
-#include <algorithm>
 
 using namespace std;
 
@@ -48,8 +46,10 @@ class Base64{
 
     public:
 
-        Base64();
+        Base64(){};
+        ~Base64(){};
 
+        //! Encode string data with base64.
         static string encodeBase64(string data);
 
 };

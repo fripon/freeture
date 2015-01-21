@@ -1,12 +1,11 @@
 /*
-				Camera.h
+								Camera.h
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 *
 *	This file is part of:	freeture
 *
-*	Copyright:		(C) 2014-2015 Yoan Audureau
-*                               FRIPON-GEOPS-UPSUD-CNRS
+*	Copyright:		(C) 2014-2015 Yoan Audureau -- FRIPON-GEOPS-UPSUD
 *
 *	License:		GNU General Public License
 *
@@ -21,105 +20,202 @@
 *	You should have received a copy of the GNU General Public License
 *	along with FreeTure. If not, see <http://www.gnu.org/licenses/>.
 *
-*	Last modified:		20/10/2014
+*	Last modified:		21/01/2015
 *
 *%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%*/
 
 /**
- * @file    Camera.h
- * @author  Yoan Audureau -- FRIPON-GEOPS-UPSUD
- * @version 1.0
- * @date    01/07/2014
+ * \file    Camera.h
+ * \author  Yoan Audureau -- FRIPON-GEOPS-UPSUD
+ * \version 1.0
+ * \date    13/06/2014
+ * \brief   Acquisition thread.
  */
 
 #pragma once
 
 #include "includes.h"
+#include "CameraSDK.h"
+#include "Frame.h"
+#include "TimeDate.h"
+#include "Conversion.h"
+#include "SaveImg.h"
+#include "Fits.h"
+#include "Fits2D.h"
+#include "Fits3D.h"
+#include "ManageFiles.h"
+#include "Conversion.h"
+#include "ELogSeverityLevel.h"
+#include "EImgBitDepth.h"
 #include "ECamBitDepth.h"
+#include "StackedFrames.h"
+#include "ECamType.h"
+//#include "serialize.h"
+#include <boost/filesystem.hpp>
+#include <iterator>
+#include <algorithm>
 
-using namespace std;
+#include <boost/archive/binary_oarchive.hpp>
+#include <boost/archive/binary_iarchive.hpp>
+#include <boost/iostreams/filtering_streambuf.hpp>
+#include <boost/iostreams/filter/zlib.hpp>
+
+#include <boost/circular_buffer.hpp>
+
+using namespace boost::filesystem;
+
+namespace logging = boost::log;
+namespace sinks = boost::log::sinks;
+namespace attrs = boost::log::attributes;
+namespace src = boost::log::sources;
+namespace expr = boost::log::expressions;
+namespace keywords = boost::log::keywords;
+
+using boost::shared_ptr;
+
 using namespace cv;
+using namespace std;
 
-//! Camera class
 class Camera{
+
+	private:
+
+        //! Logger.
+		src::severity_logger< LogSeverityLevel > log;
+
+		//! Stop flag of the thread.
+		bool mustStop;
+
+		//! Mutex on the stop flag.
+		boost::mutex mustStopMutex;
+
+        //! Acquisition thread.
+		boost::thread *m_thread;
+
+        //! Camera SDK to use.
+		CameraSDK *camera;
+
+        //! Camera's exposure value.
+		int exposure;
+
+		//! Camera's gain value.
+        int gain;
+
+        //! Camera's fps.
+        int fps;
+
+        //! Camera's bit depth.
+        CamBitDepth bitdepth;
+
+        //! Camera's type (Basler, Dmk...).
+        CamType cameraType;
+
+        //! Location of the configuration file.
+        string configFile;
+
+        string savePath;
+
+        //! Frame counter.
+        unsigned int frameCpt;
+
+        int frameToSum;
+        int frameToWait;
+        bool stackEnabled;
+
+        boost::condition_variable               *c_newElemFrameBuffer;
+        boost::mutex                            *m_frameBuffer;
+        boost::circular_buffer<Frame>           *frameBuffer;
+
+        boost::circular_buffer<StackedFrames>   *stackedFramesBuffer;
+        boost::mutex                            *m_stackedFramesBuffer;
+        boost::condition_variable               *c_newElemStackedFramesBuffer;
+
+        bool                                    *newFrameDet;
+        boost::mutex                            *m_newFrameDet;
+        boost::condition_variable               *c_newFrameDet;
 
 	public:
 
-        //! Constructor
-		Camera(void);
+        Camera( CamType                                 camType,
+                int                                     camExp,
+                int                                     camGain,
+                CamBitDepth                             camDepth,
+                int                                     camFPS,
+                int                                     imgToSum,
+                int                                     imgToWait,
+                bool                                    imgStack,
+                boost::circular_buffer<Frame>           *cb,
+                boost::mutex                            *m_cb,
+                boost::condition_variable               *c_newElemCb,
+                boost::circular_buffer<StackedFrames>   *stackedFb,
+                boost::mutex                            *m_stackedFb,
+                boost::condition_variable               *c_newElemStackedFb,
+                bool                                    *newFrameForDet,
+                boost::mutex                            *m_newFrameForDet,
+                boost::condition_variable               *c_newFrameForDet);
 
-		//! Destructor
-		virtual ~Camera(void);
+        Camera( CamType         camType,
+                int             camExp,
+                int             camGain,
+                CamBitDepth     camDepth);
 
-        //! List connected cameras
-		virtual void	getListCameras(void)                            {};
+		Camera( CamType camType);
 
-		//! Select a connected device
-		virtual bool	setSelectedDevice(int, string)                  {return false;};
+		~Camera(void);
 
-		virtual bool	setSelectedDevice(string)                  {return false;};
 
-        //! Wait the end of the acquisition thread
-		virtual void    join()                                          {};
+        //! Print availble detected cameras.
+		void	getListCameras();
 
-		//! Stop the acquisition thread
-		virtual void	stopThread()                                    {};
+        //! Get camera's name by its id.
+		bool    getDeviceById(int id, string &device);
 
-		//! Start the acquisition thread
-		virtual void	startThread()                                   {};
+		//! Select a device by its id or by its name.
+		bool	setSelectedDevice(int id, string name);
 
-		virtual bool    startGrab()                                     {};
+        //! Select a device by its name.
+		bool	setSelectedDevice(string name);
 
-		virtual void    stopGrab()                                      {};
+		//! Wait the end of the acquisition thread.
+		void	join();
 
-		virtual bool    grabSingleFrame(Mat &frame, string &date)                      {};
+        //! Acquisition thread operations.
+		void	operator()();
 
-        //! Get the minimum exposition value
-		virtual double	getCameraExpoMin(void)						    {return -1;};
+		//! Stop the acquisition thread.
+		void	stopThread();
 
-		//! Get the maximum exposition value
-		virtual double	getCameraExpoMax(void)						    {return -1;};
+		//! Start the acquisition thread.
+		void	startThread();
 
-		//! Get the minimum gain value
-		virtual	int		getCameraGainMin(void)						    {return	-1;};
+        //! Prepare the grab of frames.
+		bool    startGrab();
 
-		//! Get the maximum exposition value
-		virtual	int		getCameraGainMax(void)					    	{return	-1;};
+        //! Stop the grabbing of frames.
+		void    stopGrab();
 
-		//! Get the pixel's format
-		virtual	int		getCameraPixelFormat(void)						{return	-1;};
+        //! Grab one frame.
+		bool    grabSingleFrame(Mat &frame, string &date);
 
-		//! Get the width
-		virtual	int		getCameraWidth(void)						    {return	-1;};
+        //! Get camera's width sensor.
+		int		getCameraWidth();
 
-		//! Get the height
-		virtual	int		getCameraHeight(void)						    {return	-1;};
+		//! Get camera's height sensor.
+		int		getCameraHeight();
 
-		//! Get the frame per second rate
-		virtual	double	getCameraFPS(void)						        {return -1;};
+        //! Get camera's minimum available exposure value.
+		double	getCameraExpoMin();
 
-		//! Get the camera's model name
-		virtual	string	getCameraModelName()							{return "";};
+		//! Set camera's exposure time.
+		bool	setCameraExposureTime(double value);
 
-        //! Set the exposure time
-		virtual bool	setCameraExposureTime(double)					{};
+		//! Set camera's gain.
+		bool	setCameraGain(int);
 
-        //! Get the exposure time
-		virtual double	getCameraExposureTime()					        {};
+        //! Set camera's fps.
+        bool    setCameraFPS(int fps);
 
-		//! Set the gain
-		virtual bool	setCameraGain(int)						        {};
-
-		//! Set FPS.
-		virtual bool    setCameraFPS(int)                               {};
-
-		//! Get the gain
-		virtual int	    getCameraGain()						            {return	-1;};
-
-		//! Set the pixel format
-		virtual	bool	setCameraPixelFormat(CamBitDepth depth)		{};
-
-		virtual bool    getDeviceById(int id, string &device){return false;}
+        //! Set camera's bit depth.
+		bool	setCameraPixelFormat(CamBitDepth depth);
 
 };
-

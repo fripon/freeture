@@ -25,11 +25,15 @@
 *
 *%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%*/
 
-#include "Base64.h"
+/**
+ * \file    Base64.cpp
+ * \author  Yoan Audureau -- FRIPON-GEOPS-UPSUD
+ * \version 1.0
+ * \date    26/11/2014
+ * \brief   Handle Base64 encryption.
+ */
 
-Base64::Base64(){
-    //ctor
-}
+#include "Base64.h"
 
 string Base64::encodeBase64(string data){
 

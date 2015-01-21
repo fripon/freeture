@@ -39,7 +39,6 @@
 
 using namespace cv;
 using namespace std;
-
 using namespace boost::posix_time;
 
 namespace logging	= boost::log;
@@ -49,82 +48,27 @@ namespace src		= boost::log::sources;
 namespace expr		= boost::log::expressions;
 namespace keywords	= boost::log::keywords;
 
-//!  An event which occurs on a single frame, so call a localEvent
-/*!
-  Pixels which have a value superior than a detection threshold can form a localEvent in a single frame.
-  if several Regions of interest centered on this kind of pixels cross on each other, it can define a localEvent's shape.
-*/
 class LocalEvent{
 
     private:
 
-        //! Color
-        /*!
-          A color attached to this localEvent. It's used to group several Regions of interest to this localEvent
-        */
-        Scalar evColor;
-
-         //! Map
-        /*!
-          A map which corresponds to the ROI that composed the localEvent
-        */
-        Mat evMap;
-
-        //! Position in buffer
-        /*!
-          Indicate to which frame in the buffer, this localEvent has been detected
-        */
-        int framePosition;
-
+        Scalar  LE_Color;
+        Mat     LE_Map;
+        Point   LE_MassCenter;
 
     public:
 
-        vector <Scalar> listColor;
-        vector <Point> listRoiCenter;           // Liste des ROI qui compose le localEvent
-        vector <vector<PixelEvent> > listRoiPix;   // Liste des pixels dans chaque ROI qui ont une valeurs supérieures au seuil de détection
-        Point centerOfMass;                     // Centre de masse des pixels de chaque ROI
-        int nbArea;
-        int area;
+        vector<Point> LE_Roi;
 
-        bool belongGlobalEv;
-
-        bool notTakeAccount;
-
-        LocalEvent(Scalar color, Point roiPos, vector <PixelEvent> listPix, int H, int W, const int *roiSize);
+        LocalEvent(Scalar color, Point roiPos, int frameHeight, int frameWidth, const int *roiSize);
 
         ~LocalEvent();
 
-        void computeCenterOfMass(bool roi);
+        void computeMassCenterWithRoi();
 
-
-        Scalar getColor(){
-
-            return evColor;
-
-        };
-
-        Mat getMap(){
-
-            return evMap;
-
-        };
-
-        int getFramePosition(){
-
-            return framePosition;
-
-        }
-
-        void setFramePosition(int pos){
-
-            framePosition = pos;
-
-        }
-
-        void setMap(Mat mapM){
-
-            mapM.copyTo(evMap);
-
-        };
+        Scalar  getColor()          {return LE_Color;};
+        Mat     getMap()            {return LE_Map;};
+        void    setMap(Mat mapM)    {mapM.copyTo(LE_Map);};
+        Point   getMassCenter()     {return LE_MassCenter;};
 
 };

@@ -5,8 +5,7 @@
 *
 *	This file is part of:	freeture
 *
-*	Copyright:		(C) 2014-2015 Yoan Audureau
-*                               FRIPON-GEOPS-UPSUD-CNRS
+*	Copyright:		(C) 2014-2015 Yoan Audureau -- FRIPON-GEOPS-UPSUD
 *
 *	License:		GNU General Public License
 *
@@ -311,6 +310,40 @@ double TimeDate::localSideralTime_2(double julianCentury, int gregorianH, int gr
     cout << "sideralT in degree-> "<<sideralT<<endl;
 
     return sideralT;
+
+}
+
+vector<string> TimeDate::splitStringToStringVector(string str){
+
+    vector<string> output;
+    typedef boost::tokenizer<boost::char_separator<char> > tokenizer;
+    boost::char_separator<char> sep(":");
+    tokenizer tokens(str, sep);
+    for (tokenizer::iterator tok_iter = tokens.begin();tok_iter != tokens.end(); ++tok_iter){
+        output.push_back(*tok_iter);
+    }
+
+    return output;
+
+}
+
+vector<int> TimeDate::splitStringToIntVector(string str){
+
+    vector<string> output;
+    vector<int> intOutput;
+    typedef boost::tokenizer<boost::char_separator<char> > tokenizer;
+    boost::char_separator<char> sep(":");
+    tokenizer tokens(str, sep);
+    for (tokenizer::iterator tok_iter = tokens.begin();tok_iter != tokens.end(); ++tok_iter){
+        output.push_back(*tok_iter);
+    }
+
+
+    for(int i = 0 ; i< output.size();i++){
+       intOutput.push_back(atoi(output.at(i).c_str()));
+    }
+
+    return intOutput;
 
 }
 

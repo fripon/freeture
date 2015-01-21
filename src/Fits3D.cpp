@@ -34,40 +34,71 @@
 
 #include "Fits3D.h"
 
-/**
- * \brief       Fits3D class constructor.
- * \details     The keywords and comments defined in Fits.h are used here.
- * \param       frames  Buffer of opencv Mat object.
- */
+Fits3D::Fits3D(CamBitDepth depth, int imgHeight, int imgWidth, int imgNum){
 
-Fits3D::Fits3D(vector <Mat> *frames){
+    status      = 0;
+    naxis       = 3;
+    naxes[0]    = imgWidth;
+    naxes[1]    = imgHeight;
+    naxes[2]    = imgNum;
+    size3d      = naxes[0] * naxes[1] * naxes[2];
+    fpixel[0]   = 1;
+    fpixel[1]   = 1;
+    fpixel[2]   = 1;
+    imgSize     = imgHeight*imgWidth;
+    imgDepth    = depth;
+    n           = 0;
 
-    buffer = frames;
+    if(depth == MONO_8){
 
-    if(frames->size() > 0){
+        array3D_MONO_12 = NULL;
+        array3D_MONO_8 = (unsigned char *)malloc(size3d * sizeof(unsigned char));
 
-        imgW = frames->at(0).cols;
-        imgH = frames->at(0).rows;
-        imgT = frames->size();
+    }else if(depth == MONO_12){
 
-    }else{
-
-        imgW = 0;
-        imgH = 0;
-        imgT = 0;
+        array3D_MONO_8 = NULL;
+        array3D_MONO_12 = (unsigned short *)malloc(size3d * sizeof(unsigned short));
 
     }
 }
 
-Fits3D::~Fits3D(){
-    //dtor
+void Fits3D::addImageToFits3D(Mat frame){
+
+    if(imgDepth == MONO_8){
+
+        for (int j = 0 ; j < naxes[1] ; j++){ // cols
+
+            unsigned char *pt= frame.ptr<unsigned char>(j);
+
+            for (int i = 0; i < naxes[0] ; i++){
+
+                array3D_MONO_8[n*naxes[1]*naxes[0] + (naxes[1]-1-j)*naxes[0]+i] = (int)pt[i];
+
+            }
+        }
+
+    }else if(imgDepth == MONO_12){
+
+        for (int j = 0 ; j < naxes[1] ; j++){ // cols
+
+            unsigned short *pt= frame.ptr<unsigned short>(j);
+
+            for (int i = 0; i < naxes[0] ; i++){
+
+                array3D_MONO_12[n*naxes[1]*naxes[0] + (naxes[1]-1-j)*naxes[0]+i] = (int)pt[i];
+
+            }
+        }
+    }
+
+    n++;
+
 }
 
-/**
- * \brief       Write keywords in fits cube.
- * \details     The keywords and comments defined in Fits.h are used here.
- * \return      A \e boolean which correspond of the success to write keywords.
- */
+//Fits3D::~Fits3D(){
+    //dtor
+//}
+
 
 bool Fits3D::writeKeywords(){
 
@@ -907,51 +938,7 @@ bool Fits3D::writeKeywords(){
 
 }
 
-/**
- * \brief       Write a fits cube with 8 bits unsigned char data.
- * \details     Use cfitsio library to write data in a fits cube.
- * \param       file    Path of the future fits cube file.
- * \return      A \e boolean which correspond of the success to write fits cube.
- */
-
-//http://www.great08challenge.info/code/c/read_GREAT08_fits.c
-bool Fits3D::writeFits3d8uc(string file){
-
-    int     status      = 0;
-    long    naxis       = 3;
-    long    naxes[3]    = {imgW,imgH,imgT};
-    int     size3d      = naxes[0] * naxes[1] * naxes[2];
-    long    fpixel[3]   = {1,1,1};
-    int     imgSize     = imgH*imgW;
-
-    // 1D array which contains severals images : [ image1(line1, line2 ...) image2(line1, line2...)]
-    unsigned char *array3d = NULL;
-
-    Mat currentImg;
-
-    array3d = (unsigned char *)malloc(size3d * sizeof(unsigned char ));
-
-    if(array3d == NULL){
-
-        return printerror("Fits3D::writeFits3d8uc() case 8 bits -> array3d == NULL");
-
-    }
-
-    for (int n = 0; n < imgT; n++){
-
-       buffer->at(n).copyTo(currentImg);
-
-        for (int j = 0 ; j < naxes[1] ; j++){
-
-            unsigned char *  pt= currentImg.ptr<unsigned char>(j);
-
-            for (int i = 0; i <naxes[0] ; i++){
-
-                array3d[n*imgH*imgW + (imgH-1-j)*imgW+i] = (int)pt[i];
-
-            }
-        }
-    }
+bool Fits3D::writeFits3D(string file){
 
     filename = file.c_str();
 
@@ -959,137 +946,47 @@ bool Fits3D::writeFits3d8uc(string file){
 
     if(fits_create_file(&fptr, filename, &status)){
 
-         return printerror( status, "Fits3D::writeFits3d8uc() case 8 bits -> fits_create_file() failed" );
+         return printerror( status, "Fits3D::writeFits3D() -> fits_create_file() failed" );
     }
 
-    if(fits_create_img(fptr, BYTE_IMG, naxis, naxes, &status)){
+    if(imgDepth == MONO_8){
 
-         return printerror( status, "Fits3D::writeFits3d8uc() case 8 bits -> fits_create_img() failed" );
-    }
+        if(fits_create_img(fptr, BYTE_IMG, naxis, naxes, &status)){
 
-    if(fits_write_pix(fptr, TBYTE, fpixel, size3d, array3d, &status)){
+             return printerror( status, "Fits3D::writeFits3D() -> fits_create_img() failed" );
+        }
 
-         return printerror( status, "Fits3D::writeFits3d8uc() case 8 bits -> fits_write_pix() failed" );
+        if(fits_write_pix(fptr, TBYTE, fpixel, size3d, array3D_MONO_8, &status)){
+
+            return printerror( status, "Fits3D::writeFits3D() -> fits_write_pix() failed" );
+
+        }
+
+        free(array3D_MONO_8);
+
+    }else if(imgDepth == MONO_12){
+
+        if(fits_create_img(fptr, SHORT_IMG, naxis, naxes, &status)){
+
+             return printerror( status, "Fits3D::writeFits3D() -> fits_create_img() failed" );
+        }
+
+
+        if(fits_write_pix(fptr, TSHORT, fpixel, size3d, array3D_MONO_12, &status)){
+
+            return printerror( status, "Fits3D::writeFits3D() -> fits_write_pix() failed" );
+
+        }
+
+        free(array3D_MONO_12);
+
     }
 
     // close the file
     if(fits_close_file(fptr, &status)){
 
-         return printerror( status, "Fits3D::writeFits3d8uc() case 8 bits -> fits_close_file() failed" );
+         return printerror( status, "Fits3D::writeFits3D() -> fits_close_file() failed" );
     }
-
-    free( array3d );
-
-    return true;
-
-}
-
-/**
- * \brief       Write a fits cube with 16 bits unsigned short data.
- * \details     Use cfitsio library to write data in a fits cube.
- * \param       file    Path of the future fits cube file.
- * \return      A \e boolean which correspond of the success to write fits cube.
- */
-
-bool Fits3D::writeFits3d16us(string file){
-
-    int     status      = 0;
-    long    naxis       = 3;
-    long    naxes[3]    = {imgW,imgH,imgT};
-    int     size3d      = naxes[0] * naxes[1] * naxes[2];
-    long    fpixel[3]   = {1,1,1};
-    int     imgSize     = imgH*imgW;
-
-    // 1D array which contains severals images : [ image1(line1, line2 ...) image2(line1, line2...)]
-    unsigned short *array3d;
-
-    // 2D array : one image per line
-    unsigned short **array2d;
-
-    array2d = (unsigned short**)calloc(imgT, sizeof(unsigned short*));
-
-    if (array2d == NULL){
-
-        return printerror("Fits3D::writeFits3d16us() case 16 bits -> array2d == NULL");
-    }
-
-    for (int i=0; i<imgT; i++){
-
-        array2d[i] = (unsigned short*)calloc((imgW*imgH), sizeof(unsigned short));
-
-        if (array2d[i] == NULL){
-
-            return printerror("Fits3D::writeFits3d16us() case 16 bits -> array2d[i] == NULL");
-
-        }
-    }
-
-    /// Fill 2D array with frames
-
-    Mat currentImg;
-
-    for(int t=0 ; t<imgT;t++){
-
-        buffer->at(t).copyTo(currentImg);
-
-        for (int j = 0 ; j < naxes[1] ; j++){
-
-            unsigned short *  pt= currentImg.ptr<unsigned short>(j);
-
-            for (int i = 0; i <naxes[0] ; i++){
-
-                array2d[t][(imgH-1-j)*imgW+i] = (int)pt[i];
-
-            }
-        }
-    }
-
-    array3d = (unsigned short *)calloc(size3d,sizeof(unsigned short ));
-
-    int jj;
-
-    for (int n = 0; n < imgT; n++){
-
-        for (int i=0; i<imgSize; i++){
-
-              jj = n*imgSize + i;
-              array3d[jj] = array2d[n][i];
-
-        }
-    }
-
-    filename = file.c_str();
-
-    remove(filename);
-
-    if(fits_create_file(&fptr, filename, &status)){
-
-         return printerror( status, "Fits3D::writeFits3d16us() case 16 bits -> fits_create_file() failed" );
-    }
-
-    if(fits_create_img(fptr, SHORT_IMG, naxis, naxes, &status)){
-
-         return printerror( status, "Fits3D::writeFits3d16us() case 16 bits -> fits_create_img() failed" );
-    }
-
-
-    if(fits_write_pix(fptr, TSHORT, fpixel, size3d, array3d, &status)){
-
-         return printerror( status, "Fits3D::writeFits3d16us() case 16 bits -> fits_write_pix() failed" );
-    }
-
-    if(fits_close_file(fptr, &status)){
-
-         return printerror( status, "Fits3D::writeFits3d16us() case 16 bits -> fits_close_file() failed" );
-    }
-
-    for (int i=0; i<imgT; i++){
-
-        unsigned short* currentPtr = array2d[i];
-        free(currentPtr);
-    }
-
-    free( array3d );
 
     return true;
 
@@ -1102,14 +999,14 @@ bool Fits3D::printerror( int status, string errorMsg){
         fits_report_error(stderr, status);
 
         cout << stderr << endl;
-        BOOST_LOG_SEV(log, fail) << stderr;
+
 
     }
 
     if(errorMsg != ""){
 
         cout << errorMsg << endl;
-        BOOST_LOG_SEV(log, fail) << errorMsg;
+
 
     }
 
@@ -1131,7 +1028,7 @@ bool Fits3D::printerror( string errorMsg){
     if(errorMsg != ""){
 
         cout << errorMsg << endl;
-        BOOST_LOG_SEV(log, fail) << errorMsg;
+
 
     }
 

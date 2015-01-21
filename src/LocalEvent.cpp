@@ -37,24 +37,13 @@
 
 #include "LocalEvent.h"
 
-LocalEvent::LocalEvent( Scalar              color,
-                        Point               roiPos,
-                        vector <PixelEvent> listPix,
-                        int                 H,
-                        int                 W,
-                        const int                 *roiSize){
-    nbArea = 0;
-    evColor = color;
-    listRoiCenter.push_back(roiPos);
-    evMap = Mat::zeros(H,W,CV_8UC1);
+LocalEvent::LocalEvent(Scalar color, Point roiPos, int frameHeight, int frameWidth, const int *roiSize){
+
+    LE_Color = color;
+    LE_Roi.push_back(roiPos);
+    LE_Map = Mat::zeros(frameHeight, frameWidth, CV_8UC1);
     Mat roi(roiSize[1],roiSize[0],CV_8UC1,Scalar(255));
-    roi.copyTo(evMap(Rect(roiPos.x-roiSize[0]/2,roiPos.y-roiSize[1]/2,roiSize[0],roiSize[1])));
-    listRoiPix.push_back(listPix);
-    belongGlobalEv = false;
-    notTakeAccount = false;
-    //centerOfMass = roiPos;
-    // Indique à quel frame du frame buffer le localEvent courant appartient
-    framePosition = 0;
+    roi.copyTo(LE_Map(Rect(roiPos.x-roiSize[0]/2,roiPos.y-roiSize[1]/2,roiSize[0],roiSize[1])));
 
 }
 
@@ -62,62 +51,22 @@ LocalEvent::~LocalEvent(){
 
 }
 
+void LocalEvent::computeMassCenterWithRoi(){
 
-void LocalEvent::computeCenterOfMass(bool roi){
+    float x = 0, y = 0;
 
-    double t = (double)getTickCount();
+    vector<Point>::iterator it;
 
-    float CoM_x = 0.0, CoM_y = 0.0;
+    for (it = LE_Roi.begin(); it != LE_Roi.end(); ++it){
 
-    int massSum = 0, X = 0, Y = 0;
-
-    if(roi){
-
-        vector <Point>::iterator it;
-
-        for (it=listRoiCenter.begin(); it!=listRoiCenter.end(); ++it){
-
-            X += (*it).x;
-            Y +=(*it).y;
-        }
-
-        X = X / listRoiCenter.size();
-        Y = Y / listRoiCenter.size();
-
-    }else{
-
-        // Parcours de la liste des pixels de chaque ROI qui forme ce localEvent
-        vector< vector<PixelEvent> >::iterator it;
-
-        for (it=listRoiPix.begin(); it!=listRoiPix.end(); ++it){
-
-            vector <PixelEvent> &pe = *it;
-
-            vector <PixelEvent>::iterator it1;
-
-            for (it1=pe.begin(); it1!=pe.end(); ++it1){
-
-                PixelEvent &pe1 = *it1;
-
-                X+=pe1.intensity * pe1.position.x;
-                Y+=pe1.intensity * pe1.position.y;
-
-                massSum += pe1.intensity;
-
-            }
-        }
-
-        X = (float)(X/massSum);
-        Y = (float)(Y/massSum);
+        x += (*it).x;
+        y += (*it).y;
 
     }
 
-    centerOfMass = Point(X,Y);
+    x = x / LE_Roi.size();
+    y = y / LE_Roi.size();
 
-    //cout << "center of mass: (" << X<<";"<<Y<<")"<<endl;
-
-    t = (((double)getTickCount() - t)/getTickFrequency())*1000;
-
-   // cout << "Time CoM : " <<std::setprecision(3)<< std::fixed<< t << " ms"<< endl;
+    LE_MassCenter = Point(x,y);
 
 }

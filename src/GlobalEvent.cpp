@@ -34,178 +34,41 @@
 
 #include "GlobalEvent.h"
 
-GlobalEvent::GlobalEvent(vector<string> date, int imgH, int imgW, bool downsample){
+GlobalEvent::GlobalEvent(vector<string> frameDate, int frameNum, int frameHeight, int frameWidth){
 
-    age             = 0;
-    ageLastElem     = 0;
-    posFailed       = 0;
-    posSuccess      = 0;
-
-    frameDownSampled = downsample;
-
-    dateEvent       = date;
-    nbPt = 4;
-    LELinked = false;
-
-    dirMask = Mat(imgH,imgW, CV_8UC1,Scalar(255));
-    mapEvent = Mat(imgH,imgW, CV_8UC1,Scalar(0));
-
-    if(downsample)
-        dirMap = Mat(imgH*2,imgW*2, CV_8UC3,Scalar(0,0,0));
-    else
-        dirMap = Mat(imgH,imgW, CV_8UC3,Scalar(0,0,0));
-
-    cptt = 0;
+    geAge           = 0;
+    geAgeLastLE     = 0;
+    geDate          = frameDate;
+    numFirstFrame   = frameNum;
+    numLastFrame   = frameNum;
+    newLEAdded      = false;
+    geMap           = Mat(frameHeight,frameWidth, CV_8UC1,Scalar(0));
+    dirMap          = Mat(frameHeight,frameWidth, CV_8UC3,Scalar(0,0,0));
+    linear          = true;
+    velocity        = 0;
+    badPoint        = 0;
+    goodPoint       = 0;
 
 }
 
 GlobalEvent::~GlobalEvent(){
 
-    //dtor
-}
-
-/*void GlobalEvent::incrementLocalEventsPosition(){
-
-    vector<LocalEvent>::iterator it;
-
-    for (it=listLocalEvent.begin(); it!=listLocalEvent.end(); ++it){
-
-       // cout << "Pos before : "<< (*it).getFramePosition() <<endl;
-        (*it).setFramePosition((*it).getFramePosition()+1);
-       // cout << "Pos after : "<< (*it).getFramePosition() <<endl;
-
-    }
-}*/
-
-RecEvent GlobalEvent::extractEventRecInfos(){
-
-    RecEvent rec;
-
-    vector<Point>   eventXYPosition;
-    vector<int>     eventBufferPosition;
-
-    vector<LocalEvent>::iterator it;
-
-    for (it=listLocalEvent.begin(); it!=listLocalEvent.end(); ++it){
-
-        eventXYPosition.push_back((*it).centerOfMass);
-        eventBufferPosition.push_back((*it).getFramePosition());
-
-    }
-
-    rec.setPrevBuffer(eventPrevBuffer);
-    rec.setBuffer(eventBuffer);                        // Copy the event's buffer
-    rec.setListMetPos(eventXYPosition);             // XY positions of the event in the frame
-    rec.setPositionInBuffer(eventBufferPosition);   // Frame numbers of event positions
-    rec.setMapEvent(mapEvent);                      // GEMAP
-    rec.setDateEvent(dateEvent);                    // Date of the first event's frame
-    rec.setDirMap(dirMap);
-
-    return rec;
-
-}
-
-vector<LocalEvent> * GlobalEvent::getListLocalEvent(){
-
-    vector<LocalEvent> *liste = &listLocalEvent;
-
-    return liste;
-
-}
-
-Mat GlobalEvent::getMapEvent(){
-
-    return mapEvent;
-
-}
-
-void GlobalEvent::setMapEvent(Mat m){
-
-    m.copyTo(mapEvent);
-
-}
-
-int GlobalEvent::getAge(){
-
-    return age;
-
-}
-
-int GlobalEvent::getAgeLastElem(){
-
-    return ageLastElem;
-
-}
-
-vector<string> GlobalEvent::getDate(){
-
-    return dateEvent;
-
-}
-
-int GlobalEvent::getPosFailed(){
-
-    return posFailed;
-
-}
-
-int GlobalEvent::getPosSuccess(){
-
-    return posSuccess;
-
-}
-
-void GlobalEvent::setAge(int a){
-
-    age = a;
-
-}
-
-void GlobalEvent::setAgeLastElem(int a){
-
-    ageLastElem = a;
-
-}
-
-bool GlobalEvent::getLELinked(){
-
-    return LELinked;
-
-}
-
-void GlobalEvent::setLELinked(bool state){
-
-    LELinked = state;
-
 }
 
 bool GlobalEvent::addLE(LocalEvent le){
 
-    Point center =  le.centerOfMass;
+    Point center =  le.getMassCenter();
 
-    if(frameDownSampled){
+    LEList.push_back(le);
 
-        center.x = center.x*2;
-        center.y = center.y*2;
-
-    }
-
-    //Add LE
-    listLocalEvent.push_back(le);
-
-    if(listLocalEvent.size() == 0){
-
-        mainPoints.push_back(center);
-        circle(dirMap, center, 5, Scalar(0,255,0), CV_FILLED, 8, 0);
-
-    }else if((listLocalEvent.size())%nbPt == 0){
+    if(LEList.size() % 2 == 0){
 
         mainPoints.push_back(center);
 
         if(mainPoints.size() >= 3){
 
-            Point   A   = Point(mainPoints.at(mainPoints.size()- 3)),
-                    B   = Point(mainPoints.at(mainPoints.size()- 2)),
+            Point   A   = Point(mainPoints.at(0)),
+                    B   = Point(mainPoints.at(floor(mainPoints.size()/2.0))),
                     C   = Point(mainPoints.at(mainPoints.size()- 1));
 
             Point   v1  = Point(B.x - A.x, B.y - A.y);
@@ -221,77 +84,69 @@ bool GlobalEvent::addLE(LocalEvent le){
             if(thetaDeg > 35.0 || thetaDeg < -35.0 ){
 
                 circle(dirMap, center, 5, Scalar(0,0,255), CV_FILLED, 8, 0);
-                posFailed++;
+                badPoint++;
+                if(pos.back() == false)
+                    linear = false;
+
+                pos.push_back(false);
 
                 return false;
 
             }else{
-                posSuccess++;
+
+                pos.push_back(true);
                 circle(dirMap, center, 5, Scalar(0,255,0), CV_FILLED, 8, 0);
+                goodPoint++;
+                velocity = sqrt(pow(LEList.front().getMassCenter().x - LEList.back().getMassCenter().x,2)+pow(LEList.front().getMassCenter().y - LEList.back().getMassCenter().y,2));
 
             }
         }
     }
 
+
+
     circle(dirMap, center, 3, Scalar(255,0,0), CV_FILLED, 8, 0);
 
     //reset ageLastELem
-    ageLastElem = 0;
+    geAgeLastLE = 0;
 
     //Update event's map
-    Mat res = mapEvent + le.getMap();
-    res.copyTo(mapEvent);
-    cptt++;
-    // SaveImg::saveBMP(le.getMap(),"/home/fripon/data2/mapEvent_" + Conversion::intToString(cptt) );
+    Mat res = geMap + le.getMap();
+    res.copyTo(geMap);
 
     return true;
 
 }
 
-Mat GlobalEvent::getDirMap(){
+bool GlobalEvent::continuousGoodPos(int n){
 
-    return dirMap;
+    int nb = 0;
+    int nn = 0;
 
-}
+    cout << "start"<<endl;
+    for(int i = 0; i < pos.size(); i++){
 
-vector<Mat> GlobalEvent::getEvPrevBuffer(){
+        if(pos.at(i)){
 
-    return eventPrevBuffer;
+            nb++;
 
-}
+            if(nb > n)
+                break;
 
-vector<Mat> GlobalEvent::getEvBuffer(){
+        }else{
 
-    return eventBuffer;
+            nn++;
 
-}
+            if(nn == 3)
+                break;
 
-vector<Mat> GlobalEvent::getEvAfterBuffer(){
+        }
 
-    return eventAfterBuffer;
+    }
+    cout << "end"<<endl;
 
-}
-
-void GlobalEvent::setEvPrevBuffer(Mat f){
-
-    eventPrevBuffer.push_back(f);
-
-}
-
-void GlobalEvent::setEvBuffer(Mat f){
-
-     eventBuffer.push_back(f);
+    if(nb >= n) return true;
+    else return false;
 
 }
 
-void GlobalEvent::setEvAfterBuffer(Mat f){
-
-     eventAfterBuffer.push_back(f);
-
-}
-
-vector<Point> GlobalEvent::getAvgPos(){
-
-    return avPos;
-
-}

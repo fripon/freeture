@@ -1,12 +1,11 @@
 /*
-				EnumLog.h
+								StackedFrames.cpp
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 *
 *	This file is part of:	freeture
 *
-*	Copyright:		(C) 2014-2015 Yoan Audureau
-*                               FRIPON-GEOPS-UPSUD-CNRS
+*	Copyright:		(C) 2014-2015 Yoan Audureau -- FRIPON-GEOPS-UPSUD
 *
 *	License:		GNU General Public License
 *
@@ -25,18 +24,30 @@
 *
 *%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%*/
 
-#pragma once
+/**
+ * @file    StackedFrames.cpp
+ * @author  Yoan Audureau
+ * @version 1.0
+ * @date    19/06/2014
+ */
 
-namespace logenum{
+#include "StackedFrames.h"
 
-    enum severity_level{
+StackedFrames::StackedFrames(string firstDate, string lastDate, int g, int e, Mat img, int nbImg){
 
-        normal,
-        notification,
-        warning,
-        fail,
-        critical
+    startDate   = firstDate;
+    endDate     = lastDate;
+    gain        = g;
+    exp         = e;
+    imgSum      = nbImg;
+    img.copyTo(stackedImg);
 
-    };
+}
 
-} //namespace logenum
+StackedFrames::StackedFrames(){
+
+}
+
+StackedFrames::~StackedFrames(void){
+
+}

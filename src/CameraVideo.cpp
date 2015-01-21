@@ -36,24 +36,28 @@
 
 
 CameraVideo::CameraVideo(   string video_path,
-                            Fifo<Frame> *queue,
-                            boost::mutex *m_mutex_queue,
-                            boost::condition_variable *m_cond_queue_fill,
-                            boost::condition_variable *m_cond_queue_new_element){
+                            boost::circular_buffer<Frame> *cb,
+                            boost::mutex *m_cb,
+                            boost::condition_variable *c_newElemCb,
+                            bool *newFrameForDet,
+                            boost::mutex *m_newFrameForDet,
+                            boost::condition_variable *c_newFrameForDet){
 
 	videoPath       = video_path;
 	thread          = NULL;
-	frameQueue      = queue;
-	//terminatedThread = threadTerminated;
-	mutexQueue			= m_mutex_queue;
-	condQueueFill			= m_cond_queue_fill;
-	condQueueNewElement	= m_cond_queue_new_element;
 
 	//open the video file for reading
     cap = VideoCapture(videoPath);
 
 	imgH = 0;
 	imgW = 0;
+
+	newFrameDet = newFrameForDet;
+    m_newFrameDet = m_newFrameForDet;
+    c_newFrameDet = c_newFrameForDet;
+    frameBuffer = cb;
+    m_frameBuffer = m_cb;
+    c_newElemFrameBuffer = c_newElemCb;
 
 }
 
@@ -192,7 +196,7 @@ void CameraVideo::operator () (){
 
                 double tacq = (double)getTickCount();
 
-                cout << "FROMAT : " << cap.get(CV_CAP_PROP_FORMAT)<<endl;
+                cout << "FORMAT : " << cap.get(CV_CAP_PROP_FORMAT)<<endl;
 
                 //BGR (3 channels) to G (1 channel)
                 cvtColor(frame, frame, CV_BGR2GRAY);
@@ -201,15 +205,19 @@ void CameraVideo::operator () (){
                 //Timestamping
                 string acquisitionDate = TimeDate::localDateTime(second_clock::universal_time(),"%Y:%m:%d:%H:%M:%S");
 
-                Frame newFrameRAM( frame, 0, 0, acquisitionDate );
+                Frame newFrame( frame, 0, 0, acquisitionDate );
 
-                newFrameRAM.setNumFrame(numFrame);
+                newFrame.setNumFrame(numFrame);
 
-                newFrameRAM.setFrameRemaining(cap.get(CV_CAP_PROP_FRAME_COUNT) - cap.get(CV_CAP_PROP_POS_FRAMES));
+                newFrame.setFrameRemaining(cap.get(CV_CAP_PROP_FRAME_COUNT) - cap.get(CV_CAP_PROP_POS_FRAMES));
 
-                boost::mutex::scoped_lock lock(*mutexQueue);
+                /*boost::mutex::scoped_lock lock(*mutexQueue);
 
-                frameQueue->pushInFifo(newFrameRAM);
+                frameQueue->pushInFifo(newFrameRAM);*/
+
+                boost::mutex::scoped_lock lock(*m_frameBuffer);
+                frameBuffer->push_back(newFrame);
+                lock.unlock();
 
 
 /*
@@ -233,17 +241,24 @@ void CameraVideo::operator () (){
                 }
 
 
-                lock.unlock();
+                //lock.unlock();
 
 
 
-                if(frameQueue->getFifoIsFull()) condQueueFill->notify_all();
+                /*if(frameQueue->getFifoIsFull()) condQueueFill->notify_all();
 
                 frameQueue->setThreadRead("imgCap", true);
                 frameQueue->setThreadRead("astCap", true);
                 frameQueue->setThreadRead("det", true);
 
-                condQueueNewElement->notify_all();
+                condQueueNewElement->notify_all();*/
+
+
+
+                boost::mutex::scoped_lock lock2(*m_newFrameDet);
+                *newFrameDet = true;
+                c_newFrameDet->notify_one();
+                lock2.unlock();
 
                 tacq = (((double)getTickCount() - tacq)/getTickFrequency())*1000;
                 cout << " [-ACQ-]    Time : " << tacq << " ms " << endl;

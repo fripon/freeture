@@ -33,13 +33,13 @@
  */
 
 #include "SaveImg.h"
-#include "EnumLog.h"
+#include "ELogSeverityLevel.h"
 #include "includes.h"
 
 #ifdef USE_PYLON
 
 #include "CameraSDK.h"
-#include "Fifo.h"
+
 #include "Frame.h"
 #include "TimeDate.h"
 #include "Conversion.h"

@@ -1,12 +1,11 @@
 /*
-				DetByLists.h
+								DetByLists.h
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 *
 *	This file is part of:	freeture
 *
-*	Copyright:		(C) 2014-2015 Yoan Audureau
-*                               FRIPON-GEOPS-UPSUD-CNRS
+*	Copyright:		(C) 2014 Yoan Audureau -- FRIPON-GEOPS-UPSUD
 *
 *	License:		GNU General Public License
 *
@@ -36,16 +35,15 @@
 
 #include "includes.h"
 #include "LocalEvent.h"
-#include "GlobalEvent.h"
 #include "PixelEvent.h"
 #include "RecEvent.h"
 #include "Conversion.h"
 #include "ManageFiles.h"
 #include "SaveImg.h"
 #include "Frame.h"
-#include "Fifo.h"
+
 #include "Fits2D.h"
-#include "EnumLog.h"
+#include "ELogSeverityLevel.h"
 #include "ECamBitDepth.h"
 #include <boost/filesystem.hpp>
 #include <iterator>
@@ -65,8 +63,6 @@ namespace src		= boost::log::sources;
 namespace expr		= boost::log::expressions;
 namespace keywords	= boost::log::keywords;
 
-using namespace logenum;
-
 class DetByLists{
 
     public:
@@ -74,32 +70,23 @@ class DetByLists{
         DetByLists();
 
         static bool detectionMethodByListManagement(
-                                                    Frame f,
-                                                    vector<string> date,
-                                                    Mat currentFrame,
-                                                    Mat previousFrame,
-                                                    Mat mean,
-                                                    int const *roiSize,
-                                                    vector <GlobalEvent> &listGlobalEvents,
-                                                    Mat mask,
-                                                    boost::mutex &mutex_listEventToRecord,
-                                                    boost::mutex &mutexQueue,
-                                                    vector<RecEvent> &listEventToRecord,
-                                                    Fifo<Frame>  &framesQueue,
-                                                    string recPath,
-                                                    string stationName,
-                                                    int &nbDet,
-                                                    int geMaxElement,
-                                                    int geMaxDuration,
-                                                    int geAfterTime,
-                                                    int pixelFormat,
-                                                    vector<Point> &lastDet,
-                                                    Mat maskNeighborhood,
-                                                    VideoWriter &videoDebug,
-                                                    bool debug,
-                                                    vector<Point> listSubdivPosition,
-                                                    bool downsample,
-                                                    Mat &prevthresh  );
+                                                        Frame currentFrame,
+                                                        Frame previousFrame,
+                                                        int const *roiSize,
+                                                        vector<GlobalEvent> &listGlobalEvents,
+                                                        vector<Scalar> &listColors,
+                                                        Mat mask,
+                                                        int timeMax,
+                                                        int nbGE,
+                                                        int timeAfter,
+                                                        int pixelFormat,
+                                                        Mat localMask,
+                                                        bool debug,
+                                                        vector<Point> regionsPos,
+                                                        bool downsample,
+                                                        Mat &prevthresh,
+                                                        int &nbDet,
+                                                        vector<GlobalEvent>::iterator &itGEToSave);
 
         static void buildListSubdivisionOriginPoints(
                                                         vector<Point> &listSubdivPosition,

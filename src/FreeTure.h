@@ -1,12 +1,11 @@
 /*
-				FreeTure.h
+								FreeTure.h
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 *
 *	This file is part of:	freeture
 *
-*	Copyright:		(C) 2014-2015 Yoan Audureau
-*                               FRIPON-GEOPS-UPSUD-CNRS
+*	Copyright:		(C) 2014-2015 Yoan Audureau -- FRIPON-GEOPS-UPSUD
 *
 *	License:		GNU General Public License
 *
@@ -40,8 +39,8 @@
 #include "ECamType.h"
 #include "ECamBitDepth.h"
 #include "EDetMeth.h"
-#include "EAstStackMeth.h"
-#include "EnumParser.h"
+#include "EStackMeth.h"
+#include "EParser.h"
 
 #include <boost/filesystem.hpp>
 
@@ -61,9 +60,9 @@ class FreeTure{
 
 		void printParameters();
 
-        EnumParser<CamType> cam_type;
+        EParser<CamType> cam_type;
 
-	    ///======= Input parameters =======
+	    ///======= Input parameters =============
 
 	    CamType	        CAMERA_TYPE;
         std::string     CAMERA_NAME;
@@ -73,7 +72,7 @@ class FreeTure{
         int             FRAMES_START;
         int             FRAMES_STOP;
 
-        ///==== Acquisition parameters ====
+        ///======= Acquisition parameters =======
 
         int		        ACQ_FPS;
         CamBitDepth		ACQ_BIT_DEPTH;
@@ -86,8 +85,9 @@ class FreeTure{
         std::string     ACQ_SAVE_FRAMES_TYPE;
         std::string     ACQ_SAVE_FRAMES_PATH;
         int		        ACQ_SAVE_FRAMES_BUFFER_SIZE;
+        int             ACQ_BUFFER_SIZE;
 
-        ///====== Detection parameters ====
+        ///====== Detection parameters =========
 
         bool	        DET_ENABLED;
         DetMeth	        DET_METHOD;
@@ -100,25 +100,25 @@ class FreeTure{
         bool            DET_SAVE_TRAIL;
         bool            DET_SAVE_POS;
         bool            DET_DOWNSAMPLE_ENABLED;
-        int             DET_TIME_BEFORE;
-        int             DET_TIME_AFTER;
+        double          DET_TIME_BEFORE;
+        double          DET_TIME_AFTER;
         int             DET_GE_MAX;
         int             DET_TIME_MAX;
 
-        ///======== Stack parameters ======
+        ///======= Stack parameters ============
 
         bool	        STACK_ENABLED;
         double	        STACK_TIME;
         int		        STACK_INTERVAL;
-        AstStackMeth    STACK_MTHD;
+        StackMeth       STACK_MTHD;
         bool            STACK_REDUCTION;
 
-        ///======== Mail notifications ========
+        ///====== Mail notifications ===========
 
-        vector<string> MAIL_RECIPIENT;
-        bool MAIL_ENABLE;
+        vector<string>  MAIL_RECIPIENT;
+        bool            MAIL_ENABLED;
 
-        ///======= Others parameters ======
+        ///====== Others parameters ============
 
         bool            DEBUG_ENABLED;
         std::string     DEBUG_PATH;
@@ -132,6 +132,7 @@ class FreeTure{
         double          LONGITUDE;
 
         std::string     logDirName;
+
 
 };
 

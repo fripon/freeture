@@ -27,28 +27,27 @@
 #*%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%*/
 
 bin_PROGRAMS		= freeture
-freeture_SOURCES	= EnumBitdepth.h ECamBitDepth.h ECamType.h EnumParser.h EnumParser.cpp \
-			EDetMeth.h AstThread.h Base64.h CameraDMK.h Camera.h CameraBasler.h \
-			CameraSimu.h CameraVideo.h FreeTure.h FreeTure.cpp \
+freeture_SOURCES	= EImgBitDepth.h ECamType.h EParser.h EParser.cpp \
+			EDetMeth.h AstThread.h Base64.h Camera.h \
+			CameraVideo.h FreeTure.h FreeTure.cpp \
 			CameraSDK.h CameraSDKAravis.h CameraFrames.h \
 			CameraSDKPylon.h SMTPClient.h ImgReduction.h \
-			Configuration.h Conversion.h DetThread.h Fifo.h \
+			Configuration.h Conversion.h DetThread.h \
 			Fits.h Fits2D.h Fits3D.h Frame.h GlobalEvent.h Histogram.h \
-			ImgThread.h includes.h LocalEvent.h EAstStackMeth.h \
+			ImgThread.h includes.h LocalEvent.h EStackMeth.h \
 			PixelEvent.h RecEvent.h \
 			TimeDate.h DetByLines.h DetByLists.h ManageFiles.h \
-			RecThread.h SaveImg.h ImgReduction.cpp \
-			AstThread.cpp Base64.cpp Camera.cpp CameraBasler.cpp \
-			CameraFrames.cpp SMTPClient.cpp \
-			CameraDMK.cpp CameraSimu.cpp \
+			SaveImg.h ImgReduction.cpp \
+			AstThread.cpp Base64.cpp Camera.cpp \
+			CameraFrames.cpp SMTPClient.cpp StackedFrames.cpp \
 			CameraSDK.cpp CameraSDKAravis.cpp CameraSDKPylon.cpp \
 			CameraVideo.cpp Configuration.cpp Conversion.cpp \
-			DetThread.cpp Fifo.cpp Fits.cpp Fits2D.cpp Fits3D.cpp \
-			Frame.cpp GlobalEvent.cpp Histogram.cpp ImgThread.cpp \
+			DetThread.cpp Fits.cpp Fits2D.cpp Fits3D.cpp \
+			Frame.cpp GlobalEvent.cpp Histogram.cpp \
 			LocalEvent.cpp main.cpp PixelEvent.cpp \
-			RecEvent.cpp TimeDate.cpp \
+			RecEvent.cpp TimeDate.cpp StackedFrames.h \
 			DetByLines.cpp DetByLists.cpp ManageFiles.cpp \
-			RecThread.cpp SaveImg.cpp EnumLog.h
+			SaveImg.cpp ELogSeverityLevel.h
 			
 DATE=`date +"%Y-%m-%d"`
 

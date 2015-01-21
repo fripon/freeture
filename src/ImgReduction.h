@@ -36,7 +36,7 @@
 
 #include "includes.h"
 #include "Fits2D.h"
-#include "EnumBitdepth.h"
+#include "EImgBitDepth.h"
 #include "ECamBitDepth.h"
 
 using namespace std;

@@ -37,69 +37,62 @@
 #include "includes.h"
 #include "Frame.h"
 #include "SaveImg.h"
+#include "Fits.h"
+#include "Fits2D.h"
+#include "Fits3D.h"
+#include "ECamBitDepth.h"
+#include "GlobalEvent.h"
+#include "ImgReduction.h"
+#include <boost/circular_buffer.hpp>
 
 using namespace cv;
 using namespace std;
 
 class RecEvent{
 
-    public:
+    private :
 
-        RecEvent();
+        Fits            fitsHeader;
+        CamBitDepth     pixelFormat;
+        string          eventPath;
+        string          stationName;
+        bool            recAvi;
+        bool            recFits3D;
+        bool            recFits2D;
+        bool            recPos;
+        bool            recSum;
+        bool            recBmp;
+        bool            recMapGE;
+        string          currentEventPath;
+        int             timeBefore;
+        int             timeAfter;
+        int             frameBufferMaxSize;
+
+        boost::circular_buffer<Frame>   *frameBuffer;
+        boost::mutex                    *m_frameBuffer;
+
+    public :
+
+        RecEvent(   boost::circular_buffer<Frame> *cb,
+                    boost::mutex *m_cb,
+                    string path,
+                    string station,
+                    CamBitDepth  bitdepth,
+                    bool avi,
+                    bool fits3D,
+                    bool fits2D,
+                    bool sum,
+                    bool pos,
+                    bool bmp,
+                    bool mapGE,
+                    Fits fitsHead,
+                    int tBefore,
+                    int tAfter,
+                    int bufferSize);
+
         ~RecEvent();
-        string getPath();
-        void setPath(string newPath);
-        void setPathOfFrames(string newPath);
-        vector<int>  getPositionInBuffer();
-        vector<Point> getListMetPos();
-        vector<Frame> getBufferFileName();
-        string getPathOfFrames();
-        void setBufferFileName(vector<Frame> l);
 
-        void setListMetPos(vector<Point> l);
-
-        void setPositionInBuffer(vector<int> l);
-
-        bool copyFromRecEvent(RecEvent ev);
-
-        void setPrevFrames(vector<Frame> prev);
-        void setFramesDisk(vector<int> f);
-        void setFrameBufferLocation(string path);
-
-        vector<Frame> getPrevFrames();
-        vector<int> getFramesDisk();
-        string getFrameBufferLocation();
-
-        void setMapEvent(Mat mapE);
-
-        void setDateEvent(vector<string> date);
-        vector<string> getDateEvent();
-
-        Mat getMapEvent();
-
-        void setBuffer(vector<Mat> b);
-        vector<Mat> getBuffer();
-        void setDirMap(Mat dirMap);
-
-        Mat getDirMap();
-
-        void setPrevBuffer(vector<Mat> eventPrevBuffer);
-        vector<Mat> getPrevBuffer();
-
-    private:
-
-        vector<Mat> prevBuffer;
-        Mat mapDir;
-        vector<Mat> buffer;
-        vector<string> dateEv;
-        Mat mapEvent;
-        vector<Point> meteorPos;
-        vector<int> posInBuffer;
-        vector<Frame> bufferFileName;
-        string path;
-        string pathOfFrames;
-        vector<Frame> previousFrames;
-        vector<int> diskFrames;
-        string bufferPath;
+        bool buildEventLocation(vector<string> eventDate);
+        bool saveGE(vector<GlobalEvent> &GEList, vector<GlobalEvent>::iterator itGE);
 
 };

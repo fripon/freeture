@@ -1,12 +1,11 @@
 /*
-				SaveImg.h
+								StackedFrames.h
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 *
 *	This file is part of:	freeture
 *
-*	Copyright:		(C) 2014-2015 Yoan Audureau
-*                               FRIPON-GEOPS-UPSUD-CNRS
+*	Copyright:		(C) 2014-2015 Yoan Audureau -- FRIPON-GEOPS-UPSUD
 *
 *	License:		GNU General Public License
 *
@@ -26,31 +25,50 @@
 *%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%*/
 
 /**
- * @file    SaveImg.h
+ * @file    StackedFrames.h
  * @author  Yoan Audureau -- FRIPON-GEOPS-UPSUD
  * @version 1.0
- * @date    17/06/2014
+ * @date    19/06/2014
  */
 
 #pragma once
 
-#include "opencv2/highgui/highgui.hpp"
-#include <opencv2/imgproc/imgproc.hpp>
+#include "includes.h"
+#include "Conversion.h"
 
 using namespace std;
 using namespace cv;
 
-class SaveImg{
+class StackedFrames{
 
-    public:
+	public:
 
-        SaveImg(){};
-        ~SaveImg(){};
+        //! Date of acquisition
+		string   startDate;
 
-        static bool saveJPEG(Mat img, string name);
+		string   endDate;
 
-        static bool saveBMP(Mat img, string name);
+        //! Gain value of the frame
+        int gain;
 
-        static bool savePNG(Mat img, string name);
+        //! Exposure value of the frame
+        int exp;
+
+        //! Mat frame
+        Mat stackedImg;
+
+        int imgSum;
+
+        StackedFrames(string firstDate, string lastDate, int g, int e, Mat img, int nbImg);
+
+        //! Simple constructor
+        StackedFrames();
+
+        //! Destructor
+        ~StackedFrames(void);
+
+
+
+
 
 };

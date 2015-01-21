@@ -1,5 +1,5 @@
 /*
-								EnumParser.cpp
+								EParser.cpp
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 *
@@ -26,27 +26,24 @@
 *%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%*/
 
 /**
- * @file    EnumParser.cpp
+ * @file    EParser.cpp
  * @author  Yoan Audureau -- FRIPON-GEOPS-UPSUD
  * @version 1.0
  * @date    04/12/2014
  *
  */
 
-#include "EnumParser.h"
+#include "EParser.h"
 
-
-
-template<> EnumParser<CamBitDepth>::EnumParser(){
+template<> EParser<CamBitDepth>::EParser(){
 
     enumMap["MONO_8"]   = MONO_8;
     enumMap["MONO_12"]  = MONO_12;
 
 }
 
-template<> EnumParser<CamType>::EnumParser(){
+template<> EParser<CamType>::EParser(){
 
-//cout << "in template camtype"<<endl;
     enumMap["DMK"]      = DMK;
     enumMap["BASLER"]   = BASLER;
     enumMap["VIDEO"]    = VIDEO;
@@ -54,24 +51,16 @@ template<> EnumParser<CamType>::EnumParser(){
 
 }
 
-template<> EnumParser<AstStackMeth>::EnumParser(){
+template<> EParser<StackMeth>::EParser(){
 
     enumMap["SUM"]      = SUM;
     enumMap["MEAN"]     = MEAN;
 
 }
 
-template<> EnumParser<DetMeth>::EnumParser(){
+template<> EParser<DetMeth>::EParser(){
 
-    enumMap["HOUGH"]    = HOUGH;
-    enumMap["LIST"]     = LIST;
-
-}
-
-
-template <> string EnumParser<CamType>::test(){
-
-    cout << "test function"<<endl;
-
+    enumMap["HOUGH_MTHD"]       = HOUGH_MTHD;
+    enumMap["TEMPORAL_MTHD"]    = TEMPORAL_MTHD;
 
 }

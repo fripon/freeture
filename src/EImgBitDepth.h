@@ -1,5 +1,5 @@
 /*
-				EnumBitdepth.h
+				EImgBitDepth.h
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 *
@@ -27,15 +27,12 @@
 
 #pragma once
 
-namespace bit_depth_enum{
+enum ImgBitDepth{
 
-     typedef enum{
+    UC8,
+    C8,
+    US16,
+    S16,
+    F32
 
-     	UC8 	= 0,
-		C8		= 1,
-		US16	= 2,
-		S16		= 3,
-		F32		= 4
-
-     }bitdepth;
-}
+};

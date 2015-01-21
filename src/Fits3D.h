@@ -49,52 +49,43 @@
 
 #include "Configuration.h"
 #include "TimeDate.h"
-#include "EnumLog.h"
+#include "ELogSeverityLevel.h"
 #include "Fits.h"
+#include "ECamBitDepth.h"
 
 using namespace cv;
 using namespace std;
-
-using namespace boost::posix_time;
-
-namespace logging	= boost::log;
-namespace sinks		= boost::log::sinks;
-namespace attrs		= boost::log::attributes;
-namespace src		= boost::log::sources;
-namespace expr		= boost::log::expressions;
-namespace keywords	= boost::log::keywords;
-
-using namespace logenum;
 
 class Fits3D : public Fits{
 
     private:
 
-		src::severity_logger< severity_level > log;
-
-		int imgW;
-        int imgH;
-        int imgT;
-
-        fitsfile *fptr;
-        const char * filename;
-
-        vector <Mat> *buffer;
-
-    public:
-
-        Fits3D(vector <Mat> *frames);
-        ~Fits3D();
-
-        bool writeFits3d8uc     (string file);
-        bool writeFits3d16us    (string file);
-
-    private:
+        fitsfile        *fptr;
+        const char      *filename;
+        int             status;
+        long            naxis;
+        long            naxes[3];
+        int             size3d;
+        long            fpixel[3];
+        int             imgSize;
+        CamBitDepth     imgDepth;
+        int             n;
+        unsigned char   *array3D_MONO_8;
+        unsigned short  *array3D_MONO_12;
 
         bool    printerror      (int status, string errorMsg);
 		bool    printerror      (string errorMsg);
 		void    printerror      (int status);
 		bool    writeKeywords   ();
+
+    public:
+
+        Fits3D  (){};
+        ~Fits3D (){};
+        Fits3D  (CamBitDepth depth, int imgHeight, int imgWidth, int imgNum);
+
+        void addImageToFits3D   (Mat frame);
+        bool writeFits3D        (string file);
 
 };
 

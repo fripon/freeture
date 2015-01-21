@@ -43,15 +43,13 @@
 #endif
 
 #include "TimeDate.h"
-#include "EnumLog.h"
-#include "EnumBitdepth.h"
+#include "ELogSeverityLevel.h"
+#include "EImgBitDepth.h"
 #include "Fits.h"
 #include "Conversion.h"
 
 using namespace std;
 using namespace boost::posix_time;
-using namespace logenum;
-using namespace bit_depth_enum;
 
 namespace logging	= boost::log;
 namespace sinks		= boost::log::sinks;
@@ -66,23 +64,25 @@ class Fits2D : public Fits{
 
 	private :
 
-		src::severity_logger< severity_level > log;
+		src::severity_logger< LogSeverityLevel > log;
 
 		string fitsPath;
+
+		Fits fits;
 
     //Methods.
 
 	public:
 
                 Fits2D          (string recPath, const Fits & f):
-                                fitsPath(recPath), Fits(f){};
+                                fitsPath(recPath), fits(f){};
 
                 Fits2D          ();
 
                 ~Fits2D         (void);
 
 		bool    writeFits       (Mat img,
-                                 bitdepth imgType,
+                                 ImgBitDepth imgType,
                                  int nb,
                                  bool filenameWithDate,
                                  string fileName);
