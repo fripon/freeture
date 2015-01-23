@@ -29,7 +29,7 @@
 
 Fits::Fits(){
 
-    STATION     = "";
+    STATION     = "station";
 
     kFILENAME   = "";
     kDATE       = "";
@@ -425,6 +425,11 @@ double Fits::getBscale(){
     return kBSCALE;
 
 }
+/*
+string Fits::getStation(){
+
+    return kSTATION;
+}*/
 
 //%%%%%%%%%%%%%%%%%%% SETTER %%%%%%%%%%%%%%%%%%%%%%%%%%%%
 

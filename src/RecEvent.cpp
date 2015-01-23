@@ -291,7 +291,7 @@ bool RecEvent::saveGE(vector<GlobalEvent> &GEList, vector<GlobalEvent>::iterator
     Fits3D fits3d;
 
     if(recFits3D)
-        fits3d = Fits3D(pixelFormat, frameBuffer->front().getImg().rows, frameBuffer->front().getImg().cols, (numLastFrameToSave - numFirstFrameToSave +1));
+        fits3d = Fits3D(pixelFormat, frameBuffer->front().getImg().rows, frameBuffer->front().getImg().cols, (numLastFrameToSave - numFirstFrameToSave +1), fitsHeader);
 
     cout << ">> " << numLastFrameToSave - numFirstFrameToSave << endl;
 
@@ -340,6 +340,7 @@ bool RecEvent::saveGE(vector<GlobalEvent> &GEList, vector<GlobalEvent>::iterator
             if(recFits2D){
 
                 string fits2DPath = currentEventPath + "fits2D/";
+                vector<string> DD;
 
                 path p(fits2DPath);
 
@@ -350,13 +351,13 @@ bool RecEvent::saveGE(vector<GlobalEvent> &GEList, vector<GlobalEvent>::iterator
 
                     if(pixelFormat == MONO_8){
 
-                        Fits2D newFits(fits2DPath + "frame_" + Conversion::intToString(c) + "_",fitsHeader);
-                        newFits.writeFits((*it).getImg(), UC8, 0, true,"" );
+                        Fits2D newFits(fits2DPath, fitsHeader);
+                        newFits.writeFits((*it).getImg(), UC8, DD, false,"frame_" + Conversion::intToString(c));
 
                     }else{
 
                         Fits2D newFits(fits2DPath + "frame_" + Conversion::intToString(c) + "_",fitsHeader);
-                        newFits.writeFits((*it).getImg(), US16, 0, true,"" );
+                        newFits.writeFits((*it).getImg(), US16, DD, false,"frame_" + Conversion::intToString(c));
                     }
                 }
 
@@ -399,6 +400,8 @@ bool RecEvent::saveGE(vector<GlobalEvent> &GEList, vector<GlobalEvent>::iterator
 
         Fits2D newFits(currentEventPath + "sum",fitsHeader);
 
+        vector<string> DD;
+
         if(stackReduction){
 
             Mat newMat ;
@@ -411,34 +414,13 @@ bool RecEvent::saveGE(vector<GlobalEvent> &GEList, vector<GlobalEvent>::iterator
             newFits.setBzero(bzero);
             newFits.setBscale(bscale);
 
-            switch(pixelFormat){
+            newFits.writeFits(newMat, S16, DD, false,"sum");
 
-                case MONO_8 :
-
-                    {
-
-                         newFits.writeFits(newMat, C8, 0, true,"" );
-
-                    }
-
-                    break;
-
-                case MONO_12 :
-
-                    {
-
-                         newFits.writeFits(newMat, S16, 0, true,"" );
-
-                    }
-
-                    break;
-
-            }
 
         }else{
 
             // Save fits in 32 bits.
-            newFits.writeFits(stackEvent, F32 , 0, true,"" );
+            newFits.writeFits(stackEvent, F32 , DD, false,"sum");
 
         }
 

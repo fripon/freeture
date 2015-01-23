@@ -60,32 +60,21 @@ namespace keywords	= boost::log::keywords;
 
 class Fits2D : public Fits{
 
-    //Attributes.
-
 	private :
 
 		src::severity_logger< LogSeverityLevel > log;
 
 		string fitsPath;
 
-		Fits fits;
-
-    //Methods.
-
 	public:
 
-                Fits2D          (string recPath, const Fits & f):
-                                fitsPath(recPath), fits(f){};
+                Fits2D          (string recPath, Fits fits);
 
                 Fits2D          ();
 
                 ~Fits2D         (void);
 
-		bool    writeFits       (Mat img,
-                                 ImgBitDepth imgType,
-                                 int nb,
-                                 bool filenameWithDate,
-                                 string fileName);
+		bool    writeFits       (Mat img, ImgBitDepth imgType, vector <string> date, bool fileNameWithDate, string fileName);
 
 		bool    readFits32F     (Mat &img, string filePath);
 		bool    readFits16US    (Mat &img, string filePath);

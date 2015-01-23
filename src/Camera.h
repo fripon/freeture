@@ -81,10 +81,10 @@ class Camera{
 	private:
 
         //! Logger.
-		src::severity_logger< LogSeverityLevel > log;
+        src::severity_logger< LogSeverityLevel > log;
 
 		//! Stop flag of the thread.
-		bool mustStop;
+        bool mustStop;
 
 		//! Mutex on the stop flag.
 		boost::mutex mustStopMutex;
@@ -158,6 +158,15 @@ class Camera{
                 int             camExp,
                 int             camGain,
                 CamBitDepth     camDepth);
+
+        Camera( CamType                                 camType,
+                int                                     camExp,
+                int                                     camGain,
+                CamBitDepth                             camDepth,
+                int                                     camFPS,
+                int                                     imgToSum,
+                int                                     imgToWait,
+                bool                                    imgStack);
 
 		Camera( CamType camType);
 

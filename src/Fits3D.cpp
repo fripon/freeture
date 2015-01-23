@@ -34,7 +34,7 @@
 
 #include "Fits3D.h"
 
-Fits3D::Fits3D(CamBitDepth depth, int imgHeight, int imgWidth, int imgNum){
+Fits3D::Fits3D(CamBitDepth depth, int imgHeight, int imgWidth, int imgNum, Fits fits){
 
     status      = 0;
     naxis       = 3;
@@ -60,6 +60,30 @@ Fits3D::Fits3D(CamBitDepth depth, int imgHeight, int imgWidth, int imgNum){
         array3D_MONO_12 = (unsigned short *)malloc(size3d * sizeof(unsigned short));
 
     }
+
+    kFILTER     = fits.getFilter();
+    kTELESCOP   = fits.getTelescop();
+    kOBSERVER   = fits.getObserver();
+    kINSTRUME   = fits.getInstrument();
+    kCAMERA     = fits.getCamera();
+    kFOCAL      = fits.getFocal();
+    kAPERTURE   = fits.getAperture();
+    kSITELONG   = fits.getSitelong();
+    kSITELAT    = fits.getSitelat();
+    kSITEELEV   = fits.getSiteelev();
+    kK1         = fits.getK1();
+    kK2         = fits.getK2();
+    kCOMMENT    = fits.getComment();
+    kPROGRAM    = fits.getProgram();
+    kCREATOR    = fits.getCreator();
+    kCD1_1      = fits.getCd1_1();
+    kCD1_2      = fits.getCd1_2();
+    kCD2_1      = fits.getCd2_1();
+    kCD2_2      = fits.getCd2_2();
+    kCRPIX1     = fits.getCrpix1();
+    kCRPIX2     = fits.getCrpix2();
+    kXPIXEL     = fits.getXpixel();
+    kYPIXEL     = fits.getYpixel();
 }
 
 void Fits3D::addImageToFits3D(Mat frame){
@@ -94,11 +118,6 @@ void Fits3D::addImageToFits3D(Mat frame){
     n++;
 
 }
-
-//Fits3D::~Fits3D(){
-    //dtor
-//}
-
 
 bool Fits3D::writeKeywords(){
 

@@ -47,6 +47,36 @@ Fits2D::~Fits2D(void){
 
 }
 
+Fits2D::Fits2D(string recPath, Fits fits){
+
+    fitsPath = recPath;
+
+    kFILTER     = fits.getFilter();
+    kTELESCOP   = fits.getTelescop();
+    kOBSERVER   = fits.getObserver();
+    kINSTRUME   = fits.getInstrument();
+    kCAMERA     = fits.getCamera();
+    kFOCAL      = fits.getFocal();
+    kAPERTURE   = fits.getAperture();
+    kSITELONG   = fits.getSitelong();
+    kSITELAT    = fits.getSitelat();
+    kSITEELEV   = fits.getSiteelev();
+    kK1         = fits.getK1();
+    kK2         = fits.getK2();
+    kCOMMENT    = fits.getComment();
+    kPROGRAM    = fits.getProgram();
+    kCREATOR    = fits.getCreator();
+    kCD1_1      = fits.getCd1_1();
+    kCD1_2      = fits.getCd1_2();
+    kCD2_1      = fits.getCd2_1();
+    kCD2_2      = fits.getCd2_2();
+    kCRPIX1     = fits.getCrpix1();
+    kCRPIX2     = fits.getCrpix2();
+    kXPIXEL     = fits.getXpixel();
+    kYPIXEL     = fits.getYpixel();
+
+}
+
 bool Fits2D::writeKeywords(fitsfile *fptr){
 
     /*
@@ -794,7 +824,7 @@ bool Fits2D::writeKeywords(fitsfile *fptr){
 /* Create a FITS primary array containing a 2-D image */
 /******************************************************/
 
-bool Fits2D::writeFits( Mat img, ImgBitDepth imgType, int nb, bool filenameWithDate, string fileName){
+bool Fits2D::writeFits(Mat img, ImgBitDepth imgType, vector<string> date, bool fileNameWithDate, string fileName){
 
     int status = 0;
 
@@ -813,44 +843,41 @@ bool Fits2D::writeFits( Mat img, ImgBitDepth imgType, int nb, bool filenameWithD
     nbelements = naxes[0] * naxes[1];
 
     // Get current date.
-    kDATE = TimeDate::localDateTime(microsec_clock::universal_time(),"%Y-%m-%dT%H:%M:%S");
-    string date	= TimeDate::localDateTime(microsec_clock::universal_time(),"%Y%m%d_%H%M%S");
+    string dateFile = "";
+
+    if(date.size() == 6){
+
+        kDATE = date.at(0) + "-" + date.at(1) + "-" + date.at(2) + "T" + date.at(3) + ":" + date.at(4) + ":" + date.at(5);
+        dateFile	= date.at(0) + date.at(1) + date.at(2) + "_" + date.at(3) + date.at(4) + date.at(5);
+
+    }
 
     fitsfile *fptr;
 
     const char * filename;
 
     // Creation of the fits filename.
-    if(nb == 0){
+    string pathAndname = "";
 
-        kFILENAME = kTELESCOP+"_"+date+"_UT";
+    if(fileNameWithDate){
 
-    }else{
+        pathAndname = fitsPath + kTELESCOP + "_" + dateFile + "_UT.fit";
 
-        kFILENAME = kTELESCOP+"_"+date+"_UT"+"-"+ Conversion::intToString(nb);
-
-    }
-
-    string pathAndname ="";
-
-    if(filenameWithDate){
-
-        pathAndname		= fitsPath+kFILENAME+".fit";
 
     }else{
 
-        pathAndname		= fitsPath+fileName+".fit";
+        pathAndname = fitsPath + fileName + ".fit";
 
     }
 
-    filename		= pathAndname.c_str();
+    filename = pathAndname.c_str();
 
     switch(imgType){
 
         case 0:
         {
             //https://www-n.oca.eu/pichon/Tableau_2D.pdf
-            unsigned char ** tab = (unsigned char * *) malloc( img.rows * sizeof( unsigned char * ) ) ;
+            unsigned char ** tab = (unsigned char * *)malloc( img.rows * sizeof(unsigned char *)) ;
 
             if(tab == NULL){
 

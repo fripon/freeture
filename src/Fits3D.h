@@ -82,7 +82,7 @@ class Fits3D : public Fits{
 
         Fits3D  (){};
         ~Fits3D (){};
-        Fits3D  (CamBitDepth depth, int imgHeight, int imgWidth, int imgNum);
+        Fits3D  (CamBitDepth depth, int imgHeight, int imgWidth, int imgNum, Fits fits);
 
         void addImageToFits3D   (Mat frame);
         bool writeFits3D        (string file);

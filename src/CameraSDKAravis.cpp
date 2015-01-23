@@ -185,7 +185,7 @@ bool CameraSDKAravis::grabStart(){
                      // Packet timeout, in µs.
                      // Allowed values: [1000,10000000]
                      // Default value: 40000
-                     "packet-timeout",/* (unsigned) arv_option_packet_timeout * 1000*/(unsigned)10000000,
+                     "packet-timeout",/* (unsigned) arv_option_packet_timeout * 1000*/(unsigned)40000,
                      // # frame-retention
 
                      // The Frame Retention parameter sets the timeout (in milliseconds) for the
@@ -244,15 +244,18 @@ bool CameraSDKAravis::grabImage(Frame &newFrame){
 
     ArvBuffer *arv_buffer;
 
+
+
     arv_buffer = arv_stream_timeout_pop_buffer(stream, 2000000); //us
 
     if (arv_buffer == NULL){
 
-        throw runtime_error("arv_buffer is NULL");
+         throw runtime_error("arv_buffer is NULL");
+         return false;
 
     }else{
 
-        if (arv_buffer->status == ARV_BUFFER_STATUS_SUCCESS){
+        if(arv_buffer->status == ARV_BUFFER_STATUS_SUCCESS){
 
             //Timestamping.
             string acquisitionDate = TimeDate::localDateTime(second_clock::universal_time(),"%Y:%m:%d:%H:%M:%S");
@@ -272,6 +275,10 @@ bool CameraSDKAravis::grabImage(Frame &newFrame){
             }
 
             newFrame = Frame(image, arv_camera_get_gain(camera), arv_camera_get_exposure_time(camera), acquisitionDate);
+
+            arv_stream_push_buffer(stream, arv_buffer);
+
+            return true;
 
         }else{
 
@@ -304,14 +311,13 @@ bool CameraSDKAravis::grabImage(Frame &newFrame){
 
             }
 
+            arv_stream_push_buffer(stream, arv_buffer);
+
             return false;
         }
 
-        arv_stream_push_buffer(stream, arv_buffer);
-
      }
 
-    return true;
 }
 
 double CameraSDKAravis::getExpoMin(void){

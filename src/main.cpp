@@ -559,6 +559,8 @@ int main(int argc, const char ** argv){
 
                             if(ft.STACK_ENABLED){
 
+
+
                                 ast = new AstThread(    ft.DATA_PATH,
                                                         ft.STATION_NAME,
                                                         ft.STACK_MTHD,
@@ -1044,6 +1046,7 @@ int main(int argc, const char ** argv){
                                 fitsHeader.setExposure(exp);
 
                                 Fits2D newFits(savePath + "frame",fitsHeader);
+                                vector<string> dd;
 
                                 switch(camFormat){
 
@@ -1051,7 +1054,7 @@ int main(int argc, const char ** argv){
 
                                         {
 
-                                            if(newFits.writeFits(frame, UC8, 0, true,"" ))
+                                            if(newFits.writeFits(frame, UC8, dd, false,"capture" ))
                                                 cout << "> Fits saved in " << savePath << endl;
                                             else
                                                 cout << "Failed to save Fits." << endl;
@@ -1064,7 +1067,7 @@ int main(int argc, const char ** argv){
 
                                         {
 
-                                            if(newFits.writeFits(frame, US16, 0, true,"" ))
+                                            if(newFits.writeFits(frame, US16, dd, false,"capture" ))
                                                 cout << "> Fits saved in " << savePath << endl;
                                             else
                                                 cout << "Failed to save Fits." << endl;
@@ -1113,7 +1116,7 @@ int main(int argc, const char ** argv){
 
                             newFits2.setBzero(bz/*32768*112.4725*/);
                             newFits2.setBscale(bs/*112.4725*/);
-                            newFits2.writeFits(newMat, S16, 0, true,"" );
+                           // newFits2.writeFits(newMat, S16, 0, true,"" );
 
                             double minVal2, maxVal2;
                             minMaxLoc(newMat, &minVal2, &maxVal2);
@@ -1210,8 +1213,8 @@ int main(int argc, const char ** argv){
 
                     {
 
-
-                        Fits3D fits3d(MONO_12, 960, 1280, 1000);
+                        Fits fits;
+                        Fits3D fits3d(MONO_12, 960, 1280, 1000, fits);
 
 
                         for(int i = 0; i< 1000; i++){
@@ -1225,6 +1228,93 @@ int main(int argc, const char ** argv){
                         }
 
                         fits3d.writeFits3D("/home/fripon/data2/nex");
+                        cout << "end "<<endl;
+                        getchar();
+
+
+                    }
+
+                    break;
+
+                 case 8 :
+
+                    {
+                            int time = 3600;
+
+                        Camera *inputCam = new Camera(  BASLER,
+                                                        400,
+                                                        300,
+                                                        MONO_12,
+                                                        30,
+                                                        600,
+                                                        600,
+                                                        false/*,
+                                                        &framesBuffer,
+                                                        &m_framesBuffer,
+                                                        &c_newElemFramesBuffer,
+                                                        &stackedFramesBuffer,
+                                                        &m_stackedFramesBuffer,
+                                                        &c_newElemStackedFramesBuffer,
+                                                        &newFrameForDet,
+                                                        &m_newFrameForDet,
+                                                        &c_newFrameForDet*/);
+
+                                inputCam->getListCameras();
+
+                                if(!inputCam->setSelectedDevice("Basler-21418131")){
+
+                                    throw runtime_error("Connection failed to the camera :Basler-21418131");
+
+                                }else{
+
+
+                                    cout << "> Connection success to the Basler-21418131 camera." << endl;
+
+                                    switch(MONO_12){
+
+                                       case MONO_8 :
+
+                                            if(!inputCam->setCameraPixelFormat(MONO_8))
+                                                throw "ERROR :Failed to set camera with MONO_8";
+
+                                            break;
+
+                                       case MONO_12 :
+
+                                            if(!inputCam->setCameraPixelFormat(MONO_12))
+                                                throw "ERROR :Failed to set camera with MONO_12";
+
+                                            break;
+
+                                    }
+
+                                    if(!inputCam->setCameraExposureTime(400))
+                                        throw "> Failed to set camera exposure.";
+
+                                    if(!inputCam->setCameraGain(300))
+                                        throw "> Failed to set camera gain.";
+
+                                    if(!inputCam->setCameraFPS(30))
+                                        throw "> Failed to set camera fps.";
+
+                                    inputCam->startThread();
+
+                                    int cc =0;
+                                    do{
+
+                                        sleep(1);
+                                        cc++;
+                                        cout << cc << endl;
+
+                                    }while(cc < time);
+
+                                    inputCam->stopThread();
+
+                                    if(inputCam != NULL) delete inputCam;
+                                }
+
+
+
                         cout << "end "<<endl;
                         getchar();
 

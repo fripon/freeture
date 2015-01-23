@@ -287,7 +287,7 @@ void AstThread::operator()(){
 
                         {
 
-                             newFits.writeFits(newMat, C8, 0, true,"" );
+                             newFits.writeFits(newMat, C8, firstDateString, true,"" );
 
                         }
 
@@ -297,7 +297,7 @@ void AstThread::operator()(){
 
                         {
 
-                             newFits.writeFits(newMat, S16, 0, true,"" );
+                             newFits.writeFits(newMat, S16, firstDateString, true,"" );
 
                         }
 
@@ -308,7 +308,7 @@ void AstThread::operator()(){
             }else{
 
                 // Save fits in 32 bits.
-                newFits.writeFits(stackImg, F32 , 0, true,"" );
+                newFits.writeFits(stackImg, F32, firstDateString, true,""  );
 
             }
 

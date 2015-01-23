@@ -88,6 +88,8 @@ class CameraSDKAravis: public CameraSDK{
 
         bool    grabImage(Frame& newFrame);
 
+        bool	grabImage(Frame *&newFrame, Mat newImage){return true;};
+
 		void	grabRestart();
 
 		double	getExpoMin(void);

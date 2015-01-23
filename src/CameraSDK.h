@@ -72,6 +72,8 @@ class CameraSDK{
         //! Grab a frame.
         virtual bool    grabImage(Frame &newFrame)                  {return false;};
 
+        virtual bool	grabImage(Frame *&newFrame, Mat newImage)   {return false;};
+
 		//! Restart grabbing images
 		virtual void	grabRestart()				                {};
 

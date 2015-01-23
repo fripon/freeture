@@ -228,6 +228,73 @@ Camera::Camera( CamType                                 camType,
     }
 }
 
+Camera::Camera( CamType                                 camType,
+                int                                     camExp,
+                int                                     camGain,
+                CamBitDepth                             camDepth,
+                int                                     camFPS,
+                int                                     imgToSum,
+                int                                     imgToWait,
+                bool                                    imgStack){
+
+    m_thread			            = NULL;
+    mustStop			            = false;
+
+    cameraType                      = camType;
+    exposure                        = camExp;
+    gain                            = camGain;
+    bitdepth                        = camDepth;
+    fps                             = camFPS;
+
+    frameToSum                      = imgToSum;
+    frameToWait                     = imgToWait;
+    stackEnabled                    = imgStack;
+
+
+    frameCpt                        = 0;
+
+    switch(camType){
+
+        case BASLER :
+
+            {
+
+                #ifdef USE_PYLON
+                    camera = new CameraSDKPylon();
+                #else
+                    camera = new CameraSDKAravis();
+                #endif
+
+            }
+
+            break;
+
+        case DMK :
+
+            {
+
+                camera = new CameraSDKAravis();
+
+            }
+
+            break;
+
+        case FRAMES :
+
+                camera = NULL;
+
+            break;
+
+        case VIDEO :
+
+                camera = NULL;
+
+            break;
+
+    }
+}
+
+
 Camera::~Camera(void){
 
     if(camera != NULL)
@@ -394,6 +461,8 @@ void Camera::operator()(){
     int acqGain = 0;
     int acqExp = 0;
 
+    Mat img;
+
     do{
 
         Frame newFrame;
@@ -498,6 +567,8 @@ void Camera::operator()(){
             cout << "Failed to grab frame " << frameCpt + 1 << endl;
 
         }
+
+
 
         tacq = (((double)getTickCount() - tacq)/getTickFrequency())*1000;
         cout << " [ ACQ Time ] : " << tacq << " ms" << endl;
