@@ -26,11 +26,12 @@
 *%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%*/
 
 /**
- * @file    Fits3D.cpp
- * @author  Yoan Audureau
- * @version 1.0
- * @date    01/12/2014
- */
+* \file    Fits3D.cpp
+* \author  Yoan Audureau -- FRIPON-GEOPS-UPSUD
+* \version 1.0
+* \date    01/12/2014
+* \brief   Write fits3D file.
+*/
 
 #include "Fits3D.h"
 
@@ -274,7 +275,7 @@ bool Fits3D::writeKeywords(){
     char * celaptime = new char[cELAPTIME.length()+1];
     strcpy(celaptime,cELAPTIME.c_str());
 
-    if(fits_write_key(fptr,TINT,"ELAPTIME",&kELAPTIME,celaptime,&status)){
+    if(fits_write_key(fptr,TDOUBLE,"ELAPTIME",&kELAPTIME,celaptime,&status)){
 
         delete celaptime;
         return printerror(status, "Error fits_write_key(ELAPTIME)");
@@ -999,6 +1000,16 @@ bool Fits3D::writeFits3D(string file){
 
         free(array3D_MONO_12);
 
+    }
+
+    if(!writeKeywords()){
+
+        if( fits_close_file(fptr, &status)){
+
+             return printerror( status, "Fits3D::writeimage() -> fits_close_file() failed" );
+        }
+
+        return false;
     }
 
     // close the file

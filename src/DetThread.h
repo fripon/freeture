@@ -25,11 +25,12 @@
 *%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%*/
 
 /**
- * @file    DetThread.h
- * @author  Yoan Audureau -- FRIPON-GEOPS-UPSUD
- * @version 1.0
- * @date    13/06/2014
- */
+* \file    DetThread.h
+* \author  Yoan Audureau -- FRIPON-GEOPS-UPSUD
+* \version 1.0
+* \date    03/06/2014
+* \brief   Detection thread.
+*/
 
 #pragma once
 
@@ -40,11 +41,7 @@
 #include "Fits.h"
 #include "Fits2D.h"
 #include "Fits3D.h"
-#ifdef CFITSIO_H
-  #include CFITSIO_H
-#else
-  #include "fitsio.h"
-#endif
+
 #include "Conversion.h"
 #include "GlobalEvent.h"
 #include "LocalEvent.h"
@@ -55,11 +52,7 @@
 #include "ECamBitDepth.h"
 #include "EDetMeth.h"
 #include <boost/circular_buffer.hpp>
-
-//#include "serialize.h"
 #include <boost/filesystem.hpp>
-#include <iterator>
-#include <algorithm>
 
 using namespace boost::filesystem;
 
@@ -133,6 +126,20 @@ class DetThread{
 
         RecEvent                        *eventToRec;
 
+        bool recAvi;
+        bool recFits3D ;
+        bool recFits2D;
+        bool recPos;
+        bool recSum;
+        bool recBmp;
+        bool recMapGE;
+        int timeBefore;
+
+        bool mailNotification;
+        string SMTPServer;
+        string SMTPHostname;
+        vector<string> mailRecipients;
+
 	public:
 
         DetThread(   Mat                            maskImg,
@@ -155,7 +162,18 @@ class DetThread{
                      bool                           *newFrameForDet,
                      boost::mutex                   *m_newFrameForDet,
                      boost::condition_variable      *c_newFrameForDet,
-                     RecEvent                       *recEvent);
+                    bool avi,
+                    bool fits3D,
+                    bool fits2D,
+                    bool sum,
+                    bool pos,
+                    bool bmp,
+                    bool mapGE,
+                    int tBefore,
+                    bool mailEnabled,
+                    string smtpServer,
+                    string smtpHostname,
+                    vector<string> recipients);
 
 
 		~DetThread();

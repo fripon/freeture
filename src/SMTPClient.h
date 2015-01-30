@@ -26,11 +26,12 @@
 *%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%*/
 
 /**
- * @file    SMTPClient.h
- * @author  Yoan Audureau -- FRIPON-GEOPS-UPSUD
- * @version 1.0
- * @date    26/11/2014
- */
+* \file    SMTPClient.h
+* \author  Yoan Audureau -- FRIPON-GEOPS-UPSUD
+* \version 1.0
+* \date    03/12/2014
+* \brief   SMTP connection and send mails.
+*/
 
 #pragma once
 

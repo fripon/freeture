@@ -25,6 +25,14 @@
 *
 *%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%*/
 
+/**
+* \file    Fits.cpp
+* \author  Yoan Audureau -- FRIPON-GEOPS-UPSUD
+* \version 1.0
+* \date    04/12/2014
+* \brief   Parent class of fits file (2D/3D) with the keywords and their comments.
+*/
+
 #include "Fits.h"
 
 Fits::Fits(){
@@ -56,12 +64,12 @@ Fits::Fits(){
     kCREATOR    = "" ;
     kBZERO      = 0.0;
     kBSCALE     = 1.0;
-    kRADESYS    = "";
+    kRADESYS    = "ICRS";
     kTIMESYS    = "UTC";
     kEQUINOX    = 0.0;
     kCTYPE1     = "";
     kCTYPE2     = "";
-    kCTYPE3     = "";
+    kCTYPE3     = "UTC";
     kTIMEUNIT   = "s";
     kCD1_1      = 0.0;
     kCD1_2      = 0.0;
@@ -395,7 +403,7 @@ string Fits::getCtype2(){
 
 }
 
-int Fits::getElaptime(){
+double Fits::getElaptime(){
 
     return kELAPTIME;
 
@@ -613,6 +621,12 @@ void Fits::setObsmode(string obsmode){
 
 }
 
+void Fits::setDate(string date){
+
+     kDATE = date;
+
+}
+
 void Fits::setDateobs(string dateobs){
 
      kDATEOBS = dateobs;
@@ -655,7 +669,7 @@ void Fits::setCtype2(string ctype2){
 
 }
 
-void Fits::setElaptime(int elaptime){
+void Fits::setElaptime(double elaptime){
 
     kELAPTIME = elaptime;
 

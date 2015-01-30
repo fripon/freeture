@@ -25,11 +25,12 @@
 *%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%*/
 
 /**
- * @file    FreeTure.cpp
- * @author  Yoan Audureau -- FRIPON-GEOPS-UPSUD
- * @version 1.0
- * @date    04/12/2014
- */
+* \file    FreeTure.cpp
+* \author  Yoan Audureau -- FRIPON-GEOPS-UPSUD
+* \version 1.0
+* \date    19/06/2014
+* \brief   FreeTure'parameters.
+*/
 
 #include "FreeTure.h"
 
@@ -128,7 +129,13 @@ bool FreeTure::loadParameters(){
             MAIL_RECIPIENT.push_back(*tok_iter);
 
         }
-        cfg.Get("MAIL_ENABLED",                 MAIL_ENABLED);
+
+        for(int ii = 0; ii< MAIL_RECIPIENT.size(); ii++)
+            cout << ii << " : " << MAIL_RECIPIENT.at(ii)<< endl;
+
+        cfg.Get("MAIL_DETECTION_ENABLED",       MAIL_DETECTION_ENABLED);
+        cfg.Get("MAIL_SMTP_SERVER",             MAIL_SMTP_SERVER);
+        cfg.Get("MAIL_SMTP_HOSTNAME",           MAIL_SMTP_HOSTNAME);
 
 		/// Others parameters
 

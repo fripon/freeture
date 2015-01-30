@@ -25,12 +25,12 @@
 *%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%*/
 
 /**
- * @file    FreeTure.h
- * @author  Yoan Audureau -- FRIPON-GEOPS-UPSUD
- * @version 1.0
- * @date    04/12/2014
- *
- */
+* \file    FreeTure.h
+* \author  Yoan Audureau -- FRIPON-GEOPS-UPSUD
+* \version 1.0
+* \date    19/06/2014
+* \brief   FreeTure'parameters.
+*/
 
 #pragma once
 
@@ -43,8 +43,6 @@
 #include "EParser.h"
 
 #include <boost/filesystem.hpp>
-
-
 
 class FreeTure{
 
@@ -62,8 +60,6 @@ class FreeTure{
 
         EParser<CamType> cam_type;
 
-	    ///======= Input parameters =============
-
 	    CamType	        CAMERA_TYPE;
         std::string     CAMERA_NAME;
         int		        CAMERA_ID;
@@ -71,9 +67,6 @@ class FreeTure{
         std::string     FRAMES_PATH;
         int             FRAMES_START;
         int             FRAMES_STOP;
-
-        ///======= Acquisition parameters =======
-
         int		        ACQ_FPS;
         CamBitDepth		ACQ_BIT_DEPTH;
         int             ACQ_EXPOSURE;
@@ -86,9 +79,6 @@ class FreeTure{
         std::string     ACQ_SAVE_FRAMES_PATH;
         int		        ACQ_SAVE_FRAMES_BUFFER_SIZE;
         int             ACQ_BUFFER_SIZE;
-
-        ///====== Detection parameters =========
-
         bool	        DET_ENABLED;
         DetMeth	        DET_METHOD;
         bool            DET_SAVE_FITS3D;
@@ -104,35 +94,23 @@ class FreeTure{
         double          DET_TIME_AFTER;
         int             DET_GE_MAX;
         int             DET_TIME_MAX;
-
-        ///======= Stack parameters ============
-
         bool	        STACK_ENABLED;
         double	        STACK_TIME;
         int		        STACK_INTERVAL;
         StackMeth       STACK_MTHD;
         bool            STACK_REDUCTION;
-
-        ///====== Mail notifications ===========
-
         vector<string>  MAIL_RECIPIENT;
-        bool            MAIL_ENABLED;
-
-        ///====== Others parameters ============
-
+        bool            MAIL_DETECTION_ENABLED;
+        string          MAIL_SMTP_HOSTNAME;
+        string          MAIL_SMTP_SERVER;
         bool            DEBUG_ENABLED;
         std::string     DEBUG_PATH;
-
         std::string     STATION_NAME;
         bool            CFG_FILECOPY_ENABLED;
         std::string     DATA_PATH;
-
         std::string     LOG_PATH;
-
         double          LONGITUDE;
-
         std::string     logDirName;
-
 
 };
 

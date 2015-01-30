@@ -26,16 +26,12 @@
 *%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%*/
 
 /**
- * @file    Fits3D.cpp
- * @author  Yoan Audureau
- * @version 1.0
- * @date    01/12/2014
- * @section DESCRIPTION
- *
- * Class used to write fits cube with 8 bits unsigned char or 16 bits unsigned short values.
- * Keywords for fits cube have to be defined before to write the fits cube.
- * See settable keywords in the fits class.
- */
+* \file    Fits3D.h
+* \author  Yoan Audureau -- FRIPON-GEOPS-UPSUD
+* \version 1.0
+* \date    01/12/2014
+* \brief   Write fits3D file.
+*/
 
 #pragma once
 

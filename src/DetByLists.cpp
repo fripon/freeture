@@ -25,20 +25,14 @@
 *%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%*/
 
 /**
- * @file    DetByLists.h
- * @author  Yoan Audureau -- FRIPON-GEOPS-UPSUD
- * @version 1.0
- * @date    17/06/2014
- */
+* \file    DetByLists.cpp
+* \author  Yoan Audureau -- FRIPON-GEOPS-UPSUD
+* \version 1.0
+* \date    13/06/2014
+* \brief   Temporal meteor detection method.
+*/
 
 #include "DetByLists.h"
-
-struct evPathRes{
-
-    bool success;
-    string path;
-};
-
 
 Point roiPositionToFramePosition(Point roiPix, Point newOrigine, Point framePix){
 
@@ -703,10 +697,12 @@ bool DetByLists::detectionMethodByListManagement(   Frame currentFrame,
 
     bool rec = false;
 
-    bool saveDiff       = true;
-    bool saveThresh     = true;
-    bool saveThresh2    = true;
-    bool saveEventmap   = true;
+    bool saveDiff       = false;
+    bool saveThresh     = false;
+    bool saveThresh2    = false;
+    bool saveEventmap   = false;
+    bool saveCurr       = false;
+    bool saveRes        = false;
 
     // Height of the frame.
     int imgH = currentFrame.getImg().rows;
@@ -765,7 +761,8 @@ bool DetByLists::detectionMethodByListManagement(   Frame currentFrame,
 
     }
 
-    SaveImg::saveBMP(currentFrame.getImg(), "/home/fripon/debug/curr/curr_"+Conversion::intToString(currentFrame.getNumFrame()));
+    if(saveCurr)
+        SaveImg::saveBMP(currentFrame.getImg(), "/home/fripon/debug/curr/curr_"+Conversion::intToString(currentFrame.getNumFrame()));
 
     tdownsample = (((double)getTickCount() - tdownsample)/getTickFrequency())*1000;
     //cout << "> Downsample Time : " << tdownsample << endl;
@@ -852,7 +849,8 @@ bool DetByLists::detectionMethodByListManagement(   Frame currentFrame,
 
         threshANDprev = mapThreshold & prevthresh;
 
-        SaveImg::saveBMP(threshANDprev, "/home/fripon/debug/resET_"+Conversion::intToString(currentFrame.getNumFrame()));
+        if(saveRes)
+            SaveImg::saveBMP(threshANDprev, "/home/fripon/debug/resET_"+Conversion::intToString(currentFrame.getNumFrame()));
 
     }
 
@@ -923,6 +921,8 @@ bool DetByLists::detectionMethodByListManagement(   Frame currentFrame,
 
     while(itLE != listLocalEvents.end()){
 
+        (*itLE).setNumFrame(currentFrame.getNumFrame());
+
         for(itGE = listGlobalEvents.begin(); itGE!=listGlobalEvents.end(); ++itGE){
 
             Mat res = (*itLE).getMap() & (*itGE).getMapEvent();
@@ -946,8 +946,6 @@ bool DetByLists::detectionMethodByListManagement(   Frame currentFrame,
         // The current LE has not been linked. It became a new GE.
         if(!LELinked && listGlobalEvents.size() <= 20){
 
-
-cout << "currentFrame.getNumFrame() : " << currentFrame.getNumFrame() << endl;
             GlobalEvent newGE(currentFrame.getDateString(), currentFrame.getNumFrame(), currImg.rows, currImg.cols);
             newGE.addLE((*itLE));
 
@@ -985,12 +983,9 @@ cout << "currentFrame.getNumFrame() : " << currentFrame.getNumFrame() << endl;
             (*itGE).eventBuffer.push_back(temp);
             (*itGE).setNumLastFrame(currentFrame.getNumFrame());
 
-
         }
 
         (*itGE).setNewLEStatus(false);
-
-
 
     }
 
@@ -1014,19 +1009,9 @@ cout << "currentFrame.getNumFrame() : " << currentFrame.getNumFrame() << endl;
         // CASE 1 : Probably finished event.
         if((*itGE).getAgeLastElem() > 5){
 
-            if((*itGE).continuousGoodPos(4) && (*itGE).getVelocity() >= 3){
+            if((*itGE).continuousGoodPos(4) && (*itGE).getVelocity() >= 3 && !(*itGE).getGeStatic()){
 
                 // Save the event.
-                cout << "> Velocity : " << (*itGE).getVelocity() << endl;
-
-                cout << "> Velocity : " << (*itGE).getVelocity() << endl;
-                cout << ">> numfirstframe : " << (*itGE).getNumFirstFrame() << endl;
-                cout << ">> numlastframe : " << (*itGE).getNumLastFrame() << endl;
-
-                vector<Mat> tempBuffer = (*itGE).eventBuffer;
-
-                cout << ">> tempBuffer.size() : " << tempBuffer.size() << endl;
-
 
                 nbDet++;
 
@@ -1034,42 +1019,28 @@ cout << "currentFrame.getNumFrame() : " << currentFrame.getNumFrame() << endl;
 
                 rec = true;
 
-                //itGE = listGlobalEvents.erase(itGE);
-
                 break;
 
             }else{
 
                 // Delete the event.
                 itGE = listGlobalEvents.erase(itGE);
-                cout << "> Delete GE - 1" << endl;
+
             }
 
         //CASE 2 : Not finished event.
         }else{
 
-            if((*itGE).getAge() > 300 ||                                                                    // Plane = too long
-               ((*itGE).getLinearStatus() && (*itGE).getVelocity() < 3  && (*itGE).LEList.size() > 5)){     // Plane = too slow
+            if((*itGE).getAge() > 400 ||                                                                                            // Plane = too long
+               ((*itGE).getLinearStatus() && (*itGE).getVelocity() < 3  && (*itGE).LEList.size() > 5)||(*itGE).getGeStatic()){     // Plane = too slow
 
                 // Delete the event.
                 itGE = listGlobalEvents.erase(itGE);
-                cout << "> Velocity : " << (*itGE).getVelocity() << endl;
-                cout << "> Delete GE - 2" << endl;
-
-            }else if((currentFrame.getFrameRemaining()< 10 && currentFrame.getFrameRemaining() != 0)){      // No more frames soon (in video or frames)
-
-                 if(((*itGE).continuousGoodPos(4) && (*itGE).getVelocity() >= 3.0f)){
-
-                    cout << "> Velocity : " << (*itGE).getVelocity() << endl;
-                    cout << ">> numfirstframe : " << (*itGE).getNumFirstFrame() << endl;
-                    cout << ">> numlastframe : " << (*itGE).getNumLastFrame() << endl;
 
 
-                    vector<Mat> tempBuffer= (*itGE).eventBuffer;
+            }else if((currentFrame.getFrameRemaining()< 10 && currentFrame.getFrameRemaining() != 0) ){      // No more frames soon (in video or frames)
 
-                    cout << ">> tempBuffer.size() : " << tempBuffer.size() << endl;
-
-
+                 if(((*itGE).continuousGoodPos(4) && (*itGE).getVelocity() >= 3.0f) && !(*itGE).getGeStatic()){
 
                     nbDet++;
 
@@ -1079,11 +1050,10 @@ cout << "currentFrame.getNumFrame() : " << currentFrame.getNumFrame() << endl;
 
                     break;
 
-                    //itGE = listGlobalEvents.erase(itGE);
 
                  }else{
 
-                    ++itGE;
+                    itGE = listGlobalEvents.erase(itGE);
 
                 }
 
@@ -1102,15 +1072,14 @@ cout << "currentFrame.getNumFrame() : " << currentFrame.getNumFrame() << endl;
 
     cout << "> GE number : " << listGlobalEvents.size() << endl;
 
-
     for(int i = 0; i< listGlobalEvents.size(); i++){
 
-        /*cout << "> GE n°" << i  << " - Age("        <<  listGlobalEvents.at(i).getAge()             << ")"
+        cout << "> GE n°" << i  << " - Age("        <<  listGlobalEvents.at(i).getAge()             << ")"
                                 << " - AgeLast("    <<  listGlobalEvents.at(i).getAgeLastElem()     << ")"
                                 << " - Speed("      <<  listGlobalEvents.at(i).getVelocity()        << ")"
                                 << " - Good("       <<  listGlobalEvents.at(i).getGoodPos()         << ")"
                                 << " - Bad("        <<  listGlobalEvents.at(i).getBadPos()          << ")"
-                                << " - Linear("     <<  listGlobalEvents.at(i).getLinearStatus()    << ")" << endl;*/
+                                << " - Linear("     <<  listGlobalEvents.at(i).getLinearStatus()    << ")" << endl;
 
 
     }

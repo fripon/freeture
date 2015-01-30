@@ -26,11 +26,12 @@
 *%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%*/
 
 /**
- * @file    Fits2D.h
- * @author  Yoan Audureau -- FRIPON-GEOPS-UPSUD
- * @version 1.0
- * @date    28/11/2014
- */
+* \file    Fits2D.h
+* \author  Yoan Audureau -- FRIPON-GEOPS-UPSUD
+* \version 1.0
+* \date    01/12/2014
+* \brief   Write/Read fits2D file.
+*/
 
 #pragma once
 
@@ -69,6 +70,8 @@ class Fits2D : public Fits{
 	public:
 
                 Fits2D          (string recPath, Fits fits);
+
+                Fits2D          (string recPath);
 
                 Fits2D          ();
 

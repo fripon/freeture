@@ -26,11 +26,12 @@
 *%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%*/
 
 /**
- * @file    GlobalEvent.cpp
- * @author  Yoan Audureau
- * @version 1.0
- * @date    03/06/2014
-*/
+ * \file    GlobalEvent.cpp
+ * \author  Yoan Audureau -- FRIPON-GEOPS-UPSUD
+ * \version 1.0
+ * \date    03/06/2014
+ * \brief   A Detected event occured on different consecutives frames in time.
+ */
 
 #include "GlobalEvent.h"
 
@@ -40,14 +41,16 @@ GlobalEvent::GlobalEvent(vector<string> frameDate, int frameNum, int frameHeight
     geAgeLastLE     = 0;
     geDate          = frameDate;
     numFirstFrame   = frameNum;
-    numLastFrame   = frameNum;
+    numLastFrame    = frameNum;
     newLEAdded      = false;
     geMap           = Mat(frameHeight,frameWidth, CV_8UC1,Scalar(0));
+    geMapPrev       = Mat(frameHeight,frameWidth, CV_8UC1,Scalar(0));
     dirMap          = Mat(frameHeight,frameWidth, CV_8UC3,Scalar(0,0,0));
     linear          = true;
     velocity        = 0;
     badPoint        = 0;
     goodPoint       = 0;
+    geStatic        = false;
 
 }
 
@@ -103,8 +106,6 @@ bool GlobalEvent::addLE(LocalEvent le){
         }
     }
 
-
-
     circle(dirMap, center, 3, Scalar(255,0,0), CV_FILLED, 8, 0);
 
     //reset ageLastELem
@@ -113,6 +114,28 @@ bool GlobalEvent::addLE(LocalEvent le){
     //Update event's map
     Mat res = geMap + le.getMap();
     res.copyTo(geMap);
+
+    if(LEList.size() == 1){
+
+        res.copyTo(geMapPrev);
+
+    }
+
+    if(LEList.size() % 20 == 0){
+
+        Mat res2 = geMapPrev & le.getMap();
+        int nbPixNonZero = countNonZero(res2);
+
+        if( nbPixNonZero > 0 ){
+
+            geStatic = true;
+
+        }
+
+        Mat temp = le.getMap();
+        temp.copyTo(geMapPrev);
+
+    }
 
     return true;
 
@@ -123,7 +146,6 @@ bool GlobalEvent::continuousGoodPos(int n){
     int nb = 0;
     int nn = 0;
 
-    cout << "start"<<endl;
     for(int i = 0; i < pos.size(); i++){
 
         if(pos.at(i)){
@@ -143,7 +165,6 @@ bool GlobalEvent::continuousGoodPos(int n){
         }
 
     }
-    cout << "end"<<endl;
 
     if(nb >= n) return true;
     else return false;

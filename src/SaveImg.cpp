@@ -25,6 +25,13 @@
 *
 *%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%*/
 
+/**
+* \file    SaveImg.cpp
+* \author  Yoan Audureau -- FRIPON-GEOPS-UPSUD
+* \version 1.0
+* \date    03/06/2014
+*/
+
 #include "SaveImg.h"
 
 bool SaveImg::saveJPEG(Mat img, string name){
@@ -57,3 +64,48 @@ bool SaveImg::savePNG(Mat img, string name){
     return imwrite(name+".png", img, compression_params);
 
 }
+/*
+void SaveImg::saveMat(Mat& m, string filename){
+
+    namespace io = boost::iostreams;
+
+    ofstream ofs(filename.c_str(),ios::out | ios::binary);
+
+    {
+
+        io::filtering_streambuf<io::output> out;
+       // out.push(io::zlib_compressor(io::zlib::best_speed));
+
+        out.push(ofs);
+
+        boost::archive::binary_oarchive oa(out);
+
+        oa << m;
+
+    }
+
+    //ofs.close;
+
+}
+
+void SaveImg::loadMat(Mat& m, string filename){
+
+    namespace io = boost::iostreams;
+
+    std::ifstream ifs(filename.c_str(), ios::in | ios::binary);
+
+    {
+
+        io::filtering_streambuf<io::input> in;
+
+        in.push(io::zlib_decompressor());
+
+        in.push(ifs);
+
+        boost::archive::binary_iarchive ia(in);
+
+        ia >> m;
+
+    }
+}
+*/

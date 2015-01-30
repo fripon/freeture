@@ -25,11 +25,12 @@
 *%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%*/
 
 /**
- * @file    TimeDate.h
- * @author  Yoan Audureau -- FRIPON-GEOPS-UPSUD
- * @version 1.0
- * @date    13/06/2014
- */
+* \file    TimeDate.h
+* \author  Yoan Audureau -- FRIPON-GEOPS-UPSUD
+* \version 1.0
+* \date    13/06/2014
+* \brief   Manage time.
+*/
 
 #pragma once
 
@@ -63,6 +64,8 @@ class TimeDate{
         static double julianDateFromPreviousMidnightUT(int gregorianH, int gregorianMin, int gregorianS, double JD0);
 
         static double localSideralTime_2(double julianCentury, int gregorianH, int gregorianMin, int gregorianS, int longitude);
+
+        static double localSideralTime_2(double julianCentury, int gregorianH, int gregorianMin, float gregorianS, float longitude);
 
         static double localSideralTime_1(double JD0, int gregorianH, int gregorianMin, int gregorianS);
 

@@ -25,13 +25,13 @@
 *%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%*/
 
 /**
- * \file    AstThread.cpp
- * \author  Yoan Audureau -- FRIPON-GEOPS-UPSUD
- * \version 1.0
- * \date    21/01/2015
- * \brief   Produce a thread for stacking frames. Save stacks which will be
- *          use to make astrometry.
- */
+* \file    AstThread.cpp
+* \author  Yoan Audureau -- FRIPON-GEOPS-UPSUD
+* \version 1.0
+* \date    21/01/2015
+* \brief   Produce a thread for stacking frames. Save stacks which will be
+*          use to make astrometry.
+*/
 
 #include "AstThread.h"
 
@@ -98,8 +98,11 @@ void AstThread::stopThread(){
 
 void AstThread::operator()(){
 
-	BOOST_LOG_SCOPED_THREAD_TAG("LogName", "imgAstThread");
-	BOOST_LOG_SEV(log,notification) << "\n Astro thread started.";
+    BOOST_LOG_SCOPED_THREAD_TAG("LogName", "STACK_THREAD");
+	BOOST_LOG_SEV(log,notification) << "\n";
+	BOOST_LOG_SEV(log,notification) << "==============================================";
+	BOOST_LOG_SEV(log,notification) << "============== Start stack thread ============";
+	BOOST_LOG_SEV(log,notification) << "==============================================";
 
     // Flag to know if the thread has to be stopped.
     bool stop = false;
@@ -119,6 +122,7 @@ void AstThread::operator()(){
             vector<int> firstDateInt        = TimeDate::splitStringToIntVector(stackedFramesBuffer->front().startDate);
             vector<int> lastDateInt         = TimeDate::splitStringToIntVector(stackedFramesBuffer->front().endDate);
             string date                     = firstDateString.at(0)+"-"+firstDateString.at(1)+"-"+firstDateString.at(2)+"T"+firstDateString.at(3)+":"+firstDateString.at(4)+":"+firstDateString.at(5);
+            string acqDate                  = stackedFramesBuffer->front().acqFirstDate;
             int camGain                     = stackedFramesBuffer->front().gain;
             int camExp                      = stackedFramesBuffer->front().exp;
             int imgSum                      = stackedFramesBuffer->front().imgSum;
@@ -209,22 +213,25 @@ void AstThread::operator()(){
                 }
             }
 
-
-            int     debObsInSeconds = firstDateInt.at(3)*3600 + firstDateInt.at(4)*60 + firstDateInt.at(5);
-            int     endObsInSeconds = lastDateInt.at(3)*3600 + lastDateInt.at(4)*60 + lastDateInt.at(5);
-            int     elapTime        = endObsInSeconds - debObsInSeconds;
+            double  debObsInSeconds = firstDateInt.at(3)*3600 + firstDateInt.at(4)*60 + firstDateInt.at(5);
+            double  endObsInSeconds = lastDateInt.at(3)*3600 + lastDateInt.at(4)*60 + lastDateInt.at(5);
+            double  elapTime        = endObsInSeconds - debObsInSeconds;
             double  julianDate      = TimeDate::gregorianToJulian_2(firstDateInt);
             double  julianCentury   = TimeDate::julianCentury(julianDate);
             double  sideralT        = TimeDate::localSideralTime_2(julianCentury, firstDateInt.at(3), firstDateInt.at(4), firstDateInt.at(5), longitude);
 
             // Fits creation.
             Fits2D newFits(finalPath,fitsHeader);
+
+            boost::posix_time::ptime time = boost::posix_time::microsec_clock::universal_time();
+            newFits.setDate(to_iso_extended_string(time));
+
             // Frame exposure time (sec.)
             newFits.setOntime(camExp);
             // Detector gain
             newFits.setGaindb(camGain);
             // Acquisition date of the first frame 'YYYY-MM-JJTHH:MM:SS.SS'
-            newFits.setDateobs(date);
+            newFits.setDateobs(acqDate);
             // Integration time : 1/fps * nb_frames (sec.)
             newFits.setExposure((1.0f/camFPS)*imgSum);
             // end obs. date - start obs. date (sec.)
@@ -233,6 +240,11 @@ void AstThread::operator()(){
             newFits.setCrval1(sideralT);
             // Fps
             newFits.setCd3_3((double)camFPS);
+            // Projection and reference system
+            newFits.setCtype1("RA---ARC");
+            newFits.setCtype2("DEC--ARC");
+            // Equinox
+            newFits.setEquinox(2000.0);
 
             switch(stackMthd){
 

@@ -26,14 +26,12 @@
 *%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%*/
 
 /**
- * @file    LocalEvent.cpp
- * @author  Yoan Audureau
- * @version 1.0
- * @date    03/06/2014
- * @section DESCRIPTION
- *
- * The detection class contains all meteor detection methods
- */
+* \file    LocalEvent.cpp
+* \author  Yoan Audureau -- FRIPON-GEOPS-UPSUD
+* \version 1.0
+* \date    03/06/2014
+* \brief   Event occured on a single frame.
+*/
 
 #include "LocalEvent.h"
 

@@ -25,12 +25,12 @@
 *%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%*/
 
 /**
- * \file    Camera.h
- * \author  Yoan Audureau -- FRIPON-GEOPS-UPSUD
- * \version 1.0
- * \date    13/06/2014
- * \brief   Acquisition thread.
- */
+* \file    Camera.h
+* \author  Yoan Audureau -- FRIPON-GEOPS-UPSUD
+* \version 1.0
+* \date    13/06/2014
+* \brief   Acquisition thread.
+*/
 
 #pragma once
 
@@ -115,6 +115,10 @@ class Camera{
 
         string savePath;
 
+        unsigned int stackCpt;
+
+        unsigned int frameFailedCpt;
+
         //! Frame counter.
         unsigned int frameCpt;
 
@@ -158,15 +162,6 @@ class Camera{
                 int             camExp,
                 int             camGain,
                 CamBitDepth     camDepth);
-
-        Camera( CamType                                 camType,
-                int                                     camExp,
-                int                                     camGain,
-                CamBitDepth                             camDepth,
-                int                                     camFPS,
-                int                                     imgToSum,
-                int                                     imgToWait,
-                bool                                    imgStack);
 
 		Camera( CamType camType);
 

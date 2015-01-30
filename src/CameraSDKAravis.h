@@ -24,13 +24,13 @@
 *%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%*/
 
 /**
- * \file    CameraSDKAravis.h
- * \author  Yoan Audureau -- FRIPON-GEOPS-UPSUD
- * \version 1.0
- * \date    21/01/2015
- * \brief   Use Aravis library to pilot GigE Cameras.
- *          https://wiki.gnome.org/action/show/Projects/Aravis?action=show&redirect=Aravis
- */
+* \file    CameraSDKAravis.h
+* \author  Yoan Audureau -- FRIPON-GEOPS-UPSUD
+* \version 1.0
+* \date    21/01/2015
+* \brief   Use Aravis library to pilot GigE Cameras.
+*          https://wiki.gnome.org/action/show/Projects/Aravis?action=show&redirect=Aravis
+*/
 
 #pragma once
 

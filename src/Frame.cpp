@@ -25,11 +25,12 @@
 *%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%*/
 
 /**
- * @file    Frame.cpp
- * @author  Yoan Audureau
- * @version 1.0
- * @date    19/06/2014
- */
+* \file    Frame.cpp
+* \author  Yoan Audureau -- FRIPON-GEOPS-UPSUD
+* \version 1.0
+* \date    19/06/2014
+* \brief   Frame grabbed from a camera or other input video source.
+*/
 
 #include "Frame.h"
 
@@ -42,6 +43,7 @@ Frame::Frame(Mat capImg, int g, int e, string acquisitionDate){
     rawDate     = acquisitionDate;
     capImg.copyTo(img);
     frameRemaining = 0;
+    dateSeconds = 0.0;
 
 	//acqDate = nowtime.localFormattedDatetime(second_clock::universal_time(),"%Y-%m-%dT %H:%M:%S");
 
@@ -62,6 +64,10 @@ Frame::Frame(Mat capImg, int g, int e, string acquisitionDate){
        date.push_back(atoi(dateString.at(i).c_str()));
     }
 
+    // Find saturated value.
+    double minVal, maxVal;
+    minMaxLoc(capImg, &minVal, &maxVal);
+    saturatedValue = maxVal;
 
 }
 
@@ -147,6 +153,20 @@ Frame::Frame(){
 
 Frame::~Frame(void){
 
+}
+
+void Frame::setAcqDateMicro(string date){
+
+    acqDateInMicrosec = date;
+    vector<string> temp;
+    typedef boost::tokenizer<boost::char_separator<char> > tokenizer;
+    boost::char_separator<char> sep(":");
+    tokenizer tokens(date, sep);
+    for (tokenizer::iterator tok_iter = tokens.begin();tok_iter != tokens.end(); ++tok_iter){
+        temp.push_back(*tok_iter);
+    }
+
+    dateSeconds = atof(temp.back().c_str());
 }
 
 bool Frame::copyFrame(Frame*& frameToCopy, Mat mask){

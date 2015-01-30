@@ -26,12 +26,12 @@
 *%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%*/
 
 /**
- * @file    EParser.h
- * @author  Yoan Audureau -- FRIPON-GEOPS-UPSUD
- * @version 1.0
- * @date    04/12/2014
- *
- */
+* \file    EParser.h
+* \author  Yoan Audureau -- FRIPON-GEOPS-UPSUD
+* \version 1.0
+* \date    04/12/2014
+* \brief   Parse some parameters in the configuration file with FreeTure's enumerations.
+*/
 
 #pragma once
 

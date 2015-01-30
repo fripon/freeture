@@ -34,10 +34,10 @@ freeture_SOURCES	= EImgBitDepth.h ECamType.h EParser.h EParser.cpp \
 			CameraSDKPylon.h SMTPClient.h ImgReduction.h \
 			Configuration.h Conversion.h DetThread.h \
 			Fits.h Fits2D.h Fits3D.h Frame.h GlobalEvent.h Histogram.h \
-			ImgThread.h includes.h LocalEvent.h EStackMeth.h \
+			includes.h LocalEvent.h EStackMeth.h \
 			PixelEvent.h RecEvent.h \
 			TimeDate.h DetByLines.h DetByLists.h ManageFiles.h \
-			SaveImg.h ImgReduction.cpp \
+			SaveImg.h ImgReduction.cpp ECamBitDepth.h \
 			AstThread.cpp Base64.cpp Camera.cpp \
 			CameraFrames.cpp SMTPClient.cpp StackedFrames.cpp \
 			CameraSDK.cpp CameraSDKAravis.cpp CameraSDKPylon.cpp \
@@ -47,7 +47,7 @@ freeture_SOURCES	= EImgBitDepth.h ECamType.h EParser.h EParser.cpp \
 			LocalEvent.cpp main.cpp PixelEvent.cpp \
 			RecEvent.cpp TimeDate.cpp StackedFrames.h \
 			DetByLines.cpp DetByLists.cpp ManageFiles.cpp \
-			SaveImg.cpp ELogSeverityLevel.h
+			SaveImg.cpp ELogSeverityLevel.h  
 			
 DATE=`date +"%Y-%m-%d"`
 

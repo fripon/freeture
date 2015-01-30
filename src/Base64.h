@@ -26,12 +26,12 @@
 *%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%*/
 
 /**
- * \file    Base64.h
- * \author  Yoan Audureau -- FRIPON-GEOPS-UPSUD
- * \version 1.0
- * \date    26/11/2014
- * \brief   Handle Base64 encryption.
- */
+* \file    Base64.h
+* \author  Yoan Audureau -- FRIPON-GEOPS-UPSUD
+* \version 1.0
+* \date    26/11/2014
+* \brief   Handle Base64 encryption.
+*/
 
 #pragma once
 

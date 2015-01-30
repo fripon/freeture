@@ -26,38 +26,38 @@
 *%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%*/
 
 /**
- * @file    RecEvent.cpp
- * @author  Yoan Audureau
- * @version 1.0
- * @date    03/06/2014
- * @section DESCRIPTION
- *
- * The detection class contains all meteor detection methods
- */
-
+* \file    RecEvent.cpp
+* \author  Yoan Audureau -- FRIPON-GEOPS-UPSUD
+* \version 1.0
+* \date    03/06/2014
+* \brief   Save a detected event.
+*/
 
 #include "RecEvent.h"
-
-RecEvent::RecEvent( boost::circular_buffer<Frame> *cb,
-                    boost::mutex *m_cb,
-                    string path,
-                    string station,
-                    CamBitDepth  bitdepth,
-                    bool avi,
-                    bool fits3D,
-                    bool fits2D,
-                    bool sum,
-                    bool pos,
-                    bool bmp,
-                    bool mapGE,
-                    Fits fitsHead,
-                    int tBefore,
-                    int tAfter,
-                    int bufferSize){
+/*
+RecEvent::RecEvent( boost::circular_buffer<Frame>   *cb,
+                    boost::mutex                    *m_cb,
+                    string                          path,
+                    string                          station,
+                    CamBitDepth                     bitdepth,
+                    bool                            avi,
+                    bool                            fits3D,
+                    bool                            fits2D,
+                    bool                            sum,
+                    bool                            pos,
+                    bool                            bmp,
+                    bool                            mapGE,
+                    Fits                            fitsHead,
+                    int                             tBefore,
+                    int                             tAfter,
+                    int                             bufferSize,
+                    bool                            mailEnabled,
+                    string                          smtpServer,
+                    string                          smtpHostname,
+                    vector<string>                  recipients){
 
     frameBuffer             = cb;
     m_frameBuffer           = m_cb;
-    fitsHeader              = fitsHead;
     pixelFormat             = bitdepth;
     eventPath               = path;
     recAvi                  = avi;
@@ -70,25 +70,35 @@ RecEvent::RecEvent( boost::circular_buffer<Frame> *cb,
 	timeAfter               = tAfter;
 	timeBefore              = tBefore;
 	frameBufferMaxSize      = bufferSize;
+	mailNotification        = mailEnabled;
+	SMTPServer              = smtpServer;
+	SMTPHostname            = smtpHostname;
+	mailRecipients          = recipients;
 
 	if(station == "")
         stationName = "station";
     else
         stationName = station;
 
+ cout << "mailRecipients works !"<<endl;
+        for(int aa = 0; aa< mailRecipients.size(); aa++)
+        cout << aa <<  " : "<< mailRecipients.at(aa)<< endl;
+
+
+
 }
 
 RecEvent::~RecEvent(){
     //dtor
-}
+}*/
 
-bool RecEvent::buildEventLocation(vector<string> eventDate){
+bool RecEvent::buildEventLocation(vector<string> eventDate, string eventPath, string stationName, string &currentEventPath){
 
     namespace fs = boost::filesystem;
-
+    cout << "start buildEventLocation" << endl;
     //STATION_AAMMDD
     string root = eventPath + stationName + "_" + eventDate.at(0) + eventDate.at(1) + eventDate.at(2) +"/";
-
+    cout << root << endl;
     //events
     string sub0 = "events/";
 
@@ -100,8 +110,10 @@ bool RecEvent::buildEventLocation(vector<string> eventDate){
                                     + eventDate.at(4)
                                     + eventDate.at(5) + "_UT/";
 
-    currentEventPath = root + sub0 + sub1;
 
+
+    currentEventPath = root + sub0 + sub1;
+    cout << currentEventPath << endl;
     // DataLocation/
     path p(eventPath);
 
@@ -125,15 +137,15 @@ bool RecEvent::buildEventLocation(vector<string> eventDate){
             // If DataLocation/STATION_AAMMDD/events/ exists.
             if(fs::exists(p1)){
 
-                // If DataLocation/STATION_AAMMDD/events/STATION_AAAAMMDD_HHMMSS_UT/ exists.
+                // If DataLocation/STATION_AAMMDD/events/STATION_AAAAMMDD_HHMMSS_UT/ not exists.
                 if(!fs::exists(p2)){
 
                     if(!fs::create_directory(p2)){
-
+                        cout << "Can't create : " << path2 << endl;
                         return false;
 
                     }else{
-
+                        cout << path2 << " created " << endl;
                         return true;
                     }
 
@@ -143,18 +155,18 @@ bool RecEvent::buildEventLocation(vector<string> eventDate){
 
                 // Create the destination directory
                 if(!fs::create_directory(p1)){
-
+                    cout << "Can't create : " << path1 << endl;
                     return false;
 
                 }else{
-
+                    cout << path1 << " created " << endl;
                     // Create the destination directory
                     if(!fs::create_directory(p2)){
-
+                        cout << "Can't create : " << path2 << endl;
                         return false;
 
                     }else{
-
+                        cout << path2 << " created " << endl;
                         return true;
 
                     }
@@ -166,19 +178,19 @@ bool RecEvent::buildEventLocation(vector<string> eventDate){
 
             // Create the destination directory
             if(!fs::create_directory(p0)){
-
+                cout << "Can't create : " << root << endl;
                 return false;
 
             }else{
 
                 if(!fs::create_directory(p1)){
-
+                    cout << "Can't create : " << path1 << endl;
                     return false;
 
                 }else{
 
                     if(!fs::create_directory(p2)){
-
+                        cout << "Can't create : " << path2 << endl;
                         return false;
 
                     }else{
@@ -194,28 +206,27 @@ bool RecEvent::buildEventLocation(vector<string> eventDate){
     }else{
 
         if(!fs::create_directory(p)){
-
+            cout << "Can't create : " << eventPath << endl;
             return false;
 
         }else{
 
             // Create the destination directory
             if(!fs::create_directory(p0)){
-
+                cout << "Can't create : " << root << endl;
                 return false;
 
             }else{
 
                 if(!fs::create_directory(p1)){
-
+                    cout << "Can't create : " << path1 << endl;
                     return false;
 
                 }else{
 
                     if(!fs::create_directory(p2)){
-
+                        cout << "Can't create : " << path2 << endl;
                         return false;
-
 
                     }else{
 
@@ -230,9 +241,90 @@ bool RecEvent::buildEventLocation(vector<string> eventDate){
     return false;
 }
 
-bool RecEvent::saveGE(vector<GlobalEvent> &GEList, vector<GlobalEvent>::iterator itGE){
+bool RecEvent::saveGE(  boost::circular_buffer<Frame>  *frameBuffer,
+                        vector<GlobalEvent> &GEList,
+                        vector<GlobalEvent>::iterator itGE,
+                        Fits fitsHeader,
+                        bool downsample,
+                        bool recAvi,
+                        bool recFits3D,
+                        bool recFits2D,
+                        bool recPos,
+                        bool recSum,
+                        bool recBmp,
+                        bool recMapGE,
+                        int timeAfter,
+                        int timeBefore,
+                        int frameBufferMaxSize,
+                        bool mailNotification,
+                        string SMTPServer,
+                        string SMTPHostname,
+                        vector<string> mailRecipients,
+                        string eventPath,
+                        string stationName,
+                        string currentEventPath,
+                        CamBitDepth pixelFormat){
 
     namespace fs = boost::filesystem;
+
+     vector<string> mailAttachments;
+
+    /// SAVE mapGE
+
+    if(recMapGE){
+
+        SaveImg::saveBMP((*itGE).getMapEvent(), currentEventPath + "GEMap");
+        mailAttachments.push_back(currentEventPath + "GEMap.bmp");
+
+    }
+    cout << "get numFirstFrameEvent" <<endl;
+    // Number of the first frame where the event is detected.
+    int numFirstFrameEvent = (*itGE).getNumFirstFrame();
+    cout << "get numLastFrameEvent" <<endl;
+    // Number of the last frame where the event is detected.
+    int numLastFrameEvent = (*itGE).getNumLastFrame();
+    // Number of the first frame to save. It depends of how many frames we want to keep before the event.
+    cout << "get numFirstFrameToSave" <<endl;
+    int numFirstFrameToSave = numFirstFrameEvent - timeBefore;
+    int shiftPosition = timeBefore;
+    cout << "get numLastFrameToSave" <<endl;
+    // Number of the last frame to save. It depends of how many frames we want to keep after the event.
+    int numLastFrameToSave = numLastFrameEvent + timeAfter;
+
+    //boost::mutex::scoped_lock lock(*m_frameBuffer);
+    cout << "get 1" <<endl;
+    if(frameBuffer->front().getNumFrame() > numFirstFrameToSave){
+        numFirstFrameToSave = frameBuffer->front().getNumFrame();
+        shiftPosition = numFirstFrameEvent - frameBuffer->front().getNumFrame();
+    }
+    cout << "get 2" <<endl;
+    if(frameBuffer->back().getNumFrame() < numLastFrameToSave)
+           numLastFrameToSave = frameBuffer->back().getNumFrame();
+
+    cout << "> Num first frame in buffer : " << numFirstFrameToSave << endl;
+    cout << "> Num last frame in buffer : " << numLastFrameToSave << endl;
+    cout << "> Num first frame of event : " << numFirstFrameEvent << endl;
+    cout << "> Num last frame of event : " << numLastFrameEvent << endl;
+    cout << "> Time to save before : " << timeBefore << endl;
+    cout << "> Time to save after : " << timeAfter << endl;
+
+    int c = 0;
+    int nbTotalFramesToSave = numLastFrameToSave - numFirstFrameToSave;
+
+    cout << "> nbTotalFramesToSave : " << nbTotalFramesToSave << endl;
+
+    // Count number of digit on nbTotalFramesToSave.
+    int n = nbTotalFramesToSave;
+    int nbDigitOnNbTotalFramesToSave = 0;
+    while(n!=0){
+      n/=10;
+      ++nbDigitOnNbTotalFramesToSave;
+    }
+
+    cout << "> nbDigitOnNbTotalFramesToSave : " << nbDigitOnNbTotalFramesToSave << endl;
+
+    vector<int> dateFirstFrame;
+    float dateSecFirstFrame = 0.0;
 
     /// POSITIONS FILE
 
@@ -241,37 +333,30 @@ bool RecEvent::saveGE(vector<GlobalEvent> &GEList, vector<GlobalEvent>::iterator
         ofstream posFile;
         string posFilePath = currentEventPath + "positions.txt";
         posFile.open(posFilePath.c_str());
-        posFile << "num_frame (x;y)\n";
+
+        vector<LocalEvent>::iterator itLE;
+
+        for(itLE = (*itGE).LEList.begin(); itLE!=(*itGE).LEList.end(); ++itLE){
+
+            Point pos;
+            pos = (*itLE).getMassCenter();
+
+            if(downsample){
+
+                pos*=2;
+
+            }
+
+            string line = Conversion::intToString((*itLE).getNumFrame() - numFirstFrameToSave) + "               (" + Conversion::intToString(pos.x)  + ";" + Conversion::intToString(pos.y) + ")\n";
+            posFile << line;
+
+        }
 
         // infos
 
         posFile.close();
 
     }
-
-    /// SAVE mapGE
-
-    if(recMapGE){
-
-        SaveImg::saveBMP((*itGE).getMapEvent(), currentEventPath + "GEMap");
-
-    }
-
-    int numFirstFrameEvent = (*itGE).getNumFirstFrame();
-    int numLastFrameEvent = (*itGE).getNumLastFrame();
-
-    int numFirstFrameToSave = numFirstFrameEvent - timeBefore;
-    int numLastFrameToSave = numLastFrameEvent - timeAfter;
-
-    int c = 1;
-
-    boost::mutex::scoped_lock lock(*m_frameBuffer);
-
-    if(frameBuffer->front().getNumFrame() > numFirstFrameToSave)
-        numFirstFrameToSave = frameBuffer->front().getNumFrame();
-
-    if(frameBuffer->back().getNumFrame() < numLastFrameToSave)
-        numLastFrameToSave = frameBuffer->back().getNumFrame();
 
     /// SAVE AVI
 
@@ -286,22 +371,68 @@ bool RecEvent::saveGE(vector<GlobalEvent> &GEList, vector<GlobalEvent>::iterator
 
     /// SAVE FITS3D
 
-    cout << " recFits3D : " << recFits3D << endl;
-
     Fits3D fits3d;
 
-    if(recFits3D)
+    if(recFits3D){
+
         fits3d = Fits3D(pixelFormat, frameBuffer->front().getImg().rows, frameBuffer->front().getImg().cols, (numLastFrameToSave - numFirstFrameToSave +1), fitsHeader);
+        boost::posix_time::ptime time = boost::posix_time::microsec_clock::universal_time();
+        fits3d.setDate(to_iso_extended_string(time));
 
-    cout << ">> " << numLastFrameToSave - numFirstFrameToSave << endl;
+        // Name of the fits file.
+        fits3d.setFilename("fits3d.fit");
 
+    }
 
     Mat stackEvent = Mat::zeros(frameBuffer->front().getImg().rows, frameBuffer->front().getImg().cols, CV_32FC1);
 
-    boost::circular_buffer<Frame>::iterator it;
+    cout << "> Loop frame buffer ... " << endl;
 
+    boost::circular_buffer<Frame>::iterator it;
     for(it = frameBuffer->begin(); it != frameBuffer->end(); ++it){
 
+        cout << "> NUM FRAME : " << (*it).getNumFrame() << endl;
+
+        // Get infos about the first frame of the event record for fits 3D.
+        if((*it).getNumFrame() == numFirstFrameToSave && recFits3D){
+
+            fits3d.setDateobs((*it).getAcqDateMicro());
+            // Exposure time.
+            fits3d.setOntime((*it).getExposure());
+            // Gain.
+            fits3d.setGaindb((*it).getGain());
+            // Saturation.
+            fits3d.setSaturate((*it).getSaturatedValue());
+            // FPS.
+            fits3d.setCd3_3((*it).getFPS());
+            // CRVAL1 : sideral time.
+            double  julianDate      = TimeDate::gregorianToJulian_2((*it).getDate());
+            double  julianCentury   = TimeDate::julianCentury(julianDate);
+            double  sideralT        = TimeDate::localSideralTime_2(julianCentury, (*it).getDate().at(3), (*it).getDate().at(4), (*it).getDateSeconds(), fitsHeader.getSitelong());
+            fits3d.setCrval1(sideralT);
+            // Projection and reference system
+            fits3d.setCtype1("RA---ARC");
+            fits3d.setCtype2("DEC--ARC");
+            // Equinox
+            fits3d.setEquinox(2000.0);
+            // Integration time : 1/fps * nb_frames (sec.)
+           // fits3d.setExposure((1.0/(*it).getFPS()));
+            cout << "EXPOSURE : " << 1.0f/(*it).getFPS() << endl;
+
+            dateFirstFrame = (*it).getDate();
+            dateSecFirstFrame = (*it).getDateSeconds();
+
+        }
+
+        // Get infos about the last frame of the event record for fits 3D.
+        if((*it).getNumFrame() == numLastFrameToSave && recFits3D){
+            cout << "DATE first : " << dateFirstFrame.at(3) << " H " << dateFirstFrame.at(4) << " M " << dateSecFirstFrame << " S" << endl;
+            cout << "DATE last : " << (*it).getDate().at(3) << " H " << (*it).getDate().at(4) << " M " << (*it).getDateSeconds() << " S" << endl;
+            fits3d.setElaptime(((*it).getDate().at(3)*3600 + (*it).getDate().at(4)*60 + (*it).getDateSeconds()) - (dateFirstFrame.at(3)*3600 + dateFirstFrame.at(4)*60 + dateSecFirstFrame));
+
+        }
+
+        // For each frame to save
         if((*it).getNumFrame() >= numFirstFrameToSave && (*it).getNumFrame() <= numLastFrameToSave){
 
             Mat currFrame;
@@ -317,12 +448,12 @@ bool RecEvent::saveGE(vector<GlobalEvent> &GEList, vector<GlobalEvent>::iterator
 
             if(recBmp){
 
-                path p(currentEventPath + "BMP/");
+                /*path p(currentEventPath + "BMP/");
 
                 if(!fs::exists(p))
                     fs::create_directory(p);
 
-                imwrite(currentEventPath + "BMP/frame_" + Conversion::intToString(c) + ".bmp", temp);
+                imwrite(currentEventPath + "BMP/frame_" + Conversion::intToString(c) + ".bmp", temp);*/
 
             }
 
@@ -340,28 +471,54 @@ bool RecEvent::saveGE(vector<GlobalEvent> &GEList, vector<GlobalEvent>::iterator
             if(recFits2D){
 
                 string fits2DPath = currentEventPath + "fits2D/";
+                string fits2DName = "frame_" + Conversion::numbering(nbDigitOnNbTotalFramesToSave, c) + Conversion::intToString(c);
                 vector<string> DD;
+
+                cout << "Save fits 2D  : " << fits2DName << endl;
 
                 path p(fits2DPath);
 
-                if(!fs::exists(p))
-                    fs::create_directory(p);
+                Fits2D newFits(fits2DPath, fitsHeader);
+                // Frame's acquisition date.
+                newFits.setDateobs((*it).getAcqDateMicro());
+                // Fits file creation date.
+                boost::posix_time::ptime time = boost::posix_time::second_clock::universal_time();
+                // YYYYMMDDTHHMMSS,fffffffff where T is the date-time separator
+                newFits.setDate(to_iso_string(time));
+                // Name of the fits file.
+                newFits.setFilename(fits2DName);
+                // Exposure time.
+                newFits.setOntime((*it).getExposure());
+                // Gain.
+                newFits.setGaindb((*it).getGain());
+                // Saturation.
+                newFits.setSaturate((*it).getSaturatedValue());
+                // FPS.
+                newFits.setCd3_3((*it).getFPS());
+                // CRVAL1 : sideral time.
+                double  julianDate      = TimeDate::gregorianToJulian_2((*it).getDate());
+                double  julianCentury   = TimeDate::julianCentury(julianDate);
+                double  sideralT        = TimeDate::localSideralTime_2(julianCentury, (*it).getDate().at(3), (*it).getDate().at(4), (*it).getDateSeconds(), fitsHeader.getSitelong());
+                newFits.setCrval1(sideralT);
+                // Integration time : 1/fps * nb_frames (sec.)
+                newFits.setExposure((1.0f/(*it).getFPS()));
+                cout << "EXPOSURE : " << 1.0/(*it).getFPS() << endl;
+                // Projection and reference system
+                newFits.setCtype1("RA---ARC");
+                newFits.setCtype2("DEC--ARC");
+                // Equinox
+                newFits.setEquinox(2000.0);
 
-                if(fs::exists(p)){
+                if(!fs::exists(p)) fs::create_directory(p);
 
-                    if(pixelFormat == MONO_8){
+                if(pixelFormat == MONO_8){
 
-                        Fits2D newFits(fits2DPath, fitsHeader);
-                        newFits.writeFits((*it).getImg(), UC8, DD, false,"frame_" + Conversion::intToString(c));
+                    newFits.writeFits((*it).getImg(), UC8, DD, false, fits2DName);
 
-                    }else{
+                }else{
 
-                        Fits2D newFits(fits2DPath + "frame_" + Conversion::intToString(c) + "_",fitsHeader);
-                        newFits.writeFits((*it).getImg(), US16, DD, false,"frame_" + Conversion::intToString(c));
-                    }
+                    newFits.writeFits((*it).getImg(), US16, DD, false, fits2DName);
                 }
-
-
             }
 
             /// SAVE FITS3D
@@ -394,11 +551,15 @@ bool RecEvent::saveGE(vector<GlobalEvent> &GEList, vector<GlobalEvent>::iterator
 
     /// SAVE SUM
 
+
     if(recSum){
 
         bool stackReduction = true;
 
-        Fits2D newFits(currentEventPath + "sum",fitsHeader);
+        Fits2D newFits(currentEventPath, fitsHeader);
+        newFits.setObsmode("SUM");
+        string sumFileName = "sum";
+        mailAttachments.push_back(currentEventPath + sumFileName + ".fit");
 
         vector<string> DD;
 
@@ -414,19 +575,36 @@ bool RecEvent::saveGE(vector<GlobalEvent> &GEList, vector<GlobalEvent>::iterator
             newFits.setBzero(bzero);
             newFits.setBscale(bscale);
 
-            newFits.writeFits(newMat, S16, DD, false,"sum");
+            newFits.writeFits(newMat, S16, DD, false, sumFileName);
 
 
         }else{
 
             // Save fits in 32 bits.
-            newFits.writeFits(stackEvent, F32 , DD, false,"sum");
+            newFits.writeFits(stackEvent, F32 , DD, false, sumFileName);
 
         }
 
     }
 
-    lock.unlock();
+    if(mailNotification){
+        cout << "Send mail " << endl;
+
+        SMTPClient mailc(SMTPServer, 25, SMTPHostname);
+
+        mailc.send("yoan.audureau@u-psud.fr",
+                   mailRecipients,
+                   "Detection by " + stationName  + "'s station - " + (*itGE).getDate().at(0) + (*itGE).getDate().at(1) + (*itGE).getDate().at(2) + "_" + (*itGE).getDate().at(3) + (*itGE).getDate().at(4) + (*itGE).getDate().at(5) + "_UT",
+                   stationName + "\n" + (*itGE).getDate().at(0) + (*itGE).getDate().at(1) + (*itGE).getDate().at(2) + "_" + (*itGE).getDate().at(3) + (*itGE).getDate().at(4) + (*itGE).getDate().at(5) + "_UT\n" + currentEventPath,
+                   mailAttachments,
+                   false);
+
+
+    }
+
+
+
+    //lock.unlock();
 
     return true;
 

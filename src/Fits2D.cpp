@@ -26,16 +26,12 @@
 *%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%*/
 
 /**
- * @file    Fits2D.cpp
- * @author  Yoan Audureau
- * @version 1.0
- * @date    01/12/2014
- *
- * Class used to write fits with 8 bits unsigned char, 8 bits char, 16 bits unsigned short,
- * 16 bits signed short or 32 float values.
- * Keywords for the fits have to be defined before to write it.
- * See settable keywords in the fits class.
- */
+* \file    Fits2D.cpp
+* \author  Yoan Audureau -- FRIPON-GEOPS-UPSUD
+* \version 1.0
+* \date    01/12/2014
+* \brief   Write/Read fits2D file.
+*/
 
 #include "Fits2D.h"
 
@@ -77,6 +73,12 @@ Fits2D::Fits2D(string recPath, Fits fits){
 
 }
 
+Fits2D::Fits2D(string recPath){
+
+    fitsPath = recPath;
+
+}
+
 bool Fits2D::writeKeywords(fitsfile *fptr){
 
     /*
@@ -104,7 +106,7 @@ bool Fits2D::writeKeywords(fitsfile *fptr){
         19. FOCAL       = 1.25
         20. APERTURE    = 2.0
         21. SITELONG    = 2.1794397                                 / longitude observatory
-        22. SITELAT     = 48.7063906                                / latuitude observatory
+        22. SITELAT     = 48.7063906                                / latitude observatory
         23. SITEELEV    = 90                                        / observatory elevation (meter)
         24. XPIXEL      = 3.75
         25. YPIXEL      = 3.75
@@ -225,7 +227,7 @@ bool Fits2D::writeKeywords(fitsfile *fptr){
     char * celaptime = new char[cELAPTIME.length()+1];
     strcpy(celaptime,cELAPTIME.c_str());
 
-    if(fits_write_key(fptr,TINT,"ELAPTIME",&kELAPTIME,celaptime,&status)){
+    if(fits_write_key(fptr,TDOUBLE,"ELAPTIME",&kELAPTIME,celaptime,&status)){
 
         delete celaptime;
         return printerror(status, "Error fits_write_key(ELAPTIME)");
@@ -844,10 +846,18 @@ bool Fits2D::writeFits(Mat img, ImgBitDepth imgType, vector<string> date, bool f
 
     // Get current date.
     string dateFile = "";
+    vector<string> dateString;
+    string creationDate = TimeDate::localDateTime(second_clock::universal_time(),"%Y:%m:%d:%H:%M:%S");
+    typedef boost::tokenizer<boost::char_separator<char> > tokenizer;
+    boost::char_separator<char> sep(":");
+    tokenizer tokens(creationDate, sep);
+    for (tokenizer::iterator tok_iter = tokens.begin();tok_iter != tokens.end(); ++tok_iter){
+        dateString.push_back(*tok_iter);
+    }
+    kDATE = dateString.at(0) + "-" + dateString.at(1) + "-" + dateString.at(2) + "T" + dateString.at(3) + ":" + dateString.at(4) + ":" + dateString.at(5);
 
     if(date.size() == 6){
 
-        kDATE = date.at(0) + "-" + date.at(1) + "-" + date.at(2) + "T" + date.at(3) + ":" + date.at(4) + ":" + date.at(5);
         dateFile	= date.at(0) + date.at(1) + date.at(2) + "_" + date.at(3) + date.at(4) + date.at(5);
 
     }
@@ -862,12 +872,12 @@ bool Fits2D::writeFits(Mat img, ImgBitDepth imgType, vector<string> date, bool f
     if(fileNameWithDate){
 
         pathAndname = fitsPath + kTELESCOP + "_" + dateFile + "_UT.fit";
-
+        kFILENAME = kTELESCOP + "_" + dateFile + "_UT.fit";
 
     }else{
 
         pathAndname = fitsPath + fileName + ".fit";
-
+        kFILENAME = fileName + ".fit";
     }
 
     filename = pathAndname.c_str();
@@ -906,7 +916,7 @@ bool Fits2D::writeFits(Mat img, ImgBitDepth imgType, vector<string> date, bool f
             }
 
 
-            if (fits_create_img(fptr,  BYTE_IMG, naxis, naxes, &status)){
+            if (fits_create_img(fptr, BYTE_IMG, naxis, naxes, &status)){
 
                  return printerror( status, "Fits2D::writeimage() case 8 bits -> fits_create_img() failed" );
             }

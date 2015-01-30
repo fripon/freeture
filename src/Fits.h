@@ -26,11 +26,12 @@
 *%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%*/
 
 /**
- * @file    Fits.h
- * @author  Yoan Audureau -- FRIPON-GEOPS-UPSUD
- * @version 1.0
- * @date    28/11/2014
- */
+* \file    Fits.h
+* \author  Yoan Audureau -- FRIPON-GEOPS-UPSUD
+* \version 1.0
+* \date    04/12/2014
+* \brief   Parent class of fits file (2D/3D) with the keywords and their comments.
+*/
 
 #pragma once
 
@@ -146,7 +147,7 @@ class Fits{
         double  getEquinox();
         string  getCtype1();
         string  getCtype2();
-        int     getElaptime();
+        double  getElaptime();
         double  getCrval2();
         double  getCrval1();
 
@@ -186,6 +187,7 @@ class Fits{
         void setCd2_2(double cd2_2);
         void setCd3_3(double cd3_3);
         void setObsmode(string obsmode);
+        void setDate(string date);
         void setDateobs(string dateobs);
         void setSaturate(double saturate);
         void setOntime(double ontime);
@@ -193,7 +195,7 @@ class Fits{
         void setEquinox(double equinox);
         void setCtype1(string ctype1);
         void setCtype2(string ctype2);
-        void setElaptime(int elaptime);
+        void setElaptime(double elaptime);
         void setCrval2(double crval2);
         void setCrval1(double crval1);
         void setStation(string name);
@@ -208,7 +210,7 @@ class Fits{
 		string  kDATE;
 		string  kDATEOBS;
 		string  kOBSMODE;
-		int     kELAPTIME;
+		double  kELAPTIME;
 		double  kEXPOSURE;
         double  kONTIME;
         string  kFILTER;

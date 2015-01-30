@@ -25,11 +25,12 @@
 *%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%*/
 
 /**
- * @file    DetThread.cpp
- * @author  Yoan Audureau
- * @version 1.0
- * @date    03/06/2014
- */
+* \file    DetThread.cpp
+* \author  Yoan Audureau -- FRIPON-GEOPS-UPSUD
+* \version 1.0
+* \date    03/06/2014
+* \brief   Detection thread.
+*/
 
 #include "DetThread.h"
 
@@ -53,7 +54,18 @@ DetThread::DetThread(Mat                            maskImg,
                      bool                           *newFrameForDet,
                      boost::mutex                   *m_newFrameForDet,
                      boost::condition_variable      *c_newFrameForDet,
-                     RecEvent                       *recEvent
+                     bool avi,
+                    bool fits3D,
+                    bool fits2D,
+                    bool sum,
+                    bool pos,
+                    bool bmp,
+                    bool mapGE,
+                    int tBefore,
+                    bool mailEnabled,
+                    string smtpServer,
+                    string smtpHostname,
+                    vector<string> recipients
                      ){
 
     mthd = detMthd;
@@ -67,7 +79,8 @@ DetThread::DetThread(Mat                            maskImg,
     debug                           =   detDebug;
     debugLocation                   =   debugPath;
     recordingPath                   =   recPath;
-    station                         =   stationName;
+
+  station = stationName;
 
 	m_thread					        =	NULL;
 	mustStop				        =	false;
@@ -86,8 +99,22 @@ DetThread::DetThread(Mat                            maskImg,
     timeAfter                       =   geAfterTime;
 
 	nbDet                           =   0;
-	eventToRec = recEvent;
+
 	frameBufferMaxSize      = bufferSize;
+
+    recAvi                  = avi;
+    recFits3D               = fits3D;
+    recFits2D               = fits2D;
+	recPos                  = pos;
+	recSum                  = sum;
+	recBmp                  = bmp;
+	recMapGE                = mapGE;
+	timeBefore              = tBefore;
+	frameBufferMaxSize      = bufferSize;
+	mailNotification        = mailEnabled;
+	SMTPServer              = smtpServer;
+	SMTPHostname            = smtpHostname;
+	mailRecipients          = recipients;
 
 }
 
@@ -316,11 +343,64 @@ void DetThread::operator ()(){
                     if((*itGEToSave).getAgeLastElem() > timeAfter ||
                        (currentFrame.getFrameRemaining() < 10 && currentFrame.getFrameRemaining()!= 0)){
 
-                        eventToRec->buildEventLocation((*itGEToSave).getDate());
+                        cout << "> Build event location " << endl;
+                        cout << "Date size : " << (*itGEToSave).getDate().size() << endl;
+                        for(int a = 0; a< (*itGEToSave).getDate().size() ; a++ )
+                            cout << (*itGEToSave).getDate().at(a) << endl;
 
-                        eventToRec->saveGE(listGlobalEvents, itGEToSave);
+
+                        string currentEventPath;
+
+                        double timeSave = (double)getTickCount();
+
+                        RecEvent::buildEventLocation((*itGEToSave).getDate(),recordingPath,station, currentEventPath);
+
+                        cout << "Rec event " << endl;
+
+
+                        boost::mutex::scoped_lock lock(*m_frameBuffer);
+
+                        RecEvent::saveGE(
+                                            frameBuffer,
+                                            listGlobalEvents,
+                                            itGEToSave,
+                                            fitsHeader,
+                                            downsample,
+                                            recAvi,
+                                            recFits3D,
+                                            recFits2D,
+                                            recPos,
+                                            recSum,
+                                            recBmp,
+                                            recMapGE,
+                                            timeAfter,
+                                            timeBefore,
+                                            frameBufferMaxSize,
+                                            mailNotification,
+                                            SMTPServer,
+                                            SMTPHostname,
+                                            mailRecipients,
+                                            recordingPath,
+                                            station,
+                                            currentEventPath,
+                                            imgFormat);
+
+                        lock.unlock();
 
                         listGlobalEvents.clear();
+
+                        timeSave = (((double)getTickCount() - timeSave)/getTickFrequency())*1000;
+                        cout << endl << endl;
+                        cout    << " [-SAVE TIME-]    Time: "
+                                << std::setprecision(3)
+                                << std::fixed
+                                << timeSave
+                                << " ms "
+                                << endl;
+
+
+                        cout << endl << endl << endl << endl << endl << endl;
+
 
                         detectionStatus = false;
                         breakAnalyse = false;

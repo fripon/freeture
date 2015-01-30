@@ -25,12 +25,12 @@
 *%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%*/
 
 /**
- * \file    Camera.cpp
- * \author  Yoan Audureau -- FRIPON-GEOPS-UPSUD
- * \version 1.0
- * \date    13/06/2014
- * \brief   Acquisition thread.
- */
+* \file    Camera.cpp
+* \author  Yoan Audureau -- FRIPON-GEOPS-UPSUD
+* \version 1.0
+* \date    13/06/2014
+* \brief   Acquisition thread.
+*/
 
 #include "Camera.h"
 
@@ -57,8 +57,6 @@ Camera::Camera(CamType camType){
                 #else
                     camera = new CameraSDKAravis();
                 #endif
-
-                cout << "camera basler" << endl;
 
             }
 
@@ -99,7 +97,9 @@ Camera::Camera( CamType     camType,
     exposure    = camExp;
     gain        = camGain;
     bitdepth    = camDepth;
-    frameCpt    = 0;
+    frameCpt        = 0;
+    stackCpt        = 0;
+    frameFailedCpt  = 0;
 
     switch(camType){
 
@@ -186,6 +186,8 @@ Camera::Camera( CamType                                 camType,
     c_newFrameDet                   = c_newFrameForDet;
 
     frameCpt                        = 0;
+    stackCpt                        = 0;
+    frameFailedCpt                  = 0;
 
     switch(camType){
 
@@ -227,73 +229,6 @@ Camera::Camera( CamType                                 camType,
 
     }
 }
-
-Camera::Camera( CamType                                 camType,
-                int                                     camExp,
-                int                                     camGain,
-                CamBitDepth                             camDepth,
-                int                                     camFPS,
-                int                                     imgToSum,
-                int                                     imgToWait,
-                bool                                    imgStack){
-
-    m_thread			            = NULL;
-    mustStop			            = false;
-
-    cameraType                      = camType;
-    exposure                        = camExp;
-    gain                            = camGain;
-    bitdepth                        = camDepth;
-    fps                             = camFPS;
-
-    frameToSum                      = imgToSum;
-    frameToWait                     = imgToWait;
-    stackEnabled                    = imgStack;
-
-
-    frameCpt                        = 0;
-
-    switch(camType){
-
-        case BASLER :
-
-            {
-
-                #ifdef USE_PYLON
-                    camera = new CameraSDKPylon();
-                #else
-                    camera = new CameraSDKAravis();
-                #endif
-
-            }
-
-            break;
-
-        case DMK :
-
-            {
-
-                camera = new CameraSDKAravis();
-
-            }
-
-            break;
-
-        case FRAMES :
-
-                camera = NULL;
-
-            break;
-
-        case VIDEO :
-
-                camera = NULL;
-
-            break;
-
-    }
-}
-
 
 Camera::~Camera(void){
 
@@ -457,6 +392,7 @@ void Camera::operator()(){
     bool waitToStack = true;
 
     string firstDate;
+    string acqFirstDateInMicrosec;
 
     int acqGain = 0;
     int acqExp = 0;
@@ -469,18 +405,30 @@ void Camera::operator()(){
 
         double tacq = (double)getTickCount();
 
+        cout << "============= FRAME n°" << frameCpt << " ============= " << endl;
+
         if(camera->grabImage(newFrame)){
 
             newFrame.setNumFrame(frameCpt);
 
             boost::mutex::scoped_lock lock(*m_frameBuffer);
             frameBuffer->push_back(newFrame);
-
             lock.unlock();
 
-           /* Fits ff;
-            Fits2D newFits("/home/fripon/data2/framefits_" + Conversion::intToString(frameCpt) + "_",ff);
-            newFits.writeFits(newFrame.getImg(), US16, 0, true,"" );*/
+
+            //double ttacq = (double)getTickCount();
+
+            /*Fits2D newFits("/home/fripon/data2/");
+            vector<string> datet;
+            newFits.writeFits(newFrame.getImg(),US16, datet, false, "frame_"+Conversion::intToString(frameCpt));*/
+            /*string name = "frame_"+Conversion::intToString(frameCpt);
+            Mat temp;
+            newFrame.getImg().copyTo(temp);
+            SaveImg::saveMat(temp,name );
+
+
+            ttacq = (((double)getTickCount() - ttacq)/getTickFrequency())*1000;
+            cout << " [ TIME TO SAVE ] : " << ttacq << " ms" << endl;**/
 
             boost::mutex::scoped_lock lock2(*m_newFrameDet);
             *newFrameDet = true;
@@ -489,16 +437,22 @@ void Camera::operator()(){
 
             if(stackEnabled){
 
+                cout << "> Stack enabled" << endl;
+                cout << "> Stack counter : " << stackCpt << endl;
+
                 // Wait some times before to stack n frames.
                 if(waitToStack){
 
+                    cout << "> Waiting ..." << endl;
+
                     if(nbFrameWaited < frameToWait){
 
-                        cout << "WAIT : " << nbFrameWaited << " / " << frameToWait  << endl;
+                        cout << "> WAIT : " << nbFrameWaited << " / " << frameToWait  << endl;
                         nbFrameWaited++;
 
                     }else{
 
+                        cout << "> Reset WAIT Counter" << endl;
                         nbFrameWaited = 0;
                         waitToStack = false;
 
@@ -509,50 +463,46 @@ void Camera::operator()(){
                 // Stack n frames before to wait.
                 if(!waitToStack){
 
+                    cout << "> Stacking ..." << endl;
+
                     // Get infos about the first frame pushed in the stack.
                     if(nbFrameSummed == 0){
 
-                        firstDate   = newFrame.getRawDate();
-                        acqGain     = newFrame.getGain();       // Gain used to grab the first frame.
-                        acqExp      = newFrame.getExposure();   // Exposure used to grab the first frame.
+                        acqFirstDateInMicrosec  = newFrame.getAcqDateMicro();
+                        firstDate               = newFrame.getRawDate();
+                        acqGain                 = newFrame.getGain();
+                        acqExp                  = newFrame.getExposure();
 
                     }
 
                     // While stack is not full, accumulate frames.
                     if(nbFrameSummed < frameToSum){
 
-                        cout << "STACK : " << nbFrameSummed << " / " << frameToSum  << endl;
-
-                        double t = (double)getTickCount();
+                        cout << "> STACK : " << nbFrameSummed << " / " << frameToSum  << endl;
                         newFrame.getImg().convertTo(currImg, CV_32FC1);
                         accumulate(currImg,stackImg);
-                        t = (((double)getTickCount() - t)/getTickFrequency())*1000;
-                        //cout << "> stack Time : " << t << endl;
                         nbFrameSummed++;
-
-                    }else{
-
-                        nbFrameSummed = 0;
-                        waitToStack = true;
 
                     }
 
                     // N frames have been stacked, save the result.
-                    if(nbFrameSummed == frameToSum){
+                    if(nbFrameSummed >= frameToSum){
 
-                        BOOST_LOG_SEV(log,normal) << "Stack of " << frameToSum << " frames finished.";
+                        cout << "> End of stacking ... Save the stack." << endl;
 
-                        string lastDate = newFrame.getRawDate();
-
-                        StackedFrames sum = StackedFrames(firstDate, lastDate, acqGain, acqExp, stackImg, nbFrameSummed);
+                        StackedFrames sum = StackedFrames(acqFirstDateInMicrosec, newFrame.getAcqDateMicro(), firstDate, newFrame.getRawDate(), acqGain, acqExp, stackImg, nbFrameSummed);
 
                         boost::mutex::scoped_lock lock(*m_stackedFramesBuffer);
                         stackedFramesBuffer->push_back(sum);
                         c_newElemStackedFramesBuffer->notify_all();
-                        BOOST_LOG_SEV(log,notification) << "Notification sent to AST_THREAD.";
+                        cout << "> Notification sent to Ast Thread." << endl;
                         lock.unlock();
 
                         stackImg  = Mat::zeros(camera->getHeight(), camera->getWidth(), CV_32FC1);
+
+                        nbFrameSummed = 0;
+                        stackCpt++;
+                        waitToStack = true;
 
                     }
                 }
@@ -560,15 +510,11 @@ void Camera::operator()(){
 
             frameCpt++;
 
-            cout << "============= FRAME n°" << frameCpt << " ============= " << endl;
-
         }else{
 
-            cout << "Failed to grab frame " << frameCpt + 1 << endl;
-
+            cout << "> Failed to grab frame " << frameCpt + 1 << endl;
+            frameFailedCpt++;
         }
-
-
 
         tacq = (((double)getTickCount() - tacq)/getTickFrequency())*1000;
         cout << " [ ACQ Time ] : " << tacq << " ms" << endl;

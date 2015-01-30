@@ -26,11 +26,12 @@
 *%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%*/
 
 /**
- * @file    Configuration.h
- * @author  Yoan Audureau -- FRIPON-GEOPS-UPSUD
- * @version 1.0
- * @date    03/06/2014
- */
+* \file    Configuration.h
+* \author  Yoan Audureau -- FRIPON-GEOPS-UPSUD
+* \version 1.0
+* \date    03/06/2014
+* \brief   Get FreeTure's parameters from a configuration file.
+*/
 
 #pragma once
 
@@ -42,16 +43,16 @@ class Configuration{
 
 	public:
 
-		// clear all values
+		// Clear all values.
 		void Clear();
 
-		// load a configuration file
+		// Load a configuration file.
 		bool Load(const string& File);
 
-		// check if value associated with given key exists
+		// Check if value associated with given key exists.
 		bool Contains(const string& key) const;
 
-		// get value associated with given key
+		// Get value associated with given key.
 		bool Get(const string& key, string& value) const;
 		bool Get(const string& key, int&    value) const;
 		bool Get(const string& key, long&   value) const;

@@ -26,11 +26,12 @@
 *%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%*/
 
 /**
- * @file    RecEvent.h
- * @author  Yoan Audureau -- FRIPON-GEOPS-UPSUD
- * @version 1.0
- * @date    12/06/2014
- */
+* \file    RecEvent.h
+* \author  Yoan Audureau -- FRIPON-GEOPS-UPSUD
+* \version 1.0
+* \date    03/06/2014
+* \brief   Save a detected event.
+*/
 
 #pragma once
 
@@ -40,59 +41,48 @@
 #include "Fits.h"
 #include "Fits2D.h"
 #include "Fits3D.h"
+#include "SMTPClient.h"
 #include "ECamBitDepth.h"
 #include "GlobalEvent.h"
 #include "ImgReduction.h"
 #include <boost/circular_buffer.hpp>
+#include "TimeDate.h"
+#include "Conversion.h"
 
 using namespace cv;
 using namespace std;
 
 class RecEvent{
 
-    private :
-
-        Fits            fitsHeader;
-        CamBitDepth     pixelFormat;
-        string          eventPath;
-        string          stationName;
-        bool            recAvi;
-        bool            recFits3D;
-        bool            recFits2D;
-        bool            recPos;
-        bool            recSum;
-        bool            recBmp;
-        bool            recMapGE;
-        string          currentEventPath;
-        int             timeBefore;
-        int             timeAfter;
-        int             frameBufferMaxSize;
-
-        boost::circular_buffer<Frame>   *frameBuffer;
-        boost::mutex                    *m_frameBuffer;
-
     public :
 
-        RecEvent(   boost::circular_buffer<Frame> *cb,
-                    boost::mutex *m_cb,
-                    string path,
-                    string station,
-                    CamBitDepth  bitdepth,
-                    bool avi,
-                    bool fits3D,
-                    bool fits2D,
-                    bool sum,
-                    bool pos,
-                    bool bmp,
-                    bool mapGE,
-                    Fits fitsHead,
-                    int tBefore,
-                    int tAfter,
-                    int bufferSize);
+        RecEvent(){};
+        ~RecEvent(){};
 
-        ~RecEvent();
+        static bool buildEventLocation(vector<string> eventDate, string eventPath, string stationName, string &currentEventPath);
 
-        bool buildEventLocation(vector<string> eventDate);
-        bool saveGE(vector<GlobalEvent> &GEList, vector<GlobalEvent>::iterator itGE);
+        static bool saveGE( boost::circular_buffer<Frame>  *frameBuffer,
+                            vector<GlobalEvent> &GEList,
+                            vector<GlobalEvent>::iterator itGE,
+                            Fits fitsHeader,
+                            bool downsample,
+                            bool recAvi,
+                            bool recFits3D,
+                            bool recFits2D,
+                            bool recPos,
+                            bool recSum,
+                            bool recBmp,
+                            bool recMapGE,
+                            int timeAfter,
+                            int timeBefore,
+                            int frameBufferMaxSize,
+                            bool mailNotification,
+                            string SMTPServer,
+                            string SMTPHostname,
+                            vector<string> mailRecipients,
+                            string eventPath,
+                            string stationName,
+                            string currentEventPath,
+                            CamBitDepth pixelFormat);
 
 };

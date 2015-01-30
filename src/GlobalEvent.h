@@ -26,18 +26,18 @@
 *%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%*/
 
 /**
- * @file    GlobalEvent.h
- * @author  Yoan Audureau -- FRIPON-GEOPS-UPSUD
- * @version 1.0
- * @date    10/11/2014
- */
+* \file    GlobalEvent.h
+* \author  Yoan Audureau -- FRIPON-GEOPS-UPSUD
+* \version 1.0
+* \date    03/06/2014
+* \brief   A Detected event occured on different consecutives frames in time.
+*/
 
 #pragma once
 
 #include "includes.h"
 #include "Frame.h"
 #include "LocalEvent.h"
-//#include "RecEvent.h"
 #include "SaveImg.h"
 
 using namespace cv;
@@ -60,6 +60,8 @@ class GlobalEvent{
         bool            linear;
         int             badPoint;
         int             goodPoint;
+        Mat             geMapPrev;
+        bool            geStatic;
 
     public:
 
@@ -77,6 +79,7 @@ class GlobalEvent{
         int             getAgeLastElem          ()          {return geAgeLastLE;};
         vector<string>  getDate                 ()          {return geDate;};
         bool            getLinearStatus         ()          {return linear;};
+        bool            getGeStatic             ()          {return geStatic;};
         float           getVelocity             ()          {return velocity;};
         bool            getNewLEStatus          ()          {return newLEAdded;};
         int             getBadPos               ()          {return badPoint;};

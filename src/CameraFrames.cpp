@@ -26,18 +26,18 @@
 *%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%*/
 
 /**
- * @file    CameraFrames.cpp
- * @author  Yoan Audureau -- FRIPON-GEOPS-UPSUD
- * @version 1.0
- * @date    02/09/2014
- */
+* \file    CameraFrames.cpp
+* \author  Yoan Audureau -- FRIPON-GEOPS-UPSUD
+* \version 1.0
+* \date    02/09/2014
+* \brief   Acquisition thread with fits individual frames in input.
+*/
 
 #include "CameraFrames.h"
 
-
 CameraFrames::CameraFrames( string dir,
-                            int frameStart,
-                            int frameStop,
+                            int sepPos,
+                            string sep,
                             Fits fitsHead,
                             int bitdepth,
                             boost::circular_buffer<Frame> *cb,
@@ -52,10 +52,11 @@ CameraFrames::CameraFrames( string dir,
 	dirPath             = dir;
 	thread              = NULL;
 
+    separatorPosition = sepPos;
+    separator = sep;
+
 	imgH = 0;
 	imgW = 0;
-	frameStart_   = frameStart;
-	frameStop_    = frameStop;
 
 	newFrameDet = newFrameForDet;
     m_newFrameDet = m_newFrameForDet;
@@ -65,20 +66,17 @@ CameraFrames::CameraFrames( string dir,
     c_newElemFrameBuffer = c_newElemCb;
 }
 
-CameraFrames::~CameraFrames(void){
-
-}
+CameraFrames::~CameraFrames(void){}
 
 void CameraFrames::startThread(){
 
 	// Launch acquisition thread
-	thread=new boost::thread(boost::ref(*this));
+	thread = new boost::thread(boost::ref(*this));
 
 }
 
 void CameraFrames::join(){
 
-    cout << "waiting"<<endl;
 	thread->join();
 
 }
@@ -135,34 +133,91 @@ template <typename Container> void stringtok(Container &container, string const 
 
 void CameraFrames::operator () (){
 
-	BOOST_LOG_SCOPED_THREAD_TAG("LogName", "acqThread");
-
-	BOOST_LOG_SEV(log, critical) << "\n";
-
-	BOOST_LOG_SEV(log,notification) << "Acquisition thread started.";
-
-    string dir = dirPath;
-
-    vector<Mat> listF;
+	BOOST_LOG_SCOPED_THREAD_TAG("LogName", "ACQ_THREAD");
+	BOOST_LOG_SEV(log,notification) << "\n";
+	BOOST_LOG_SEV(log,notification) << "==============================================";
+	BOOST_LOG_SEV(log,notification) << "========== Start acquisition thread ==========";
+	BOOST_LOG_SEV(log,notification) << "==============================================";
 
     bool endReadFrames = false;
     bool fileFound = false;
-
-    int numFrame = frameStart_;
-
-    path p(dir);
 
     int cpt = 0;
 
     namespace fs = boost::filesystem;
 
+    path p(dirPath);
+
     if(fs::exists(p)){
+
+        int firstFrame = -1, lastFrame = 0;
+        string filename = "";
+
+        /// Search first and last frames.
+        for(directory_iterator file(p);file!= directory_iterator(); ++file){
+            path curr(file->path());
+            cout << file->path() << endl;
+
+            if(is_regular_file(curr)){
+
+                list<string> ch;
+                stringtok(ch, curr.filename().c_str(), separator.c_str());
+                std:list<string>::const_iterator lit(ch.begin()), lend(ch.end());
+
+                int i = 0, number = 0;
+
+                for(; lit != lend; ++lit){
+
+                    if(i == separatorPosition && i != ch.size() - 1){
+                        number = atoi((*lit).c_str()); break;
+                    }
+
+                    if(i == ch.size() - 1){
+
+                        list<string> ch_;
+                        cout << ch_.front() << endl;
+                        stringtok(ch_, (*lit).c_str(), ".");
+                        cout << ch_.front() << endl;
+                        number = atoi(ch_.front().c_str());
+                        break;
+
+                    }
+
+                    i++;
+
+                }
+
+                if(firstFrame == -1){
+
+                    firstFrame = number;
+
+                }else if(number < firstFrame){
+
+                    firstFrame = number;
+
+                }
+
+                if(number > lastFrame){
+
+                    lastFrame = number;
+
+                }
+
+                cout << "number : " << number << endl;
+                cout << ">> First Frame : " << firstFrame << endl;
+                cout << ">> Last Frame  : " << lastFrame  << endl;
+
+            }
+        }
+
+        cout << ">> First Frame : " << firstFrame << endl;
+        cout << ">> Last Frame  : " << lastFrame  << endl;
 
         do{
 
-            string filename = "";
+            filename = "";
 
-            /// === Search a frame in the directory. ===
+            /// Search a frame in the directory.
 
             for(directory_iterator file(p);file!= directory_iterator(); ++file){
 
@@ -172,27 +227,35 @@ void CameraFrames::operator () (){
 
                     list<string> ch;
 
-                    stringtok(ch,curr.filename().c_str(),"_");
+                    stringtok(ch,curr.filename().c_str(), separator.c_str());
 
-                    std:list<string>::const_iterator lit(ch.begin()), lend(ch.end());
+                    list<string>::const_iterator lit(ch.begin()), lend(ch.end());
                     int i = 0;
                     int number = 0;
 
-                    for(;lit!=lend;++lit){
+                    for(; lit != lend; ++lit){
 
-                        if(i==1){
+                        if(i == separatorPosition){
 
-                            number = atoi((*lit).c_str());
-                            break;
+                            number = atoi((*lit).c_str()); break;
                         }
+
+                        if(i == ch.size() - 1 && i != ch.size() - 1){
+
+                        list<string> ch_;
+                        stringtok(ch_, (*lit).c_str(), ".");
+                        number = atoi(ch_.front().c_str());
+                        break;
+
+                    }
 
                         i++;
 
                     }
 
-                    if(number == numFrame){
+                    if(number == firstFrame){
 
-                        numFrame++;
+                        firstFrame++;
                         fileFound = true;
                         cpt++;
                         cout << "FILE:" << file->path().c_str() << endl;
@@ -205,7 +268,7 @@ void CameraFrames::operator () (){
                 }
             }
 
-            if(numFrame > frameStop_){
+            if(firstFrame > lastFrame){
 
                 endReadFrames = true;
 
@@ -215,7 +278,7 @@ void CameraFrames::operator () (){
 
             }
 
-            /// === Read the frame. ===
+            /// Read the frame.
 
             Mat resMat;
             Fits2D newFits;
@@ -236,25 +299,13 @@ void CameraFrames::operator () (){
 
             }
 
-            //Timestamping
-
-            string acquisitionDate = TimeDate::localDateTime(second_clock::universal_time(),"%Y:%m:%d:%H:%M:%S");
-
-            Frame newFrame( resMat, 0, 0, acquisitionDate );
+            Frame newFrame(resMat, 0, 0.0, TimeDate::localDateTime(second_clock::universal_time(),"%Y:%m:%d:%H:%M:%S"));
+            boost::posix_time::ptime time = boost::posix_time::microsec_clock::universal_time();
+            string acqDateInMicrosec = to_iso_extended_string(time);
+            newFrame.setAcqDateMicro(acqDateInMicrosec);
             newFrame.setNumFrame(cpt);
-            newFrame.setFrameRemaining(frameStop_ - cpt);
-
-            /*boost::mutex::scoped_lock lock(*mutexQueue);
-            frameQueue->pushInFifo(newFrameRAM);
-            lock.unlock();
-
-            if(frameQueue->getFifoIsFull()) condQueueFill->notify_all();
-            frameQueue->setThreadRead("imgCap", true);
-            frameQueue->setThreadRead("astCap", true);
-            frameQueue->setThreadRead("det", true);
-            condQueueNewElement->notify_all();*/
-
-
+            newFrame.setFrameRemaining(lastFrame - cpt);
+            newFrame.setFPS(1);
             boost::mutex::scoped_lock lock(*m_frameBuffer);
             frameBuffer->push_back(newFrame);
             lock.unlock();
@@ -270,13 +321,9 @@ void CameraFrames::operator () (){
 
         }while(!endReadFrames);
 
-        endReadFrames = false;
-        cpt = 0;
-        numFrame = frameStart_;
-
     }else{
 
-        cout << "Path of frames " << dirPath << "doesn't exist." << endl;
+        cout << "Path of frames " << dirPath << " doesn't exist." << endl;
 
     }
 

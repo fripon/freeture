@@ -25,13 +25,13 @@
 *%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%*/
 
 /**
- * \file    CameraSDKAravis.cpp
- * \author  Yoan Audureau -- FRIPON-GEOPS-UPSUD
- * \version 1.0
- * \date    21/01/2015
- * \brief   Use Aravis library to pilot GigE Cameras.
- *          https://wiki.gnome.org/action/show/Projects/Aravis?action=show&redirect=Aravis
- */
+* \file    CameraSDKAravis.cpp
+* \author  Yoan Audureau -- FRIPON-GEOPS-UPSUD
+* \version 1.0
+* \date    21/01/2015
+* \brief   Use Aravis library to pilot GigE Cameras.
+*          https://wiki.gnome.org/action/show/Projects/Aravis?action=show&redirect=Aravis
+*/
 
 #include "CameraSDKAravis.h"
 
@@ -258,7 +258,9 @@ bool CameraSDKAravis::grabImage(Frame &newFrame){
         if(arv_buffer->status == ARV_BUFFER_STATUS_SUCCESS){
 
             //Timestamping.
-            string acquisitionDate = TimeDate::localDateTime(second_clock::universal_time(),"%Y:%m:%d:%H:%M:%S");
+            string acquisitionDate = TimeDate::localDateTime(microsec_clock::universal_time(),"%Y:%m:%d:%H:%M:%S");
+            boost::posix_time::ptime time = boost::posix_time::microsec_clock::universal_time();
+            string acqDateInMicrosec = to_iso_extended_string(time);
 
             Mat image;
 
@@ -275,6 +277,8 @@ bool CameraSDKAravis::grabImage(Frame &newFrame){
             }
 
             newFrame = Frame(image, arv_camera_get_gain(camera), arv_camera_get_exposure_time(camera), acquisitionDate);
+            newFrame.setAcqDateMicro(acqDateInMicrosec);
+            newFrame.setFPS(arv_camera_get_frame_rate(camera));
 
             arv_stream_push_buffer(stream, arv_buffer);
 

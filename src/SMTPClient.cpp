@@ -25,9 +25,15 @@
 *
 *%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%*/
 
-#include "SMTPClient.h"
+/**
+* \file    SMTPClient.cpp
+* \author  Yoan Audureau -- FRIPON-GEOPS-UPSUD
+* \version 1.0
+* \date    03/12/2014
+* \brief   SMTP connection and send mails.
+*/
 
-//SMTPClient(string smtpServer, unsigned int port, string hostname ):mailSmtpServer(smtpServer), mailPort(port), mailServerHostname(hostname), socket(io_service){};
+#include "SMTPClient.h"
 
 void SMTPClient::getServerResponse(string request){
 
@@ -140,7 +146,6 @@ string SMTPClient::message(){
 	// Message using HTML.
 	string htmlMessage =	"<html>\
 								<body>\
-									<h1>Test</h1>\
 									<p> " + mailMessage + " </p> ";
 
 			if(imageInline)
@@ -182,33 +187,33 @@ string SMTPClient::message(){
 
 	*/
 
-	////message += "Content-Type: multipart/mixed; boundary=" + section  + "\r\n";
-	//message += "\r\n";
+	message += "Content-Type: multipart/mixed; boundary=" + section  + "\r\n";
+	message += "\r\n";
 
-		//message += "Content-Type: multipart/alternative; boundary=" + section + "\r\n";
-		//message += "\r\n";
+		message += "Content-Type: multipart/alternative; boundary=" + section + "\r\n";
+		message += "\r\n";
 
 			// Raw text.
-			//message += "\r\n--" + section  + "\r\n";
+            message += "\r\n--" + section  + "\r\n";
 
 			message += "Content-type: text/plain; charset=ISO-8859-1\r\n";
 			message += "\r\n";
 			message += rawMessage;
 			message += "\r\n";
 
-			//message += "\r\n--" + section  + "\r\n";
+			message += "\r\n--" + section  + "\r\n";
 
-			//message += "Content-Type: multipart/related; boundary=" + section  + "\r\n";
-			//message += "\r\n";
+			message += "Content-Type: multipart/related; boundary=" + section  + "\r\n";
+			message += "\r\n";
 
 				// HTML text.
-				/*message += "--" + section  + "\r\n";
+				message += "--" + section  + "\r\n";
 				message += "Content-type: text/html; charset=ISO-8859-1\r\n";
 				message += "\r\n";
 				message += htmlMessage ;
 				message += "\r\n";
 
-				message += "\r\n--" + section  + "\r\n";*/
+				message += "\r\n--" + section  + "\r\n";
 
 				// IMAGE inline.
 				if(imageInline){
@@ -272,13 +277,13 @@ string SMTPClient::message(){
 		// ATTACHMENTS.
 
 		// .txt attachment.
-		/*message += "\r\n--" + section  + "\r\n";
+		message += "\r\n--" + section  + "\r\n";
 
 		message += "Content-Type: text/plain; name =\"test.txt\"\r\n";
 		message += "Content-Disposition: attachment\r\n";
 		message += "filename=\"test.txt\"\r\n";
 
-		message += "this is the attachment text\r\n";*/
+		message += "this is the attachment text\r\n";
 
 		// png attachment.
 		//http://dataurl.net/#dataurlmaker
@@ -346,7 +351,7 @@ string SMTPClient::message(){
 		}
 
 	// Mail end.
-	//message += "\r\n--" + section  + "--\r\n";
+	message += "\r\n--" + section  + "--\r\n";
 
 	return message;
 
@@ -360,6 +365,7 @@ void SMTPClient::send(	string from,
 			bool imgInline){
 
 	string data;
+
 
 	mailTo			= to;
 	mailFrom		= from;

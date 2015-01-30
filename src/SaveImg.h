@@ -26,13 +26,22 @@
 *%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%*/
 
 /**
- * @file    SaveImg.h
- * @author  Yoan Audureau -- FRIPON-GEOPS-UPSUD
- * @version 1.0
- * @date    17/06/2014
- */
+* \file    SaveImg.h
+* \author  Yoan Audureau -- FRIPON-GEOPS-UPSUD
+* \version 1.0
+* \date    03/06/2014
+*/
 
 #pragma once
+
+//#include "Serialize.h"
+//#include "includes.h"
+
+#include <boost/filesystem.hpp>/*
+#include <boost/archive/binary_oarchive.hpp>
+#include <boost/archive/binary_iarchive.hpp>
+#include <boost/iostreams/filtering_streambuf.hpp>
+#include <boost/iostreams/filter/zlib.hpp>*/
 
 #include "opencv2/highgui/highgui.hpp"
 #include <opencv2/imgproc/imgproc.hpp>
@@ -52,5 +61,9 @@ class SaveImg{
         static bool saveBMP(Mat img, string name);
 
         static bool savePNG(Mat img, string name);
+
+       /* static void saveMat(Mat& m, string filename);
+
+        static void loadMat(Mat& m, string filename);*/
 
 };

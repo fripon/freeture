@@ -26,59 +26,54 @@
 *%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%*/
 
 /**
- * @file    CameraVideo.cpp
- * @author  Yoan Audureau -- FRIPON-GEOPS-UPSUD
- * @version 1.0
- * @date    13/06/2014
- */
+* \file    CameraVideo.cpp
+* \author  Yoan Audureau -- FRIPON-GEOPS-UPSUD
+* \version 1.0
+* \date    13/06/2014
+* \brief   Acquisition thread with video in input.
+*/
 
 #include "CameraVideo.h"
 
+CameraVideo::CameraVideo(   string                          video_path,
+                            boost::circular_buffer<Frame>   *cb,
+                            boost::mutex                    *m_cb,
+                            boost::condition_variable       *c_newElemCb,
+                            bool                            *newFrameForDet,
+                            boost::mutex                    *m_newFrameForDet,
+                            boost::condition_variable       *c_newFrameForDet){
 
-CameraVideo::CameraVideo(   string video_path,
-                            boost::circular_buffer<Frame> *cb,
-                            boost::mutex *m_cb,
-                            boost::condition_variable *c_newElemCb,
-                            bool *newFrameForDet,
-                            boost::mutex *m_newFrameForDet,
-                            boost::condition_variable *c_newFrameForDet){
-
-	videoPath       = video_path;
-	thread          = NULL;
 
 	//open the video file for reading
     cap = VideoCapture(videoPath);
 
-	imgH = 0;
-	imgW = 0;
-
-	newFrameDet = newFrameForDet;
-    m_newFrameDet = m_newFrameForDet;
-    c_newFrameDet = c_newFrameForDet;
-    frameBuffer = cb;
-    m_frameBuffer = m_cb;
-    c_newElemFrameBuffer = c_newElemCb;
-
-}
-
-CameraVideo::~CameraVideo(void){
+	imgH                    = 0;
+	imgW                    = 0;
+    videoPath               = video_path;
+	thread                  = NULL;
+	newFrameDet             = newFrameForDet;
+    m_newFrameDet           = m_newFrameForDet;
+    c_newFrameDet           = c_newFrameForDet;
+    frameBuffer             = cb;
+    m_frameBuffer           = m_cb;
+    c_newElemFrameBuffer    = c_newElemCb;
 
 }
+
+CameraVideo::~CameraVideo(void){}
 
 void CameraVideo::startThread(){
 
 	// Launch acquisition thread
-	thread=new boost::thread(boost::ref(*this));
+	thread = new boost::thread(boost::ref(*this));
 
 }
 
 void CameraVideo::join(){
 
-    cout << "waiting"<<endl;
 	thread->join();
 
 }
-
 
 template <typename Container> void stringtok(Container &container, string const &in, const char * const delimiters = "_"){
 
@@ -132,11 +127,11 @@ template <typename Container> void stringtok(Container &container, string const 
 
 void CameraVideo::operator () (){
 
-	BOOST_LOG_SCOPED_THREAD_TAG("LogName", "acqThread");
-
-	BOOST_LOG_SEV(log, critical) << "\n";
-
-	BOOST_LOG_SEV(log,notification) << "Acquisition thread started.";
+	BOOST_LOG_SCOPED_THREAD_TAG("LogName", "ACQ_THREAD");
+	BOOST_LOG_SEV(log,notification) << "\n";
+	BOOST_LOG_SEV(log,notification) << "==============================================";
+	BOOST_LOG_SEV(log,notification) << "========== Start acquisition thread ==========";
+	BOOST_LOG_SEV(log,notification) << "==============================================";
 
 	int framebufferActualSize = 0;
 
@@ -158,22 +153,15 @@ void CameraVideo::operator () (){
 		imgW = cap.get(CV_CAP_PROP_FRAME_WIDTH);
 		BOOST_LOG_SEV(log,normal) << "Reading frame width : " << imgW;
 
-		cout << "nb TOTAL: "<< cap.get(CV_CAP_PROP_FRAME_COUNT)<<endl;
-
 		bool bSuccess = true;
-
 
         Size frameSize(static_cast<int>(imgW), static_cast<int>(imgH));
 
-        VideoWriter oVideoWriter("/home/fripon/videoMet4.avi", CV_FOURCC('D', 'I', 'V', 'X'), 30, frameSize, true); //initialize the VideoWriter object
+        //VideoWriter oVideoWriter("/home/fripon/videoMet4.avi", CV_FOURCC('D', 'I', 'V', 'X'), 30, frameSize, true); //initialize the VideoWriter object
 
         int ex = static_cast<int>(cap.get(CV_CAP_PROP_FOURCC));
 
         char EXT[] = {ex & 0XFF , (ex & 0XFF00) >> 8,(ex & 0XFF0000) >> 16,(ex & 0XFF000000) >> 24, 0};
-
-
-        cout << EXT << endl;
-
 
 		do{
 
@@ -201,7 +189,7 @@ void CameraVideo::operator () (){
                 //BGR (3 channels) to G (1 channel)
                 cvtColor(frame, frame, CV_BGR2GRAY);
 
-                 cvtColor(frame, copyframe, CV_GRAY2BGR);
+                cvtColor(frame, copyframe, CV_GRAY2BGR);
                 //Timestamping
                 string acquisitionDate = TimeDate::localDateTime(second_clock::universal_time(),"%Y:%m:%d:%H:%M:%S");
 
@@ -211,49 +199,16 @@ void CameraVideo::operator () (){
 
                 newFrame.setFrameRemaining(cap.get(CV_CAP_PROP_FRAME_COUNT) - cap.get(CV_CAP_PROP_POS_FRAMES));
 
-                /*boost::mutex::scoped_lock lock(*mutexQueue);
-
-                frameQueue->pushInFifo(newFrameRAM);*/
 
                 boost::mutex::scoped_lock lock(*m_frameBuffer);
                 frameBuffer->push_back(newFrame);
                 lock.unlock();
 
-
-/*
-                line( copyframe, Point( 392, 0),
-                       Point( 392, imgH -1 ),
-                       Scalar( 0,0,255), 1, 4, 0  );
-
-                line( copyframe, Point( 125, 0),
-                       Point( 125, imgH -1 ),
-                       Scalar( 0,0,255), 1, 4, 0  );
-
-                SaveImg::saveBMP(copyframe,"/home/fripon/testColor_"+Conversion::intToString(numFrame));
-*/
-                if(oVideoWriter.isOpened()){
+                /*if(oVideoWriter.isOpened()){
 
                     oVideoWriter << copyframe;
 
-                }else{
-
-                cout << "not opend"<<endl;
-                }
-
-
-                //lock.unlock();
-
-
-
-                /*if(frameQueue->getFifoIsFull()) condQueueFill->notify_all();
-
-                frameQueue->setThreadRead("imgCap", true);
-                frameQueue->setThreadRead("astCap", true);
-                frameQueue->setThreadRead("det", true);
-
-                condQueueNewElement->notify_all();*/
-
-
+                }*/
 
                 boost::mutex::scoped_lock lock2(*m_newFrameDet);
                 *newFrameDet = true;
@@ -286,8 +241,7 @@ int CameraVideo::getCameraHeight(){
 
     int h = 0;
 
-
-    if ( cap.isOpened() ){
+    if (cap.isOpened()){
         h = cap.get(CV_CAP_PROP_FRAME_HEIGHT);
     }
 
@@ -299,7 +253,7 @@ int CameraVideo::getCameraWidth(){
 
 	int w = 0;
 
-    if ( cap.isOpened() ){
+    if (cap.isOpened()){
         w = cap.get(CV_CAP_PROP_FRAME_WIDTH);
     }
 

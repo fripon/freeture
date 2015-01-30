@@ -25,12 +25,19 @@
 *
 *%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%*/
 
+/**
+* \file    ImgReduction.cpp
+* \author  Yoan Audureau -- FRIPON-GEOPS-UPSUD
+* \version 1.0
+* \date    12/12/2014
+* \brief   Dynamic reduction of an image.
+*/
+
 #include "ImgReduction.h"
 
 ImgReduction::ImgReduction(){
     //ctor
 }
-
 
 Mat ImgReduction::dynamicReductionBasedOnHistogram(double percent, Mat& img ){
 

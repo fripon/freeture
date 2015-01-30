@@ -25,11 +25,12 @@
 *%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%*/
 
 /**
- * @file    StackedFrames.h
- * @author  Yoan Audureau -- FRIPON-GEOPS-UPSUD
- * @version 1.0
- * @date    19/06/2014
- */
+* \file    StackedFrames.h
+* \author  Yoan Audureau -- FRIPON-GEOPS-UPSUD
+* \version 1.0
+* \date    19/06/2014
+* \brief   Convey stacked frames.
+*/
 
 #pragma once
 
@@ -45,7 +46,8 @@ class StackedFrames{
 
         //! Date of acquisition
 		string   startDate;
-
+        string   acqFirstDate;
+        string   acqLastDate;
 		string   endDate;
 
         //! Gain value of the frame
@@ -59,7 +61,7 @@ class StackedFrames{
 
         int imgSum;
 
-        StackedFrames(string firstDate, string lastDate, int g, int e, Mat img, int nbImg);
+        StackedFrames(string acqFirstDateInMicrosec, string acqLastDateInMicrosec, string firstDate, string lastDate, int g, int e, Mat img, int nbImg);
 
         //! Simple constructor
         StackedFrames();

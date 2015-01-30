@@ -25,11 +25,12 @@
 *%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%*/
 
 /**
- * @file    Frame.h
- * @author  Yoan Audureau -- FRIPON-GEOPS-UPSUD
- * @version 1.0
- * @date    19/06/2014
- */
+* \file    Frame.cpp
+* \author  Yoan Audureau -- FRIPON-GEOPS-UPSUD
+* \version 1.0
+* \date    19/06/2014
+* \brief   Frame grabbed from a camera or other input with an image.
+*/
 
 #pragma once
 
@@ -40,7 +41,6 @@
 using namespace std;
 using namespace cv;
 
-//!  This class provides informations about a grabbed frame
 class Frame{
 
 	private:
@@ -50,6 +50,8 @@ class Frame{
 
 		//! Date of acquisition in a vector
         vector<int> date;
+
+        string acqDateInMicrosec;
 
         string rawDate;
 
@@ -74,7 +76,13 @@ class Frame{
 
         vector<string> dateString;
 
+        float dateSeconds;
+
         int frameRemaining;
+
+        double saturatedValue;
+
+        int fps;
 
 	public:
 
@@ -115,7 +123,17 @@ class Frame{
 
 		void setNumFrame(int n);
 
-		string getRawDate();
+		string  getRawDate();
+        float  getDateSeconds      ()              {return dateSeconds;};
+        void   setAcqDateMicro(string date);
+		string  getAcqDateMicro     ()              {return acqDateInMicrosec;};
+
+
+		double  getSaturatedValue   ()              {return saturatedValue;};
+
+		int     getFPS              ()              {return fps;};
+		void    setFPS              (int f)         {fps = f;};
+
 
 		void setRawDate(string d);
 

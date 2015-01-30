@@ -25,13 +25,13 @@
 *%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%*/
 
 /**
- * \file    AstThread.h
- * \author  Yoan Audureau -- FRIPON-GEOPS-UPSUD
- * \version 1.0
- * \date    21/01/2015
- * \brief   Produce a thread for stacking frames. Save stacks which will be
- *          use to make astrometry.
- */
+* \file    AstThread.h
+* \author  Yoan Audureau -- FRIPON-GEOPS-UPSUD
+* \version 1.0
+* \date    21/01/2015
+* \brief   Produce a thread for stacking frames. Save stacks which will be
+*          use to make astrometry.
+*/
 
 #pragma once
 
@@ -115,9 +115,9 @@ class AstThread{
         //! If it's enabled, it will be saved in 16 bits.
 		bool stackReduction;
 
-		boost::circular_buffer<StackedFrames> *stackedFramesBuffer;
-        boost::mutex *m_stackedFramesBuffer;
-        boost::condition_variable *c_newElemStackedFramesBuffer;
+		boost::circular_buffer<StackedFrames>   *stackedFramesBuffer;
+        boost::mutex                            *m_stackedFramesBuffer;
+        boost::condition_variable               *c_newElemStackedFramesBuffer;
 
 	public:
 

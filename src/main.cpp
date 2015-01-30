@@ -25,11 +25,11 @@
 *%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%*/
 
 /**
- * @file    main.cpp
- * @author  Yoan Audureau -- FRIPON-GEOPS-UPSUD
- * @version 0.2
- * @date    01/12/2014
- */
+* \file    main.cpp
+* \author  Yoan Audureau -- FRIPON-GEOPS-UPSUD
+* \version 1.0
+* \date    01/12/2014
+*/
 
 #include "includes.h"
 #include <algorithm>
@@ -192,6 +192,56 @@ void init_log(string path){
 
 }
 
+template <typename Container> void stringtokk(Container &container, string const &in, const char * const delimiters = "_"){
+
+
+    const string::size_type len = in.length();
+
+    string::size_type i = 0;
+
+
+    while (i < len){
+
+
+        // Eat leading whitespace
+
+        i = in.find_first_not_of(delimiters, i);
+
+
+        if (i == string::npos)
+
+            return;   // Nothing left but white space
+
+
+        // Find the end of the token
+
+        string::size_type j = in.find_first_of(delimiters, i);
+
+
+        // Push token
+
+        if (j == string::npos){
+
+
+            container.push_back(in.substr(i));
+
+            return;
+
+
+        }else
+
+
+            container.push_back(in.substr(i, j-i));
+
+
+        // Set up for next loop
+
+        i = j + 1;
+
+    }
+
+}
+
 int main(int argc, const char ** argv){
 
     // Program options.
@@ -280,7 +330,8 @@ int main(int argc, const char ** argv){
 
                         std::transform(camtype.begin(), camtype.end(),camtype.begin(), ::toupper);
 
-                        cout << "Searching " << camtype << " cameras..." << endl << endl;
+                        //cout << "Searching " << camtype << " cameras..." << endl << endl;
+                        cout << "Searching cameras..." << endl << endl;
 
                         Camera *cam = new Camera(cam_type.parseEnum("CAMERA_TYPE", camtype));
                         cam->getListCameras();
@@ -360,7 +411,7 @@ int main(int argc, const char ** argv){
                         boost::condition_variable c_newFrameForDet;
 
                         // Circular buffer for stacked frames.
-                        boost::circular_buffer<StackedFrames> stackedFramesBuffer(2);
+                        boost::circular_buffer<StackedFrames> stackedFramesBuffer(1);
                         boost::mutex m_stackedFramesBuffer;
                         boost::condition_variable c_newElemStackedFramesBuffer;
 
@@ -521,9 +572,12 @@ int main(int argc, const char ** argv){
                                     if(!newFits.readIntKeyword(filename, "BITPIX", format))
                                         throw "> Failed to read fits keyword : BITPIX";
 
+                                    int sepPos = 1;
+                                    string sep = "_";
+
                                     inputCamFrame = new CameraFrames(	ft.FRAMES_PATH,
-                                                                        ft.FRAMES_START,
-                                                                        ft.FRAMES_STOP,
+                                                                        sepPos,
+                                                                        sep,
                                                                         fitsHeader,
                                                                         format,
                                                                         &framesBuffer,
@@ -543,22 +597,17 @@ int main(int argc, const char ** argv){
 
                         }
 
+                        if( inputCam != NULL || inputCamFrame != NULL || inputCamVideo != NULL){
 
-
-                        if( inputCam != NULL ){
-
-                            BOOST_LOG_SEV(slg, notification) << "Program starting.";
-
-                            // start acquisition thread
-                            inputCam->startThread();
-
+                            if(inputCam != NULL) inputCam->startThread();
+                            if(inputCamVideo != NULL) inputCamVideo->startThread();
+                            if(inputCamFrame != NULL) inputCamFrame->startThread();
 
                             /// ------------------------------------------------
                             ///               Create stack thread
                             /// ------------------------------------------------
 
                             if(ft.STACK_ENABLED){
-
 
 
                                 ast = new AstThread(    ft.DATA_PATH,
@@ -586,26 +635,6 @@ int main(int argc, const char ** argv){
 
                             if(ft.DET_ENABLED){
 
-                                RecEvent ev = RecEvent( &framesBuffer,
-                                                        &m_framesBuffer,
-                                                        ft.DATA_PATH,
-                                                        ft.STATION_NAME,
-                                                        ft.ACQ_BIT_DEPTH,
-                                                        ft.DET_SAVE_AVI,
-                                                        ft.DET_SAVE_FITS3D,
-                                                        ft.DET_SAVE_FITS2D,
-                                                        ft.DET_SAVE_SUM,
-                                                        ft.DET_SAVE_POS,
-                                                        ft.DET_SAVE_BMP,
-                                                        ft.DET_SAVE_GEMAP,
-                                                        fitsHeader,
-                                                        ft.ACQ_FPS * ft.DET_TIME_BEFORE,
-                                                        ft.ACQ_FPS * ft.DET_TIME_AFTER,
-                                                        ft.ACQ_BUFFER_SIZE * ft.ACQ_FPS);
-
-                                cout << "before : " << ft.ACQ_FPS * ft.DET_TIME_BEFORE << endl;
-                                cout << "after : " << ft.ACQ_FPS * ft.DET_TIME_AFTER << endl;
-
                                 det  = new DetThread(   mask,
                                                         1,
                                                         ft.ACQ_BIT_DEPTH,
@@ -626,41 +655,20 @@ int main(int argc, const char ** argv){
                                                         &newFrameForDet,
                                                         &m_newFrameForDet,
                                                         &c_newFrameForDet,
-                                                        &ev);
-
-                                det->startDetectionThread();
-
-                                /// ------------------------------------------------
-                                ///            Create record thread
-                                /// ------------------------------------------------
-
-                                /*rec = new RecThread(    ft.DATA_PATH,
-                                                        ft.STATION_NAME,
-                                                        &queueEvToRec,
-                                                        &m_queueEvToRec,
-                                                        &c_queueEvToRecNew,
-                                                        ft.ACQ_BIT_DEPTH,
                                                         ft.DET_SAVE_AVI,
                                                         ft.DET_SAVE_FITS3D,
                                                         ft.DET_SAVE_FITS2D,
                                                         ft.DET_SAVE_SUM,
                                                         ft.DET_SAVE_POS,
                                                         ft.DET_SAVE_BMP,
-                                                        ft.DET_SAVE_TRAIL,
                                                         ft.DET_SAVE_GEMAP,
-                                                        fitsHeader,
-                                                        &framesBuffer,
-                                                        &m_framesBuffer,
-                                                        &c_newElemFramesBuffer,
-                                                        &saveEvent,
-                                                        &m_saveEvent,
-                                                        &c_saveEvent,
-                                                        &itSaveEvent,
-                                                        &m_itSaveEvent,
-                                                        &GEList,
-                                                        &m_GEList);
+                                                        ft.ACQ_FPS * ft.DET_TIME_BEFORE,
+                                                        ft.MAIL_DETECTION_ENABLED,
+                                                        ft.MAIL_SMTP_SERVER,
+                                                        ft.MAIL_SMTP_HOSTNAME,
+                                                        ft.MAIL_RECIPIENT);
 
-                                rec->start();*/
+                                det->startDetectionThread();
 
                             }
 
@@ -717,26 +725,17 @@ int main(int argc, const char ** argv){
 
                                         path p2(cFile);
 
+                                        // /home/fripon/data/
                                         if(fs::exists(p)){
 
+                                            // /home/fripon/data/STATION_AAAAMMDD/
                                             if(fs::exists(p1)){
 
-                                                BOOST_LOG_SEV(slg,notification) << "Destination directory " << p1.string() << " already exists.";
+                                                path p3(configPath);
 
-                                                if(!fs::exists(p2)){
+                                                if(fs::exists(p3)){
 
-                                                    path p3(configPath);
-
-                                                    if(fs::exists(p3)){
-
-                                                        fs::copy_file(p3,p2,copy_option::overwrite_if_exists);
-
-                                                    }else{
-
-                                                        //cout << "Failed to copy configuration file : " << p3.string() << " not exists." << endl;
-                                                        BOOST_LOG_SEV(slg,notification) << "Failed to copy configuration file : " << p3.string() << " not exists.";
-
-                                                    }
+                                                    fs::copy_file(p3,p2,copy_option::overwrite_if_exists);
 
                                                 }
 
@@ -744,7 +743,7 @@ int main(int argc, const char ** argv){
 
                                                 if(!fs::create_directory(p1)){
 
-                                                    BOOST_LOG_SEV(slg,notification) << "Unable to create destination directory" << p1.string();
+                                                    cout << "Unable to create destination directory" << p1.string();
 
                                                 }else{
 
@@ -754,43 +753,10 @@ int main(int argc, const char ** argv){
 
                                                         fs::copy_file(p3,p2,copy_option::overwrite_if_exists);
 
-                                                    }else{
-
-                                                        cout << "Failed to copy configuration file : " << p3.string() << " not exists." << endl;
-                                                        BOOST_LOG_SEV(slg,notification) << "Failed to copy configuration file : " << p3.string() << " not exists.";
-
                                                     }
                                                 }
                                             }
 
-                                        }else{
-
-                                            if(!fs::create_directory(p)){
-
-                                                BOOST_LOG_SEV(slg,notification) << "Unable to create destination directory" << p.string();
-
-                                            }else{
-
-                                                if(!fs::create_directory(p1)){
-
-                                                    BOOST_LOG_SEV(slg,notification) << "Unable to create destination directory" << p1.string();
-
-                                                }else{
-
-                                                    path p3(configPath);
-
-                                                    if(fs::exists(p3)){
-
-                                                        fs::copy_file(p3,p2,copy_option::overwrite_if_exists);
-
-                                                    }else{
-
-                                                        cout << "Failed to copy configuration file : " << p3.string() << " not exists." << endl;
-                                                        BOOST_LOG_SEV(slg,notification) << "Failed to copy configuration file : " << p3.string() << " not exists.";
-
-                                                    }
-                                                }
-                                            }
                                         }
                                     }
 
@@ -816,7 +782,9 @@ int main(int argc, const char ** argv){
 
                             }else{
 
-                                inputCam->join();
+                                if(inputCam != NULL) inputCam->join();
+                                if(inputCamVideo != NULL) inputCamVideo->join();
+                                if(inputCamFrame != NULL) inputCamFrame->join();
 
                             }
 
@@ -849,11 +817,24 @@ int main(int argc, const char ** argv){
 
                             //stop acquisition thread
                             BOOST_LOG_SEV(slg, notification) << "Send signal to stop acquisition thread.";
-                            inputCam->stopThread();
 
-                            if(inputCam != NULL) delete inputCam;
-                            if(inputCamVideo != NULL) delete inputCamVideo;
-                            if(inputCamFrame != NULL) delete inputCamFrame;
+
+                            if(inputCam != NULL){
+                                inputCam->stopThread();
+                                delete inputCam;
+                            }
+
+                            if(inputCamVideo != NULL){
+
+                                delete inputCamVideo;
+
+                            }
+
+                            if(inputCamFrame != NULL){
+
+                                delete inputCamFrame;
+
+                            }
 
                         }
 
@@ -1213,111 +1194,157 @@ int main(int argc, const char ** argv){
 
                     {
 
-                        Fits fits;
-                        Fits3D fits3d(MONO_12, 960, 1280, 1000, fits);
+                        string f2 = "stationOrsay_01_frame.fit";
+                        string f1 = "stationOrsay_frame_20.fit";
 
+                        list<string> ch;
 
-                        for(int i = 0; i< 1000; i++){
+                        stringtokk(ch,f2.c_str(), "_");
 
-                            Mat frame = Mat(960, 1280, CV_16UC1, Scalar(i*4));
+                        list<string>::const_iterator lit(ch.begin()), lend(ch.end());
+                        int i = 0;
+                        int number = 0;
 
-                            cout << "add " << i << endl;
-                            fits3d.addImageToFits3D(frame);
+                        for(; lit != lend; ++lit){
 
+                            cout << i <<" : " << (*lit) << endl;
+
+                            if(i == 1){
+
+                                number = atoi((*lit).c_str()); break;
+                            }
+
+                            if(i == ch.size() - 1 && i != ch.size() - 1){
+
+                                list<string> ch_;
+                                stringtokk(ch_, f1.c_str(), ".");
+                                number = atoi(ch_.back().c_str());
+                                break;
+
+                            }
+
+                            i++;
 
                         }
 
-                        fits3d.writeFits3D("/home/fripon/data2/nex");
-                        cout << "end "<<endl;
-                        getchar();
+                        cout << "number : " << number << endl;
+                    }
 
+
+                    break;
+
+                case 8 :
+
+                    {
+
+                        vector<string> to;
+                        to.push_back("yoan.audureau@gmail.com");
+                        to.push_back("yoan.audureau@yahoo.fr");
+
+                        vector<string> pathAttachments;
+
+                        SMTPClient mailc("smtp.u-psud.fr", 25, "u-psud.fr");
+                        mailc.send("yoan.audureau@u-psud.fr", to, "test", "test" , pathAttachments, false);
 
                     }
 
                     break;
 
-                 case 8 :
+                case 9 :
 
                     {
-                            int time = 3600;
 
-                        Camera *inputCam = new Camera(  BASLER,
-                                                        400,
-                                                        300,
-                                                        MONO_12,
-                                                        30,
-                                                        600,
-                                                        600,
-                                                        false/*,
-                                                        &framesBuffer,
-                                                        &m_framesBuffer,
-                                                        &c_newElemFramesBuffer,
-                                                        &stackedFramesBuffer,
-                                                        &m_stackedFramesBuffer,
-                                                        &c_newElemStackedFramesBuffer,
-                                                        &newFrameForDet,
-                                                        &m_newFrameForDet,
-                                                        &c_newFrameForDet*/);
+                        cout << "#### TEST SIDERAL TIME ####" << endl << endl;
 
-                                inputCam->getListCameras();
+                        int year        = 0;
+                        int month       = 0;
+                        int day         = 0;
+                        int hour        = 0;
+                        int minute      = 0;
+                        float seconds  = 0.6f;
 
-                                if(!inputCam->setSelectedDevice("Basler-21418131")){
+                        boost::posix_time::ptime time = boost::posix_time::microsec_clock::universal_time();
+                        string acqDateInMicrosec = "2014-03-25T11:29:23";//to_iso_extended_string(time);
 
-                                    throw runtime_error("Connection failed to the camera :Basler-21418131");
+                        cout << "DATE : " << acqDateInMicrosec << endl;
 
-                                }else{
+                        string separator = "T";
 
+                        list<string> ch;
+                        stringtokk(ch, acqDateInMicrosec, separator.c_str());
 
-                                    cout << "> Connection success to the Basler-21418131 camera." << endl;
+                        string YYYYMMDD = ch.front();
+                        string HHMMSS   = ch.back();
 
-                                    switch(MONO_12){
+                        cout << "First part : " << YYYYMMDD << endl;
+                        cout << "Sec   part : " << HHMMSS   << endl;
 
-                                       case MONO_8 :
+                        separator = "-";
 
-                                            if(!inputCam->setCameraPixelFormat(MONO_8))
-                                                throw "ERROR :Failed to set camera with MONO_8";
+                        list<string> ch1;
+                        stringtokk(ch1, YYYYMMDD, separator.c_str());
+                        std:list<string>::const_iterator lit(ch1.begin()), lend(ch1.end());
 
-                                            break;
+                        int i = 0;
 
-                                       case MONO_12 :
+                        for(; lit != lend; ++lit){
 
-                                            if(!inputCam->setCameraPixelFormat(MONO_12))
-                                                throw "ERROR :Failed to set camera with MONO_12";
+                            if(i == 0)
+                                year = atoi((*lit).c_str());
 
-                                            break;
+                            if(i == 1)
+                                month = atoi((*lit).c_str());
 
-                                    }
+                            if(i == 2)
+                                day = atoi((*lit).c_str());
 
-                                    if(!inputCam->setCameraExposureTime(400))
-                                        throw "> Failed to set camera exposure.";
+                            i++;
 
-                                    if(!inputCam->setCameraGain(300))
-                                        throw "> Failed to set camera gain.";
+                        }
 
-                                    if(!inputCam->setCameraFPS(30))
-                                        throw "> Failed to set camera fps.";
+                        i = 0;
 
-                                    inputCam->startThread();
+                        separator = ":";
 
-                                    int cc =0;
-                                    do{
+                        list<string> ch2;
+                        stringtokk(ch2, HHMMSS, separator.c_str());
+                        list<string>::const_iterator lit2(ch2.begin()), lend2(ch2.end());
 
-                                        sleep(1);
-                                        cc++;
-                                        cout << cc << endl;
+                        for(; lit2 != lend2; ++lit2){
 
-                                    }while(cc < time);
+                            if(i == 0)
+                                hour = atoi((*lit2).c_str());
 
-                                    inputCam->stopThread();
+                            if(i == 1)
+                                minute = atoi((*lit2).c_str());
 
-                                    if(inputCam != NULL) delete inputCam;
-                                }
+                            if(i == 2)
+                                seconds = atof((*lit2).c_str());
 
+                            i++;
 
+                        }
 
-                        cout << "end "<<endl;
-                        getchar();
+                        cout << "hour : " << hour << endl;
+                        cout << "minute : " << minute << endl;
+                        cout << "seconds : " << seconds << endl;
 
+                        //int     debObsInSeconds = firstDateInt.at(3)*3600 + firstDateInt.at(4)*60 + firstDateInt.at(5);
+                        //int     endObsInSeconds = lastDateInt.at(3)*3600 + lastDateInt.at(4)*60 + lastDateInt.at(5);
+                        //int     elapTime        = endObsInSeconds - debObsInSeconds;
+                        vector <int> YYYYMMDDhhmm;
+                        YYYYMMDDhhmm.push_back(year);
+                        YYYYMMDDhhmm.push_back(month);
+                        YYYYMMDDhhmm.push_back(day);
+                        YYYYMMDDhhmm.push_back(hour);
+                        YYYYMMDDhhmm.push_back(minute);
+
+                        double  julianDate      = TimeDate::gregorianToJulian_2(YYYYMMDDhhmm);
+                        cout << "JULIAN DATE: " << julianDate << endl;
+                        double  julianCentury   = TimeDate::julianCentury(julianDate);
+                        cout << "JULIAN CENTURY : " << julianCentury << endl;
+                        double  sideralT        = TimeDate::localSideralTime_2(julianCentury, YYYYMMDDhhmm.at(3), YYYYMMDDhhmm.at(4), seconds, 2.1794397);
+                        cout << ">>> sideralTime : " << sideralT << endl;
 
                     }
 
@@ -1334,7 +1361,7 @@ int main(int argc, const char ** argv){
                         cout << "2 : Check and print configuration file"            << endl;
                         cout << "3 : Run meteor detection"                          << endl;
                         cout << "4 : Test a camera by single capture"               << endl;
-                        cout << "5 : Full FreeTure checkup"                         << endl;
+                        //cout << "5 : Full FreeTure checkup"                         << endl;
 
                     }
 

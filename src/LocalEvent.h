@@ -26,11 +26,12 @@
 *%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%*/
 
 /**
- * @file    LocalEvent.h
- * @author  Yoan Audureau -- FRIPON-GEOPS-UPSUD
- * @version 1.0
- * @date    12/06/2014
- */
+* \file    LocalEvent.h
+* \author  Yoan Audureau -- FRIPON-GEOPS-UPSUD
+* \version 1.0
+* \date    03/06/2014
+* \brief   Event occured on a single frame.
+*/
 
 #pragma once
 
@@ -55,6 +56,7 @@ class LocalEvent{
         Scalar  LE_Color;
         Mat     LE_Map;
         Point   LE_MassCenter;
+        int numFrame;
 
     public:
 
@@ -70,5 +72,6 @@ class LocalEvent{
         Mat     getMap()            {return LE_Map;};
         void    setMap(Mat mapM)    {mapM.copyTo(LE_Map);};
         Point   getMassCenter()     {return LE_MassCenter;};
-
+        int getNumFrame(){return numFrame;};
+        void setNumFrame(int num){numFrame = num;};
 };

@@ -45,21 +45,5 @@ class DetByLines{
 
         DetByLines();
 
-       /* static bool stdHT(Mat imgInput,
-                            Mat mask,
-                            int pixThreshold,
-                            int nbPixAligned,
-                            bool viewHT,
-                            bool viewAccu,
-                            bool canny,
-                            int cutFromBottom,
-                            bool saveHT);
-
-
-		bool detectionTrailBy_MaxPix_And_HT(Mat maxPix);
-
-        bool detectionTrailBy_Sum_And_HT(Mat sum);*/
-
-
 };
 

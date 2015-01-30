@@ -25,21 +25,24 @@
 *%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%*/
 
 /**
- * @file    StackedFrames.cpp
- * @author  Yoan Audureau
- * @version 1.0
- * @date    19/06/2014
- */
+* \file    StackedFrames.cpp
+* \author  Yoan Audureau -- FRIPON-GEOPS-UPSUD
+* \version 1.0
+* \date    19/06/2014
+* \brief   Convey stacked frames.
+*/
 
 #include "StackedFrames.h"
 
-StackedFrames::StackedFrames(string firstDate, string lastDate, int g, int e, Mat img, int nbImg){
+StackedFrames::StackedFrames(string acqFirstDateInMicrosec, string acqLastDateInMicrosec, string firstDate, string lastDate, int g, int e, Mat img, int nbImg){
 
-    startDate   = firstDate;
-    endDate     = lastDate;
-    gain        = g;
-    exp         = e;
-    imgSum      = nbImg;
+    startDate       = firstDate;
+    acqFirstDate    = acqFirstDateInMicrosec;
+    acqLastDate     = acqLastDateInMicrosec;
+    endDate         = lastDate;
+    gain            = g;
+    exp             = e;
+    imgSum          = nbImg;
     img.copyTo(stackedImg);
 
 }

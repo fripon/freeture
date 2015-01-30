@@ -25,12 +25,12 @@
 *%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%*/
 
 /**
- * \file    CameraSDK.cpp
- * \author  Yoan Audureau -- FRIPON-GEOPS-UPSUD
- * \version 1.0
- * \date    20/10/2014
- * \brief   Parent class of Camera's SDK.
- */
+* \file    CameraSDK.cpp
+* \author  Yoan Audureau -- FRIPON-GEOPS-UPSUD
+* \version 1.0
+* \date    20/10/2014
+* \brief   Parent class of Camera's SDK.
+*/
 
 #include "CameraSDK.h"
 
