@@ -44,13 +44,15 @@
 		
 		<h3><a name="welcome-to-freeture-page" class="anchor" href="#welcome-to-freeture-page"><span class="octicon octicon-link"></span></a>Welcome to FreeTure Page.</h3>
 
-		<p style="text-align:justify;"><strong>FreeTure</strong> is a meteor detection software used to monitor the sky with GigE all-sky cameras to detect and record falling stars and fireball. Originally, it has been developped for the <strong>FRIPON</strong> (Fireball Recovery and InterPlanetary Observation Network) project (<a target="_BLANK" href="http://www.fripon.org">www.fripon.org</a>) which aims to cover all France with 100 fish eyes cameras. But you can use it on your own station if you have a GigE camera. For now, just this kind of camera is supported but you can easily add the support of your own camera.</p></br>
+		<p style="text-align:justify;"><strong>FreeTure</strong> is a meteor detection software used to monitor the sky with GigE all-sky cameras to detect and record falling stars and fireball. Originally, it has been developed for the <strong><a target="_BLANK" href="http://www.fripon.org">FRIPON</a></strong> (Fireball Recovery and InterPlanetary Observation Network) project which aims to cover all France with 100 fish eyes cameras. But you can use it on your own station if you have a GigE camera.</p></br>
 
 		<h3>
 		<a name="getting-started" class="anchor" href="#getting-started"><span class="octicon octicon-link"></span></a>Getting started</h3>
-          <p style="text-align:justify;">Please refer to the wiki on github for futher informations about the installation. Once the soft has been installed, you can do a copy of the configuration file located by default in /usr/share/freeture/ for linux to start to configurate some parameters. After that you can start to use the soft by the following commands. There are four mains available modes. </p></br>
+          <p style="text-align:justify;">Please refer to the <a href="https://github.com/fripon/freeture/wiki">FreeTure wiki</a> for futher informations about the installation.
+          Once the soft has been installed, you can do a copy of the configuration file located by default in <code>/usr/share/freeture/</code> (for linux OSes) and start to configurate some parameters.</p></ br>
+          <p style="text-align:justify;">There are four modes you can play with. </p></br>
         
-        <p style="text-align:justify;">The first mode lists detected cameras. The returned name must be write in the configuration file in order to use the third mode or write in the command line for the second mode.</p>
+        <p style="text-align:justify;">The first mode lists detected cameras.</p>
         
 		<pre><code>$ freeture -m 1
 		</code></pre>
@@ -60,12 +62,12 @@
 		<pre><code>$ freeture -m 2
 		</code></pre>
         
-        <p style="text-align:justify;">The third mode run the detection. The option -c is not usefull if the command is run in the same directory.</p>
+        <p style="text-align:justify;">The third mode run the detection.</p>
         
 		<pre><code>$ freeture -m 3 -c [path_of_the_configuration_file] -t [execution_time]
 		</code></pre>
         
-         <p style="text-align:justify;">The fourth mode makes a single capture to test the camera. </p>
+         <p style="text-align:justify;">The fourth mode makes a single capture to test the camera.</p>
         
 		<pre><code>$ freeture -m 4 -d [device_name] -g [gain] -e [exposure_time]
 		</code></pre>
@@ -88,10 +90,13 @@
 		</ul><h3>
 		<a name="support-or-contact" class="anchor" href="#support-or-contact"><span class="octicon octicon-link"></span></a>Support or Contact</h3>
 
-		<p>Having trouble with FreeTure ? Check out the <a target="_BLANK" href="https://github.com/fripon/freeture/wiki">wiki</a> or  <a target="_BLANK" href="https://github.com/fripon/freeture/issues">contact us</a> and we’ll help you sort it out . 
+		<p>Having trouble with FreeTure ? Check out the <a target="_BLANK" href="https://github.com/fripon/freeture/wiki">wiki</a> or <a target="_BLANK" href="https://github.com/fripon/freeture/issues">contact us</a> and we’ll help you sort it out . 
         </p>
 
-
+	        <a name="acknowledging" class="anchor" href="#acknowledging"><span class="octicon octicon-link"></span></a>Acknowledging FreeTure</h3>
+                <p>If you use FreeTure for your work or research please cite</p></ br>
+                <p>Audureau et al., 2014, <a href="http://adsabs.harvard.edu/abs/2014pim4.conf...39A">"FreeTure: A Free software to capTure meteors for FRIPON"</a>, Proceedings of the International Meteor Conference, Giron, France, 18-21 September 2014 Eds.: Rault, J.-L.; Roggemans, P. International Meteor Organization, ISBN 978-2-87355-028-8, pp. 39-41</p></ br>
+                
 		<img src="images/bandeau_fripon.png" alt="" />  
 
   
