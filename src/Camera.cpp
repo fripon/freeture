@@ -292,6 +292,12 @@ bool Camera::startGrab(){
 
 }
 
+bool Camera::startGrab(int fps){
+
+    return camera->grabStart(fps);
+
+}
+
 bool Camera::getDeviceById(int id, string &device){
 
     return camera->getDeviceById(id, device);

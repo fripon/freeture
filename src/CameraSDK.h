@@ -58,7 +58,9 @@ class CameraSDK{
 		virtual bool	chooseDevice(int, string)                   {return false;};
 
 		//! Prepare the grabbing of frames.
-		virtual bool	grabStart()							        {return -1;};
+		virtual bool	grabStart()							        {return false;};
+
+		virtual bool	grabStart(int camFps)						{return false;};
 
 		//! Start acquisition.
 		virtual void	acqStart(bool continuousAcquisition)        {};

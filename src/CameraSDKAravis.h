@@ -84,6 +84,8 @@ class CameraSDKAravis: public CameraSDK{
 
 		bool	grabStart();
 
+		bool	grabStart(int camFps);
+
 		void	grabStop();
 
         bool    grabImage(Frame& newFrame);

@@ -192,6 +192,8 @@ class Camera{
 		//! Start the acquisition thread.
 		void	startThread();
 
+		bool    startGrab(int fps);
+
         //! Prepare the grab of frames.
 		bool    startGrab();
 

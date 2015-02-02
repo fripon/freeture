@@ -276,6 +276,8 @@ bool RecEvent::saveGE(  boost::circular_buffer<Frame>  *frameBuffer,
         SaveImg::saveBMP((*itGE).getMapEvent(), currentEventPath + "GEMap");
         mailAttachments.push_back(currentEventPath + "GEMap.bmp");
 
+        SaveImg::saveBMP((*itGE).getDirMap(), currentEventPath + "DirMap");
+
     }
     cout << "get numFirstFrameEvent" <<endl;
     // Number of the first frame where the event is detected.
@@ -355,6 +357,58 @@ bool RecEvent::saveGE(  boost::circular_buffer<Frame>  *frameBuffer,
         // infos
 
         posFile.close();
+
+    }
+
+
+    /// INFOS DET
+    bool infos = true;
+    if(infos){
+
+        ofstream infFile;
+        string infFilePath = currentEventPath + "infos.txt";
+        infFile.open(infFilePath.c_str());
+
+
+        infFile << " * AGE              : " << (*itGE).getAge() << "\n";
+        infFile << " * AGE LAST ELEM    : " << (*itGE).getAgeLastElem()<< "\n";
+        infFile << " * LINEAR STATE     : " << (*itGE).getLinearStatus()<< "\n";
+        infFile << " * BAD POS          : " << (*itGE).getBadPos()<< "\n";
+        infFile << " * GOOD POS         : " << (*itGE).getGoodPos()<< "\n";
+        infFile << " * Num first frame  : " << (*itGE).getNumFirstFrame()<< "\n";
+        infFile << " * Num last frame   : " << (*itGE).getNumLastFrame()<< "\n";
+        //infFile << " * Static Test      : " << (*itGE).getStaticTestRes();
+        infFile << "\n mainPoint : \n";
+
+        for(int i = 0; i < (*itGE).mainPoints.size(); i++){
+
+            infFile << "(" << (*itGE).mainPoints.at(i).x << ";"<<  (*itGE).mainPoints.at(i).y << ")\n";
+
+        }
+
+        infFile << "\n distance : \n";
+
+         for(int i = 0; i < (*itGE).dist.size(); i++){
+
+            infFile << (*itGE).dist.at(i)<< "\n";
+
+        }
+
+        infFile.close();
+
+        vector<LocalEvent>::iterator itLE;
+        int cpt = 0;
+
+        for(itLE = (*itGE).LEList.begin(); itLE!=(*itGE).LEList.end(); ++itLE){
+
+            SaveImg::saveBMP((*itGE).getMapEvent(), currentEventPath + "LEMap_" + Conversion::intToString(cpt));
+            cpt++;
+
+        }
+
+        SaveImg::saveBMP((*itGE).getDirMap2(), currentEventPath + "DirMap2");
+
+
 
     }
 

@@ -260,6 +260,7 @@ int main(int argc, const char ** argv){
       ("camtype",       po::value<string>()->default_value("basler"),                                   "Type of camera")
       ("display",       po::value<bool>()->default_value(false),                                        "In mode 4 : Display the grabbed frame")
       ("id",            po::value<int>(),                                                               "Camera ID")
+      ("fps",           po::value<int>(),                                                               "Acquisition frequency")
       ("savepath,p",    po::value<string>()->default_value("./"),                                       "Save path");
 
     po::variables_map vm;
@@ -279,6 +280,7 @@ int main(int argc, const char ** argv){
         string  camtype         = "basler";
         bool    display         = false;
         int     camID           = 0;
+        int     fps             = 30;
 
         po::store(po::parse_command_line(argc, argv, desc), vm);
 
@@ -420,8 +422,8 @@ int main(int argc, const char ** argv){
                         Camera          *inputCam       = NULL;
                         CameraVideo     *inputCamVideo  = NULL;
                         CameraFrames    *inputCamFrame  = NULL;
-                        DetThread   *det        = NULL;
-                        AstThread   *ast        = NULL;
+                        DetThread       *det            = NULL;
+                        AstThread       *ast            = NULL;
 
                         Mat mask;
 
@@ -894,6 +896,9 @@ int main(int argc, const char ** argv){
                         // Cam id.
                         if(vm.count("id"))          camID     = vm["id"].as<int>();
 
+                        // FPS.
+                        if(vm.count("fps"))         fps         = vm["fps"].as<int>();
+
                         // Save bmp.
                         if(vm.count("bmp"))         saveBmp     = vm["bmp"].as<bool>();
 
@@ -963,6 +968,11 @@ int main(int argc, const char ** argv){
                         }else{
 
                             cout << "> Connection success." << endl;
+/*
+
+                            if(!inputCam->setCameraFPS(fps));
+                                throw "> Failed to set camera fps.";
+*/
 
                             if(!inputCam->setCameraPixelFormat(camFormat))
                                 throw "> Failed to set camera bit depth.";
@@ -973,13 +983,8 @@ int main(int argc, const char ** argv){
                             if(!inputCam->setCameraGain(gain))
                                 throw "> Failed to set camera gain.";
 
-
-
-                            if(!inputCam->startGrab())
+                            if(!inputCam->startGrab(fps))
                                 throw "> Failed to initialize the grab.";
-
-                            /*if(!inputCam->setCameraFPS(30));
-                                throw "> Failed to set camera fps.";*/
 
                             if(!inputCam->grabSingleFrame(frame, date))
                                 throw "> Failed to grab a single frame.";

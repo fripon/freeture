@@ -46,11 +46,14 @@ GlobalEvent::GlobalEvent(vector<string> frameDate, int frameNum, int frameHeight
     geMap           = Mat(frameHeight,frameWidth, CV_8UC1,Scalar(0));
     geMapPrev       = Mat(frameHeight,frameWidth, CV_8UC1,Scalar(0));
     dirMap          = Mat(frameHeight,frameWidth, CV_8UC3,Scalar(0,0,0));
+    dirMap2         = Mat(960,1280, CV_8UC3,Scalar(0,0,0));
     linear          = true;
     velocity        = 0;
     badPoint        = 0;
     goodPoint       = 0;
     geStatic        = false;
+    checkPos        = false;
+    nbCheckConsecutivePosError = 0;
 
 }
 
@@ -60,19 +63,44 @@ GlobalEvent::~GlobalEvent(){
 
 bool GlobalEvent::addLE(LocalEvent le){
 
-    Point center =  le.getMassCenter();
+    // Get LE position.
+    Point center = le.getMassCenter();
 
+    // Add the LE to the current GE.
     LEList.push_back(le);
 
-    if(LEList.size() % 2 == 0){
+    // First position of the GE.
+    if(LEList.size() == 1){
+
+        Point mapCenter = Point(640,480);
+        lastPos = Point(640,480);
+        circle(dirMap2, mapCenter, 5, Scalar(0,255,0), 1, 8, 0);
+        mainPoints.push_back(center);
+        dist.push_back(0.0);
+
+    }else if(LEList.size() % 3 == 0){
+
+        // Shifted value.
+        Point diff = Point(center.x - mainPoints.back().x, center.y - mainPoints.back().y) * 10;
+        // New Position in dirMap system.
+        Point newPos = Point(lastPos.x + diff.x, lastPos.y + diff.y);
+        // Draw line.
+        line(dirMap2, lastPos, newPos, Scalar( 0, 0, 255 ), 2, 8);
+        // Update.
+        lastPos = newPos;
+
+        float d = sqrt(pow(center.x - mainPoints.back().x,2) + pow(center.y - mainPoints.back().y,2));
+        dist.push_back(d);
+
+        if(d == 0) geStatic = true;
 
         mainPoints.push_back(center);
 
         if(mainPoints.size() >= 3){
 
-            Point   A   = Point(mainPoints.at(0)),
-                    B   = Point(mainPoints.at(floor(mainPoints.size()/2.0))),
-                    C   = Point(mainPoints.at(mainPoints.size()- 1));
+            Point   A   = Point(mainPoints.front()),
+                    B   = Point(mainPoints.at(mainPoints.size()- 2)),
+                    C   = Point(mainPoints.back());
 
             Point   v1  = Point(B.x - A.x, B.y - A.y);
 
@@ -84,12 +112,15 @@ bool GlobalEvent::addLE(LocalEvent le){
             float thetaRad = (v3.x*v2.x+v3.y*v2.y)/(sqrt(pow(v3.x,2)+pow(v3.y,2))*sqrt(pow(v2.x,2)+pow(v2.y,2)));
             float thetaDeg = (180 * acos(thetaRad))/3.14159265358979323846;
 
-            if(thetaDeg > 35.0 || thetaDeg < -35.0 ){
+            if(thetaDeg > 40.0 || thetaDeg < -40.0 ){
 
-                circle(dirMap, center, 5, Scalar(0,0,255), CV_FILLED, 8, 0);
+                circle(dirMap, center, 5, Scalar(0,0,255), 1, 8, 0);
+                circle(dirMap2, newPos, 5, Scalar(0,0,255), 1, 8, 0);
+
                 badPoint++;
-                if(pos.back() == false)
-                    linear = false;
+
+                // Two consecutives bad points.
+                if(pos.back() == false) linear = false;
 
                 pos.push_back(false);
 
@@ -98,15 +129,15 @@ bool GlobalEvent::addLE(LocalEvent le){
             }else{
 
                 pos.push_back(true);
-                circle(dirMap, center, 5, Scalar(0,255,0), CV_FILLED, 8, 0);
+                circle(dirMap, center, 5, Scalar(0,255,0), 1, 8, 0);
+                circle(dirMap2, newPos, 5, Scalar(0,255,0), 1, 8, 0);
                 goodPoint++;
-                velocity = sqrt(pow(LEList.front().getMassCenter().x - LEList.back().getMassCenter().x,2)+pow(LEList.front().getMassCenter().y - LEList.back().getMassCenter().y,2));
 
             }
         }
     }
 
-    circle(dirMap, center, 3, Scalar(255,0,0), CV_FILLED, 8, 0);
+    circle(dirMap, center, 3, Scalar(255,0,0), 1, 8, 0);
 
     //reset ageLastELem
     geAgeLastLE = 0;
@@ -121,7 +152,7 @@ bool GlobalEvent::addLE(LocalEvent le){
 
     }
 
-    if(LEList.size() % 20 == 0){
+    /*if(LEList.size() % 20 == 0){
 
         Mat res2 = geMapPrev & le.getMap();
         int nbPixNonZero = countNonZero(res2);
@@ -135,7 +166,7 @@ bool GlobalEvent::addLE(LocalEvent le){
         Mat temp = le.getMap();
         temp.copyTo(geMapPrev);
 
-    }
+    }*/
 
     return true;
 

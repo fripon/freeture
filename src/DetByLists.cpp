@@ -1006,20 +1006,15 @@ bool DetByLists::detectionMethodByListManagement(   Frame currentFrame,
 
     while (itGE != listGlobalEvents.end()){
 
-        // CASE 1 : Probably finished event.
+        // CASE 1 : Finished event.
         if((*itGE).getAgeLastElem() > 5){
 
-            if((*itGE).continuousGoodPos(4) && (*itGE).getVelocity() >= 3 && !(*itGE).getGeStatic()){
-
-                // Save the event.
+            if( ((*itGE).LEList.size() >= 10 && (*itGE).getLinearStatus() && !(*itGE).getGeStatic()) ||
+                ((*itGE).LEList.size() >= 10 && !(*itGE).getLinearStatus() && (*itGE).continuousGoodPos(10) && !(*itGE).getGeStatic())){
 
                 nbDet++;
-
                 itGEToSave = itGE;
-
-                rec = true;
-
-                break;
+                return true;
 
             }else{
 
@@ -1031,25 +1026,18 @@ bool DetByLists::detectionMethodByListManagement(   Frame currentFrame,
         //CASE 2 : Not finished event.
         }else{
 
-            if((*itGE).getAge() > 400 ||                                                                                            // Plane = too long
-               ((*itGE).getLinearStatus() && (*itGE).getVelocity() < 3  && (*itGE).LEList.size() > 5)||(*itGE).getGeStatic()){     // Plane = too slow
+            if((*itGE).getAge() > 400){
 
                 // Delete the event.
                 itGE = listGlobalEvents.erase(itGE);
 
+            }else if((currentFrame.getFrameRemaining()< 10 && currentFrame.getFrameRemaining() != 0)){      // No more frames soon (in video or frames)
 
-            }else if((currentFrame.getFrameRemaining()< 10 && currentFrame.getFrameRemaining() != 0) ){      // No more frames soon (in video or frames)
-
-                 if(((*itGE).continuousGoodPos(4) && (*itGE).getVelocity() >= 3.0f) && !(*itGE).getGeStatic()){
+                 if((*itGE).LEList.size() >= 10 && (*itGE).getLinearStatus() && !(*itGE).getGeStatic()){
 
                     nbDet++;
-
                     itGEToSave = itGE;
-
-                    rec = true;
-
-                    break;
-
+                    return true;
 
                  }else{
 
@@ -1062,29 +1050,15 @@ bool DetByLists::detectionMethodByListManagement(   Frame currentFrame,
                 ++itGE;
 
             }
-
         }
     }
 
     tStep4 = (((double)getTickCount() - tStep4)/getTickFrequency())*1000;
-
     cout << "Time step4 : " << tStep4 << endl;
 
-    cout << "> GE number : " << listGlobalEvents.size() << endl;
+    cout << "> GE number : " << listGlobalEvents.size() << "/" << nbGE << endl;
 
-    for(int i = 0; i< listGlobalEvents.size(); i++){
-
-        cout << "> GE n°" << i  << " - Age("        <<  listGlobalEvents.at(i).getAge()             << ")"
-                                << " - AgeLast("    <<  listGlobalEvents.at(i).getAgeLastElem()     << ")"
-                                << " - Speed("      <<  listGlobalEvents.at(i).getVelocity()        << ")"
-                                << " - Good("       <<  listGlobalEvents.at(i).getGoodPos()         << ")"
-                                << " - Bad("        <<  listGlobalEvents.at(i).getBadPos()          << ")"
-                                << " - Linear("     <<  listGlobalEvents.at(i).getLinearStatus()    << ")" << endl;
-
-
-    }
-
-
+    return false;
 
 //    if(debug){
 //
@@ -1192,6 +1166,6 @@ bool DetByLists::detectionMethodByListManagement(   Frame currentFrame,
 //
 //    }
 
-    return rec;
+    //return rec;
 
 }

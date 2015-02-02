@@ -53,8 +53,9 @@ class GlobalEvent{
         Mat             geMap;
         int             numFirstFrame;
         int             numLastFrame;
-        vector<Point>   mainPoints;
+
         Mat             dirMap;
+        Mat             dirMap2;
         float           velocity;
         bool            newLEAdded;
         bool            linear;
@@ -62,12 +63,17 @@ class GlobalEvent{
         int             goodPoint;
         Mat             geMapPrev;
         bool            geStatic;
+        bool            checkPos;
+        int nbCheckConsecutivePosError;
+        Point           lastPos;
 
     public:
 
         vector<LocalEvent> LEList;
         vector<Mat> eventBuffer;
         vector<bool> pos;
+        vector<float> dist;
+        vector<Point>   mainPoints;
 
         GlobalEvent(vector<string> frameDate, int frameNum, int frameHeight, int frameWidth);
 
@@ -75,6 +81,7 @@ class GlobalEvent{
 
         Mat             getMapEvent             ()          {return geMap;};
         Mat             getDirMap               ()          {return dirMap;};
+        Mat             getDirMap2              ()          {return dirMap2;};
         int             getAge                  ()          {return geAge;};
         int             getAgeLastElem          ()          {return geAgeLastLE;};
         vector<string>  getDate                 ()          {return geDate;};
