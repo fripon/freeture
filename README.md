@@ -1,4 +1,4 @@
-**FreeTure**
+### FreeTure
 
 *A Free software to capTure meteors*
 
