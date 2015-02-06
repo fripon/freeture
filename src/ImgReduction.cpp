@@ -200,7 +200,14 @@ Mat ImgReduction::dynamicReductionByFactorDivision(Mat& img, CamBitDepth bitpix,
 
                     for(int j = 0; j < img.cols; j++){
 
-                        ptr2[j] = cvRound(ptr[j] / factor) - 128;
+                        if(cvRound(ptr[j] / factor) - 128 > 255){
+
+                            ptr2[j] = 255;
+
+                        }else{
+
+                            ptr2[j] = cvRound(ptr[j] / factor) - 128;
+                        }
 
                     }
                 }
@@ -228,8 +235,14 @@ Mat ImgReduction::dynamicReductionByFactorDivision(Mat& img, CamBitDepth bitpix,
 
                     for(int j = 0; j < img.cols; j++){
 
-                        ptr2[j] = cvRound(ptr[j] / factor) - 32768;
+                        if(cvRound(ptr[j] / factor) - 32768 > 32767){
 
+                            ptr2[j] = 32767;
+
+                        }else{
+
+                            ptr2[j] = cvRound(ptr[j] / factor) - 32768;
+                        }
                     }
                 }
             }

@@ -81,7 +81,7 @@ template<typename T> class EParser{
 		string getStringEnum(T type){
 
 		    typename map<string, T>::const_iterator it;
-            cout << enumMap.size()<<endl;
+
             for(it = enumMap.begin(); it != enumMap.end(); ++it){
                 if(type == it->second)
                     return it->first;

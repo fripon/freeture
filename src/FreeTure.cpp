@@ -55,8 +55,8 @@ bool FreeTure::loadParameters(){
 		cfg.Get("CAMERA_ID", 					CAMERA_ID);
 		cfg.Get("VIDEO_PATH", 					VIDEO_PATH);
 		cfg.Get("FRAMES_PATH", 					FRAMES_PATH);
-		cfg.Get("FRAMES_START", 				FRAMES_START);
-		cfg.Get("FRAMES_STOP", 					FRAMES_STOP);
+		cfg.Get("FRAMES_SEPARATOR", 			FRAMES_SEPARATOR);
+		cfg.Get("FRAMES_SEPARATOR_POSITION", 	FRAMES_SEPARATOR_POSITION);
 
 		/// Acquisition parameters
 
@@ -73,10 +73,7 @@ bool FreeTure::loadParameters(){
 		cfg.Get("ACQ_AUTO_EXPOSURE_ENABLED",	ACQ_AUTO_EXPOSURE_ENABLED);
 		cfg.Get("ACQ_MASK_ENABLED",				ACQ_MASK_ENABLED);
 		cfg.Get("ACQ_MASK_PATH",				ACQ_MASK_PATH);
-		cfg.Get("ACQ_SAVE_FRAMES_ENABLED",		ACQ_SAVE_FRAMES_ENABLED);
-		cfg.Get("ACQ_SAVE_FRAMES_TYPE",			ACQ_SAVE_FRAMES_TYPE);
-		cfg.Get("ACQ_SAVE_FRAMES_PATH",			ACQ_SAVE_FRAMES_PATH);
-		cfg.Get("ACQ_SAVE_FRAMES_BUFFER_SIZE",	ACQ_SAVE_FRAMES_BUFFER_SIZE);
+
 		cfg.Get("ACQ_BUFFER_SIZE",              ACQ_BUFFER_SIZE);
 
 		/// Detection parameters
@@ -85,7 +82,7 @@ bool FreeTure::loadParameters(){
 
 		string det_method;
 		cfg.Get("DET_METHOD", det_method);
-		EParser<DetMeth> det_mth;
+
 		DetMeth id_det_mth = det_mth.parseEnum("DET_METHOD", det_method);
         DET_METHOD = id_det_mth;
 
@@ -111,7 +108,7 @@ bool FreeTure::loadParameters(){
 
 		string stack_method;
 		cfg.Get("STACK_MTHD", stack_method);
-		EParser<StackMeth> stack_mth;
+
 		StackMeth id_stack_mth = stack_mth.parseEnum("STACK_MTHD", stack_method);
         STACK_MTHD = id_stack_mth;
 
@@ -148,7 +145,7 @@ bool FreeTure::loadParameters(){
 
 		string log_severity;
 		cfg.Get("LOG_SEVERITY", 				log_severity);
-		EParser<LogSeverityLevel> log_sev;
+
 		LogSeverityLevel id_log_sev = log_sev.parseEnum("LOG_SEVERITY", log_severity);
         LOG_SEVERITY = id_log_sev;
 
@@ -177,14 +174,14 @@ void FreeTure::printParameters(){
 
     std::cout << "========================== Input ================================"    << endl
                                                                                         << endl;
-    std::cout << "=> CAMERA_TYPE                : " << cam_type.getStringEnum(CAMERA_TYPE)          << endl;
+    std::cout << "=> CAMERA_TYPE                : " << cam_type.getStringEnum(CAMERA_TYPE) << endl;
 
     std::cout << "=> CAMERA_NAME                : " << CAMERA_NAME                      << endl;
     std::cout << "=> CAMERA_ID                  : " << CAMERA_ID                        << endl;
     std::cout << "=> VIDEO_PATH                 : " << VIDEO_PATH                       << endl;
     std::cout << "=> FRAMES_PATH                : " << FRAMES_PATH                      << endl;
-    std::cout << "=> FRAMES_START               : " << FRAMES_START                     << endl;
-    std::cout << "=> FRAMES_STOP                : " << FRAMES_STOP                      << endl;
+    std::cout << "=> FRAMES_SEPARATOR           : " << FRAMES_SEPARATOR                 << endl;
+    std::cout << "=> FRAMES_SEPARATOR_POSITION  : " << FRAMES_SEPARATOR_POSITION        << endl;
 
     std::cout << endl
               << "======================= Acquisition ============================="    << endl
@@ -194,24 +191,20 @@ void FreeTure::printParameters(){
     std::cout <<"=> ACQ_BIT_DEPTH               : " << ACQ_BIT_DEPTH                    << endl;
     std::cout <<"=> ACQ_EXPOSURE                : " << ACQ_EXPOSURE                     << endl;
     std::cout <<"=> ACQ_GAIN                    : " << ACQ_GAIN                         << endl;
-    std::cout <<"=> ACQ_AUTO_EXPOSURE_ENABLED   : " << ACQ_AUTO_EXPOSURE_ENABLED        << endl;
     std::cout <<"=> ACQ_MASK_ENABLED            : " << ACQ_MASK_ENABLED                 << endl;
     std::cout <<"=> ACQ_MASK_PATH               : " << ACQ_MASK_PATH                    << endl;
-    std::cout <<"=> ACQ_SAVE_FRAMES_ENABLED     : " << ACQ_SAVE_FRAMES_ENABLED          << endl;
-    std::cout <<"=> ACQ_SAVE_FRAMES_TYPE        : " << ACQ_SAVE_FRAMES_TYPE             << endl;
-    std::cout <<"=> ACQ_SAVE_FRAMES_PATH        : " << ACQ_SAVE_FRAMES_PATH             << endl;
-    std::cout <<"=> ACQ_SAVE_FRAMES_BUFFER_SIZE : " << ACQ_SAVE_FRAMES_BUFFER_SIZE      << endl;
-    std::cout <<"=> ACQ_SAVE_FRAMES_TYPE        : " << ACQ_SAVE_FRAMES_TYPE             << endl;
+    std::cout <<"=> ACQ_BUFFER_SIZE             : " << ACQ_BUFFER_SIZE                  << endl;
 
     std::cout << endl
               << "======================== Detection =============================="    << endl
                                                                                         << endl;
 
     std::cout <<"=> DET_ENABLED                 : " << DET_ENABLED                      << endl;
-    std::cout <<"=> DET_METHOD                  : " << DET_METHOD                       << endl;
+    std::cout <<"=> DET_METHOD                  : " << det_mth.getStringEnum(DET_METHOD) << endl;
     std::cout <<"=> DET_SAVE_FITS3D             : " << DET_SAVE_FITS3D                  << endl;
     std::cout <<"=> DET_SAVE_FITS2D             : " << DET_SAVE_FITS2D                  << endl;
     std::cout <<"=> DET_SAVE_BMP                : " << DET_SAVE_BMP                     << endl;
+    std::cout <<"=> DET_SAVE_SUM                : " << DET_SAVE_SUM                     << endl;
     std::cout <<"=> DET_SAVE_AVI                : " << DET_SAVE_AVI                     << endl;
     std::cout <<"=> DET_SAVE_GEMAP              : " << DET_SAVE_GEMAP                   << endl;
     std::cout <<"=> DET_SAVE_TRAIL              : " << DET_SAVE_TRAIL                   << endl;
@@ -229,7 +222,7 @@ void FreeTure::printParameters(){
     std::cout <<"=> STACK_ENABLED               : " << STACK_ENABLED                    << endl;
     std::cout <<"=> STACK_TIME                  : " << STACK_TIME                       << endl;
     std::cout <<"=> STACK_INTERVAL              : " << STACK_INTERVAL                   << endl;
-    std::cout <<"=> STACK_MTHD                  : " << STACK_MTHD                       << endl;
+    std::cout <<"=> STACK_MTHD                  : " << stack_mth.getStringEnum(STACK_MTHD) << endl;
     std::cout <<"=> STACK_REDUCTION             : " << STACK_REDUCTION                  << endl;
 
     std::cout << endl
@@ -243,6 +236,7 @@ void FreeTure::printParameters(){
     std::cout <<"=> CFG_FILECOPY_ENABLED        : " << CFG_FILECOPY_ENABLED             << endl;
     std::cout <<"=> DATA_PATH                   : " << DATA_PATH                        << endl;
     std::cout <<"=> LOG_PATH                    : " << LOG_PATH                         << endl;
+    std::cout <<"=> LOG_SEVERITY                : " << log_sev.getStringEnum(LOG_SEVERITY) << endl;
     std::cout <<"=> LONGITUDE                   : " << LONGITUDE                        << endl;
 
 }

@@ -621,12 +621,9 @@ int main(int argc, const char ** argv){
                                         throw runtime_error("Mask's size (" + Conversion::intToString(mask.cols) + ";" + Conversion::intToString(mask.rows) + ") doesn't fit to frame's size (" + Conversion::intToString(framewidth) + ";" + Conversion::intToString(frameheight) +")");
                                     }
 
-                                    int sepPos = 1;
-                                    string sep = "_";
-
                                     inputCamFrame = new CameraFrames(	ft.FRAMES_PATH,
-                                                                        sepPos,
-                                                                        sep,
+                                                                        ft.FRAMES_SEPARATOR_POSITION,
+                                                                        ft.FRAMES_SEPARATOR,
                                                                         fitsHeader,
                                                                         format,
                                                                         &framesBuffer,
@@ -1125,7 +1122,7 @@ int main(int argc, const char ** argv){
 
                         namespace fs = boost::filesystem;
 
-                        path p("/home/fripon/Orsay_20141122_191438UT-0.fit");
+                        path p("/home/fripon/Montsec_20150205_212509_UT.fit");
 
                         if(is_regular_file(p)){
 
@@ -1134,9 +1131,15 @@ int main(int argc, const char ** argv){
 
                             Mat resMat, res;
 
-                            Fits2D newFits("/home/fripon/Orsay_20141122_191438UT-0.fit",fitsHeader);
-                            newFits.readFits32F(resMat, "/home/fripon/Orsay_20141122_191438UT-0.fit");
+                            Fits2D newFits("/home/fripon/Montsec_20150205_212509_UT.fit",fitsHeader);
+                            newFits.readFits32F(resMat, "/home/fripon/Montsec_20150205_212509_UT.fit");
                             resMat.copyTo(res);
+
+                            double minVal, maxVal;
+                            minMaxLoc(res, &minVal, &maxVal);
+
+                            cout << "> Max : "<< maxVal<<endl;
+                            cout << "> Min : "<< minVal<<endl<<endl;
 
                             cout << "before"<<endl;
                             Mat newMat ;
@@ -1146,12 +1149,12 @@ int main(int argc, const char ** argv){
 
                             Fits2D newFits2("/home/fripon/testFits_",fitsHeader);
 
-
+vector<string> dd;
                            //Rechercher la valeur max 7371000 par rapport au n * 4095
 
                             newFits2.setBzero(bz/*32768*112.4725*/);
                             newFits2.setBscale(bs/*112.4725*/);
-                           // newFits2.writeFits(newMat, S16, 0, true,"" );
+                            newFits2.writeFits(newMat, S16, dd, false,"test" );
 
                             double minVal2, maxVal2;
                             minMaxLoc(newMat, &minVal2, &maxVal2);
