@@ -57,6 +57,8 @@
 #include <boost/filesystem.hpp>
 #include <boost/circular_buffer.hpp>
 
+#include <boost/date_time.hpp>
+
 using namespace boost::filesystem;
 
 using namespace std;
@@ -151,44 +153,57 @@ void sigTermHandler(int signum, siginfo_t *info, void *ptr){
 
 #endif
 
-/**
- * \brief Prepare the log file's structure
- * @param path location of log's files
- */
+// The operator puts a human-friendly representation of the severity level to the stream
+// http://www.boost.org/doc/libs/1_55_0/libs/log/example/doc/expressions_attr_fmt_tag.cpp
+std::ostream& operator<< (std::ostream& strm, LogSeverityLevel level){
 
-void init_log(string path){
+    static const char* strings[] =
+    {
+        "NORM",
+        "NTFY",
+        "WARN",
+        "FAIL",
+        "CRIT"
+    };
+
+    if (static_cast< std::size_t >(level) < sizeof(strings) / sizeof(*strings))
+        strm << strings[level];
+    else
+        strm << static_cast< int >(level);
+
+    return strm;
+}
+
+void init_log(string path, LogSeverityLevel sev){
 
 	// Create a text file sink
     typedef sinks::synchronous_sink< sinks::text_multifile_backend > file_sink;
-     boost::shared_ptr< file_sink > sink(new file_sink);
+    boost::shared_ptr< file_sink > sink(new file_sink);
 
     // Set up how the file names will be generated
-    sink->locked_backend()->set_file_name_composer(sinks::file::as_file_name_composer(
-        expr::stream << path <<expr::attr< std::string >("LogName") << ".log"));
+    sink->locked_backend()->set_file_name_composer(
+        sinks::file::as_file_name_composer(expr::stream << path <<expr::attr< std::string >("LogName") << ".log"));
 
-    //sink->locked_backend()->auto_flush(true);
+//    sink->locked_backend()->auto_flush(true);
 
     // Set the log record formatter
     sink->set_formatter(
-        expr::format(/*"%1%: [%2%]*/" [%1%] [%2%] <%3%> >> %4%")
-            //% expr::attr< unsigned int >("RecordID")
+        expr::format("[%1%] <%2%> (%3%) - %4%")
             % expr::attr< boost::posix_time::ptime >("TimeStamp")
-            % expr::format_date_time< attrs::timer::value_type >("Uptime", "%O:%M:%S")
-            //% expr::attr< attrs::current_thread_id::value_type >("ThreadID")
-            //% expr::format_named_scope("Scope", keywords::format = "%n (%f:%l)")
-            % expr::attr< LogSeverityLevel >("Severity")
+            % expr::attr< LogSeverityLevel>("Severity")
+            % expr::attr<std::string>("ClassName")
             % expr::smessage
     );
 
+    //sink->set_filter(severity >= warning
+     boost::log::core::get()->set_filter(boost::log::expressions::attr< LogSeverityLevel >("Severity") >= sev);
     // Add it to the core
     logging::core::get()->add_sink(sink);
+
 
     // Add some attributes too
     logging::add_common_attributes();
     logging::core::get()->add_global_attribute("TimeStamp", attrs::local_clock());
-    //logging::core::get()->add_global_attribute("RecordID", attrs::counter< unsigned int >());
-    //logging::core::get()->add_global_attribute("ThreadID", attrs::current_thread_id());
-    //logging::core::get()->add_thread_attribute("Scope", attrs::named_scope());
 
 }
 
@@ -396,12 +411,11 @@ int main(int argc, const char ** argv){
                         }
 
                         // log configuration
-                        init_log(ft.LOG_PATH);
+                        init_log(ft.LOG_PATH, ft.LOG_SEVERITY);
                         src::severity_logger< LogSeverityLevel > slg;
+                        slg.add_attribute("ClassName", boost::log::attributes::constant<std::string>("main.cpp"));
                         BOOST_LOG_SCOPED_THREAD_TAG("LogName", "mainThread");
-
-
-
+                        BOOST_LOG_SEV(slg, notification) << " FREETURE - Meteor detection mode ";
 
                         // Circular buffer for last frames.
                         boost::circular_buffer<Frame> framesBuffer(ft.ACQ_BUFFER_SIZE * ft.ACQ_FPS);
@@ -417,7 +431,6 @@ int main(int argc, const char ** argv){
                         boost::mutex m_stackedFramesBuffer;
                         boost::condition_variable c_newElemStackedFramesBuffer;
 
-
                         // Input device type
                         Camera          *inputCam       = NULL;
                         CameraVideo     *inputCamVideo  = NULL;
@@ -427,18 +440,20 @@ int main(int argc, const char ** argv){
 
                         Mat mask;
 
-
-
                         /// ------------------------------------------------
                         ///                   Load Mask
                         /// ------------------------------------------------
 
                         if(ft.ACQ_MASK_ENABLED){
 
+                            BOOST_LOG_SEV(slg, normal) << " Masking enabled ";
+
                             mask = imread(ft.ACQ_MASK_PATH, CV_LOAD_IMAGE_GRAYSCALE);
 
-                            if(!mask.data)
+                            if(!mask.data){
+                                BOOST_LOG_SEV(slg, critical) << " Can't load the mask from this location : " << ft.ACQ_MASK_PATH;
                                 throw "Can't load the mask.";
+                            }
 
                         }
 
@@ -451,7 +466,7 @@ int main(int argc, const char ** argv){
                             case BASLER :
                             case DMK :
 
-                                BOOST_LOG_SEV(slg, notification) << " Basler in input ";
+                                BOOST_LOG_SEV(slg, notification) << " GigE camera in input : " << ft.CAMERA_TYPE;
 
                                 inputCam = new Camera(  ft.CAMERA_TYPE,
                                                         ft.ACQ_EXPOSURE,
@@ -474,40 +489,50 @@ int main(int argc, const char ** argv){
                                 inputCam->getListCameras();
 
                                 if(!inputCam->setSelectedDevice(ft.CAMERA_NAME)){
-
+                                    BOOST_LOG_SEV(slg, critical) << " Connection failed to the camera : " << ft.CAMERA_NAME;
                                     throw runtime_error("Connection failed to the camera : " + ft.CAMERA_NAME);
 
                                 }else{
 
-                                    BOOST_LOG_SEV(slg, fail)    << "Connection success to the " << ft.CAMERA_NAME << " camera.";
-                                    cout                        << "> Connection success to the " << ft.CAMERA_NAME << " camera." << endl;
+                                    BOOST_LOG_SEV(slg, notification) << " Connection success to the " << ft.CAMERA_NAME << " camera.";
+                                    cout << "> Connection success to the " << ft.CAMERA_NAME << " camera." << endl;
 
                                     switch(ft.ACQ_BIT_DEPTH){
 
                                        case MONO_8 :
 
-                                            if(!inputCam->setCameraPixelFormat(MONO_8))
+                                            if(!inputCam->setCameraPixelFormat(MONO_8)){
+                                                BOOST_LOG_SEV(slg, critical) << " Failed to set camera with MONO_8 ";
                                                 throw "ERROR :Failed to set camera with MONO_8";
+                                            }
 
                                             break;
 
                                        case MONO_12 :
 
-                                            if(!inputCam->setCameraPixelFormat(MONO_12))
+                                            if(!inputCam->setCameraPixelFormat(MONO_12)){
+                                                BOOST_LOG_SEV(slg, critical) << " Failed to set camera with MONO_12 ";
                                                 throw "ERROR :Failed to set camera with MONO_12";
+                                            }
 
                                             break;
 
                                     }
 
-                                    if(!inputCam->setCameraExposureTime(ft.ACQ_EXPOSURE))
+                                    if(!inputCam->setCameraExposureTime(ft.ACQ_EXPOSURE)){
+                                        BOOST_LOG_SEV(slg, critical) << " Failed to set camera exposure.";
                                         throw "> Failed to set camera exposure.";
+                                    }
 
-                                    if(!inputCam->setCameraGain(ft.ACQ_GAIN))
+                                    if(!inputCam->setCameraGain(ft.ACQ_GAIN)){
+                                        BOOST_LOG_SEV(slg, critical) << " Failed to set camera gain. ";
                                         throw "> Failed to set camera gain.";
+                                    }
 
-                                    if(!inputCam->setCameraFPS(ft.ACQ_FPS))
+                                    if(!inputCam->setCameraFPS(ft.ACQ_FPS)){
+                                        BOOST_LOG_SEV(slg, critical) << " Failed to set camera fps.";
                                         throw "> Failed to set camera fps.";
+                                    }
 
                                 }
 
@@ -516,7 +541,7 @@ int main(int argc, const char ** argv){
                             case VIDEO :
 
                                 cout << "Video in input : " << ft.VIDEO_PATH <<endl;
-                                BOOST_LOG_SEV(slg, notification) << "Video in input : " << ft.VIDEO_PATH;
+                                BOOST_LOG_SEV(slg, notification) << " Video in input : " << ft.VIDEO_PATH;
 
                                 inputCamVideo = new CameraVideo( 	ft.VIDEO_PATH,
                                                                     &framesBuffer,
@@ -533,6 +558,7 @@ int main(int argc, const char ** argv){
                                 {
 
                                     cout << "> Single frames in input." << endl;
+                                    BOOST_LOG_SEV(slg, notification) << " Frames in input";
 
                                     // Get frame format.
                                     path p(ft.FRAMES_PATH);
@@ -543,7 +569,7 @@ int main(int argc, const char ** argv){
 
                                     if(fs::exists(p)){
 
-                                        std::cout << "> Frames directory " << p.string() << " exists." << '\n';
+                                        BOOST_LOG_SEV(slg, normal) << " Frames directory " << p.string() << " exists.";
 
                                         for(directory_iterator file(p);file!= directory_iterator(); ++file){
 
@@ -559,20 +585,41 @@ int main(int argc, const char ** argv){
 
                                     }else{
 
+                                        BOOST_LOG_SEV(slg, critical) << " Frames directory not found.";
                                         throw "> Frames directory not found.";
 
                                     }
 
-                                    if(filename == "")
+                                    if(filename == ""){
+                                        BOOST_LOG_SEV(slg, fail) << " No file found in the frame directory.";
                                         throw "> No file found in the frame directory.";
+                                    }
 
                                     Mat resMat;
 
                                     Fits2D newFits;
-                                    int format = 0;
+                                    int format, framewidth, frameheight;
 
-                                    if(!newFits.readIntKeyword(filename, "BITPIX", format))
+                                    if(!newFits.readIntKeyword(filename, "BITPIX", format)){
+                                        BOOST_LOG_SEV(slg, critical) << " Failed to read fits keyword : BITPIX";
                                         throw "> Failed to read fits keyword : BITPIX";
+                                    }
+
+                                    if(!newFits.readIntKeyword(filename, "NAXIS1", framewidth)){
+                                        BOOST_LOG_SEV(slg, critical) << " Failed to read fits keyword : NAXIS1";
+                                        throw "> Failed to read fits keyword : NAXIS1";
+                                    }
+
+                                    if(!newFits.readIntKeyword(filename, "NAXIS2", frameheight)){
+                                        BOOST_LOG_SEV(slg, critical) << " Failed to read fits keyword : NAXIS2";
+                                        throw "> Failed to read fits keyword : NAXIS2";
+                                    }
+
+                                    // Check mask size
+                                    if(mask.data && (framewidth != mask.cols || frameheight != mask.rows)){
+                                        BOOST_LOG_SEV(slg, critical) << "Mask's size (" << Conversion::intToString(mask.cols) << ";" << Conversion::intToString(mask.rows) << ") doesn't fit to frame's size (" << Conversion::intToString(framewidth) << ";" << Conversion::intToString(frameheight) <<")";
+                                        throw runtime_error("Mask's size (" + Conversion::intToString(mask.cols) + ";" + Conversion::intToString(mask.rows) + ") doesn't fit to frame's size (" + Conversion::intToString(framewidth) + ";" + Conversion::intToString(frameheight) +")");
+                                    }
 
                                     int sepPos = 1;
                                     string sep = "_";
@@ -676,8 +723,8 @@ int main(int argc, const char ** argv){
 
 
                             // main thread loop
-                            BOOST_LOG_SEV(slg, notification) << "FreeTure is working...";
-                            cout << "FreeTure is working..."<<endl;
+                            BOOST_LOG_SEV(slg, notification) << "FreeTure is working ...";
+                            cout << "FreeTure is working ..."<<endl;
 
                             if(ft.CAMERA_TYPE == BASLER || ft.CAMERA_TYPE == DMK){
 
@@ -939,7 +986,6 @@ int main(int argc, const char ** argv){
                         string  date = "";  // Acquisition date
                         Mat     frame;      // Image data
 
-                        namedWindow( "Frame", WINDOW_AUTOSIZE );
 
                         inputCam = new Camera(cam_type.parseEnum("CAMERA_TYPE", camtype), exp, gain, camFormat);
 
@@ -991,6 +1037,8 @@ int main(int argc, const char ** argv){
 
                             // Display the frame in an opencv window
                             if(display){
+
+                                namedWindow( "Frame", WINDOW_AUTOSIZE );
 
                                 Mat temp;
 
@@ -1053,10 +1101,11 @@ int main(int argc, const char ** argv){
 
                                         {
 
-                                            if(newFits.writeFits(frame, US16, dd, false,"capture" ))
+                                            if(newFits.writeFits(frame, S16, dd, false,"capture" ))
                                                 cout << "> Fits saved in " << savePath << endl;
                                             else
                                                 cout << "Failed to save Fits." << endl;
+
 
                                         }
 
@@ -1355,6 +1404,64 @@ int main(int argc, const char ** argv){
 
                     break;
 
+                case 10 :
+
+                    {
+
+
+                        Mat A = Mat(10, 10, CV_8UC3, Scalar(0,0,0));
+
+                        Vec3b bgrPixel = Vec3b(0,0,255);
+                        A.at<Vec3b>(0, 0) = bgrPixel;
+                        A.at<Vec3b>(9, 9) = Vec3b(255,0,0);
+                        A.at<Vec3b>(0, 9) = Vec3b(255,0,0);
+                        A.at<Vec3b>(9, 0) = Vec3b(255,0,0);
+
+                       /* for(int i = 0; i < A.rows; i++)
+                        {
+                            for(int j = 0; j < A.cols; j++)
+                            {
+                                Vec3b bgrPixel = Vec3b(0,0,255);
+                                cout << A.at<Vec3b>(i, j)<< endl;
+                                A.at<Vec3b>(i, j) = bgrPixel;
+
+                                // do something with BGR values...
+                            }
+                        }*/
+
+                        SaveImg::saveBMP(A, "/home/fripon/testColor");
+
+
+                        FreeTure ft(configPath);
+                        ft.loadParameters();
+
+                        init_log("/home/fripon/log/", ft.LOG_SEVERITY);
+                        src::severity_logger< LogSeverityLevel > slg;
+                        slg.add_attribute("ClassName", boost::log::attributes::constant<std::string>("main.cpp"));
+
+                        boost::gregorian::date current_date(boost::gregorian::day_clock::local_day());
+                        cout << to_iso_string(current_date)<<endl;;
+                        //http://www.boost.org/doc/libs/1_47_0/doc/html/date_time/gregorian.html#date_construct_from_clock
+                        BOOST_LOG_SCOPED_THREAD_TAG("LogName", "logTest_" + to_iso_string(current_date));
+                        BOOST_LOG_SEV(slg, normal) << "Test logging in mode 10";
+                        BOOST_LOG_SEV(slg, notification) << "Test logging in mode 10";
+
+                        BOOST_LOG_SCOPED_THREAD_TAG("LogName", "logTest_20150206");
+
+                        BOOST_LOG_SEV(slg, fail) << "Test logging in mode 10";
+                        BOOST_LOG_SEV(slg, warning) << "Test logging in mode 10";
+                        BOOST_LOG_SEV(slg, critical) << "Test logging in mode 10";
+
+
+                        Fits2D *f = new Fits2D();
+
+
+
+                    }
+
+                    break;
+
+
                 default :
 
                     {
@@ -1366,7 +1473,6 @@ int main(int argc, const char ** argv){
                         cout << "2 : Check and print configuration file"            << endl;
                         cout << "3 : Run meteor detection"                          << endl;
                         cout << "4 : Test a camera by single capture"               << endl;
-                        //cout << "5 : Full FreeTure checkup"                         << endl;
 
                     }
 

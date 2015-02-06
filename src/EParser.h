@@ -40,13 +40,13 @@
 #include "ECamBitDepth.h"
 #include "EDetMeth.h"
 #include "EStackMeth.h"
+#include "ELogSeverityLevel.h"
 
 using namespace std;
 
 //http://stackoverflow.com/questions/726664/string-to-enum-in-c
 
-template<typename T>
-class EParser{
+template<typename T> class EParser{
 
 	public:
 

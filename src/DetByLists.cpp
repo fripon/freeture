@@ -1026,7 +1026,8 @@ bool DetByLists::detectionMethodByListManagement(   Frame currentFrame,
         //CASE 2 : Not finished event.
         }else{
 
-            if((*itGE).getAge() > 400){
+            if( (*itGE).getAge() > 400 ||
+                (*itGE).getBadPos()>= 1 && !(*itGE).continuousGoodPos(10)){
 
                 // Delete the event.
                 itGE = listGlobalEvents.erase(itGE);

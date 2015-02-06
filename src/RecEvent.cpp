@@ -34,63 +34,6 @@
 */
 
 #include "RecEvent.h"
-/*
-RecEvent::RecEvent( boost::circular_buffer<Frame>   *cb,
-                    boost::mutex                    *m_cb,
-                    string                          path,
-                    string                          station,
-                    CamBitDepth                     bitdepth,
-                    bool                            avi,
-                    bool                            fits3D,
-                    bool                            fits2D,
-                    bool                            sum,
-                    bool                            pos,
-                    bool                            bmp,
-                    bool                            mapGE,
-                    Fits                            fitsHead,
-                    int                             tBefore,
-                    int                             tAfter,
-                    int                             bufferSize,
-                    bool                            mailEnabled,
-                    string                          smtpServer,
-                    string                          smtpHostname,
-                    vector<string>                  recipients){
-
-    frameBuffer             = cb;
-    m_frameBuffer           = m_cb;
-    pixelFormat             = bitdepth;
-    eventPath               = path;
-    recAvi                  = avi;
-    recFits3D               = fits3D;
-    recFits2D               = fits2D;
-	recPos                  = pos;
-	recSum                  = sum;
-	recBmp                  = bmp;
-	recMapGE                = mapGE;
-	timeAfter               = tAfter;
-	timeBefore              = tBefore;
-	frameBufferMaxSize      = bufferSize;
-	mailNotification        = mailEnabled;
-	SMTPServer              = smtpServer;
-	SMTPHostname            = smtpHostname;
-	mailRecipients          = recipients;
-
-	if(station == "")
-        stationName = "station";
-    else
-        stationName = station;
-
- cout << "mailRecipients works !"<<endl;
-        for(int aa = 0; aa< mailRecipients.size(); aa++)
-        cout << aa <<  " : "<< mailRecipients.at(aa)<< endl;
-
-
-
-}
-
-RecEvent::~RecEvent(){
-    //dtor
-}*/
 
 bool RecEvent::buildEventLocation(vector<string> eventDate, string eventPath, string stationName, string &currentEventPath){
 
@@ -279,27 +222,25 @@ bool RecEvent::saveGE(  boost::circular_buffer<Frame>  *frameBuffer,
         SaveImg::saveBMP((*itGE).getDirMap(), currentEventPath + "DirMap");
 
     }
-    cout << "get numFirstFrameEvent" <<endl;
+
     // Number of the first frame where the event is detected.
     int numFirstFrameEvent = (*itGE).getNumFirstFrame();
-    cout << "get numLastFrameEvent" <<endl;
+
     // Number of the last frame where the event is detected.
     int numLastFrameEvent = (*itGE).getNumLastFrame();
     // Number of the first frame to save. It depends of how many frames we want to keep before the event.
-    cout << "get numFirstFrameToSave" <<endl;
+
     int numFirstFrameToSave = numFirstFrameEvent - timeBefore;
     int shiftPosition = timeBefore;
-    cout << "get numLastFrameToSave" <<endl;
+
     // Number of the last frame to save. It depends of how many frames we want to keep after the event.
     int numLastFrameToSave = numLastFrameEvent + timeAfter;
 
-    //boost::mutex::scoped_lock lock(*m_frameBuffer);
-    cout << "get 1" <<endl;
     if(frameBuffer->front().getNumFrame() > numFirstFrameToSave){
         numFirstFrameToSave = frameBuffer->front().getNumFrame();
         shiftPosition = numFirstFrameEvent - frameBuffer->front().getNumFrame();
     }
-    cout << "get 2" <<endl;
+
     if(frameBuffer->back().getNumFrame() < numLastFrameToSave)
            numLastFrameToSave = frameBuffer->back().getNumFrame();
 
@@ -395,7 +336,7 @@ bool RecEvent::saveGE(  boost::circular_buffer<Frame>  *frameBuffer,
         }
 
         infFile.close();
-
+/*
         vector<LocalEvent>::iterator itLE;
         int cpt = 0;
 
@@ -404,11 +345,11 @@ bool RecEvent::saveGE(  boost::circular_buffer<Frame>  *frameBuffer,
             SaveImg::saveBMP((*itGE).getMapEvent(), currentEventPath + "LEMap_" + Conversion::intToString(cpt));
             cpt++;
 
-        }
+        }*/
 
         SaveImg::saveBMP((*itGE).getDirMap2(), currentEventPath + "DirMap2");
 
-
+        mailAttachments.push_back(currentEventPath + "DirMap2.bmp");
 
     }
 
@@ -571,7 +512,7 @@ bool RecEvent::saveGE(  boost::circular_buffer<Frame>  *frameBuffer,
 
                 }else{
 
-                    newFits.writeFits((*it).getImg(), US16, DD, false, fits2DName);
+                    newFits.writeFits((*it).getImg(), S16, DD, false, fits2DName);
                 }
             }
 

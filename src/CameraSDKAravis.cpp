@@ -94,8 +94,6 @@ bool CameraSDKAravis::chooseDevice(string name){
 
 bool CameraSDKAravis::grabStart(int camFps){
 
-    payload = arv_camera_get_payload (camera);
-
     int sensor_width, sensor_height;
 
     arv_camera_get_sensor_size(camera, &sensor_width, &sensor_height);
@@ -103,6 +101,8 @@ bool CameraSDKAravis::grabStart(int camFps){
     arv_camera_set_region(camera, 0, 0,sensor_width,sensor_height);
 
     arv_camera_get_region (camera, NULL, NULL, &width, &height);
+
+    payload = arv_camera_get_payload (camera);
 
     pixFormat = arv_camera_get_pixel_format (camera);
 
@@ -219,8 +219,6 @@ bool CameraSDKAravis::grabStart(int camFps){
 
 bool CameraSDKAravis::grabStart(){
 
-    payload = arv_camera_get_payload (camera);
-
     int sensor_width, sensor_height;
 
     arv_camera_get_sensor_size(camera, &sensor_width, &sensor_height);
@@ -228,6 +226,8 @@ bool CameraSDKAravis::grabStart(){
     arv_camera_set_region(camera, 0, 0,sensor_width,sensor_height);
 
     arv_camera_get_region (camera, NULL, NULL, &width, &height);
+
+    payload = arv_camera_get_payload (camera);
 
     pixFormat = arv_camera_get_pixel_format (camera);
 

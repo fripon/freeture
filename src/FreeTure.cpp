@@ -145,7 +145,13 @@ bool FreeTure::loadParameters(){
 		cfg.Get("CFG_FILECOPY_ENABLED", 		CFG_FILECOPY_ENABLED);
 		cfg.Get("DATA_PATH", 					DATA_PATH);
 		cfg.Get("LOG_PATH", 					LOG_PATH);
-		cfg.Get("LOG_PATH", 					LOG_PATH);
+
+		string log_severity;
+		cfg.Get("LOG_SEVERITY", 				log_severity);
+		EParser<LogSeverityLevel> log_sev;
+		LogSeverityLevel id_log_sev = log_sev.parseEnum("LOG_SEVERITY", log_severity);
+        LOG_SEVERITY = id_log_sev;
+
 		cfg.Get("SITELONG", 					LONGITUDE);
 
 		return true;

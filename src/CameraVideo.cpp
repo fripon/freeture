@@ -140,7 +140,7 @@ void CameraVideo::operator () (){
 	//if not success, exit program
     if ( !cap.isOpened() ){
 
-		 BOOST_LOG_SEV(log,fail) << "Cannot open the video file";
+		 BOOST_LOG_SEV(log,normal) << "Cannot open the video file";
 
     }else{
 

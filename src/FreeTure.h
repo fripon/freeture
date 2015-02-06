@@ -109,8 +109,9 @@ class FreeTure{
         bool            CFG_FILECOPY_ENABLED;
         std::string     DATA_PATH;
         std::string     LOG_PATH;
-        double          LONGITUDE;
-        std::string     logDirName;
+        LogSeverityLevel    LOG_SEVERITY;
+        double              LONGITUDE;
+        std::string         logDirName;
 
 };
 

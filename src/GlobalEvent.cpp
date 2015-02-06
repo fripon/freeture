@@ -74,20 +74,24 @@ bool GlobalEvent::addLE(LocalEvent le){
 
         Point mapCenter = Point(640,480);
         lastPos = Point(640,480);
-        circle(dirMap2, mapCenter, 5, Scalar(0,255,0), 1, 8, 0);
+
+        putText(dirMap2, "0", Point(mapCenter.x,mapCenter.y + 7 ),FONT_HERSHEY_COMPLEX_SMALL, 0.8, cvScalar(255,255,255), 1, CV_AA);
+        circle(dirMap2, mapCenter, 5, Scalar(255,255,255), 1, 8, 0);
         mainPoints.push_back(center);
         dist.push_back(0.0);
 
     }else if(LEList.size() % 3 == 0){
 
         // Shifted value.
-        Point diff = Point(center.x - mainPoints.back().x, center.y - mainPoints.back().y) * 10;
+        Point diff = Point(center.x - mainPoints.back().x, center.y - mainPoints.back().y) * 5;
         // New Position in dirMap system.
         Point newPos = Point(lastPos.x + diff.x, lastPos.y + diff.y);
         // Draw line.
         line(dirMap2, lastPos, newPos, Scalar( 0, 0, 255 ), 2, 8);
         // Update.
         lastPos = newPos;
+
+        putText(dirMap2, Conversion::intToString(mainPoints.size()), Point(newPos.x,newPos.y + 7 ),FONT_HERSHEY_COMPLEX_SMALL, 0.8, cvScalar(255,255,255), 1, CV_AA);
 
         float d = sqrt(pow(center.x - mainPoints.back().x,2) + pow(center.y - mainPoints.back().y,2));
         dist.push_back(d);
@@ -134,6 +138,10 @@ bool GlobalEvent::addLE(LocalEvent le){
                 goodPoint++;
 
             }
+
+        }else{
+
+            circle(dirMap2, newPos, 5, Scalar(0,255,0), 1, 8, 0);
         }
     }
 

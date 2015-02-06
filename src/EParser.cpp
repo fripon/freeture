@@ -64,3 +64,13 @@ template<> EParser<DetMeth>::EParser(){
     enumMap["TEMPORAL_MTHD"]    = TEMPORAL_MTHD;
 
 }
+
+template<> EParser<LogSeverityLevel>::EParser(){
+
+    enumMap["normal"]           = normal;
+    enumMap["notification"]     = notification;
+    enumMap["fail"]             = fail;
+    enumMap["warning"]          = warning;
+    enumMap["critical"]         = critical;
+
+}

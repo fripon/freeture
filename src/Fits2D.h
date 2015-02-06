@@ -49,6 +49,7 @@
 #include "Fits.h"
 #include "Conversion.h"
 
+
 using namespace std;
 using namespace boost::posix_time;
 
@@ -67,7 +68,20 @@ class Fits2D : public Fits{
 
 		string fitsPath;
 
+		static src::severity_logger< LogSeverityLevel > logger;
+
+		static class _Init{
+
+            public:
+                _Init()
+                {
+                    logger.add_attribute("ClassName", boost::log::attributes::constant<std::string>("Fits2D"));
+                }
+        } _initializer;
+
 	public:
+
+
 
                 Fits2D          (string recPath, Fits fits);
 

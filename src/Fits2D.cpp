@@ -35,13 +35,12 @@
 
 #include "Fits2D.h"
 
-Fits2D::Fits2D(){
+src::severity_logger< LogSeverityLevel >  Fits2D::logger;
+Fits2D::_Init Fits2D::_initializer;
 
-}
+Fits2D::Fits2D(){}
 
-Fits2D::~Fits2D(void){
-
-}
+Fits2D::~Fits2D(void){}
 
 Fits2D::Fits2D(string recPath, Fits fits){
 
@@ -828,6 +827,8 @@ bool Fits2D::writeKeywords(fitsfile *fptr){
 
 bool Fits2D::writeFits(Mat img, ImgBitDepth imgType, vector<string> date, bool fileNameWithDate, string fileName){
 
+    BOOST_LOG_SEV(log, normal) << " Start write Fits.";
+
     int status = 0;
 
     long  firstPixel, nbelements;
@@ -837,6 +838,7 @@ bool Fits2D::writeFits(Mat img, ImgBitDepth imgType, vector<string> date, bool f
 
     // Image size.
     long naxes[2] = { img.cols, img.rows };
+    BOOST_LOG_SEV(log, normal) << " Fits size :" << img.cols << "x" << img.rows;
 
     // First pixel to write.
 	firstPixel = 1;
@@ -881,6 +883,7 @@ bool Fits2D::writeFits(Mat img, ImgBitDepth imgType, vector<string> date, bool f
     }
 
     filename = pathAndname.c_str();
+    BOOST_LOG_SEV(log, normal) << " Fits name : " << pathAndname;
 
     switch(imgType){
 
@@ -1629,14 +1632,14 @@ bool Fits2D::printerror( int status, string errorMsg){
         fits_report_error(stderr, status);
 
         cout << stderr << endl;
-        BOOST_LOG_SEV(log, fail) << stderr;
+        BOOST_LOG_SEV(log, normal) << stderr;
 
     }
 
     if(errorMsg != ""){
 
         cout << errorMsg << endl;
-        BOOST_LOG_SEV(log, fail) << errorMsg;
+        BOOST_LOG_SEV(log, normal) << errorMsg;
 
     }
 
@@ -1658,7 +1661,7 @@ bool Fits2D::printerror( string errorMsg){
     if(errorMsg != ""){
 
         cout << errorMsg << endl;
-        BOOST_LOG_SEV(log, fail) << errorMsg;
+        BOOST_LOG_SEV(log, normal) << errorMsg;
 
     }
 
