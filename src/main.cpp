@@ -1072,11 +1072,16 @@ int main(int argc, const char ** argv){
                             // Save the frame in Fits 2D.
                             if(saveFits2D){
 
+                                double minVal, maxVal;
+                                minMaxLoc(frame, &minVal, &maxVal);
+                                cout << "max val : " << maxVal << endl;
+                                cout << "min val : " << minVal << endl;
                                 Fits fitsHeader;
                                 fitsHeader.setGaindb((int)gain);
                                 fitsHeader.setExposure(exp);
 
                                 Fits2D newFits(savePath + "frame",fitsHeader);
+                                newFits.setBscale(1);
                                 vector<string> dd;
 
                                 switch(camFormat){
@@ -1084,8 +1089,9 @@ int main(int argc, const char ** argv){
                                     case MONO_8 :
 
                                         {
+                                            newFits.setBzero(128);
 
-                                            if(newFits.writeFits(frame, UC8, dd, false,"capture" ))
+                                            if(newFits.writeFits(frame, C8, dd, false,"capture2" ))
                                                 cout << "> Fits saved in " << savePath << endl;
                                             else
                                                 cout << "Failed to save Fits." << endl;
@@ -1097,12 +1103,11 @@ int main(int argc, const char ** argv){
                                     case MONO_12 :
 
                                         {
-
+                                            newFits.setBzero(32768);
                                             if(newFits.writeFits(frame, S16, dd, false,"capture" ))
                                                 cout << "> Fits saved in " << savePath << endl;
                                             else
                                                 cout << "Failed to save Fits." << endl;
-
 
                                         }
 

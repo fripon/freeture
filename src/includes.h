@@ -29,8 +29,9 @@
 
 #ifdef    HAVE_CONFIG_H
     #include "config.h"
+   // #define USE_PYLON
 #else
-    #define USE_PYLON
+
 #endif
 
 //#define _WIN64_

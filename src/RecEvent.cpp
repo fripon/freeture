@@ -507,11 +507,11 @@ bool RecEvent::saveGE(  boost::circular_buffer<Frame>  *frameBuffer,
                 if(!fs::exists(p)) fs::create_directory(p);
 
                 if(pixelFormat == MONO_8){
-
-                    newFits.writeFits((*it).getImg(), UC8, DD, false, fits2DName);
+                    newFits.setBzero(128);
+                    newFits.writeFits((*it).getImg(), C8, DD, false, fits2DName);
 
                 }else{
-
+                    newFits.setBzero(32768);
                     newFits.writeFits((*it).getImg(), S16, DD, false, fits2DName);
                 }
             }
@@ -528,7 +528,10 @@ bool RecEvent::saveGE(  boost::circular_buffer<Frame>  *frameBuffer,
 
             c++;
 
-            accumulate((*it).getImg(), stackEvent);
+            if((*it).getNumFrame() >= numFirstFrameEvent && (*it).getNumFrame() <= numLastFrameEvent){
+
+                accumulate((*it).getImg(), stackEvent);
+            }
 
         }
     }

@@ -53,7 +53,6 @@ CameraSDKPylon::CameraSDKPylon(){
 
 CameraSDKPylon::~CameraSDKPylon(void){
 
-
 }
 
 bool	CameraSDKPylon::chooseDevice(int id, string name){
@@ -372,7 +371,7 @@ void    CameraSDKPylon::listCameras(){
 	}
 }
 
-int	    CameraSDKPylon::grabStart(){
+bool	    CameraSDKPylon::grabStart(){
 
 	BOOST_LOG_SEV(log, normal) <<" Starting basler's grab initialization... ";
 
@@ -493,7 +492,7 @@ int	    CameraSDKPylon::grabStart(){
 		}
 	}
 
-	return 0;
+	return true;
 
 }
 

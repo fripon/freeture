@@ -34,12 +34,6 @@
 
 #include "Camera.h"
 
-#ifdef USE_PYLON
-    #include "CameraSDKPylon.h"
-#else
-    #include "CameraSDKAravis.h"
-#endif
-
 Camera::Camera(CamType camType){
 
     m_thread    = NULL;
@@ -65,8 +59,11 @@ Camera::Camera(CamType camType){
         case DMK :
 
             {
+                #ifdef USE_PYLON
 
-                camera = new CameraSDKAravis();
+                #else
+                    camera = new CameraSDKAravis();
+                #endif;
 
             }
 
@@ -121,7 +118,11 @@ Camera::Camera( CamType     camType,
 
             {
 
-                camera = new CameraSDKAravis();
+                #ifdef USE_PYLON
+
+                #else
+                    camera = new CameraSDKAravis();
+                #endif;
 
             }
 
@@ -209,7 +210,11 @@ Camera::Camera( CamType                                 camType,
 
             {
 
-                camera = new CameraSDKAravis();
+                #ifdef USE_PYLON
+
+                #else
+                    camera = new CameraSDKAravis();
+                #endif;
 
             }
 
@@ -426,7 +431,7 @@ void Camera::operator()(){
 
             /*Fits2D newFits("/home/fripon/data2/");
             vector<string> datet;
-            newFits.writeFits(newFrame.getImg(),US16, datet, false, "frame_"+Conversion::intToString(frameCpt));*/
+            newFits.writeFits(newFrame.getImg(),S16, datet, false, "frame_"+Conversion::intToString(frameCpt));*/
             /*string name = "frame_"+Conversion::intToString(frameCpt);
             Mat temp;
             newFrame.getImg().copyTo(temp);

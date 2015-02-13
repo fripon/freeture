@@ -885,8 +885,47 @@ bool Fits2D::writeFits(Mat img, ImgBitDepth imgType, vector<string> date, bool f
     filename = pathAndname.c_str();
     BOOST_LOG_SEV(log, normal) << " Fits name : " << pathAndname;
 
+///*
+//BITPIX data type code values for FITS images:
+//
+//  #define BYTE_IMG      8  /*  8-bit unsigned integers */
+//  #define SHORT_IMG    16  /* 16-bit   signed integers */
+//  #define FLOAT_IMG   -32  /* 32-bit single precision floating point */
+//
+//  The following 4 data type codes are also supported by CFITSIO:
+//  #define SBYTE_IMG  10   /*  8-bit signed integers, equivalent to */
+//                          /*  BITPIX = 8, BSCALE = 1, BZERO = -128 */
+//  #define USHORT_IMG  20  /* 16-bit unsigned integers, equivalent to */
+//                          /*  BITPIX = 16, BSCALE = 1, BZERO = 32768 */
+//
+//Codes for the data type of binary table columns and/or for the
+//data type of variables when reading or writing keywords or data:
+//
+//                              DATATYPE               TFORM CODE
+//
+//  #define TBYTE        11  /* 8-bit unsigned byte,       'B' */
+//
+//  #define TSHORT       21  /* signed short,              'I' */
+//
+//  #define TFLOAT       42  /* single precision float,    'E' */
+//
+//  The following data type codes are also supported by CFITSIO:
+//  #define TINT         31  /* int                            */
+//  #define TSBYTE       12  /* 8-bit signed byte,         'S' */
+//  #define TUINT        30  /* unsigned int               'V' */
+//  #define TUSHORT      20  /* unsigned short             'U'  */
+//
+//
+//
+//    UC8, // unsigned char 8 bits
+//    C8,  // signed char 8 bits
+//    US16, // unsigned short 16 bits
+//    S16, // signed short 16 bits
+//    F32 // float 32 bits
+
     switch(imgType){
 
+        // unsigned char 8 bits : UC8
         case 0:
         {
             //https://www-n.oca.eu/pichon/Tableau_2D.pdf
@@ -949,6 +988,7 @@ bool Fits2D::writeFits(Mat img, ImgBitDepth imgType, vector<string> date, bool f
             break;
         }
 
+        // signed char 8 bits : C8
         case 1:
         {
             //https://www-n.oca.eu/pichon/Tableau_2D.pdf
@@ -989,12 +1029,12 @@ bool Fits2D::writeFits(Mat img, ImgBitDepth imgType, vector<string> date, bool f
             // Initialize the values in the fits image with the mat's values.
              for ( int j = 0; j < naxes[1]; j++){
 
-                 char * matPtr = img.ptr<char>(j);
+                 unsigned char * matPtr = img.ptr<unsigned char>(j);
 
                  for ( int i = 0; i < naxes[0]; i++){
 
                      // Affect a value and inverse the image.
-                     tab[img.rows-1-j][i] = (char)matPtr[i];
+                     tab[img.rows-1-j][i] = matPtr[i] - 128;
 
                 }
             }
@@ -1011,6 +1051,7 @@ bool Fits2D::writeFits(Mat img, ImgBitDepth imgType, vector<string> date, bool f
             break;
         }
 
+        // unsigned short 16 bits : US16
         case 2 :
         {
 
@@ -1119,12 +1160,12 @@ bool Fits2D::writeFits(Mat img, ImgBitDepth imgType, vector<string> date, bool f
             // Initialize the values in the fits image with the mat's values.
             for ( int j = 0; j < naxes[1]; j++){
 
-                 short * matPtr = img.ptr<short>(j);
+                 unsigned short * matPtr = img.ptr<unsigned short>(j);
 
                  for ( int i = 0; i < naxes[0]; i++){
 
                      // Affect a value and inverse the image.
-                     tab[img.rows-1-j][i] = (short)matPtr[i];
+                     tab[img.rows-1-j][i] = matPtr[i] -32768;
                 }
             }
 

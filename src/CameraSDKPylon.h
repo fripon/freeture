@@ -44,6 +44,7 @@
 #include "Frame.h"
 #include "TimeDate.h"
 #include "Conversion.h"
+#include "ELogSeverityLevel.h"
 
 // pylon api
 #include <pylon/PylonIncludes.h>
@@ -63,7 +64,6 @@ using namespace Pylon;
 using namespace GenApi;
 using namespace cv;
 using namespace std;
-using namespace logenum;
 
 using namespace Basler_GigECameraParams;
 
@@ -90,7 +90,7 @@ class CameraSDKPylon : public CameraSDK{
         /*!
           Logger used to manage messages added to the log file
         */
-		src::severity_logger< severity_level > log;
+		src::severity_logger< LogSeverityLevel > log;
 
 		Pylon::PylonAutoInitTerm autoInitTerm;
 
@@ -142,7 +142,7 @@ class CameraSDKPylon : public CameraSDK{
 		bool	chooseDevice(int, string);
 
 		//! Start grabbing images
-		int		grabStart();
+		bool	grabStart();
 
         //! Stop acquisition
         void	acqStop();

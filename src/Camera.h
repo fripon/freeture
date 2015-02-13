@@ -62,6 +62,13 @@
 
 #include <boost/circular_buffer.hpp>
 
+
+#ifdef USE_PYLON
+    #include "CameraSDKPylon.h"
+#else
+    #include "CameraSDKAravis.h"
+#endif
+
 using namespace boost::filesystem;
 
 namespace logging = boost::log;

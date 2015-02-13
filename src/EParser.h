@@ -89,6 +89,3 @@ template<typename T> class EParser{
 		}
 
 };
-
-
-
