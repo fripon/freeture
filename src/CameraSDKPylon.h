@@ -33,11 +33,31 @@
  * \brief   Use Pylon library to pilot GigE Cameras.
  */
 
-#include "SaveImg.h"
-#include "ELogSeverityLevel.h"
-#include "includes.h"
+#include "config.h"
 
 #ifdef USE_PYLON
+
+#include "SaveImg.h"
+#include "ELogSeverityLevel.h"
+#include "opencv2/highgui/highgui.hpp"
+#include <opencv2/imgproc/imgproc.hpp>
+
+#include <boost/log/common.hpp>
+#include <boost/log/expressions.hpp>
+#include <boost/log/utility/setup/file.hpp>
+#include <boost/log/utility/setup/console.hpp>
+#include <boost/log/utility/setup/common_attributes.hpp>
+#include <boost/log/attributes/named_scope.hpp>
+#include <boost/log/sources/logger.hpp>
+#include <boost/log/support/date_time.hpp>
+#include <boost/log/attributes.hpp>
+#include <boost/log/sinks.hpp>
+#include <boost/log/sources/logger.hpp>
+#include <boost/log/utility/record_ordering.hpp>
+#include <boost/log/core.hpp>
+#include <boost/smart_ptr/shared_ptr.hpp>
+
+
 
 #include "CameraSDK.h"
 
@@ -45,6 +65,7 @@
 #include "TimeDate.h"
 #include "Conversion.h"
 #include "ELogSeverityLevel.h"
+#include "EAcquisitionMode.h"
 
 // pylon api
 #include <pylon/PylonIncludes.h>
@@ -126,6 +147,7 @@ class CameraSDKPylon : public CameraSDK{
 
 		bool connectionStatus;
 
+		CamAcqMode acqMode;
 
 	public:
 
@@ -148,13 +170,15 @@ class CameraSDKPylon : public CameraSDK{
         void	acqStop();
 
         //! Start acquisition
-        void	acqStart();
+		void	acqStart(CamAcqMode mode);
 
 		//! Stop grabbing images
 		void	grabStop();
 
 		//! Grab an image
-        bool    grabImage(Frame*& newFrame, Mat newImage);
+        //bool    grabImage(Frame*& newFrame, Mat newImage);
+
+		bool    grabImage(Frame &newFrame);
 
 		//! Restart grabbing images
 		void	grabRestart();
@@ -210,6 +234,10 @@ class CameraSDKPylon : public CameraSDK{
         */
 		bool	setPixelFormat(int PixelFormatEnums);
 
+		bool    getDeviceById(int id, string &device);
+
+
+		bool	grabSingleImage(Frame &frame, int camID);
 };
 
 #endif
