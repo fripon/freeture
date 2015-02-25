@@ -1,0 +1,10 @@
+#ifndef FREETURE_CONFIG_H
+#define FREETURE_CONFIG_H
+
+#define VERSION "@VERSION@"
+#define CFG_PATH "@CFG_PATH@"
+#cmakedefine WINDOWS
+#cmakedefine LINUX
+#cmakedefine USE_PYLON
+
+#endif // FREETURE_CONFIG_H
