@@ -33,9 +33,34 @@
 */
 
 #pragma once
+#include "config.h"
 
-#include "includes.h"
-#include "CameraSDK.h"
+#ifdef WINDOWS
+#include <windows.h>
+#else
+    #ifdef LINUX
+    #define BOOST_LOG_DYN_LINK 1
+    #endif
+#endif
+
+#include "opencv2/highgui/highgui.hpp"
+#include <opencv2/imgproc/imgproc.hpp>
+
+#include <boost/log/common.hpp>
+#include <boost/log/expressions.hpp>
+#include <boost/log/utility/setup/file.hpp>
+#include <boost/log/utility/setup/console.hpp>
+#include <boost/log/utility/setup/common_attributes.hpp>
+#include <boost/log/attributes/named_scope.hpp>
+#include <boost/log/sources/logger.hpp>
+#include <boost/log/support/date_time.hpp>
+#include <boost/log/attributes.hpp>
+#include <boost/log/sinks.hpp>
+#include <boost/log/sources/logger.hpp>
+#include <boost/log/utility/record_ordering.hpp>
+#include <boost/log/core.hpp>
+#include <boost/smart_ptr/shared_ptr.hpp>
+
 #include "Frame.h"
 #include "TimeDate.h"
 #include "Conversion.h"
@@ -48,6 +73,7 @@
 #include "ELogSeverityLevel.h"
 #include "EImgBitDepth.h"
 #include "ECamBitDepth.h"
+#include "EAcquisitionMode.h"
 #include "StackedFrames.h"
 #include "ECamType.h"
 //#include "serialize.h"
@@ -63,11 +89,10 @@
 #include <boost/circular_buffer.hpp>
 
 
-#ifdef USE_PYLON
-    #include "CameraSDKPylon.h"
-#else
-    #include "CameraSDKAravis.h"
-#endif
+
+#include "CameraSDK.h"
+#include "CameraSDKPylon.h"
+#include "CameraSDKAravis.h"
 
 using namespace boost::filesystem;
 
@@ -165,6 +190,7 @@ class Camera{
                 boost::mutex                            *m_newFrameForDet,
                 boost::condition_variable               *c_newFrameForDet);
 
+		// Used for single acquisition.
         Camera( CamType         camType,
                 int             camExp,
                 int             camGain,
@@ -209,6 +235,8 @@ class Camera{
 
         //! Grab one frame.
 		bool    grabSingleFrame(Mat &frame, string &date);
+
+		bool    grabSingleFrame(Frame &frame, int camID);
 
         //! Get camera's width sensor.
 		int		getCameraWidth();

@@ -34,9 +34,13 @@
 
 #pragma once
 
-#include "includes.h"
+#include "opencv2/highgui/highgui.hpp"
+#include <opencv2/imgproc/imgproc.hpp>
+#include <boost/tokenizer.hpp>
+
 #include "Conversion.h"
 #include "SaveImg.h"
+#include "ECamBitDepth.h"
 
 using namespace std;
 using namespace cv;
@@ -44,6 +48,8 @@ using namespace cv;
 class Frame{
 
 	private:
+
+		CamBitDepth bitdepth;
 
         //! Date of acquisition
 		string   acqDate;
@@ -127,6 +133,8 @@ class Frame{
         float  getDateSeconds      ()              {return dateSeconds;};
         void   setAcqDateMicro(string date);
 		string  getAcqDateMicro     ()              {return acqDateInMicrosec;};
+		CamBitDepth getBitDepth()					{return bitdepth;};
+		void setBitDepth(CamBitDepth depth)			{bitdepth = depth;};
 
 
 		double  getSaturatedValue   ()              {return saturatedValue;};

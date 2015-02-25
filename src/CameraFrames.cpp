@@ -159,9 +159,10 @@ void CameraFrames::operator () (){
             cout << file->path() << endl;
 
             if(is_regular_file(curr)){
-
+				string fname = curr.filename().string();
                 list<string> ch;
-                stringtok(ch, curr.filename().c_str(), separator.c_str());
+				//stringtok(Container &container, string const &in, const char * const delimiters = "_"){
+				stringtok(ch, fname.c_str(), separator.c_str());
                 std:list<string>::const_iterator lit(ch.begin()), lend(ch.end());
 
                 int i = 0, number = 0;
@@ -226,8 +227,8 @@ void CameraFrames::operator () (){
                 if(is_regular_file(curr)){
 
                     list<string> ch;
-
-                    stringtok(ch,curr.filename().c_str(), separator.c_str());
+					string fname = curr.filename().string();
+                    stringtok(ch,fname.c_str(), separator.c_str());
 
                     list<string>::const_iterator lit(ch.begin()), lend(ch.end());
                     int i = 0;
@@ -260,7 +261,7 @@ void CameraFrames::operator () (){
                         cpt++;
                         cout << "FILE:" << file->path().c_str() << endl;
 
-                        filename = file->path().c_str() ;
+						filename = file->path().string() ;
 
                         break;
 

@@ -34,7 +34,9 @@
 
 #pragma once
 
-#include "includes.h"
+#include "opencv2/highgui/highgui.hpp"
+#include <opencv2/imgproc/imgproc.hpp>
+#include <boost/tokenizer.hpp>
 #include "Configuration.h"
 #include "ECamType.h"
 #include "ECamBitDepth.h"

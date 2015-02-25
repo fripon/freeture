@@ -1,5 +1,5 @@
 /*
-				EDetMeth.h
+								EDetMeth.h
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 *
@@ -27,17 +27,14 @@
 
 #pragma once
 
-
 /**
- * \brief       Possible meteor detection method.
+ * \brief       Meteor detection method.
  */
-//namespace DetectionMthType{
 
-    enum DetMeth{
+enum DetMeth{
 
-        HOUGH_MTHD,      /*!< Lines detection using standard hough transform.*/
-        TEMPORAL_MTHD   /*!< Detection using lists of globals and locals events.*/
+    HOUGH_MTHD,      /*!< Lines detection using standard hough transform.*/
+    TEMPORAL_MTHD   /*!< Detection using lists of globals and locals events.*/
 
-    };
+};
 
-//}

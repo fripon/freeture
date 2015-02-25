@@ -34,8 +34,29 @@
 */
 
 #pragma once
+#include "config.h"
+#include "opencv2/highgui/highgui.hpp"
+#include <opencv2/imgproc/imgproc.hpp>
 
-#include "includes.h"
+//#define BOOST_LOG_DYN_LINK 1
+#ifdef LINUX
+#define BOOST_LOG_DYN_LINK 1
+#endif
+
+#include <boost/log/common.hpp>
+#include <boost/log/expressions.hpp>
+#include <boost/log/utility/setup/file.hpp>
+#include <boost/log/utility/setup/console.hpp>
+#include <boost/log/utility/setup/common_attributes.hpp>
+#include <boost/log/attributes/named_scope.hpp>
+#include <boost/log/sources/logger.hpp>
+#include <boost/log/support/date_time.hpp>
+#include <boost/log/attributes.hpp>
+#include <boost/log/sinks.hpp>
+#include <boost/log/sources/logger.hpp>
+#include <boost/log/utility/record_ordering.hpp>
+#include <boost/log/core.hpp>
+#include <boost/smart_ptr/shared_ptr.hpp>
 #include "Conversion.h"
 #include "TimeDate.h"
 #include "Frame.h"

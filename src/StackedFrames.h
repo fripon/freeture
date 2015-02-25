@@ -34,7 +34,11 @@
 
 #pragma once
 
-#include "includes.h"
+#include <string>
+#include <iostream>
+#include <vector>
+#include "opencv2/highgui/highgui.hpp"
+#include <opencv2/imgproc/imgproc.hpp>
 #include "Conversion.h"
 
 using namespace std;
@@ -68,9 +72,5 @@ class StackedFrames{
 
         //! Destructor
         ~StackedFrames(void);
-
-
-
-
 
 };

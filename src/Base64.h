@@ -36,6 +36,7 @@
 #pragma once
 
 #include <sstream>
+#include <algorithm>
 #include <boost/archive/iterators/base64_from_binary.hpp>
 #include <boost/archive/iterators/transform_width.hpp>
 #include <boost/archive/iterators/ostream_iterator.hpp>

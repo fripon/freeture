@@ -34,8 +34,11 @@
 */
 
 #pragma once
-
-#include "includes.h"
+#include <fstream>
+#include <string>
+#include <iostream>
+#include <map>
+#include <stdlib.h>
 
 using namespace std;
 

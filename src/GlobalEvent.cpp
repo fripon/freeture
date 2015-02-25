@@ -93,7 +93,7 @@ bool GlobalEvent::addLE(LocalEvent le){
 
         putText(dirMap2, Conversion::intToString(mainPoints.size()), Point(newPos.x,newPos.y + 7 ),FONT_HERSHEY_COMPLEX_SMALL, 0.8, cvScalar(255,255,255), 1, CV_AA);
 
-        float d = sqrt(pow(center.x - mainPoints.back().x,2) + pow(center.y - mainPoints.back().y,2));
+        float d = sqrt(pow(center.x - mainPoints.back().x,2.0) + pow(center.y - mainPoints.back().y,2.0));
         dist.push_back(d);
 
         if(d == 0) geStatic = true;
@@ -113,7 +113,7 @@ bool GlobalEvent::addLE(LocalEvent le){
             Point   v2  = Point(C.x - B.x, C.y - B.y);
             Point   v3  = Point(B2.x - B.x, B2.y - B.y);
 
-            float thetaRad = (v3.x*v2.x+v3.y*v2.y)/(sqrt(pow(v3.x,2)+pow(v3.y,2))*sqrt(pow(v2.x,2)+pow(v2.y,2)));
+            float thetaRad = (v3.x*v2.x+v3.y*v2.y)/(sqrt(pow(v3.x,2.0)+pow(v3.y,2.0))*sqrt(pow(v2.x,2.0)+pow(v2.y,2.0)));
             float thetaDeg = (180 * acos(thetaRad))/3.14159265358979323846;
 
             if(thetaDeg > 40.0 || thetaDeg < -40.0 ){

@@ -35,7 +35,12 @@
 
 #pragma once
 
-#include "includes.h"
+#include <math.h>
+#include <vector>
+
+#include "opencv2/highgui/highgui.hpp"
+#include <opencv2/imgproc/imgproc.hpp>
+
 #include "Frame.h"
 #include "LocalEvent.h"
 #include "SaveImg.h"

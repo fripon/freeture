@@ -25,26 +25,17 @@
 *
 *%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%*/
 
-#define HAVE_CONFIG_H 1
+#include "config.h"
 
-#ifdef    HAVE_CONFIG_H
-    #include "config.h"
-   // #define USE_PYLON
-#else
-
-#endif
-
-//#define _WIN64_
-#define _LINUX_
-
-#ifdef _WIN64_
+#ifdef WINDOWS
+	//#define WIN32_LEAN_AND_MEAN
 	// Si vous incluez SDKDDKVer.h, cela définit la dernière plateforme Windows disponible.
 	// Si vous souhaitez générer votre application pour une plateforme Windows précédente, incluez WinSDKVer.h et
 	// définissez la macro _WIN32_WINNT à la plateforme que vous souhaitez prendre en charge avant d'inclure SDKDDKVer.h.
-	#include <SDKDDKVer.h>
-	#include <windows.h>
-	#include <chrono>
-#elif defined _LINUX_
+	//#include <SDKDDKVer.h>
+	//#include <windows.h>
+	//#include <chrono>
+#elif defined LINUX
 	#include <unistd.h>
 	#define BOOST_LOG_DYN_LINK 1
 	//#define BOOST_THREAD_USE_LIB
@@ -64,7 +55,7 @@
 #include <queue>
 #include <fstream>
 #include <algorithm>
-#include <map>
+
 #include <math.h>
 //#include <process.h>
 #include <signal.h>
@@ -90,6 +81,7 @@
 #include <boost/smart_ptr/shared_ptr.hpp>
 
 // boost date and time management
+//#define WIN32_LEAN_AND_MEAN
 #include <boost/date_time.hpp>
 #include <boost/date_time/posix_time/posix_time.hpp>
 #include <boost/date_time/posix_time/posix_time_io.hpp>

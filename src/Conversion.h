@@ -35,7 +35,12 @@
 
 #pragma once
 
-#include "includes.h"
+#include <iostream>
+
+#include "opencv2/highgui/highgui.hpp"
+#include <opencv2/imgproc/imgproc.hpp>
+
+#include "ECamBitDepth.h"
 
 using namespace std;
 using namespace cv;
@@ -57,6 +62,8 @@ class Conversion{
         static Mat convertTo8UC1(Mat &img);
 
         static string numbering(int totalDigit, int n);
+
+		static void intBitDepth_To_CamBitDepth(int acqFormat, CamBitDepth &camFormat);
 
 };
 

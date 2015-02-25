@@ -33,8 +33,11 @@
 */
 
 #pragma once
+#include "config.h"
 
-#include "iostream"
+#ifdef LINUX
+
+#include <iostream>
 #include "CameraSDK.h"
 #include "Frame.h"
 #include "TimeDate.h"
@@ -122,8 +125,12 @@ class CameraSDKAravis: public CameraSDK{
 
 		bool	setPixelFormat(CamBitDepth depth);
 
-		void    acqStart(bool continuousAcquisition);
+		void    acqStart(CamAcqMode acqMode);
 
         void    acqStop();
 
+        bool	grabSingleImage(Frame &frame, int camID);
+
 };
+
+#endif

@@ -35,7 +35,11 @@
 
 #pragma once
 
-#include "includes.h"
+#include <string>
+#include <iostream>
+#include <map>
+#include <stdexcept>
+
 #include "ECamType.h"
 #include "ECamBitDepth.h"
 #include "EDetMeth.h"

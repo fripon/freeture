@@ -35,7 +35,25 @@
 
 #pragma once
 
-#include "includes.h"
+//#include "includes.h"
+#include "opencv2/highgui/highgui.hpp"
+#include <opencv2/imgproc/imgproc.hpp>
+
+#include <boost/log/common.hpp>
+#include <boost/log/expressions.hpp>
+#include <boost/log/utility/setup/file.hpp>
+#include <boost/log/utility/setup/console.hpp>
+#include <boost/log/utility/setup/common_attributes.hpp>
+#include <boost/log/attributes/named_scope.hpp>
+#include <boost/log/sources/logger.hpp>
+#include <boost/log/support/date_time.hpp>
+#include <boost/log/attributes.hpp>
+#include <boost/log/sinks.hpp>
+#include <boost/log/sources/logger.hpp>
+#include <boost/log/utility/record_ordering.hpp>
+#include <boost/log/core.hpp>
+#include <boost/smart_ptr/shared_ptr.hpp>
+
 #include "PixelEvent.h"
 
 using namespace cv;

@@ -35,7 +35,9 @@
 
 #pragma once
 
-#include "includes.h"
+#include "opencv2/highgui/highgui.hpp"
+#include <opencv2/imgproc/imgproc.hpp>
+
 #include "Fits2D.h"
 #include "EImgBitDepth.h"
 #include "ECamBitDepth.h"

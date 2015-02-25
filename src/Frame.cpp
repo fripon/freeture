@@ -243,7 +243,7 @@ Mat Frame::getImg(){
 void Frame::setImg(Mat i){
 
 	i.copyTo(img);
-
+	
 }
 
 

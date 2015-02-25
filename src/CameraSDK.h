@@ -34,8 +34,10 @@
 
 #pragma once
 
+
 #include "Frame.h"
 #include "ECamBitDepth.h"
+#include "EAcquisitionMode.h"
 
 using namespace std;
 
@@ -51,8 +53,6 @@ class CameraSDK{
 		virtual void	listCameras(void)                           {};
 
 		//! Select a camera by its name.
-		//! \param cameraName
-		//! \return Boolean value according to connexion success status
 		virtual bool	chooseDevice(string)                        {return false;};
 
 		virtual bool	chooseDevice(int, string)                   {return false;};
@@ -63,7 +63,7 @@ class CameraSDK{
 		virtual bool	grabStart(int camFps)						{return false;};
 
 		//! Start acquisition.
-		virtual void	acqStart(bool continuousAcquisition)        {};
+		virtual void	acqStart(CamAcqMode mode)					{};
 
 		//! Stop acquisition and clean ressources.
 		virtual void	acqStop()							        {};
@@ -126,5 +126,7 @@ class CameraSDK{
 
         //! Get camera's name by its id.
 		virtual bool    getDeviceById(int id, string &device)       {return false;}
+
+		virtual bool	grabSingleImage(Frame &frame, int camID)							{return false;};
 
 };

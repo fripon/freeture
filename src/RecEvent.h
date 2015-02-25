@@ -35,13 +35,15 @@
 
 #pragma once
 
-#include "includes.h"
+#include <string>
+#include <iostream>
+#include <vector>
 #include "Frame.h"
 #include "SaveImg.h"
 #include "Fits.h"
 #include "Fits2D.h"
 #include "Fits3D.h"
-#include "SMTPClient.h"
+//#include "SMTPClient.h"
 #include "ECamBitDepth.h"
 #include "GlobalEvent.h"
 #include "ImgReduction.h"

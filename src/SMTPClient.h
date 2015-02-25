@@ -35,10 +35,23 @@
 
 #pragma once
 
-#include "includes.h"
+#include "config.h"
 
+#include <stdio.h>
+#include <stdlib.h>
+#include <string>
+#include <iostream>
+#include <vector>
+#include <ostream>
 
-#include <boost/asio.hpp>
+#ifdef WINDOWS
+	#define WIN32_LEAN_AND_MEAN
+	#include <boost/asio.hpp>
+	#include <windows.h>
+#else
+	#include <boost/asio.hpp>
+#endif
+
 #include <fstream>
 #include <sstream>
 #include <boost/archive/iterators/ostream_iterator.hpp>
@@ -49,7 +62,6 @@
 #include "ManageFiles.h"
 
 using namespace std;
-
 
 class SMTPClient{
 

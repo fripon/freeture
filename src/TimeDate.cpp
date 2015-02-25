@@ -243,7 +243,7 @@ double TimeDate::localSideralTime_2(double julianCentury, int gregorianH, int gr
     vector<int> GTSM0_hms;
     GTSM0_hms.push_back((int)entPart_h%24); // H
     GTSM0_hms.push_back((int)entPart_m); // M
-    GTSM0_hms.push_back((int)round(fractPart_s*60)); // S
+	GTSM0_hms.push_back((int)std::floor(fractPart_s*60 + 0.5)); // S
 
     //cout << "GTSM0_hms-> "<<GTSM0_hms.at(0)<<"h "<<GTSM0_hms.at(1)<< "m "<<GTSM0_hms.at(2)<< "s"<<endl;
 
@@ -320,7 +320,7 @@ double TimeDate::localSideralTime_2(double julianCentury, int gregorianH, int gr
     vector<int> GTSM0_hms;
     GTSM0_hms.push_back((int)entPart_h%24); // H
     GTSM0_hms.push_back((int)entPart_m); // M
-    GTSM0_hms.push_back((int)round(fractPart_s*60)); // S
+    GTSM0_hms.push_back((int)std::floor(fractPart_s*60+0.5)); // S
 
     //cout << "GTSM0_hms-> "<<GTSM0_hms.at(0)<<"h "<<GTSM0_hms.at(1)<< "m "<<GTSM0_hms.at(2)<< "s"<<endl;
 

@@ -67,8 +67,8 @@ Point roiPositionToFramePosition(Point roiPix, Point newOrigine, Point framePix)
 
 Mat buildMeteorTrail( GlobalEvent &ev, int h, int w, bool originalIntensity){
 
-   /* Mat event = Mat::zeros(h,w, CV_8UC1);
-
+    Mat event = Mat::zeros(h,w, CV_8UC1);
+	/*
     vector<LocalEvent>::iterator it;
 
     vector<LocalEvent> *p = ev.getListLocalEvent();
@@ -98,8 +98,8 @@ Mat buildMeteorTrail( GlobalEvent &ev, int h, int w, bool originalIntensity){
             }
         }
     }
-
-    return event;*/
+	*/
+    return event;
 
 }
 

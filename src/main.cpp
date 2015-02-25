@@ -31,37 +31,70 @@
 * \date    01/12/2014
 */
 
-#include "includes.h"
-#include <algorithm>
+#include "config.h"
+
+#include "opencv2/highgui/highgui.hpp"
+#include <opencv2/imgproc/imgproc.hpp>
+
+#ifdef WINDOWS
+#include <windows.h>
+#endif
+
+#ifdef LINUX
+#include <signal.h>
+#include <unistd.h>
+#define BOOST_LOG_DYN_LINK 1
+#endif
+
+#include <stdio.h>
+
+#include <boost/log/common.hpp>
+#include <boost/log/expressions.hpp>
+#include <boost/log/utility/setup/file.hpp>
+#include <boost/log/utility/setup/console.hpp>
+#include <boost/log/utility/setup/common_attributes.hpp>
+#include <boost/log/attributes/named_scope.hpp>
+#include <boost/log/sources/logger.hpp>
+#include <boost/log/support/date_time.hpp>
+#include <boost/log/attributes.hpp>
+#include <boost/log/sinks.hpp>
+#include <boost/log/sources/logger.hpp>
+#include <boost/log/utility/record_ordering.hpp>
+#include <boost/log/core.hpp>
+#include <boost/smart_ptr/shared_ptr.hpp>
+
+#include <boost/circular_buffer.hpp>
+#include <boost/filesystem.hpp>
+
+#include <string>
+#include <iostream>
+#include <vector>
+
 #include "ImgReduction.h"
 #include "CameraVideo.h"
 #include "CameraFrames.h"
 #include "Camera.h"
-#include "Configuration.h"
+//#include "Configuration.h"
 #include "Frame.h"
 #include "DetThread.h"
 #include "AstThread.h"
-#include "RecEvent.h"
+//#include "RecEvent.h"
 #include "SaveImg.h"
 #include "Conversion.h"
 #include "Fits2D.h"
-#include "ManageFiles.h"
-#include "TimeDate.h"
-#include "Histogram.h"
-#include "EImgBitDepth.h"
-#include "SMTPClient.h"
+//#include "ManageFiles.h"
+//#include "TimeDate.h"
+//#include "Histogram.h"
+//#include "SMTPClient.h"
 #include "FreeTure.h"
 #include "ECamType.h"
+#include "EImgBitDepth.h"
 #include "EParser.h"
+#include "boost/program_options.hpp"
+
+
 #define BOOST_NO_SCOPED_ENUMS
-#include <boost/filesystem.hpp>
-#include <boost/circular_buffer.hpp>
 
-#include <boost/date_time.hpp>
-
-using namespace boost::filesystem;
-
-using namespace std;
 
 namespace po        = boost::program_options;
 namespace logging	= boost::log;
@@ -72,9 +105,12 @@ namespace expr		= boost::log::expressions;
 namespace keywords	= boost::log::keywords;
 
 using boost::shared_ptr;
+using namespace boost::filesystem;
+using namespace std;
+
 
 bool sigTermFlag = false;
-
+/*
 void showHistogram(Mat& img)
 {
 	int bins = 256;             // number of bins
@@ -132,8 +168,8 @@ void showHistogram(Mat& img)
 		imshow(nc == 1 ? "value" : wname[i], canvas[i]);
 	}
 }
-
-#ifdef _LINUX_
+*/
+#ifdef LINUX
 
 struct sigaction act;
 
@@ -291,11 +327,13 @@ int main(int argc, const char ** argv){
         bool    saveFits2D      = false;
         int     gain            = 100;
         int     exp             = 100;
-        string  version         = string(PACKAGE_VERSION);
+        string  version         = string(VERSION);
         string  camtype         = "basler";
         bool    display         = false;
         int     camID           = 0;
-        int     fps             = 30;
+
+		cout << "version read : " << VERSION <<endl;
+		cout << "cfg path read : " << string(CFG_PATH) <<endl;
 
         po::store(po::parse_command_line(argc, argv, desc), vm);
 
@@ -576,8 +614,8 @@ int main(int argc, const char ** argv){
                                             path curr(file->path());
 
                                             if(is_regular_file(curr)){
-
-                                                filename = file->path().c_str() ;
+												string fname = file->path().string();
+                                                filename = fname.c_str() ;
                                                 break;
 
                                             }
@@ -725,11 +763,11 @@ int main(int argc, const char ** argv){
 
                             if(ft.CAMERA_TYPE == BASLER || ft.CAMERA_TYPE == DMK){
 
-                                #ifdef _WIN64_
+                                #ifdef WINDOWS
 
-                                    BOOST_LOG_SEV(slg, notification) << "This is the process : " << (unsigned long)_getpid();
+                                 //   BOOST_LOG_SEV(slg, notification) << "This is the process : " << (unsigned long)_getpid();
 
-                                #elif defined _LINUX_
+                                #elif defined LINUX
 
                                     BOOST_LOG_SEV(slg, notification) << "This is the process : " << (unsigned long)getpid();
 
@@ -806,9 +844,9 @@ int main(int argc, const char ** argv){
                                         }
                                     }
 
-                                    #ifdef _WIN64_
+                                    #ifdef WINDOWS
                                         Sleep(1000);
-                                    #elif defined _LINUX_
+                                    #elif defined LINUX
                                         sleep(1);
                                     #endif
 
@@ -901,221 +939,128 @@ int main(int argc, const char ** argv){
                         cout << "================================================" << endl << endl;
 
                         // Display or not the grabbed frame.
-                        if(vm.count("display"))     display     = vm["display"].as<bool>();
+                        if(vm.count("display")) display = vm["display"].as<bool>();
 
                         // Path where to save files.
-                        if(vm.count("savepath"))    savePath    = vm["savepath"].as<string>();
+                        if(vm.count("savepath")) savePath = vm["savepath"].as<string>();
 
                         // Acquisition format.
-                        if(vm.count("bitdepth"))    acqFormat   = vm["bitdepth"].as<int>();
-
-                        CamBitDepth camFormat;
-
-                        switch(acqFormat){
-
-                            case 8 :
-
-                                {
-                                    camFormat = MONO_8;
-                                }
-
-                                break;
-
-                            case 12 :
-
-                                {
-                                    camFormat = MONO_12;
-                                }
-
-                                break;
-
-                            default :
-
-                                    throw "> The acquisition format specified in program options is not allowed.";
-
-                                break;
-
-                        }
+                        if(vm.count("bitdepth")) acqFormat = vm["bitdepth"].as<int>();
+						CamBitDepth camFormat;
+						Conversion::intBitDepth_To_CamBitDepth(acqFormat, camFormat);
 
                         // Cam id.
-                        if(vm.count("id"))          camID     = vm["id"].as<int>();
-
-                        // FPS.
-                        if(vm.count("fps"))         fps         = vm["fps"].as<int>();
+                        if(vm.count("id")) camID = vm["id"].as<int>();
 
                         // Save bmp.
-                        if(vm.count("bmp"))         saveBmp     = vm["bmp"].as<bool>();
+                        if(vm.count("bmp")) saveBmp = vm["bmp"].as<bool>();
 
                         // Save fits.
-                        if(vm.count("fits"))        saveFits2D  = vm["fits"].as<bool>();
+                        if(vm.count("fits")) saveFits2D = vm["fits"].as<bool>();
 
                         // Type of camera in input.
-                        if(vm.count("camtype"))     camtype     = vm["camtype"].as<string>();
-
+                        if(vm.count("camtype")) camtype = vm["camtype"].as<string>();
                         EParser<CamType> cam_type;
-
                         std::transform(camtype.begin(), camtype.end(),camtype.begin(), ::toupper);
 
                         // Gain value.
-                        if(vm.count("gain"))
-
-                            gain = vm["gain"].as<int>();
-
-                        else{
-
-                            throw "Please define the gain value.";
-
-                        }
+                        if(vm.count("gain")) gain = vm["gain"].as<int>();
+                        else throw "Please define the gain value.";
 
                         // Exposure value.
-                        if(vm.count("exposure"))
+                        if(vm.count("exposure")) exp = vm["exposure"].as<int>();
+                        else throw "Please define the exposure time value.";
 
-                           exp = vm["exposure"].as<int>();
-
-                        else{
-
-                            throw "Please define the exposure time value.";
-
-                        }
-
-                        Camera  *inputCam = NULL;
-                        string  cam;        // Camera name
-                        string  date = "";  // Acquisition date
-                        Mat     frame;      // Image data
-
-
+                        Camera *inputCam = NULL;
                         inputCam = new Camera(cam_type.parseEnum("CAMERA_TYPE", camtype), exp, gain, camFormat);
+                        if(inputCam == NULL) throw "> Failed to create Camera object.";
+
+						Frame frame;
+						if(!inputCam->grabSingleFrame(frame, camID))
+							throw "> Failed to grab a single frame.";
+
+                        // Display the frame in an opencv window
+                        if(display){
+
+                            Mat temp, temp1;
+                            frame.getImg().copyTo(temp1);
+
+                            if(camFormat == MONO_12){
+
+								temp = Conversion::convertTo8UC1(temp1);
+
+                            }else{
+
+                                frame.getImg().copyTo(temp);
+							}
+
+							namedWindow( "Frame", WINDOW_AUTOSIZE );
+                            imshow( "Frame", temp);
+                            waitKey(0);
+
+                        }
+
+                        // Save the frame in BMP.
+                        if(saveBmp){
+
+                            Mat temp, temp1;
+                            frame.getImg().copyTo(temp1);
+
+                            if(camFormat == MONO_12){
+
+                                temp = Conversion::convertTo8UC1(temp1);
+
+                            }else
+
+                                frame.getImg().copyTo(temp);
+
+                            SaveImg::saveBMP(temp, savePath + "frame");
+
+                        }
+
+                        // Save the frame in Fits 2D.
+                        if(saveFits2D){
+
+                            Fits fitsHeader;
+                            fitsHeader.setGaindb((int)gain);
+                            fitsHeader.setExposure(exp);
+
+                            Fits2D newFits(savePath + "frame", fitsHeader);
+                            vector<string> dd;
+
+                            switch(camFormat){
+
+                                case MONO_8 :
+
+                                    {
+
+                                        if(newFits.writeFits(frame.getImg(), UC8, dd, false,"capture" ))
+                                            cout << "> Fits saved in " << savePath << endl;
+                                        else
+                                            cout << "Failed to save Fits." << endl;
+
+                                    }
+
+                                    break;
+
+                                case MONO_12 :
+
+                                    {
+
+                                        if(newFits.writeFits(frame.getImg(), S16, dd, false,"capture" ))
+                                            cout << "> Fits saved in " << savePath << endl;
+                                        else
+                                            cout << "Failed to save Fits." << endl;
 
 
-                        if(inputCam == NULL)
-                            throw "> Failed to create Camera object.";
+                                    }
 
-                        cout << "> Trying to get the camera." << endl;
+                                    break;
 
-                        // Retrieve the camera device.
-                        if(inputCam->getDeviceById(camID,cam))
-
-                            cout << "> Camera found : " << cam << "." << endl;
-
-                        else
-
-                            throw "> No camera found.";
-
-                        cout<< "> Trying to connect to the camera ..."<<endl;
-
-                        // Select the first camera.
-                        if(!inputCam->setSelectedDevice(cam)){
-
-                            throw "> Connection failed.";
-
-                        }else{
-
-                            cout << "> Connection success." << endl;
-/*
-
-                            if(!inputCam->setCameraFPS(fps));
-                                throw "> Failed to set camera fps.";
-*/
-
-                            if(!inputCam->setCameraPixelFormat(camFormat))
-                                throw "> Failed to set camera bit depth.";
-
-                            if(!inputCam->setCameraExposureTime(exp))
-                                throw "> Failed to set camera exposure.";
-
-                            if(!inputCam->setCameraGain(gain))
-                                throw "> Failed to set camera gain.";
-
-                            if(!inputCam->startGrab(fps))
-                                throw "> Failed to initialize the grab.";
-
-                            if(!inputCam->grabSingleFrame(frame, date))
-                                throw "> Failed to grab a single frame.";
-
-                            // Display the frame in an opencv window
-                            if(display){
-
-                                namedWindow( "Frame", WINDOW_AUTOSIZE );
-
-                                Mat temp;
-
-                                if(camFormat == MONO_12){
-
-                                    temp = Conversion::convertTo8UC1(frame);
-
-                                }else
-
-                                    frame.copyTo(temp);
-
-                                imshow( "Frame", temp );
-                                waitKey(0);
-
-                            }
-
-                            // Save the frame in BMP.
-                            if(saveBmp){
-
-                                Mat temp;
-
-                                if(camFormat == MONO_12){
-
-                                    temp = Conversion::convertTo8UC1(frame);
-
-                                }else
-
-                                    frame.copyTo(temp);
-
-                                SaveImg::saveBMP(temp, savePath + "frame");
-
-                            }
-
-                            // Save the frame in Fits 2D.
-                            if(saveFits2D){
-
-                                double minVal, maxVal;
-                                minMaxLoc(frame, &minVal, &maxVal);
-                                cout << "max val : " << maxVal << endl;
-                                cout << "min val : " << minVal << endl;
-                                Fits fitsHeader;
-                                fitsHeader.setGaindb((int)gain);
-                                fitsHeader.setExposure(exp);
-
-                                Fits2D newFits(savePath + "frame",fitsHeader);
-                                newFits.setBscale(1);
-                                vector<string> dd;
-
-                                switch(camFormat){
-
-                                    case MONO_8 :
-
-                                        {
-                                            newFits.setBzero(128);
-
-                                            if(newFits.writeFits(frame, C8, dd, false,"capture2" ))
-                                                cout << "> Fits saved in " << savePath << endl;
-                                            else
-                                                cout << "Failed to save Fits." << endl;
-
-                                        }
-
-                                        break;
-
-                                    case MONO_12 :
-
-                                        {
-                                            newFits.setBzero(32768);
-                                            if(newFits.writeFits(frame, S16, dd, false,"capture" ))
-                                                cout << "> Fits saved in " << savePath << endl;
-                                            else
-                                                cout << "Failed to save Fits." << endl;
-
-                                        }
-
-                                        break;
-
-                                }
                             }
                         }
+
+						getchar();
                     }
 
                     break;
@@ -1298,7 +1243,7 @@ vector<string> dd;
                 case 8 :
 
                     {
-
+/*
                         vector<string> to;
                         to.push_back("yoan.audureau@gmail.com");
                         to.push_back("yoan.audureau@yahoo.fr");
@@ -1306,7 +1251,7 @@ vector<string> dd;
                         vector<string> pathAttachments;
 
                         SMTPClient mailc("smtp.u-psud.fr", 25, "u-psud.fr");
-                        mailc.send("yoan.audureau@u-psud.fr", to, "test", "test" , pathAttachments, false);
+                        mailc.send("yoan.audureau@u-psud.fr", to, "test", "test" , pathAttachments, false);*/
 
                     }
 
@@ -1316,7 +1261,7 @@ vector<string> dd;
 
                     {
 
-                        cout << "#### TEST SIDERAL TIME ####" << endl << endl;
+                      /*  cout << "#### TEST SIDERAL TIME ####" << endl << endl;
 
                         int year        = 0;
                         int month       = 0;
@@ -1406,7 +1351,7 @@ vector<string> dd;
                         double  julianCentury   = TimeDate::julianCentury(julianDate);
                         cout << "JULIAN CENTURY : " << julianCentury << endl;
                         double  sideralT        = TimeDate::localSideralTime_2(julianCentury, YYYYMMDDhhmm.at(3), YYYYMMDDhhmm.at(4), seconds, 2.1794397);
-                        cout << ">>> sideralTime : " << sideralT << endl;
+                        cout << ">>> sideralTime : " << sideralT << endl;*/
 
                     }
 
@@ -1489,6 +1434,8 @@ vector<string> dd;
             }
 
         }
+
+		getchar();
 
     }catch(exception& e){
 

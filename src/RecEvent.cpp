@@ -507,11 +507,11 @@ bool RecEvent::saveGE(  boost::circular_buffer<Frame>  *frameBuffer,
                 if(!fs::exists(p)) fs::create_directory(p);
 
                 if(pixelFormat == MONO_8){
-                    newFits.setBzero(128);
-                    newFits.writeFits((*it).getImg(), C8, DD, false, fits2DName);
+
+                    newFits.writeFits((*it).getImg(), UC8, DD, false, fits2DName);
 
                 }else{
-                    newFits.setBzero(32768);
+
                     newFits.writeFits((*it).getImg(), S16, DD, false, fits2DName);
                 }
             }
@@ -528,10 +528,7 @@ bool RecEvent::saveGE(  boost::circular_buffer<Frame>  *frameBuffer,
 
             c++;
 
-            if((*it).getNumFrame() >= numFirstFrameEvent && (*it).getNumFrame() <= numLastFrameEvent){
-
-                accumulate((*it).getImg(), stackEvent);
-            }
+            accumulate((*it).getImg(), stackEvent);
 
         }
     }
@@ -587,7 +584,7 @@ bool RecEvent::saveGE(  boost::circular_buffer<Frame>  *frameBuffer,
 
     if(mailNotification){
         cout << "Send mail " << endl;
-
+/*
         SMTPClient mailc(SMTPServer, 25, SMTPHostname);
 
         mailc.send("yoan.audureau@u-psud.fr",
@@ -596,7 +593,7 @@ bool RecEvent::saveGE(  boost::circular_buffer<Frame>  *frameBuffer,
                    stationName + "\n" + (*itGE).getDate().at(0) + (*itGE).getDate().at(1) + (*itGE).getDate().at(2) + "_" + (*itGE).getDate().at(3) + (*itGE).getDate().at(4) + (*itGE).getDate().at(5) + "_UT\n" + currentEventPath,
                    mailAttachments,
                    false);
-
+				   */
 
     }
 

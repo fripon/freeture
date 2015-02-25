@@ -35,6 +35,8 @@
 
 #include "CameraSDKAravis.h"
 
+#ifdef LINUX
+
 CameraSDKAravis::CameraSDKAravis(){}
 
 CameraSDKAravis::~CameraSDKAravis(){}
@@ -84,13 +86,76 @@ bool CameraSDKAravis::chooseDevice(string name){
 
     camera = arv_camera_new(name.c_str());
 
-    if(camera != NULL)
+    if(camera != NULL){
+
+        cout << "Connection success to the camera." << endl;
         return true;
-    else
+
+    }else{
+
+        cout << "Connection fail to the camera." << endl;
         return false;
 
+    }
 }
 
+bool CameraSDKAravis::grabSingleImage(Frame &frame, int camID){
+
+    arv_update_device_list();
+
+    int n_devices = arv_get_n_devices();
+
+    string deviceName = "";
+
+	for(int i = 0; i< n_devices; i++){
+
+        if(camID == i){
+
+            deviceName = arv_get_device_id(i);
+
+        }
+	}
+
+	if(deviceName != ""){
+
+        cout << "Camera found : " << deviceName << endl;
+
+        if(!chooseDevice(deviceName))
+            return false;
+
+        if(!setPixelFormat(frame.getBitDepth()))
+            return false;
+
+        if(!setExposureTime(frame.getExposure()))
+            return false;
+
+        if(!setGain(frame.getGain()))
+            return false;
+
+        if(!grabStart())
+            return false;
+
+        acqStart(SINGLE_ACQ);
+
+        // Grab a frame.
+        if(!grabImage(frame)){
+
+            acqStop();
+            return false;
+        }
+
+        acqStop();
+
+    }else{
+
+        cout << "No camera found with the ID : " << camID << endl;
+        return false;
+
+    }
+
+    return true;
+
+}
 
 bool CameraSDKAravis::grabStart(int camFps){
 
@@ -340,11 +405,11 @@ bool CameraSDKAravis::grabStart(){
 
 }
 
-void CameraSDKAravis::acqStart(bool continuousAcquisition){
+void CameraSDKAravis::acqStart(CamAcqMode acqMode){
 
-    if(continuousAcquisition)
+    if(acqMode == CONTINUOUS_ACQ)
         arv_camera_set_acquisition_mode(camera, ARV_ACQUISITION_MODE_CONTINUOUS);
-    else
+    else if(acqMode == SINGLE_ACQ)
         arv_camera_set_acquisition_mode(camera, ARV_ACQUISITION_MODE_SINGLE_FRAME);
 
     arv_camera_start_acquisition(camera);
@@ -656,3 +721,5 @@ bool CameraSDKAravis::setPixelFormat(CamBitDepth depth){
     return false;
 
 }
+
+#endif

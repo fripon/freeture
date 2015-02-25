@@ -49,7 +49,9 @@ Camera::Camera(CamType camType){
                 #ifdef USE_PYLON
                     camera = new CameraSDKPylon();
                 #else
+                    #ifdef LINUX
                     camera = new CameraSDKAravis();
+                    #endif
                 #endif
 
             }
@@ -59,11 +61,13 @@ Camera::Camera(CamType camType){
         case DMK :
 
             {
-                #ifdef USE_PYLON
-
+                #ifdef USE_IMAGING_CONTROL
+                    //camera = new CameraSDKPylon();
                 #else
+                    #ifdef LINUX
                     camera = new CameraSDKAravis();
-                #endif;
+                    #endif
+                #endif
 
             }
 
@@ -107,7 +111,9 @@ Camera::Camera( CamType     camType,
                 #ifdef USE_PYLON
                     camera = new CameraSDKPylon();
                 #else
+                    #ifdef LINUX
                     camera = new CameraSDKAravis();
+                    #endif
                 #endif
 
             }
@@ -118,11 +124,13 @@ Camera::Camera( CamType     camType,
 
             {
 
-                #ifdef USE_PYLON
-
+                #ifdef USE_IMAGING_CONTROL
+                    //camera = new CameraSDKPylon();
                 #else
+                    #ifdef LINUX
                     camera = new CameraSDKAravis();
-                #endif;
+                    #endif
+                #endif
 
             }
 
@@ -199,9 +207,10 @@ Camera::Camera( CamType                                 camType,
                 #ifdef USE_PYLON
                     camera = new CameraSDKPylon();
                 #else
+                    #ifdef LINUX
                     camera = new CameraSDKAravis();
+                    #endif
                 #endif
-
             }
 
             break;
@@ -210,11 +219,13 @@ Camera::Camera( CamType                                 camType,
 
             {
 
-                #ifdef USE_PYLON
-
+                #ifdef USE_IMAGING_CONTROL
+                    //camera = new CameraSDKPylon();
                 #else
+                    #ifdef LINUX
                     camera = new CameraSDKAravis();
-                #endif;
+                    #endif
+                #endif
 
             }
 
@@ -247,6 +258,29 @@ Camera::~Camera(void){
 void Camera::join(){
 
 	m_thread->join();
+
+}
+
+bool Camera::grabSingleFrame(Frame &frame, int camID){
+
+	Frame newFrame;
+	newFrame.setBitDepth(bitdepth);
+	newFrame.setExposure(exposure);
+	newFrame.setGain(gain);
+
+	bool res = camera->grabSingleImage(newFrame, camID);
+
+	if(res){
+
+		frame.setBitDepth(bitdepth);
+		frame.setExposure(exposure);
+		frame.setGain(gain);
+		frame.setImg(newFrame.getImg());
+		frame.setAcqDate(newFrame.getAcqDate());
+
+	}
+
+	return res;
 
 }
 
@@ -360,7 +394,7 @@ bool Camera::grabSingleFrame(Mat &frame, string &date){
     Frame newFrame;
 
     // Start single acquisition.
-    camera->acqStart(false);
+    camera->acqStart(SINGLE_ACQ);
 
     // Grab a frame.
     if(camera->grabImage(newFrame)){
@@ -392,7 +426,7 @@ void Camera::operator()(){
 	BOOST_LOG_SEV(log,notification) << "========== Start acquisition thread ==========";
 	BOOST_LOG_SEV(log,notification) << "==============================================";
 
-    camera->acqStart(true);
+    camera->acqStart(CONTINUOUS_ACQ);
 
     Mat stackImg    = Mat::zeros(camera->getHeight(), camera->getWidth(), CV_32FC1);
     Mat currImg     = Mat::zeros(camera->getHeight(), camera->getWidth(), CV_32FC1);
@@ -425,7 +459,6 @@ void Camera::operator()(){
             boost::mutex::scoped_lock lock(*m_frameBuffer);
             frameBuffer->push_back(newFrame);
             lock.unlock();
-
 
             //double ttacq = (double)getTickCount();
 
