@@ -164,13 +164,9 @@ bool Fits::loadKeywordsFromConfigFile(string configFile){
         cfg.Get("SITELONG", kSITELONG);
         cfg.Get("SITELAT",  kSITELAT);
         cfg.Get("SITEELEV", kSITEELEV);
-        cfg.Get("CRPIX1",   kCRPIX1);
-        cfg.Get("CRPIX2",   kCRPIX2);
         cfg.Get("K1",       kK1);
         cfg.Get("K2",       kK2);
-        cfg.Get("PROGRAM",  kPROGRAM);
         cfg.Get("FILTER",   kFILTER);
-        cfg.Get("CREATOR",  kCREATOR);
         cfg.Get("CD1_1",    kCD1_1);
         cfg.Get("CD1_2",    kCD1_2);
         cfg.Get("CD2_1",    kCD2_1);

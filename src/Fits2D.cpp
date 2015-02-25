@@ -38,7 +38,12 @@
 src::severity_logger< LogSeverityLevel >  Fits2D::logger;
 Fits2D::_Init Fits2D::_initializer;
 
-Fits2D::Fits2D(){}
+Fits2D::Fits2D(){
+
+    kPROGRAM    = "FreeTure";
+    kCREATOR    = "FRIPON";
+
+}
 
 Fits2D::~Fits2D(void){}
 
@@ -59,8 +64,6 @@ Fits2D::Fits2D(string recPath, Fits fits){
     kK1         = fits.getK1();
     kK2         = fits.getK2();
     kCOMMENT    = fits.getComment();
-    kPROGRAM    = fits.getProgram();
-    kCREATOR    = fits.getCreator();
     kCD1_1      = fits.getCd1_1();
     kCD1_2      = fits.getCd1_2();
     kCD2_1      = fits.getCd2_1();
@@ -69,6 +72,8 @@ Fits2D::Fits2D(string recPath, Fits fits){
     kCRPIX2     = fits.getCrpix2();
     kXPIXEL     = fits.getXpixel();
     kYPIXEL     = fits.getYpixel();
+    kPROGRAM    = "FreeTure";
+    kCREATOR    = "FRIPON";
 
 }
 
@@ -864,6 +869,10 @@ bool Fits2D::writeFits(Mat img, ImgBitDepth imgType, vector<string> date, bool f
 
     }
 
+    // Define CRPIX1 and CRPIX2
+    kCRPIX1 = (int)naxes[0] / 2;
+    kCRPIX2 = (int)naxes[1] / 2;
+
     fitsfile *fptr;
 
     const char * filename;
@@ -1269,7 +1278,7 @@ bool Fits2D::readFits32F(Mat &img, string filePath){
     nbuffer = npixels;
 
     //float  buffer[npixels];
-	float* buffer = new float[npixels]; 
+	float* buffer = new float[npixels];
 
     if(fits_read_img(fptr, TFLOAT, fpixel, nbuffer, &nullval,buffer, &anynull, &status)){
 
@@ -1344,7 +1353,7 @@ bool Fits2D::readFits16US(Mat &img, string filePath){
     nbuffer = npixels;
 
     //unsigned short  buffer[npixels];
-	unsigned short* buffer = new unsigned short[npixels]; 
+	unsigned short* buffer = new unsigned short[npixels];
     if(fits_read_img(fptr, TUSHORT, fpixel, nbuffer, &nullval,buffer, &anynull, &status)){
 
         return printerror( status, "Fits2D::readFits16US() -> fits_read_img() failed" );
@@ -1416,7 +1425,7 @@ bool Fits2D::readFits16S(Mat &img, string filePath){
     nbuffer = npixels;
 
    // short  buffer[npixels];
-	short* buffer = new short[npixels]; 
+	short* buffer = new short[npixels];
     if(fits_read_img(fptr, TSHORT, fpixel, nbuffer, &nullval,buffer, &anynull, &status)){
 
         return printerror( status, "Fits2D::readFits16S() -> fits_read_img() failed" );
@@ -1489,7 +1498,7 @@ bool Fits2D::readFits8UC(Mat &img, string filePath){
     nbuffer = npixels;
 
     //unsigned char  buffer[npixels];
-	unsigned char* buffer = new unsigned char[npixels]; 
+	unsigned char* buffer = new unsigned char[npixels];
 
     if(fits_read_img(fptr, TBYTE, fpixel, nbuffer, &nullval,buffer, &anynull, &status)){
 
@@ -1564,7 +1573,7 @@ bool Fits2D::readFits8C(Mat &img, string filePath){
     nbuffer = npixels;
 
 //    char  buffer[npixels];
-	char* buffer = new char[npixels]; 
+	char* buffer = new char[npixels];
     if(fits_read_img(fptr, TSBYTE, fpixel, nbuffer, &nullval,buffer, &anynull, &status)){
 
         return printerror( status, "Fits2D::readFits8C() -> fits_read_img() failed" );

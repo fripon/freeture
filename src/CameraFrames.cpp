@@ -302,9 +302,9 @@ void CameraFrames::operator () (){
 
 
             Frame newFrame(resMat, 0, 0.0, TimeDate::localDateTime(second_clock::universal_time(),"%Y:%m:%d:%H:%M:%S"));
-              Fits2D newwFits("/home/fripon/data2/");
+              /*Fits2D newwFits("/home/fripon/data2/");
             vector<string> datet;
-            newwFits.writeFits(newFrame.getImg(),S16, datet, false, "frame_"+Conversion::intToString(cpt));
+            newwFits.writeFits(newFrame.getImg(),S16, datet, false, "frame_"+Conversion::intToString(cpt));*/
 
             boost::posix_time::ptime time = boost::posix_time::microsec_clock::universal_time();
             string acqDateInMicrosec = to_iso_extended_string(time);

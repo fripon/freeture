@@ -111,6 +111,8 @@ class Fits{
 
         bool loadKeywordsFromConfigFile(string configFile);
 
+        // GETTER
+
         string  getCamera();
         string  getFilename();
         double  getExposure();
@@ -149,11 +151,10 @@ class Fits{
         double  getElaptime();
         double  getCrval2();
         double  getCrval1();
+        double  getBzero();
+        double  getBscale();
 
-        double getBzero();
-        double getBscale();
-
-//%%%%%%%%%%%%%%%%%%% SETTER %%%%%%%%%%%%%%%%%%%%%%%%%%%%
+        // SETTER
 
         void setBzero(double value);
         void setBscale(double value);

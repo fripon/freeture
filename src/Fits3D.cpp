@@ -75,14 +75,14 @@ Fits3D::Fits3D(CamBitDepth depth, int imgHeight, int imgWidth, int imgNum, Fits 
     kK1         = fits.getK1();
     kK2         = fits.getK2();
     kCOMMENT    = fits.getComment();
-    kPROGRAM    = fits.getProgram();
-    kCREATOR    = fits.getCreator();
+    kPROGRAM    = "FreeTure";
+    kCREATOR    = "FRIPON";
     kCD1_1      = fits.getCd1_1();
     kCD1_2      = fits.getCd1_2();
     kCD2_1      = fits.getCd2_1();
     kCD2_2      = fits.getCd2_2();
-    kCRPIX1     = fits.getCrpix1();
-    kCRPIX2     = fits.getCrpix2();
+    kCRPIX1     = imgWidth/2;
+    kCRPIX2     = imgHeight/2;
     kXPIXEL     = fits.getXpixel();
     kYPIXEL     = fits.getYpixel();
 }
