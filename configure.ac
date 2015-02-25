@@ -32,7 +32,7 @@ define([AC_CACHE_LOAD],)
 define([AC_CACHE_SAVE],)
 
 AC_PREREQ([2.69])
-AC_INIT([freeture], [0.5-4], [yoan.audureau@u-psud.fr])
+AC_INIT([freeture], [0.5-5], [yoan.audureau@u-psud.fr])
 AC_CONFIG_SRCDIR([src/main.cpp])
 AC_CONFIG_HEADERS([config.h])
 
@@ -44,6 +44,8 @@ AC_DEFINE_UNQUOTED(DATE, "$date", [Archive creation date])
 AC_SUBST(PACKAGER, "Yoan Audureau")
 AC_SUBST(DATE2, "$date2")
 AC_SUBST(DATE3, "$date3")
+
+AC_DEFINE(LINUX, 1, [Linux plateform])
 
 # Include macros
 sinclude(acx_urbi_resolve_dir.m4)
