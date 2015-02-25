@@ -327,79 +327,12 @@ bool CameraSDKAravis::grabStart(){
     // Create a new stream object. Open stream on Camera.
     stream = arv_camera_create_stream(camera, NULL, NULL);
 
-    if(stream == NULL)
+    if(stream == NULL){
         cout << "stream is null " << endl;
-
-    if (ARV_IS_GV_STREAM(stream)){
-
-        bool            arv_option_auto_socket_buffer   = true;
-        bool            arv_option_no_packet_resend     = true;
-        unsigned int    arv_option_packet_timeout       = 20;
-        unsigned int    arv_option_frame_retention      = 100;
-
-        if(arv_option_auto_socket_buffer){
-
-            g_object_set(stream,
-                         // ARV_GV_STREAM_SOCKET_BUFFER_FIXED : socket buffer is set to a given fixed value.
-                         // ARV_GV_STREAM_SOCKET_BUFFER_AUTO: socket buffer is set with respect to the payload size.
-                         "socket-buffer", ARV_GV_STREAM_SOCKET_BUFFER_AUTO,
-                         // Socket buffer size, in bytes.
-                         // Allowed values: >= G_MAXULONG
-                         // Default value: 0
-                         "socket-buffer-size", 0, NULL);
-
-        }
-
-        if(arv_option_no_packet_resend){
-
-            // # packet-resend : Enables or disables the packet resend mechanism
-
-            // If packet resend is disabled and a packet has been lost during transmission,
-            // the grab result for the returned buffer holding the image will indicate that
-            // the grab failed and the image will be incomplete.
-            //
-            // If packet resend is enabled and a packet has been lost during transmission,
-            // a request is sent to the camera. If the camera still has the packet in its
-            // buffer, it will resend the packet. If there are several lost packets in a
-            // row, the resend requests will be combined.
-
-            g_object_set(stream,
-                         // ARV_GV_STREAM_PACKET_RESEND_NEVER: never request a packet resend
-                         // ARV_GV_STREAM_PACKET_RESEND_ALWAYS: request a packet resend if a packet was missing
-                         // Default value: ARV_GV_STREAM_PACKET_RESEND_ALWAYS
-                         "packet-resend", ARV_GV_STREAM_PACKET_RESEND_NEVER, NULL);
-
-        }
-
-        g_object_set(stream,
-                     // # packet-timeout
-
-                     // The Packet Timeout parameter defines how long (in milliseconds) we will wait for
-                     // the next expected packet before it initiates a resend request.
-
-                     // Packet timeout, in µs.
-                     // Allowed values: [1000,10000000]
-                     // Default value: 40000
-                     "packet-timeout",/* (unsigned) arv_option_packet_timeout * 1000*/(unsigned)40000,
-                     // # frame-retention
-
-                     // The Frame Retention parameter sets the timeout (in milliseconds) for the
-                     // frame retention timer. Whenever detection of the leader is made for a frame,
-                     // the frame retention timer starts. The timer resets after each packet in the
-                     // frame is received and will timeout after the last packet is received. If the
-                     // timer times out at any time before the last packet is received, the buffer for
-                     // the frame will be released and will be indicated as an unsuccessful grab.
-
-                     // Packet retention, in µs.
-                     // Allowed values: [1000,10000000]
-                     // Default value: 200000
-                     "frame-retention", /*(unsigned) arv_option_frame_retention * 1000*/(unsigned) 200000,NULL);
-
+        return false;
     }
 
-    // Push 50 buffer in the stream input buffer queue.
-    for (int i = 0; i < 50; i++)
-        arv_stream_push_buffer(stream, arv_buffer_new(payload, NULL));
+    arv_stream_push_buffer(stream, arv_buffer_new(payload, NULL));
 
     return true;
 
@@ -439,9 +372,7 @@ bool CameraSDKAravis::grabImage(Frame &newFrame){
 
     ArvBuffer *arv_buffer;
 
-
-
-    arv_buffer = arv_stream_timeout_pop_buffer(stream, 2000000); //us
+    arv_buffer = arv_stream_pop_buffer(stream); //us
 
     if (arv_buffer == NULL){
 
