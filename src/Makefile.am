@@ -42,9 +42,16 @@ freeture_SOURCES	= EImgBitDepth.h ECamType.h EParser.h EParser.cpp \
 			CameraVideo.cpp Configuration.cpp Conversion.cpp \
 			DetThread.cpp Fits.cpp Fits2D.cpp Fits3D.cpp \
 			Frame.cpp GlobalEvent.cpp Histogram.cpp \
+<<<<<<< HEAD
 			LocalEvent.cpp main.cpp \
 			TimeDate.cpp \
 			SaveImg.cpp ELogSeverityLevel.h  
+=======
+			LocalEvent.cpp main.cpp PixelEvent.cpp \
+			RecEvent.cpp TimeDate.cpp StackedFrames.h \
+			DetByLines.cpp DetByLists.cpp ManageFiles.cpp \
+			SaveImg.cpp ELogSeverityLevel.h EAcquisitionMode.h
+>>>>>>> a3b035a64a2a8fc88f44d745690e3a9f639d3135
 			
 DATE=`date +"%Y-%m-%d"`
 
