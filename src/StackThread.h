@@ -36,6 +36,11 @@
 
 #include "config.h"
 
+
+#ifdef LINUX
+    #define BOOST_LOG_DYN_LINK 1
+#endif
+
 #include <iostream>
 #include "EStackMeth.h"
 #include "Stack.h"
@@ -67,7 +72,7 @@ class StackThread{
 				{
 					logger.add_attribute("ClassName", boost::log::attributes::constant<std::string>("StackThread"));
 				}
-		} _initializer;	
+		} _initializer;
 
 		boost::thread *thread;
 
@@ -183,7 +188,7 @@ class StackThread{
 
                                     }
                                 }*/
-								
-		
+
+
 
 };

@@ -81,11 +81,11 @@ class TimeDate{
 		static string get_YYYYMMDD_fromDateString(string date);
 
 		// Date input format : YYYY-MM-DDTHH:MM:SS.fffffffff
-		static vector<int> TimeDate::getIntVectorFromDateString(string date);
+		static vector<int> getIntVectorFromDateString(string date);
 
 		// Date input format	: YYYYMMJJTHHMMSS.fffffffff
 		// Date output format	: YYYYMMJJTHHMMSS
-		static string TimeDate::get_YYYYMMDDThhmmss(string date);
+		static string get_YYYYMMDDThhmmss(string date);
 
 };
 

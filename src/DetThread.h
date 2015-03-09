@@ -34,9 +34,17 @@
 
 #pragma once
 
+
+
 #include "config.h"
 #include "SMTPClient.h"
 #include <iterator>
+
+
+
+#ifdef LINUX
+    #define BOOST_LOG_DYN_LINK 1
+#endif
 
 #include "Fits.h"
 #include "Fits2D.h"
@@ -70,13 +78,13 @@ class DetThread{
 				{
 					logger.add_attribute("ClassName", boost::log::attributes::constant<std::string>("DetThread"));
 				}
-		} _initializer;	
+		} _initializer;
 
-        boost::thread *m_thread;	
+        boost::thread *m_thread;
 		Detection	*detTech;
 
-        bool mustStop;				
-        boost::mutex mustStopMutex;			
+        bool mustStop;
+        boost::mutex mustStopMutex;
 
         boost::circular_buffer<Frame>   *frameBuffer;
         boost::mutex                    *frameBuffer_mutex;
@@ -143,7 +151,7 @@ class DetThread{
 		bool saveEventData(int firstEvPosInFB, int lastEvPosInFB);
 
 		bool loadDetThreadParameters();
-		
+
 };
 
 

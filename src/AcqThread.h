@@ -35,6 +35,14 @@
 #ifndef ACQTHREAD_H
 #define ACQTHREAD_H
 
+#include "config.h"
+
+#ifdef LINUX
+    #define BOOST_LOG_DYN_LINK 1
+#endif
+
+
+
 #include "Device.h"
 
 using namespace cv;
@@ -56,7 +64,7 @@ class AcqThread{
         } _initializer;
 
         bool mustStop;
-	
+
 		boost::mutex mustStopMutex;
 
 		boost::thread *acquisitionThread;

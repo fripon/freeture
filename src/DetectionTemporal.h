@@ -34,6 +34,13 @@
 
 #pragma once
 
+
+#include "config.h"
+
+#ifdef LINUX
+    #define BOOST_LOG_DYN_LINK 1
+#endif
+
 #include "opencv2/highgui/highgui.hpp"
 #include <opencv2/imgproc/imgproc.hpp>
 #include <boost/tokenizer.hpp>
@@ -67,6 +74,13 @@
 
 using namespace boost::filesystem;
 
+namespace logging	= boost::log;
+namespace sinks		= boost::log::sinks;
+namespace attrs		= boost::log::attributes;
+namespace src		= boost::log::sources;
+namespace expr		= boost::log::expressions;
+namespace keywords	= boost::log::keywords;
+
 using namespace std;
 using namespace cv;
 
@@ -83,14 +97,14 @@ class DetectionTemporal : public Detection{
 				{
 					logger.add_attribute("ClassName", boost::log::attributes::constant<std::string>("DetectionTemporal"));
 				}
-		} _initializer;	
+		} _initializer;
 
         vector<GlobalEvent>	listGlobalEvents;
         int					nbGE;
 		vector<Point>		subdivisionPos;
 		int roiSize[2];
 		vector<Scalar>		listColors; // B, G, R
-		
+
 		Mat localMask;
 
 		bool initStatus;
@@ -106,11 +120,11 @@ class DetectionTemporal : public Detection{
 		bool DET_SAVE_GEMAP;
 
 		bool DET_SAVE_POS;
-		
+
 	public:
 
 		DetectionTemporal();
-	
+
 		~DetectionTemporal();
 
 		void sortSubdivision(unsigned char percentage);
@@ -125,23 +139,23 @@ class DetectionTemporal : public Detection{
 
 		void colorInBlack(int j, int i, int areaPosX, int areaPosY, Point areaPosition, Mat &area, Mat &frame);
 
-		void searchROI( Mat &area,                      
-						Mat &frame,                   
+		void searchROI( Mat &area,
+						Mat &frame,
 						Mat &eventMap,
-						vector<LocalEvent> &listLE,    
-						int imgH,                     
-						int imgW,                      
-						int areaPosX,                 
-						int areaPosY,                   
+						vector<LocalEvent> &listLE,
+						int imgH,
+						int imgW,
+						int areaPosX,
+						int areaPosY,
 						Point areaPosition,
-						int maxNbLE);    
+						int maxNbLE);
 
 		bool run(Frame &c, Frame &p);
 
 		int getNumFirstEventFrame();
 
 		string getDateEvent();
-		
+
 		int getNumLastEventFrame();
 
 		void resetDetection();

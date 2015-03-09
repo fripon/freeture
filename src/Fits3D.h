@@ -35,6 +35,9 @@
 
 #pragma once
 
+#include "config.h"
+
+
 #include "opencv2/highgui/highgui.hpp"
 #include <opencv2/imgproc/imgproc.hpp>
 
@@ -81,7 +84,7 @@ class Fits3D : public Fits{
 				{
 					logger.add_attribute("ClassName", boost::log::attributes::constant<std::string>("Fits3D"));
 				}
-		} _initializer;	
+		} _initializer;
 
         fitsfile        *fptr;
         const char      *filename;

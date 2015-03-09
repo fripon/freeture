@@ -38,6 +38,12 @@
 
 #ifdef USE_PYLON
 
+
+
+#ifdef LINUX
+    #define BOOST_LOG_DYN_LINK 1
+#endif
+
 	#include "Frame.h"
 	#include "TimeDate.h"
 	#include "Conversion.h"
@@ -81,7 +87,7 @@
 					{
 						logger.add_attribute("ClassName", boost::log::attributes::constant<std::string>("CameraGigeSdkPylon"));
 					}
-			} _initializer;	
+			} _initializer;
 
 			Pylon::PylonAutoInitTerm autoInitTerm;
 

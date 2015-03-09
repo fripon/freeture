@@ -37,7 +37,7 @@
 
 #ifdef LINUX
 
-	src::severity_logger< LogSeverityLevel >  CameraGigeSdkAravis::logger;
+	boost::log::sources::severity_logger< LogSeverityLevel >  CameraGigeSdkAravis::logger;
 	CameraGigeSdkAravis::_Init CameraGigeSdkAravis::_initializer;
 
 	CameraGigeSdkAravis::CameraGigeSdkAravis(){}
@@ -230,10 +230,7 @@
 
 	void CameraGigeSdkAravis::acqStart(){
 
-		if(acqMode == CONTINUOUS_ACQ)
-			arv_camera_set_acquisition_mode(camera, ARV_ACQUISITION_MODE_CONTINUOUS);
-		else if(acqMode == SINGLE_ACQ)
-			arv_camera_set_acquisition_mode(camera, ARV_ACQUISITION_MODE_SINGLE_FRAME);
+        arv_camera_set_acquisition_mode(camera, ARV_ACQUISITION_MODE_CONTINUOUS);
 
 		arv_camera_start_acquisition(camera);
 
@@ -355,7 +352,7 @@
 
 			cout << "Camera found : " << deviceName << endl;
 
-			if(!chooseDevice(deviceName))
+			if(!createDevice(0, deviceName))
 				return false;
 
 			if(!setPixelFormat(frame.getBitDepth()))
@@ -370,7 +367,9 @@
 			if(!grabStart())
 				return false;
 
-			acqStart(SINGLE_ACQ);
+			arv_camera_set_acquisition_mode(camera, ARV_ACQUISITION_MODE_SINGLE_FRAME);
+
+            arv_camera_start_acquisition(camera);
 
 			// Grab a frame.
 			if(!grabImage(frame)){
@@ -412,7 +411,7 @@
 		arv_camera_get_gain_bounds(camera, &gainMin, &gainMax);
 
 		gMin = gainMin;
-		gMax = gainMax;    
+		gMax = gainMax;
 
 	}
 

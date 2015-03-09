@@ -42,12 +42,17 @@
 	#include <opencv2/imgproc/imgproc.hpp>
 
 	#include <iostream>
-	#include <string> 
+	#include <string>
 	#include "Frame.h"
 	#include "TimeDate.h"
 	#include "Camera.h"
 	#include "arv.h"
 	#include "arvinterface.h"
+
+
+
+    #define BOOST_LOG_DYN_LINK 1
+
 
 	#include "ECamBitDepth.h"
 	#include <boost/log/common.hpp>
@@ -110,7 +115,7 @@
 
 			void	listGigeCameras();
 			bool	createDevice(int id, string name);
-			bool    getDeviceNameById(int id, string &device);
+			//bool    getDeviceNameById(int id, string &device);
 
 			bool	grabStart();
 			void	grabStop();
@@ -119,6 +124,7 @@
 
 			bool    grabImage(Frame& newFrame);
 			bool	grabSingleImage(Frame &frame, int camID);
+			bool    getDeviceById(int id, string &device);
 
 			void	getExposureBounds(int &eMin, int &eMax);
 			void	getGainBounds(int &gMin, int &gMax);

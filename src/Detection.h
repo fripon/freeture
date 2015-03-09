@@ -34,6 +34,13 @@
 
 #pragma once
 
+
+#include "config.h"
+
+#ifdef LINUX
+    #define BOOST_LOG_DYN_LINK 1
+#endif
+
 #include "opencv2/highgui/highgui.hpp"
 #include <opencv2/imgproc/imgproc.hpp>
 #include <boost/log/common.hpp>
@@ -78,12 +85,12 @@ class Detection{
 				{
 					logger.add_attribute("ClassName", boost::log::attributes::constant<std::string>("Detection"));
 				}
-		} _initializer;	
+		} _initializer;
 
 	protected :
 
 		Mat frameMask;
-	
+
 		int frameHeight;
 		int frameWidth;
 
@@ -91,7 +98,7 @@ class Detection{
 	public:
 
 		Detection(){};
-	
+
 		~Detection(){};
 
 		virtual bool run(Frame &c, Frame &p){return false;};
