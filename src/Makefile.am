@@ -28,25 +28,22 @@
 
 bin_PROGRAMS		= freeture
 freeture_SOURCES	= EImgBitDepth.h ECamType.h EParser.h EParser.cpp \
-			EDetMeth.h AstThread.h Base64.h Camera.h \
-			CameraVideo.h FreeTure.h FreeTure.cpp \
-			CameraSDK.h CameraSDKAravis.h CameraFrames.h \
-			CameraSDKPylon.h SMTPClient.h ImgReduction.h \
-			Configuration.h Conversion.h DetThread.h \
-			Fits.h Fits2D.h Fits3D.h Frame.h GlobalEvent.h Histogram.h \
-			includes.h LocalEvent.h EStackMeth.h \
-			PixelEvent.h RecEvent.h \
-			TimeDate.h DetByLines.h DetByLists.h ManageFiles.h \
-			SaveImg.h ImgReduction.cpp ECamBitDepth.h \
-			AstThread.cpp Base64.cpp Camera.cpp \
-			CameraFrames.cpp SMTPClient.cpp StackedFrames.cpp \
-			CameraSDK.cpp CameraSDKAravis.cpp CameraSDKPylon.cpp \
+			EDetMeth.h Base64.h Camera.h AcqThread.h AcqThread.cpp \
+			CameraVideo.h CameraGigeSdkAravis.h CameraGigeSdkAravis.cpp \
+			CameraFrames.h CameraGigeSdkPylon.h CameraGigeSdkPylon.cpp \
+			SMTPClient.h CameraGigeSdkIc.h CameraGigeSdkIc.cpp \
+			Configuration.h Conversion.h DetThread.h Detection.h Detection.cpp \
+			Fits.h Fits2D.h Fits3D.h Frame.h GlobalEvent.h Histogram.h DetectionStreak.h \
+			LocalEvent.h EStackMeth.h DetectionStreak.cpp DetectionTemporal.h DetectionTemporal.cpp \
+			TimeDate.h Device.h Device.cpp Stack.h Stack.cpp \
+			SaveImg.h ECamBitDepth.h StackThread.h StackThread.cpp \
+			Base64.cpp Camera.cpp \
+			CameraFrames.cpp SMTPClient.cpp \
 			CameraVideo.cpp Configuration.cpp Conversion.cpp \
 			DetThread.cpp Fits.cpp Fits2D.cpp Fits3D.cpp \
 			Frame.cpp GlobalEvent.cpp Histogram.cpp \
-			LocalEvent.cpp main.cpp PixelEvent.cpp \
-			RecEvent.cpp TimeDate.cpp StackedFrames.h \
-			DetByLines.cpp DetByLists.cpp ManageFiles.cpp \
+			LocalEvent.cpp main.cpp \
+			TimeDate.cpp \
 			SaveImg.cpp ELogSeverityLevel.h  
 			
 DATE=`date +"%Y-%m-%d"`
