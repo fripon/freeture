@@ -1,14 +1,13 @@
 /*
-							EAcquisitionMode.h
+							DetectionStreak.h
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 *
 *	This file is part of:	freeture
 *
-*	Copyright:		(C) 2014-2015 Yoan Audureau
-*                               FRIPON-GEOPS-UPSUD-CNRS
+*	Copyright:		(C) 2014-2015 Yoan Audureau -- FRIPON-GEOPS-UPSUD
 *
-*	License:		GNU General Public License	
+*	License:		GNU General Public License
 *
 *	FreeTure is free software: you can redistribute it and/or modify
 *	it under the terms of the GNU General Public License as published by
@@ -21,20 +20,37 @@
 *	You should have received a copy of the GNU General Public License
 *	along with FreeTure. If not, see <http://www.gnu.org/licenses/>.
 *
-*	Last modified:		01/12/2014
+*	Last modified:		03/03/2015
 *
 *%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%*/
 
+/**
+* \file    DetectionStreak.h
+* \author  Yoan Audureau -- FRIPON-GEOPS-UPSUD
+* \version 1.0
+* \date    03/03/2015
+* \brief   Detection method by streak.
+*/
+
 #pragma once
 
-/**
- * \brief       Camera's acquisition mode.
- */
+#include "opencv2/highgui/highgui.hpp"
+#include <opencv2/imgproc/imgproc.hpp>
 
-enum CamAcqMode{
+#include "Detection.h"
 
-    SINGLE_ACQ,
-    CONTINUOUS_ACQ
+using namespace std;
+using namespace cv;
+
+class DetectionStreak : public Detection{
+
+	private :
+
+	public:
+
+		DetectionStreak(){};
+	
+		~DetectionStreak(){};
 
 };
 

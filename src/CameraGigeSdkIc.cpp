@@ -1,12 +1,11 @@
 /*
-				ImgReduction.h
+							CameraGigeSdkIc.cpp
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 *
 *	This file is part of:	freeture
 *
-*	Copyright:		(C) 2014-2015 Yoan Audureau
-*                               FRIPON-GEOPS-UPSUD-CNRS
+*	Copyright:		(C) 2014-2015 Yoan Audureau -- FRIPON-GEOPS-UPSUD
 *
 *	License:		GNU General Public License
 *
@@ -21,41 +20,24 @@
 *	You should have received a copy of the GNU General Public License
 *	along with FreeTure. If not, see <http://www.gnu.org/licenses/>.
 *
-*	Last modified:		12/12/2014
+*	Last modified:		21/01/2015
 *
 *%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%*/
 
 /**
-* \file    ImgReduction.h
+* \file    CameraGigeSdkIc.cpp
 * \author  Yoan Audureau -- FRIPON-GEOPS-UPSUD
 * \version 1.0
-* \date    12/12/2014
-* \brief   Dynamic reduction of an image.
+* \date    21/01/2015
+* \brief   Use Imaging source sdk to pilot GigE Cameras.
+*          https://wiki.gnome.org/action/show/Projects/Aravis?action=show&redirect=Aravis
 */
 
-#pragma once
+#include "CameraGigeSdkIc.h"
 
-#include "opencv2/highgui/highgui.hpp"
-#include <opencv2/imgproc/imgproc.hpp>
+#ifdef WINDOWS
 
-#include "Fits2D.h"
-#include "EImgBitDepth.h"
-#include "ECamBitDepth.h"
+	boost::log::sources::severity_logger< LogSeverityLevel >  CameraGigeSdkIc::logger;
+	CameraGigeSdkIc::_Init CameraGigeSdkIc::_initializer;
 
-using namespace std;
-using namespace cv;
-
-class ImgReduction{
-
-    public:
-
-        ImgReduction();
-
-        static Mat dynamicReductionBasedOnHistogram(double percent, Mat& img);
-
-		static Mat dynamicReductionByFactorDivision(Mat& img, CamBitDepth bitpix, int imgToSum, float &bzero, float &bscale);
-
-};
-
-
-
+#endif
