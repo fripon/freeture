@@ -35,151 +35,79 @@
 
 #include "CameraFrames.h"
 
-CameraFrames::CameraFrames( string dir,
-                            int sepPos,
-                            string sep,
-                            Fits fitsHead,
-                            int bitdepth,
-                            boost::circular_buffer<Frame> *cb,
-                            boost::mutex *m_cb,
-                            boost::condition_variable *c_newElemCb,
-                            bool *newFrameForDet,
-                            boost::mutex *m_newFrameForDet,
-                            boost::condition_variable *c_newFrameForDet){
+boost::log::sources::severity_logger< LogSeverityLevel >  CameraFrames::logger;
+CameraFrames::_Init CameraFrames::_initializer;
 
-    bitpix              = bitdepth;
-    fitsHeader          = fitsHead;
-	dirPath             = dir;
-	thread              = NULL;
+CameraFrames::CameraFrames(string dir, int nbPos){
 
-    separatorPosition = sepPos;
-    separator = sep;
-
-	imgH = 0;
-	imgW = 0;
-
-	newFrameDet = newFrameForDet;
-    m_newFrameDet = m_newFrameForDet;
-    c_newFrameDet = c_newFrameForDet;
-    frameBuffer = cb;
-    m_frameBuffer = m_cb;
-    c_newElemFrameBuffer = c_newElemCb;
+	framesDir			= dir;
+    numPosInName		= nbPos;
+	endReadDataStatus	= false;
+	nbFramesRead		= 0;
+	endReadDataStatus	= false;
+	
 }
 
 CameraFrames::~CameraFrames(void){}
 
-void CameraFrames::startThread(){
+bool CameraFrames::grabStart(){
 
-	// Launch acquisition thread
-	thread = new boost::thread(boost::ref(*this));
+	namespace fs = boost::filesystem;
 
-}
-
-void CameraFrames::join(){
-
-	thread->join();
-
-}
-
-template <typename Container> void stringtok(Container &container, string const &in, const char * const delimiters = "_"){
-
-
-    const string::size_type len = in.length();
-
-    string::size_type i = 0;
-
-
-    while (i < len){
-
-
-        // Eat leading whitespace
-
-        i = in.find_first_not_of(delimiters, i);
-
-
-        if (i == string::npos)
-
-            return;   // Nothing left but white space
-
-
-        // Find the end of the token
-
-        string::size_type j = in.find_first_of(delimiters, i);
-
-
-        // Push token
-
-        if (j == string::npos){
-
-
-            container.push_back(in.substr(i));
-
-            return;
-
-
-        }else
-
-
-            container.push_back(in.substr(i, j-i));
-
-
-        // Set up for next loop
-
-        i = j + 1;
-
-    }
-
-}
-
-void CameraFrames::operator () (){
-
-	BOOST_LOG_SCOPED_THREAD_TAG("LogName", "ACQ_THREAD");
-	BOOST_LOG_SEV(log,notification) << "\n";
-	BOOST_LOG_SEV(log,notification) << "==============================================";
-	BOOST_LOG_SEV(log,notification) << "========== Start acquisition thread ==========";
-	BOOST_LOG_SEV(log,notification) << "==============================================";
-
-    bool endReadFrames = false;
-    bool fileFound = false;
-
-    int cpt = 0;
-
-    namespace fs = boost::filesystem;
-
-    path p(dirPath);
+    path p(framesDir);
 
     if(fs::exists(p)){
+
+		BOOST_LOG_SEV(logger, normal) << "Frame's directory exists : " << framesDir;
 
         int firstFrame = -1, lastFrame = 0;
         string filename = "";
 
-        /// Search first and last frames.
+        /// Search first and last frames numbers in the directory.
         for(directory_iterator file(p);file!= directory_iterator(); ++file){
+
             path curr(file->path());
             cout << file->path() << endl;
 
             if(is_regular_file(curr)){
+
+				// Get file name.
 				string fname = curr.filename().string();
-                list<string> ch;
-				//stringtok(Container &container, string const &in, const char * const delimiters = "_"){
-				stringtok(ch, fname.c_str(), separator.c_str());
-                std:list<string>::const_iterator lit(ch.begin()), lend(ch.end());
+
+				// Split file name according to the separator "_".
+				vector<string> output;
+				typedef boost::tokenizer<boost::char_separator<char> > tokenizer;
+				boost::char_separator<char> sep("_");
+				tokenizer tokens(fname, sep);
+				for (tokenizer::iterator tok_iter = tokens.begin();tok_iter != tokens.end(); ++tok_iter){
+					output.push_back(*tok_iter);
+				}
+
+				// Search frame number according to the number position known in the file name.
 
                 int i = 0, number = 0;
+				
+                for(int j = 0; j < output.size(); j++){
 
-                for(; lit != lend; ++lit){
+					cout << output.at(j)<< endl;
 
-                    if(i == separatorPosition && i != ch.size() - 1){
-                        number = atoi((*lit).c_str()); break;
+                    if(i == numPosInName && i != output.size() - 1){
+                        number = atoi(output.at(j).c_str()); 
+						break;
                     }
 
-                    if(i == ch.size() - 1){
+					// If the frame number is at the end (before the file extension).
+                    if(i == output.size() - 1){
 
-                        list<string> ch_;
-                        cout << ch_.front() << endl;
-                        stringtok(ch_, (*lit).c_str(), ".");
-                        cout << ch_.front() << endl;
-                        number = atoi(ch_.front().c_str());
+						vector<string> output2;
+						typedef boost::tokenizer<boost::char_separator<char> > tokenizer;
+						boost::char_separator<char> sep2(".");
+						tokenizer tokens2(fname, sep2);
+						for (tokenizer::iterator tok_iter = tokens2.begin();tok_iter != tokens2.end(); ++tok_iter){
+							output2.push_back(*tok_iter);
+						}
+
+                        number = atoi(output2.front().c_str());
                         break;
 
                     }
@@ -203,149 +131,145 @@ void CameraFrames::operator () (){
                     lastFrame = number;
 
                 }
-
-                cout << "number : " << number << endl;
-                cout << ">> First Frame : " << firstFrame << endl;
-                cout << ">> Last Frame  : " << lastFrame  << endl;
-
             }
         }
 
-        cout << ">> First Frame : " << firstFrame << endl;
-        cout << ">> Last Frame  : " << lastFrame  << endl;
+		BOOST_LOG_SEV(logger, normal) << "First frame number in frame's directory : " << firstFrame;
+		BOOST_LOG_SEV(logger, normal) << "Last frame number in frame's directory : " << lastFrame;
 
-        do{
+		lastNumFrame = lastFrame;
+		firstNumFrame = firstFrame;
 
-            filename = "";
+		return true;
 
-            /// Search a frame in the directory.
+	}else{
 
-            for(directory_iterator file(p);file!= directory_iterator(); ++file){
+		BOOST_LOG_SEV(logger, fail) << "Frame's directory not found.";
+		return false;
+		
+	}
+}
 
-                path curr(file->path());
+bool CameraFrames::getStopStatus(){
+	return endReadDataStatus;
+}
 
-                if(is_regular_file(curr)){
+bool CameraFrames::grabImage(Frame &img){
+	
+    bool fileFound = false;
 
-                    list<string> ch;
-					string fname = curr.filename().string();
-                    stringtok(ch,fname.c_str(), separator.c_str());
+    string filename = "";
 
-                    list<string>::const_iterator lit(ch.begin()), lend(ch.end());
-                    int i = 0;
-                    int number = 0;
+	path p(framesDir);
 
-                    for(; lit != lend; ++lit){
+    /// Search a frame in the directory.
+    for(directory_iterator file(p);file!= directory_iterator(); ++file){
 
-                        if(i == separatorPosition){
+        path curr(file->path());
 
-                            number = atoi((*lit).c_str()); break;
-                        }
+        if(is_regular_file(curr)){
 
-                        if(i == ch.size() - 1 && i != ch.size() - 1){
+            list<string> ch;
+			string fname = curr.filename().string();
+			Conversion::stringTok(ch, fname.c_str(), "_");
+            list<string>::const_iterator lit(ch.begin()), lend(ch.end());
+            int i = 0;
+            int number = 0;
 
-                        list<string> ch_;
-                        stringtok(ch_, (*lit).c_str(), ".");
-                        number = atoi(ch_.front().c_str());
-                        break;
+            for(; lit != lend; ++lit){
 
-                    }
+                if(i == numPosInName && i != ch.size() - 1){
 
-                        i++;
-
-                    }
-
-                    if(number == firstFrame){
-
-                        firstFrame++;
-                        fileFound = true;
-                        cpt++;
-                        cout << "FILE:" << file->path().c_str() << endl;
-
-						filename = file->path().string() ;
-
-                        break;
-
-                    }
+                    number = atoi((*lit).c_str()); break;
                 }
-            }
 
-            if(firstFrame > lastFrame){
+                if(i == ch.size() - 1){
 
-                endReadFrames = true;
+					list<string> ch_;
+					Conversion::stringTok(ch_, (*lit).c_str(), ".");
+					number = atoi(ch_.front().c_str());
+					break;
 
-            }else if(!fileFound){
+				}
 
-                endReadFrames = true;
-
-            }
-
-            /// Read the frame.
-
-            Mat resMat;
-            Fits2D newFits;
-
-            switch(bitpix){
-
-                case 8 :
-
-                    newFits.readFits8UC(resMat, filename);
-
-                    break;
-
-                case 16 :
-
-                    newFits.readFits16US(resMat, filename);
-
-                    break;
+                i++;
 
             }
 
+            if(number == firstNumFrame){
 
-            Frame newFrame(resMat, 0, 0.0, TimeDate::localDateTime(second_clock::universal_time(),"%Y:%m:%d:%H:%M:%S"));
-              /*Fits2D newwFits("/home/fripon/data2/");
-            vector<string> datet;
-            newwFits.writeFits(newFrame.getImg(),S16, datet, false, "frame_"+Conversion::intToString(cpt));*/
+                firstNumFrame++;
+                fileFound = true;
+         
+                cout << "FILE:" << file->path().string() << endl;
+				BOOST_LOG_SEV(logger, normal) <<  "FILE:" << file->path().string();
 
-            boost::posix_time::ptime time = boost::posix_time::microsec_clock::universal_time();
-            string acqDateInMicrosec = to_iso_extended_string(time);
-            newFrame.setAcqDateMicro(acqDateInMicrosec);
-            newFrame.setNumFrame(cpt);
-            newFrame.setFrameRemaining(lastFrame - cpt);
-            newFrame.setFPS(1);
-            boost::mutex::scoped_lock lock(*m_frameBuffer);
-            frameBuffer->push_back(newFrame);
-            lock.unlock();
+				filename = file->path().string() ;
 
-            boost::mutex::scoped_lock lock2(*m_newFrameDet);
-            *newFrameDet = true;
-            c_newFrameDet->notify_one();
-            lock2.unlock();
+                break;
 
-            fileFound = false;
+            }
+        }
+    }
 
-            waitKey(100) ;
+    if(firstNumFrame > lastNumFrame || !fileFound){
 
-        }while(!endReadFrames);
+		endReadDataStatus = true;
+		BOOST_LOG_SEV(logger, normal) <<  "End read frames.";
+		return false;
 
     }else{
 
-        cout << "Path of frames " << dirPath << " doesn't exist." << endl;
+		BOOST_LOG_SEV(logger, normal) <<  "Frame found.";
+		
+		Fits2D newFits;
+        int bitpix;
 
-    }
+        if(!newFits.readIntKeyword(filename, "BITPIX", bitpix)){
+			BOOST_LOG_SEV(logger, fail) << " Fail to read fits keyword : BITPIX";
+			return false;
+        }
 
-	BOOST_LOG_SEV(log,notification) << "Acquisition thread terminated.";
-	cout << "Acquisition thread terminated." << endl;
+		/// Read the frame.
 
-}
+		Mat resMat;
+		CamBitDepth frameFormat;
 
-int CameraFrames::getHeight(){
+		switch(bitpix){
 
-	return imgH;
+			case 8 :
+				frameFormat = MONO_8;
+				newFits.readFits8UC(resMat, filename);
 
-}
+				break;
 
-int CameraFrames::getWidth(){
+			case 16 :
+				frameFormat = MONO_12;
+				newFits.readFits16S(resMat, filename);
 
-	return imgW;
+				break;
+
+		}
+
+		string acquisitionDate = TimeDate::localDateTime(microsec_clock::universal_time(),"%Y:%m:%d:%H:%M:%S");
+		boost::posix_time::ptime time = boost::posix_time::microsec_clock::universal_time();
+		string acqDateInMicrosec = to_iso_extended_string(time);
+		
+		Frame f = Frame(resMat, 0, 0, acquisitionDate);
+		
+		img = f;
+
+		img.setAcqDateMicro(acqDateInMicrosec);    
+		
+		img.setNumFrame(firstNumFrame-1);
+		img.setFrameRemaining(lastNumFrame - firstNumFrame - 1);
+		img.setFPS(1);
+		img.setBitDepth(frameFormat);
+
+		waitKey(300);
+
+		return true;
+
+	}
 
 }

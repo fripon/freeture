@@ -37,6 +37,7 @@
 #include <string>
 #include <iostream>
 #include <vector>
+#include <boost/tokenizer.hpp>
 #include <boost/date_time.hpp>
 #include <boost/date_time/posix_time/posix_time.hpp>
 #include <boost/date_time/posix_time/posix_time_io.hpp>
@@ -75,6 +76,16 @@ class TimeDate{
         static vector<string> splitStringToStringVector(string str);
 
         static vector<int> splitStringToIntVector(string str);
+
+		// Date input format : YYYY-MM-DDTHH:MM:SS.fffffffff
+		static string get_YYYYMMDD_fromDateString(string date);
+
+		// Date input format : YYYY-MM-DDTHH:MM:SS.fffffffff
+		static vector<int> TimeDate::getIntVectorFromDateString(string date);
+
+		// Date input format	: YYYYMMJJTHHMMSS.fffffffff
+		// Date output format	: YYYYMMJJTHHMMSS
+		static string TimeDate::get_YYYYMMDDThhmmss(string date);
 
 };
 

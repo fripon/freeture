@@ -34,96 +34,54 @@
 
 #include "DetThread.h"
 
-DetThread::DetThread(Mat                            maskImg,
-                     int                            mth,
-                     CamBitDepth                    acqFormatPix,
-                     DetMeth                        detMthd,
-                     int                            geAfterTime,
-                     int                            bufferSize,
-                     int                            geMax,
-                     int                            geMaxTime,
-                     string                         recPath,
-                     string                         stationName,
-                     bool                           detDebug,
-                     string                         debugPath,
-                     bool                           detDownsample,
-                     Fits                           fitsHead,
-                     boost::circular_buffer<Frame>  *cb,
-                     boost::mutex                   *m_cb,
-                     boost::condition_variable      *c_newElemCb,
-                     bool                           *newFrameForDet,
-                     boost::mutex                   *m_newFrameForDet,
-                     boost::condition_variable      *c_newFrameForDet,
-                     bool avi,
-                    bool fits3D,
-                    bool fits2D,
-                    bool sum,
-                    bool pos,
-                    bool bmp,
-                    bool mapGE,
-                    int tBefore,
-                    bool mailEnabled,
-                    string smtpServer,
-                    string smtpHostname,
-                    vector<string> recipients
-                     ){
+boost::log::sources::severity_logger< LogSeverityLevel >  DetThread::logger;
+DetThread::_Init DetThread::_initializer;
 
-    mthd = detMthd;
+DetThread::DetThread(	boost::mutex				   *cfg_m,
+						string						   cfg_p,
+						DetMeth						   m,
+						boost::circular_buffer<Frame>  *fb,
+						boost::mutex                   *fb_m,
+						boost::condition_variable      *fb_c,
+						bool                           *dSignal,
+						boost::mutex                   *dSignal_m,
+						boost::condition_variable      *dSignal_c){
 
-    newFrameDet = newFrameForDet;
-    m_newFrameDet = m_newFrameForDet;
-    c_newFrameDet = c_newFrameForDet;
-
-    fitsHeader  = fitsHead;
-    downsample                      =   detDownsample;
-    debug                           =   detDebug;
-    debugLocation                   =   debugPath;
-    recordingPath                   =   recPath;
-
-  station = stationName;
-
-	m_thread					        =	NULL;
-	mustStop				        =	false;
-	detMeth					        =	mth;
-
-	imgFormat                       =   acqFormatPix;
-
-    maskImg.copyTo(mask);
-
-	frameBuffer = cb;
-    m_frameBuffer = m_cb;
-    c_newElemFrameBuffer = c_newElemCb;
-
-    timeMax                         =   geMaxTime;
-    nbGE                            =   geMax;
-    timeAfter                       =   geAfterTime;
-
-	nbDet                           =   0;
-
-	frameBufferMaxSize      = bufferSize;
-
-    recAvi                  = avi;
-    recFits3D               = fits3D;
-    recFits2D               = fits2D;
-	recPos                  = pos;
-	recSum                  = sum;
-	recBmp                  = bmp;
-	recMapGE                = mapGE;
-	timeBefore              = tBefore;
-	frameBufferMaxSize      = bufferSize;
-	mailNotification        = mailEnabled;
-	SMTPServer              = smtpServer;
-	SMTPHostname            = smtpHostname;
-	mailRecipients          = recipients;
+	cfg_path				= cfg_p;
+	cfg_mutex				= cfg_m;
+	frameBuffer				= fb;
+    frameBuffer_mutex		= fb_m;
+    frameBuffer_condition	= fb_c;
+    detSignal				= dSignal;
+    detSignal_mutex			= dSignal_m;
+    detSignal_condition		= dSignal_c;
+	m_thread				= NULL;
+	mustStop				= false;
+	eventPath				= "";
+	eventDate				= "";
+	detmthd					= m;
+	
+	waitFramesToCompleteEvent = false;
+	nbWaitFrames = 0;
+	firstFrameGrabbed = false;
 
 }
 
 DetThread::~DetThread(void){
 
-	if (m_thread!=NULL)
+	if(detTech != NULL){
+		
+		BOOST_LOG_SEV(logger, normal) << "Remove detTech instance.";
+		delete detTech;
 
-        delete m_thread;
+	}
 
+	if (m_thread!=NULL){
+
+		BOOST_LOG_SEV(logger, normal) << "Remove detThread instance.";
+		delete m_thread;
+
+	}
 }
 
 void DetThread::join(){
@@ -132,306 +90,268 @@ void DetThread::join(){
 
 }
 
-void DetThread::startDetectionThread(){
+bool DetThread::startThread(){
 
+	BOOST_LOG_SEV(logger, normal) << "Starting detThread...";
+
+	boost::mutex::scoped_lock lock(*cfg_mutex);
+	if(!loadDetThreadParameters()){
+		lock.unlock();
+		BOOST_LOG_SEV(logger, fail) << "Fail to initialize detThread.";
+		return false;
+	}
+	lock.unlock();
+
+	BOOST_LOG_SEV(logger, normal) << "Success to initialize detThreads.";
+	BOOST_LOG_SEV(logger, normal) << "Create detThread.";
 	m_thread = new boost::thread(boost::ref(*this));
-
+	return true;
 }
 
-void DetThread::stopDetectionThread(){
+void DetThread::stopThread(){
+
+	BOOST_LOG_SEV(logger, normal) << "Stopping detThread...";
 
 	// Signal the thread to stop (thread-safe)
-	BOOST_LOG_SEV(log, notification) << "mustStop: " << mustStop;
 	mustStopMutex.lock();
 	mustStop=true;
 	mustStopMutex.unlock();
-	BOOST_LOG_SEV(log, notification) << "mustStop: " << mustStop;
-    BOOST_LOG_SEV(log, notification) << "Wait join";
-	// Wait for the thread to finish.
-    if (m_thread!=NULL) m_thread->join();
 
-    BOOST_LOG_SEV(log, notification) << "Thread stopped";
+	// Wait for the thread to finish.
+	
+    while(m_thread->timed_join(boost::posix_time::seconds(2)) == false){
+
+		BOOST_LOG_SEV(logger, normal) << "DetThread interrupted.";
+        m_thread->interrupt();
+
+    }
+}
+
+bool DetThread::loadDetThreadParameters(){
+
+	try{
+
+		Configuration cfg;
+		cfg.Load(cfg_path);
+
+		// Get Acquisition frequency.
+		int ACQ_FPS; cfg.Get("ACQ_FPS", ACQ_FPS);
+		BOOST_LOG_SEV(logger, normal) << "ACQ_FPS : " << ACQ_FPS;
+
+		// Get Acquisition format.
+		string acq_bit_depth; cfg.Get("ACQ_BIT_DEPTH", acq_bit_depth);
+		EParser<CamBitDepth> cam_bit_depth;
+		ACQ_BIT_DEPTH = cam_bit_depth.parseEnum("ACQ_BIT_DEPTH", acq_bit_depth);
+		BOOST_LOG_SEV(logger, normal) << "ACQ_BIT_DEPTH : " << acq_bit_depth;
+    
+		// Get the name of the station.
+		cfg.Get("STATION_NAME", STATION_NAME);
+		BOOST_LOG_SEV(logger, normal) << "STATION_NAME : " << STATION_NAME;
+
+		// Get the option to copy configuration.cfg in each day directory.
+		cfg.Get("CFG_FILECOPY_ENABLED", CFG_FILECOPY_ENABLED);
+		BOOST_LOG_SEV(logger, normal) << "CFG_FILECOPY_ENABLED : " << CFG_FILECOPY_ENABLED;
+
+		// Get the location where to save data.
+		cfg.Get("DATA_PATH", DATA_PATH);
+		BOOST_LOG_SEV(logger, normal) << "DATA_PATH : " << DATA_PATH;
+
+		// Get the option for saving .avi of detection.
+		cfg.Get("DET_SAVE_AVI", DET_SAVE_AVI);
+		BOOST_LOG_SEV(logger, normal) << "DET_SAVE_AVI : " << DET_SAVE_AVI;
+
+		// Get the option for saving fits cube.
+		cfg.Get("DET_SAVE_FITS3D", DET_SAVE_FITS3D);
+		BOOST_LOG_SEV(logger, normal) << "DET_SAVE_FITS3D : " << DET_SAVE_FITS3D;
+
+		// Get the option for saving each frame of the event in fits.
+		cfg.Get("DET_SAVE_FITS2D", DET_SAVE_FITS2D);
+		BOOST_LOG_SEV(logger, normal) << "DET_SAVE_FITS2D : " << DET_SAVE_FITS2D;
+
+		// Get the option for stacking frame's event.
+		cfg.Get("DET_SAVE_SUM", DET_SAVE_SUM);
+		BOOST_LOG_SEV(logger, normal) << "DET_SAVE_SUM : " << DET_SAVE_SUM;
+
+		// Get the time to keep before an event.
+		cfg.Get("DET_TIME_BEFORE", DET_TIME_BEFORE);
+		DET_TIME_BEFORE = DET_TIME_BEFORE * ACQ_FPS;
+		BOOST_LOG_SEV(logger, normal) << "DET_TIME_BEFORE (in frames): " << DET_TIME_BEFORE;
+
+		// Get the time to keep after an event.
+		cfg.Get("DET_TIME_AFTER", DET_TIME_AFTER);
+		DET_TIME_AFTER = DET_TIME_AFTER * ACQ_FPS; 
+		BOOST_LOG_SEV(logger, normal) << "DET_TIME_AFTER (in frames): " << DET_TIME_AFTER;
+
+		// Get the option to send mail notifications.
+		cfg.Get("MAIL_DETECTION_ENABLED", MAIL_DETECTION_ENABLED);
+		BOOST_LOG_SEV(logger, normal) << "MAIL_DETECTION_ENABLED : " << MAIL_DETECTION_ENABLED;
+
+		// Get the SMTP server adress.
+		cfg.Get("MAIL_SMTP_SERVER", MAIL_SMTP_SERVER);
+		BOOST_LOG_SEV(logger, normal) << "MAIL_SMTP_SERVER : " << MAIL_SMTP_SERVER;
+
+		// Get the SMTP server hostname.
+		cfg.Get("MAIL_SMTP_HOSTNAME", MAIL_SMTP_HOSTNAME);
+		BOOST_LOG_SEV(logger, normal) << "MAIL_SMTP_HOSTNAME : " << MAIL_SMTP_HOSTNAME;
+
+		// Get the option to reduce the stack of frame's event to 16 bits.
+		cfg.Get("STACK_REDUCTION", STACK_REDUCTION);
+		BOOST_LOG_SEV(logger, normal) << "STACK_REDUCTION : " << STACK_REDUCTION;
+
+		// Get the method to stack frame's event.
+		string stack_method;
+		cfg.Get("STACK_MTHD", stack_method);
+		BOOST_LOG_SEV(logger, normal) << "STACK_MTHD : " << stack_method;
+		EParser<StackMeth> stack_mth;
+		STACK_MTHD = stack_mth.parseEnum("STACK_MTHD", stack_method);
+
+		// Load settable fits keywords from configuration file.
+		fitsHeader.loadKeywordsFromConfigFile(cfg_path);
+
+		// Get the list of mail notifications recipients.
+		string mailRecipients;
+        cfg.Get("MAIL_RECIPIENT", mailRecipients);
+		BOOST_LOG_SEV(logger, normal) << "MAIL_RECIPIENT : " << mailRecipients;
+        typedef boost::tokenizer<boost::char_separator<char> > tokenizer;
+        boost::char_separator<char> sep(";");
+        tokenizer tokens(mailRecipients, sep);
+
+        for (tokenizer::iterator tok_iter = tokens.begin();tok_iter != tokens.end(); ++tok_iter){
+            MAIL_RECIPIENT.push_back(*tok_iter);
+
+        }
+
+		// Select the correct detection method according to DET_METHOD in configuration file.
+		switch(detmthd){
+
+			case TEMPORAL_MTHD : 
+
+				{
+
+					detTech = new DetectionTemporal();
+					if(!detTech->initMethod(cfg_path)){
+						BOOST_LOG_SEV(logger, fail) << "Fail to init temporal detection method.";
+						throw "Fail to init temporal detection method.";
+					}
+				
+				}
+
+				break;
+
+			case HOUGH_MTHD: 
+
+				{
+
+				
+
+				}
+
+				break;
+
+		}
+		
+	}catch(exception& e){
+
+		cout << e.what() << endl;
+		return false;
+
+	}catch(const char * msg){
+
+		cout << msg << endl;
+		return false;
+
+	}
+
+	return true;
 
 }
 
 void DetThread::operator ()(){
 
-	BOOST_LOG_SCOPED_THREAD_TAG("LogName", "detThread");
-	BOOST_LOG_SEV(log,notification) << "\n";
-    BOOST_LOG_SEV(log,notification) << "==============================================";
-	BOOST_LOG_SEV(log,notification) << "=========== Start detection thread ===========";
-	BOOST_LOG_SEV(log,notification) << "==============================================";
+	BOOST_LOG_SCOPED_THREAD_TAG("LogName", "DET_THREAD");
+	BOOST_LOG_SEV(logger,notification) << "\n";
+    BOOST_LOG_SEV(logger,notification) << "==============================================";
+	BOOST_LOG_SEV(logger,notification) << "=========== Start detection thread ===========";
+	BOOST_LOG_SEV(logger,notification) << "==============================================";
 
-	bool detectionStatus    = false;
-    bool stopThread         = false;
-	bool computeRegion      = false;
-
-
-	vector<Point> regionsPos;
-
-	int roiSize[2] = {10, 10};
-
-	vector<Point> lastDetectionPosition;
-
-	vector<Scalar> listColors; // B, G, R
-	listColors.push_back(Scalar(0,0,139));      // DarkRed
-	listColors.push_back(Scalar(0,0,255));      // Red
-	listColors.push_back(Scalar(60,20,220));    // Crimson
-	listColors.push_back(Scalar(0,100,100));    // IndianRed
-	listColors.push_back(Scalar(92,92,205));    // Salmon
-	listColors.push_back(Scalar(0,140,255));    // DarkOrange
-	listColors.push_back(Scalar(30,105,210));   // Chocolate
-	listColors.push_back(Scalar(0,255,255));    // Yellow
-	listColors.push_back(Scalar(140,230,240));  // Khaki
-	listColors.push_back(Scalar(224,255,255));  // LightYellow
-	listColors.push_back(Scalar(211,0,148));    // DarkViolet
-	listColors.push_back(Scalar(147,20,255));   // DeepPink
-	listColors.push_back(Scalar(255,0,255));    // Magenta
-	listColors.push_back(Scalar(0,100,0));      // DarkGreen
-	listColors.push_back(Scalar(0,128,128));    // Olive
-	listColors.push_back(Scalar(0,255,0));      // Lime
-	listColors.push_back(Scalar(212,255,127));  // Aquamarine
-	listColors.push_back(Scalar(208,224,64));   // Turquoise
-	listColors.push_back(Scalar(205,0,0));      // Blue
-	listColors.push_back(Scalar(255,191,0));    // DeepSkyBlue
-	listColors.push_back(Scalar(255,255,0));    // Cyan
-
-    /// Create local mask to eliminate single white pixels.
-
-	Mat localMask;
-
-	if(imgFormat == MONO_8){
-
-        Mat maskTemp(3,3,CV_8UC1,Scalar(255));
-        maskTemp.at<uchar>(1, 1) = 0;
-        maskTemp.copyTo(localMask);
-
-    }else if(imgFormat == MONO_12){
-
-        Mat maskTemp(3,3,CV_16UC1,Scalar(4095));
-        maskTemp.at<ushort>(1, 1) = 0;
-        maskTemp.copyTo(localMask);
-
-    }
-
-    /// Create a video to debug.
-
-    /*VideoWriter videoDebug;
-
-    if(debug){
-
-        Size frameSize(static_cast<int>(1280), static_cast<int>(960));
-        videoDebug = VideoWriter(debugLocation + "debug.avi", CV_FOURCC('M  ', 'J', 'P', 'G'), 5, frameSize, true); //initialize the VideoWriter object
-
-    }*/
-
-    vector<GlobalEvent>::iterator itGEToSave;
-    bool breakAnalyse = false;
-    int downtime = 0;
-
+    bool stopThread = false;
+	
     /// Thread loop.
-
 	do{
 
         try{
 
-
-
-            /// Wait new frame.
-
-            boost::mutex::scoped_lock lock(*m_newFrameDet);
-            while (!(*newFrameDet)) c_newFrameDet->wait(lock);
-            *newFrameDet = false;
+            /// Wait new frame from AcqThread.
+			boost::mutex::scoped_lock lock(*detSignal_mutex);
+			while (!(*detSignal)) detSignal_condition->wait(lock);
+            *detSignal = false;
             lock.unlock();
-
-            /// Get last frames.
-
-            Frame currentFrame, previousFrame;
-
-            // Get access on frame buffer.
-            boost::mutex::scoped_lock lock2(*m_frameBuffer);
-
-            // Uptime
-            double t = (double)getTickCount();
-
-            // At least two frames are in the frame buffer.
-            if(frameBuffer->size() > 2){
-
+		
+            // Fetch the two last frames grabbed.
+			Frame currentFrame, previousFrame;
+			boost::mutex::scoped_lock lock2(*frameBuffer_mutex);
+			if(frameBuffer->size() > 2){
                 currentFrame    = frameBuffer->back();
                 previousFrame   = frameBuffer->at(frameBuffer->size()-2);
-
             }
+			lock2.unlock();
 
-            //Release frame buffer.
-            lock2.unlock();
+            double t = (double)getTickCount();
+			
+			if(currentFrame.getImg().data && previousFrame.getImg().data){
+				
+				BOOST_LOG_SEV(logger, normal) << "Start detection process on frames : " << currentFrame.getNumFrame() << " and " << previousFrame.getNumFrame();
 
-            if(currentFrame.getImg().data && previousFrame.getImg().data){
+				// Run detection.
+				if(detTech->run(currentFrame, previousFrame) && !waitFramesToCompleteEvent){
 
-                /// Compute regions.
+					// Event detected. 
+					BOOST_LOG_SEV(logger, normal) << "Event detected ! Waiting frames to complete the event..." << endl;
+					waitFramesToCompleteEvent = true;
+					
+				}
+				
+				// Wait frames to complete the detection.
+				if(waitFramesToCompleteEvent){
 
-                if(!computeRegion){
+					if(nbWaitFrames >= DET_TIME_AFTER){ 
 
-                    if(downsample)
-                        DetByLists::buildListSubdivisionOriginPoints(regionsPos, 8, currentFrame.getImg().rows/2, currentFrame.getImg().cols/2);
-                    else
-                        DetByLists::buildListSubdivisionOriginPoints(regionsPos, 8, currentFrame.getImg().rows, currentFrame.getImg().cols);
+						BOOST_LOG_SEV(logger, normal) << "Event completed." << endl;
 
-                    computeRegion = true;
+						// Build event directory.
+						eventDate = detTech->getDateEvent();
+						BOOST_LOG_SEV(logger, normal) << "Build event directory." << endl;
+						buildEventDataDirectory(eventDate);
+			
+						// Save event.
+						boost::mutex::scoped_lock lock(*frameBuffer_mutex);
+						BOOST_LOG_SEV(logger, normal) << "Start saving event..." << endl;
+						saveEventData(detTech->getNumFirstEventFrame(), detTech->getNumLastEventFrame());
+						lock.unlock();
+						detTech->saveDetectionInfos(eventPath);
 
-                }
+						// Reset detection.
+						BOOST_LOG_SEV(logger, normal) << "Reset detection process." << endl;
+						detTech->resetDetection();
+						waitFramesToCompleteEvent = false;
+			
+					}else{
 
-                /// Mask.
+						nbWaitFrames++;
 
-                if(!mask.data){
-
-                    Mat tempMat(currentFrame.getImg().rows,currentFrame.getImg().cols,CV_8UC1,Scalar(255));
-                    tempMat.copyTo(mask);
-
-                }
-
-                /// Meteor detection.
-
-                switch(mthd){
-
-                    case TEMPORAL_MTHD :
-
-                        {
-
-                            if(!breakAnalyse)
-
-                            detectionStatus = DetByLists::detectionMethodByListManagement(  currentFrame,           // Last grabbed frame
-                                                                                            previousFrame,          // Previous grabbed frame
-                                                                                            roiSize,                // Size of a region of interest
-                                                                                            listGlobalEvents,       // Global events to analyze
-                                                                                            listColors,
-                                                                                            mask,                   // Frame Mask
-                                                                                            timeMax,                // Maximum duration for an event
-                                                                                            nbGE,                   // Maximum of allowed global event
-                                                                                            timeAfter,              // Maximum time after an event
-                                                                                            imgFormat,
-                                                                                            localMask,
-                                                                                            debug,
-                                                                                            regionsPos,
-                                                                                            downsample,
-                                                                                            prevthresh,
-                                                                                            nbDet,
-                                                                                            itGEToSave);
-
-                        }
-
-                        break;
-
-                    case HOUGH_MTHD :
-
-                        {
-
-                        }
-
-                        break;
-
-                }
-
-                /// Save datas if a "meteor" has been detected.
-
-                if(detectionStatus){
-
-                    breakAnalyse = true;
-
-                    (*itGEToSave).setAgeLastElem((*itGEToSave).getAgeLastElem() + 1);
-                    (*itGEToSave).setAge((*itGEToSave).getAge() + 1);
-
-                    if((*itGEToSave).getAgeLastElem() > timeAfter ||
-                       (currentFrame.getFrameRemaining() < 10 && currentFrame.getFrameRemaining()!= 0)){
-
-                        cout << "> Build event location " << endl;
-                        cout << "Date size : " << (*itGEToSave).getDate().size() << endl;
-                        for(int a = 0; a< (*itGEToSave).getDate().size() ; a++ )
-                            cout << (*itGEToSave).getDate().at(a) << endl;
-
-
-                        string currentEventPath;
-
-                        double timeSave = (double)getTickCount();
-
-                        RecEvent::buildEventLocation((*itGEToSave).getDate(),recordingPath,station, currentEventPath);
-
-                        cout << "Rec event " << endl;
-
-
-                        boost::mutex::scoped_lock lock(*m_frameBuffer);
-
-                        RecEvent::saveGE(
-                                            frameBuffer,
-                                            listGlobalEvents,
-                                            itGEToSave,
-                                            fitsHeader,
-                                            downsample,
-                                            recAvi,
-                                            recFits3D,
-                                            recFits2D,
-                                            recPos,
-                                            recSum,
-                                            recBmp,
-                                            recMapGE,
-                                            timeAfter,
-                                            timeBefore,
-                                            frameBufferMaxSize,
-                                            mailNotification,
-                                            SMTPServer,
-                                            SMTPHostname,
-                                            mailRecipients,
-                                            recordingPath,
-                                            station,
-                                            currentEventPath,
-                                            imgFormat);
-
-                        lock.unlock();
-
-                        listGlobalEvents.clear();
-
-                        timeSave = (((double)getTickCount() - timeSave)/getTickFrequency())*1000;
-                        cout << endl << endl;
-                        cout    << " [-SAVE TIME-]    Time: "
-                                << std::setprecision(3)
-                                << std::fixed
-                                << timeSave
-                                << " ms "
-                                << endl;
-
-
-                        cout << endl << endl << endl << endl << endl << endl;
-
-
-                        detectionStatus = false;
-                        breakAnalyse = false;
-
-                    }
-                }
-
-                /// Infos.
-
-                t = (((double)getTickCount() - t)/getTickFrequency())*1000;
-                cout    << " [-DETECTION-]    Time: "
-                        << std::setprecision(3)
-                        << std::fixed
-                        << t
-                        << " ms "
-                        << endl;
-
-                cout    << " DET STATS ---> "
-                        << nbDet
-                        << endl;
-
-            }
-
-            mustStopMutex.lock();
-            stopThread = mustStop;
-            mustStopMutex.unlock();
+					}
+				}
+			}
+                
+            t = (((double)getTickCount() - t)/getTickFrequency())*1000;
+            cout << " [-DET TIME-] : " << std::setprecision(3) << std::fixed << t << " ms " << endl;
+			BOOST_LOG_SEV(logger,notification) << " [-DET TIME-] : " << std::setprecision(3) << std::fixed << t << " ms ";
+           
 
 		}catch(const boost::thread_interrupted&){
 
-            cout << "Detection thread INTERRUPTED" <<endl;
-            break;
+			BOOST_LOG_SEV(logger,notification) << "Detection Thread INTERRUPTED";
+            cout << "Detection Thread INTERRUPTED" <<endl;
 
         }catch(const char * msg){
 
@@ -439,8 +359,403 @@ void DetThread::operator ()(){
 
         }
 
-	}while(stopThread == false);
+		mustStopMutex.lock();
+        stopThread = mustStop;
+        mustStopMutex.unlock();
 
-	BOOST_LOG_SEV(log, notification) << "Exit detection thread loop ";
+	}while(!stopThread);
+
+	cout << "Detection Thread terminated." << endl;
+	BOOST_LOG_SEV(logger,notification) << "Detection Thread terminated.";
+
+}
+
+bool DetThread::buildEventDataDirectory(string eventDate){
+
+    namespace fs = boost::filesystem;
+
+	// eventDate is the date of the first frame attached to the event.
+	string YYYYMMDD = TimeDate::get_YYYYMMDD_fromDateString(eventDate);
+
+	// Data location.
+	path p(DATA_PATH);
+
+	// Create data directory for the current day.
+	string fp = DATA_PATH + STATION_NAME + "_" + YYYYMMDD +"/";
+	path p0(fp);
+  
+    // Events directory.
+    string fp1 = "events/";
+	path p1(fp + fp1);
+
+    // Current event directory with the format : STATION_AAAAMMDDThhmmss_UT
+	string fp2 = STATION_NAME + "_" + TimeDate::get_YYYYMMDDThhmmss(eventDate) + "_UT/";
+	path p2(fp + fp1 + fp2);
+
+	// Final path used by an other function to save event data.
+    eventPath = fp + fp1 + fp2;
+
+	// Check if data path specified in the configuration file exists.
+    if(fs::exists(p)){
+		
+        // Check DataLocation/STATION_AAMMDD/
+        if(fs::exists(p0)){
+			
+            // Check DataLocation/STATION_AAMMDD/events/ 
+            if(fs::exists(p1)){
+				
+                // Check DataLocation/STATION_AAMMDD/events/STATION_AAAAMMDDThhmmss_UT/ 
+                if(!fs::exists(p2)){
+					
+					// Create DataLocation/STATION_AAMMDD/events/STATION_AAAAMMDDThhmmss_UT/ 
+                    if(!fs::create_directory(p2)){
+                        
+						BOOST_LOG_SEV(logger,normal) << "Fail to create : " << p2;
+                        return false;
+
+                    }else{
+                        
+						BOOST_LOG_SEV(logger,fail) << "Success to create : " << p2;
+                        return true;
+                    }
+
+                }
+
+            }else{
+
+                // Create DataLocation/STATION_AAMMDD/events/ 
+                if(!fs::create_directory(p1)){
+                   
+					BOOST_LOG_SEV(logger,fail) << "Fail to create : " << p1;
+                    return false;
+
+                }else{
+                    
+                    // Create DataLocation/STATION_AAMMDD/events/STATION_AAAAMMDDThhmmss_UT/ 
+                    if(!fs::create_directory(p2)){
+                        
+						BOOST_LOG_SEV(logger,fail) << "Fail to create : " << p2;
+                        return false;
+
+                    }else{
+                        
+						BOOST_LOG_SEV(logger,normal) << "Success to create : " << p2;
+                        return true;
+
+                    }
+                }
+            }
+
+        }else{
+
+            // Create DataLocation/STATION_AAMMDD/
+            if(!fs::create_directory(p0)){
+                
+				BOOST_LOG_SEV(logger,fail) << "Fail to create : " << p0;
+                return false;
+
+            }else{
+
+				// Create DataLocation/STATION_AAMMDD/events/ 
+                if(!fs::create_directory(p1)){
+                    
+					BOOST_LOG_SEV(logger,fail) << "Fail to create : " << p1;
+                    return false;
+
+                }else{
+
+					// Create DataLocation/STATION_AAMMDD/events/STATION_AAAAMMDDThhmmss_UT/ 
+                    if(!fs::create_directory(p2)){
+						
+						BOOST_LOG_SEV(logger,fail) << "Fail to create : " << p2;
+                        return false;
+
+                    }else{
+
+						BOOST_LOG_SEV(logger,normal) << "Success to create : " << p2;
+                        return true;
+
+                    }
+                }
+            }
+        }
+
+    }else{
+
+		// Create DataLocation/
+        if(!fs::create_directory(p)){
+            
+			BOOST_LOG_SEV(logger,fail) << "Fail to create : " << p;
+            return false;
+
+        }else{
+
+            // Create DataLocation/STATION_AAMMDD/
+            if(!fs::create_directory(p0)){
+                
+				BOOST_LOG_SEV(logger,fail) << "Fail to create : " << p0;
+                return false;
+
+            }else{
+
+				//Create DataLocation/STATION_AAMMDD/events/ 
+                if(!fs::create_directory(p1)){
+                   
+					BOOST_LOG_SEV(logger,fail) << "Fail to create : " << p1;
+                    return false;
+
+                }else{
+
+					// Create DataLocation/STATION_AAMMDD/events/STATION_AAAAMMDDThhmmss_UT/ 
+                    if(!fs::create_directory(p2)){
+                        
+						BOOST_LOG_SEV(logger,fail) << "Fail to create : " << p2;
+                        return false;
+
+                    }else{
+
+						BOOST_LOG_SEV(logger,normal) << "Success to create : " << p1;
+                        return true;
+
+                    }
+                }
+            }
+        }
+    }
+
+	return false;
+}
+
+bool DetThread::saveEventData(int firstEvPosInFB, int lastEvPosInFB){
+
+    namespace fs = boost::filesystem;
+
+	// List of data path to attach to the mail notification.
+    vector<string> mailAttachments;
+
+    // Number of the first frame to save. 
+	// It depends of how many frames we want to keep before the event.
+    int numFirstFrameToSave = firstEvPosInFB - DET_TIME_BEFORE;
+
+    // Number of the last frame to save. 
+	// It depends of how many frames we want to keep after the event.
+    int numLastFrameToSave = lastEvPosInFB + DET_TIME_AFTER;
+
+	// If the number of the first frame to save for the event is not in the framebuffer.
+	// The first frame to save become the first frame available in the framebuffer.
+    if(frameBuffer->front().getNumFrame() > numFirstFrameToSave)
+        numFirstFrameToSave = frameBuffer->front().getNumFrame();
+	
+
+	// Check the number of the last frame to save.
+    if(frameBuffer->back().getNumFrame() < numLastFrameToSave)
+           numLastFrameToSave = frameBuffer->back().getNumFrame();
+
+	// Total frames to save.
+	int nbTotalFramesToSave = numLastFrameToSave - numFirstFrameToSave;
+
+	// Count number of digit on nbTotalFramesToSave.
+    int n = nbTotalFramesToSave;
+    int nbDigitOnNbTotalFramesToSave = 0;
+    while(n!=0){
+      n/=10;
+      ++nbDigitOnNbTotalFramesToSave;
+    }
+		 
+    cout << "> First frame to save  : " << numFirstFrameToSave	<< endl;
+    cout << "> Last frame to save    : " << numLastFrameToSave	<< endl;
+    cout << "> First event frame    : " << firstEvPosInFB		<< endl;
+    cout << "> Last event frame     : " << lastEvPosInFB		<< endl;
+    cout << "> Time to keep before  : " << DET_TIME_BEFORE		<< endl;
+    cout << "> Time to keep after   : " << DET_TIME_AFTER		<< endl;
+    cout << "> Total frames to save : " << nbTotalFramesToSave << endl;
+    cout << "> Total digit          : " << nbDigitOnNbTotalFramesToSave << endl;
+
+	BOOST_LOG_SEV(logger,normal) << "> First frame to save  : " << numFirstFrameToSave;
+	BOOST_LOG_SEV(logger,normal) << "> Lst frame to save    : " << numLastFrameToSave;
+	BOOST_LOG_SEV(logger,normal) << "> First event frame    : " << firstEvPosInFB;
+	BOOST_LOG_SEV(logger,normal) << "> Last event frame     : " << lastEvPosInFB;
+	BOOST_LOG_SEV(logger,normal) << "> Time to keep before  : " << DET_TIME_BEFORE;
+	BOOST_LOG_SEV(logger,normal) << "> Time to keep after   : " << DET_TIME_AFTER;
+	BOOST_LOG_SEV(logger,normal) << "> Total frames to save : " << nbTotalFramesToSave;
+	BOOST_LOG_SEV(logger,normal) << "> Total digit          : " << nbDigitOnNbTotalFramesToSave;
+
+    vector<int> dateFirstFrame;
+    float dateSecFirstFrame = 0.0;
+	int c = 0;
+
+	// Init fits 3D.
+    Fits3D fits3d;
+
+    if(DET_SAVE_FITS3D){
+
+        fits3d = Fits3D(ACQ_BIT_DEPTH, frameBuffer->front().getImg().rows, frameBuffer->front().getImg().cols, (numLastFrameToSave - numFirstFrameToSave +1), fitsHeader);
+        boost::posix_time::ptime time = boost::posix_time::microsec_clock::universal_time();
+        fits3d.setDate(to_iso_extended_string(time));
+
+        // Name of the fits file.
+        fits3d.setFilename("fits3d.fit");
+
+    }
+
+	// Init sum.
+	Stack stack = Stack(lastEvPosInFB - firstEvPosInFB);
+	
+	// Loop framebuffer.
+    boost::circular_buffer<Frame>::iterator it;
+    for(it = frameBuffer->begin(); it != frameBuffer->end(); ++it){
+
+        // Get infos about the first frame of the event for fits 3D.
+        if((*it).getNumFrame() == numFirstFrameToSave && DET_SAVE_FITS3D){
+
+            fits3d.setDateobs((*it).getAcqDateMicro());
+            // Exposure time.
+            fits3d.setOntime((*it).getExposure());
+            // Gain.
+            fits3d.setGaindb((*it).getGain());
+            // Saturation.
+            fits3d.setSaturate((*it).getSaturatedValue());
+            // FPS.
+            fits3d.setCd3_3((*it).getFPS());
+            // CRVAL1 : sideral time.
+            double  julianDate      = TimeDate::gregorianToJulian_2((*it).getDate());
+            double  julianCentury   = TimeDate::julianCentury(julianDate);
+            double  sideralT        = TimeDate::localSideralTime_2(julianCentury, (*it).getDate().at(3), (*it).getDate().at(4), (*it).getDateSeconds(), fitsHeader.getSitelong());
+            fits3d.setCrval1(sideralT);
+            // Projection and reference system
+            fits3d.setCtype1("RA---ARC");
+            fits3d.setCtype2("DEC--ARC");
+            // Equinox
+            fits3d.setEquinox(2000.0);
+            // Integration time : 1/fps * nb_frames (sec.)
+			if((*it).getFPS()!=0)
+            fits3d.setExposure((1.0/(*it).getFPS()));
+            
+            dateFirstFrame = (*it).getDate();
+            dateSecFirstFrame = (*it).getDateSeconds();
+
+        }
+
+        // Get infos about the last frame of the event record for fits 3D.
+        if((*it).getNumFrame() == numLastFrameToSave && DET_SAVE_FITS3D){
+            cout << "DATE first : " << dateFirstFrame.at(3) << " H " << dateFirstFrame.at(4) << " M " << dateSecFirstFrame << " S" << endl;
+            cout << "DATE last : " << (*it).getDate().at(3) << " H " << (*it).getDate().at(4) << " M " << (*it).getDateSeconds() << " S" << endl;
+            fits3d.setElaptime(((*it).getDate().at(3)*3600 + (*it).getDate().at(4)*60 + (*it).getDateSeconds()) - (dateFirstFrame.at(3)*3600 + dateFirstFrame.at(4)*60 + dateSecFirstFrame));
+
+        }
+
+        // If the current frame read from the framebuffer has to be saved.
+        if((*it).getNumFrame() >= numFirstFrameToSave && (*it).getNumFrame() <= numLastFrameToSave){
+
+            // Save fits2D.
+			if(DET_SAVE_FITS2D){
+				
+                string fits2DPath = eventPath + "fits2D/";
+                string fits2DName = "frame_" + Conversion::numbering(nbDigitOnNbTotalFramesToSave, c) + Conversion::intToString(c);
+                vector<string> DD;
+
+                cout << "Save fits 2D  : " << fits2DName << endl;
+
+                path p(fits2DPath);
+
+                Fits2D newFits(fits2DPath, fitsHeader);
+				cout << (*it).getAcqDateMicro() << endl;
+                // Frame's acquisition date.
+                newFits.setDateobs((*it).getAcqDateMicro());
+                // Fits file creation date.
+                boost::posix_time::ptime time = boost::posix_time::second_clock::universal_time();
+                // YYYYMMDDTHHMMSS,fffffffff where T is the date-time separator
+                newFits.setDate(to_iso_string(time));
+				cout << to_iso_string(time) << endl;
+		
+                // Name of the fits file.
+
+                newFits.setFilename(fits2DName);
+                // Exposure time.
+		
+                newFits.setOntime((*it).getExposure());
+                // Gain.
+				
+                newFits.setGaindb((*it).getGain());
+                // Saturation.
+			
+                newFits.setSaturate((*it).getSaturatedValue());
+                // FPS.
+				
+                newFits.setCd3_3((*it).getFPS());
+                // CRVAL1 : sideral time.
+		
+                double  julianDate      = TimeDate::gregorianToJulian_2((*it).getDate());
+			
+                double  julianCentury   = TimeDate::julianCentury(julianDate);
+			
+                double  sideralT        = TimeDate::localSideralTime_2(julianCentury, (*it).getDate().at(3), (*it).getDate().at(4), (*it).getDateSeconds(), fitsHeader.getSitelong());
+                newFits.setCrval1(sideralT);
+                // Integration time : 1/fps * nb_frames (sec.)
+				if((*it).getFPS()!=0)
+                newFits.setExposure((1.0f/(*it).getFPS()));
+                //cout << "EXPOSURE : " << 1.0/(*it).getFPS() << endl;
+                // Projection and reference system
+                newFits.setCtype1("RA---ARC");
+                newFits.setCtype2("DEC--ARC");
+                // Equinox
+                newFits.setEquinox(2000.0);
+				
+                if(!fs::exists(p)) {
+			
+					fs::create_directory(p);
+
+				}
+
+				if(ACQ_BIT_DEPTH == MONO_8){
+
+                    newFits.writeFits((*it).getImg(), UC8, fits2DName);
+
+                }else{
+
+                    newFits.writeFits((*it).getImg(), S16, fits2DName);
+                }
+            }
+
+			// Add a frame to fits cube.
+            if(DET_SAVE_FITS3D) fits3d.addImageToFits3D((*it).getImg());
+
+            // Add frame to the event's stack.
+			if(DET_SAVE_SUM && (*it).getNumFrame() >= firstEvPosInFB && (*it).getNumFrame() <= lastEvPosInFB){
+
+				stack.addFrame((*it));
+
+			}
+				
+			c++;
+
+        }
+    }
+
+	// Write fits cube.
+    if(DET_SAVE_FITS3D) fits3d.writeFits3D(eventPath + "fits3D");
+
+	// Save stack of the event.
+    if(DET_SAVE_SUM) stack.saveStack(fitsHeader, eventPath, STACK_MTHD, STATION_NAME, STACK_REDUCTION);
+
+	// Send mail notification.
+	if(MAIL_DETECTION_ENABLED){
+
+		BOOST_LOG_SEV(logger,notification) << "Sending mail...";
+        
+        SMTPClient mailc(MAIL_SMTP_SERVER, 25, MAIL_SMTP_HOSTNAME);
+
+        mailc.send("yoan.audureau@u-psud.fr",
+					MAIL_RECIPIENT,
+					"Detection by " + STATION_NAME  + "'s station - " + TimeDate::get_YYYYMMDDThhmmss(eventDate),
+					STATION_NAME + "\n" + eventPath,
+					mailAttachments,
+					false);
+
+		BOOST_LOG_SEV(logger,notification) << "Mail sent.";
+				   
+    }
+	
+    return true;
 
 }

@@ -46,26 +46,52 @@
 
 #ifdef WINDOWS
 	#define WIN32_LEAN_AND_MEAN
+	//#define _WIN32_WINNT = 0x0501
 	#include <boost/asio.hpp>
 	#include <windows.h>
 #else
+	#ifdef LINUX
 	#include <boost/asio.hpp>
+	#define BOOST_LOG_DYN_LINK 1
+	#endif
 #endif
 
 #include <fstream>
 #include <sstream>
 #include <boost/archive/iterators/ostream_iterator.hpp>
+#include <boost/log/common.hpp>
+#include <boost/log/expressions.hpp>
+#include <boost/log/utility/setup/file.hpp>
+#include <boost/log/utility/setup/console.hpp>
+#include <boost/log/utility/setup/common_attributes.hpp>
+#include <boost/log/attributes/named_scope.hpp>
+#include <boost/log/attributes.hpp>
+#include <boost/log/sinks.hpp>
+#include <boost/log/sources/logger.hpp>
+#include <boost/log/core.hpp>
+#include "ELogSeverityLevel.h"
 #include <iterator>
 #include <algorithm>
 #include "Conversion.h"
 #include "Base64.h"
-#include "ManageFiles.h"
+#include <cerrno>
 
 using namespace std;
 
 class SMTPClient{
 
 	private:
+
+		static boost::log::sources::severity_logger< LogSeverityLevel > logger;
+
+		static class _Init{
+
+			public:
+				_Init()
+				{
+					logger.add_attribute("ClassName", boost::log::attributes::constant<std::string>("SMTPClient"));
+				}
+		} _initializer;	
 
 		string mailServerHostname;
 		string mailSmtpServer;
@@ -92,6 +118,10 @@ class SMTPClient{
 		void smtpServerConnection();
 		string message();
         void send(string from, vector<string> to, string subject, string msg, vector<string> pathAttachments,bool imgInline);
+
+	private:
+
+		string get_file_contents(const char *filename);
 
 
 };

@@ -38,16 +38,12 @@
 #include "opencv2/highgui/highgui.hpp"
 #include <opencv2/imgproc/imgproc.hpp>
 
-//#define BOOST_LOG_DYN_LINK 1
 #ifdef LINUX
 #define BOOST_LOG_DYN_LINK 1
 #endif
 
-#ifdef CFITSIO_H
-  #include CFITSIO_H
-#else
-  #include "fitsio.h"
-#endif
+#include "fitsio.h"
+
 
 #include <boost/log/common.hpp>
 #include <boost/log/expressions.hpp>
@@ -55,42 +51,27 @@
 #include <boost/log/utility/setup/console.hpp>
 #include <boost/log/utility/setup/common_attributes.hpp>
 #include <boost/log/attributes/named_scope.hpp>
-#include <boost/log/sources/logger.hpp>
-#include <boost/log/support/date_time.hpp>
 #include <boost/log/attributes.hpp>
 #include <boost/log/sinks.hpp>
 #include <boost/log/sources/logger.hpp>
-#include <boost/log/utility/record_ordering.hpp>
 #include <boost/log/core.hpp>
-#include <boost/smart_ptr/shared_ptr.hpp>
-
-#include "TimeDate.h"
 #include "ELogSeverityLevel.h"
+#include "TimeDate.h"
 #include "EImgBitDepth.h"
 #include "Fits.h"
 #include "Conversion.h"
 
-
 using namespace std;
 using namespace boost::posix_time;
-
-namespace logging	= boost::log;
-namespace sinks		= boost::log::sinks;
-namespace attrs		= boost::log::attributes;
-namespace src		= boost::log::sources;
-namespace expr		= boost::log::expressions;
-namespace keywords	= boost::log::keywords;
 
 class Fits2D : public Fits{
 
 	private :
 
-		src::severity_logger< LogSeverityLevel > log;
-
 		string fitsPath;
 
-		static src::severity_logger< LogSeverityLevel > logger;
-
+		static boost::log::sources::severity_logger< LogSeverityLevel > logger;
+		
 		static class _Init{
 
             public:
@@ -112,7 +93,7 @@ class Fits2D : public Fits{
 
                 ~Fits2D         (void);
 
-		bool    writeFits       (Mat img, ImgBitDepth imgType, vector <string> date, bool fileNameWithDate, string fileName);
+		bool    writeFits       (Mat img, ImgBitDepth imgType, string fileName);
 
 		bool    readFits32F     (Mat &img, string filePath);
 		bool    readFits16US    (Mat &img, string filePath);

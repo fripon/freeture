@@ -35,178 +35,115 @@
 #pragma once
 
 #include "config.h"
+#include "SMTPClient.h"
+#include <iterator>
 
-#include "opencv2/highgui/highgui.hpp"
-#include <opencv2/imgproc/imgproc.hpp>
-
-//#define BOOST_LOG_DYN_LINK 1
-#ifdef LINUX
-#define BOOST_LOG_DYN_LINK 1
-#endif
-
-#include <boost/log/common.hpp>
-#include <boost/log/expressions.hpp>
-#include <boost/log/utility/setup/file.hpp>
-#include <boost/log/utility/setup/console.hpp>
-#include <boost/log/utility/setup/common_attributes.hpp>
-#include <boost/log/attributes/named_scope.hpp>
-#include <boost/log/sources/logger.hpp>
-#include <boost/log/support/date_time.hpp>
-#include <boost/log/attributes.hpp>
-#include <boost/log/sinks.hpp>
-#include <boost/log/sources/logger.hpp>
-#include <boost/log/utility/record_ordering.hpp>
-#include <boost/log/core.hpp>
-#include <boost/smart_ptr/shared_ptr.hpp>
-#include "ELogSeverityLevel.h"
-
-#include "Frame.h"
 #include "Fits.h"
 #include "Fits2D.h"
+#include "TimeDate.h"
 #include "Fits3D.h"
+#include "Stack.h"
+#include "Detection.h"
+#include "DetectionTemporal.h"
 
-#include "Conversion.h"
-#include "GlobalEvent.h"
-#include "LocalEvent.h"
-#include "PixelEvent.h"
-#include "RecEvent.h"
-#include "DetByLines.h"
-#include "DetByLists.h"
-#include "ECamBitDepth.h"
+#include "EStackMeth.h"
 #include "EDetMeth.h"
+
 #include <boost/circular_buffer.hpp>
 #include <boost/filesystem.hpp>
 
 using namespace boost::filesystem;
-
 using namespace cv;
-
 using namespace std;
-
 using namespace boost::posix_time;
-
-namespace logging	= boost::log;
-namespace sinks		= boost::log::sinks;
-namespace attrs		= boost::log::attributes;
-namespace src		= boost::log::sources;
-namespace expr		= boost::log::expressions;
-namespace keywords	= boost::log::keywords;
-
-#define DEG2RAD 0.017453293f
 
 class DetThread{
 
 	private:
 
-        src::severity_logger< LogSeverityLevel > log;			// logger
+        static boost::log::sources::severity_logger< LogSeverityLevel > logger;
 
-        boost::thread				*m_thread;				// The thread runs this object
+		static class _Init{
 
-        bool						mustStop;				// Used to stop detection thread
+			public:
+				_Init()
+				{
+					logger.add_attribute("ClassName", boost::log::attributes::constant<std::string>("DetThread"));
+				}
+		} _initializer;	
 
-        boost::mutex				mustStopMutex;			// Mutex for access mustStop flag
+        boost::thread *m_thread;	
+		Detection	*detTech;
 
-        int							detMeth;				// Indicates the detection method wanted
-
-        Mat                         mask;
-
-        CamBitDepth                 imgFormat;
-
-        vector<GlobalEvent>         listGlobalEvents;
-
-        int                         nbDet;
-
-        int                         timeMax;
-
-        int                         nbGE;
-
-        int                         timeAfter;
-        int                         frameBufferMaxSize;
-
-        string                      recordingPath;
-
-        string                      station;
-
-        bool                        debug;
-
-        bool                        downsample;
-
-        string                      debugLocation;
-
-        Fits fitsHeader;
-
-        Mat prevthresh;
-
-        DetMeth mthd;
+        bool mustStop;				
+        boost::mutex mustStopMutex;			
 
         boost::circular_buffer<Frame>   *frameBuffer;
-        boost::mutex                    *m_frameBuffer;
-        boost::condition_variable       *c_newElemFrameBuffer;
+        boost::mutex                    *frameBuffer_mutex;
+        boost::condition_variable       *frameBuffer_condition;
 
-        bool                            *newFrameDet;
-        boost::mutex                    *m_newFrameDet;
-        boost::condition_variable       *c_newFrameDet;
+        bool                            *detSignal;
+        boost::mutex                    *detSignal_mutex;
+        boost::condition_variable       *detSignal_condition;
 
-        RecEvent                        *eventToRec;
+        bool			DET_SAVE_AVI;
+        bool			DET_SAVE_FITS3D ;
+        bool			DET_SAVE_FITS2D;
+        bool			DET_SAVE_SUM;
+        double			DET_TIME_BEFORE;
+		double			DET_TIME_AFTER;
+		string			DATA_PATH;
+        string			STATION_NAME;
+		CamBitDepth		ACQ_BIT_DEPTH;
+		Fits			fitsHeader;
+		bool			MAIL_DETECTION_ENABLED;
+        string			MAIL_SMTP_SERVER;
+        string			MAIL_SMTP_HOSTNAME;
+        vector<string>	MAIL_RECIPIENT;
+		bool			CFG_FILECOPY_ENABLED;
+		bool			STACK_REDUCTION;
+		StackMeth		STACK_MTHD;
+		DetMeth			detmthd;
 
-        bool recAvi;
-        bool recFits3D ;
-        bool recFits2D;
-        bool recPos;
-        bool recSum;
-        bool recBmp;
-        bool recMapGE;
-        int timeBefore;
+		bool waitFramesToCompleteEvent;
+		int nbWaitFrames;
 
-        bool mailNotification;
-        string SMTPServer;
-        string SMTPHostname;
-        vector<string> mailRecipients;
+		string cfg_path;
+		boost::mutex *cfg_mutex;
+
+		bool firstFrameGrabbed;
+
+		string eventPath;
+		string eventDate;
 
 	public:
 
-        DetThread(   Mat                            maskImg,
-                     int                            mth,
-                     CamBitDepth                    acqFormatPix,
-                     DetMeth                        detMthd,
-                     int                            geAfterTime,
-                     int                            bufferSize,
-                     int                            geMax,
-                     int                            geMaxTime,
-                     string                         recPath,
-                     string                         stationName,
-                     bool                           detDebug,
-                     string                         debugPath,
-                     bool                           detDownsample,
-                     Fits                           fitsHead,
-                     boost::circular_buffer<Frame>  *cb,
-                     boost::mutex                   *m_cb,
-                     boost::condition_variable      *c_newElemCb,
-                     bool                           *newFrameForDet,
-                     boost::mutex                   *m_newFrameForDet,
-                     boost::condition_variable      *c_newFrameForDet,
-                    bool avi,
-                    bool fits3D,
-                    bool fits2D,
-                    bool sum,
-                    bool pos,
-                    bool bmp,
-                    bool mapGE,
-                    int tBefore,
-                    bool mailEnabled,
-                    string smtpServer,
-                    string smtpHostname,
-                    vector<string> recipients);
-
+        DetThread(  boost::mutex					*cfg_m,
+					string							cfg_p,
+					DetMeth							m,
+					boost::circular_buffer<Frame>	*fb,
+					boost::mutex					*fb_m,
+					boost::condition_variable		*fb_c,
+					bool							*dSignal,
+					boost::mutex					*dSignal_m,
+					boost::condition_variable		*dSignal_c);
 
 		~DetThread();
 
 		void operator()();
 
-        void startDetectionThread();
-		void stopDetectionThread();
+        bool startThread();
+
+		void stopThread();
+
 		void join();
 
+		bool buildEventDataDirectory(string eventDate);
+
+		bool saveEventData(int firstEvPosInFB, int lastEvPosInFB);
+
+		bool loadDetThreadParameters();
+		
 };
 
 

@@ -35,6 +35,9 @@
 
 #include "SMTPClient.h"
 
+boost::log::sources::severity_logger< LogSeverityLevel >  SMTPClient::logger;
+SMTPClient::_Init SMTPClient::_initializer;
+
 void SMTPClient::getServerResponse(string request){
 
 	size_t requestLength = strlen(request.c_str());
@@ -124,11 +127,31 @@ void SMTPClient::smtpServerConnection(){
 
 	// Si aucun serveur n'a été trouvé.
 	if( error ){
-		cout << "aucun serveur de trouver" <<endl;
+		cout << "aucun serveur de trouvé" <<endl;
 		throw boost::system::system_error(error);
 	}
 
 	checkSMTPAnswer("220", socket);
+
+}
+
+string SMTPClient::get_file_contents(const char *filename){
+
+	ifstream in(filename, ios::in | ios::binary);
+
+	if (in){
+
+		string contents;
+		in.seekg(0, ios::end);
+		contents.resize(in.tellg());
+		in.seekg(0, ios::beg);
+		in.read(&contents[0], contents.size());
+		in.close();
+		return(contents);
+
+	}
+
+	throw(errno);
 
 }
 
@@ -263,7 +286,7 @@ string SMTPClient::message(){
 						message += "Content-ID: <image" + Conversion::intToString(i) + "@here>\r\n\n"; // ID used in the construction of the HTML message above.
 						message += "filename=\"" + fileName + "\"\r\n";
 
-						string img =  ManageFiles::get_file_contents(mailAttachments.at(i).c_str());
+						string img =  get_file_contents(mailAttachments.at(i).c_str());
 						cout << "encode"<<endl;
 						message += Base64::encodeBase64(img);
 
@@ -340,7 +363,7 @@ string SMTPClient::message(){
 				message += "Content-Disposition: attachment\r\n";
 				message += "filename=\"" + fileName + "\"\r\n\n";
 
-				string img =  ManageFiles::get_file_contents(mailAttachments.at(i).c_str());
+				string img =  get_file_contents(mailAttachments.at(i).c_str());
 
 				message += Base64::encodeBase64(img);
 
@@ -357,15 +380,14 @@ string SMTPClient::message(){
 
 }
 
-void SMTPClient::send(	string from,
-			vector<string> to,
-			string subject,
-			string msg,
-			vector<string> pathAttachments,
-			bool imgInline){
+void SMTPClient::send(	string			from,
+						vector<string>	to,
+						string			subject,
+						string			msg,
+						vector<string>	pathAttachments,
+						bool			imgInline){
 
 	string data;
-
 
 	mailTo			= to;
 	mailFrom		= from;
@@ -376,31 +398,40 @@ void SMTPClient::send(	string from,
 	imageInline		= imgInline;
 
 	// Connection to SMTP server.
+	BOOST_LOG_SEV(logger,normal) << "Connection to SMTP server.";
 	smtpServerConnection();
 
 	// HELO to SMTP server.
+	BOOST_LOG_SEV(logger,normal) << "HELO to SMTP server.";
 	write("HELO " + mailServerHostname + "\r\n", "250", true, true);
 
 	// Sender.
+	BOOST_LOG_SEV(logger,normal) << "Write sender.";
 	write("MAIL FROM: <" + mailFrom + ">\r\n", "250", true, true);
 
 	// Recipients.
+	BOOST_LOG_SEV(logger,normal) << "Write recipients.";
 	for(int i = 0; i < mailTo.size(); i++)
 		write("RCPT TO: <" + mailTo.at(i) + ">\r\n", "250", true, true);
 
 	// Start to sending data.
+	BOOST_LOG_SEV(logger,normal) << "Write datas.";
 	write("DATA\r\n", "354", true, true);
 
 	// Build message using MIME.
+	BOOST_LOG_SEV(logger,normal) << "Build message using MIME.";
 	data = message();
 
 	// Send data.
+	BOOST_LOG_SEV(logger,normal) << "Send data.";
 	write(data, "", false, false);
 
 	// End of sending data.
+	BOOST_LOG_SEV(logger,normal) << "End of sending data.";
 	write("\r\n.\r\n", "250", true, true);
 
 	// Deconnection.
+	BOOST_LOG_SEV(logger,normal) << "Deconnection.";
 	write("QUIT\r\n", "221", true, true);
 
 }

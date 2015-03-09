@@ -42,7 +42,7 @@
 #include "Fits.h"
 #include "Fits2D.h"
 #include "TimeDate.h"
-#include "StackedFrames.h"
+
 #include "EParser.h"
 
 #include <boost/filesystem.hpp>

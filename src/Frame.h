@@ -49,141 +49,100 @@ class Frame{
 
 	private:
 
+        //! Image format.
 		CamBitDepth bitdepth;
 
-        //! Date of acquisition
-		string   acqDate;
+        //! Acquisition date YYYY-MM-DDTHH:MM:SS
+		string acqDate;
 
-		//! Date of acquisition in a vector
+		//! Acquisition date in vector.
         vector<int> date;
 
+        //! Acquisition date YYYY-MM-DDTHH:MM:SS,ff.
         string acqDateInMicrosec;
 
+        //! Acquisition date YYYY:MM:DD:HH:MM:SS
         string rawDate;
-
-        //! Gain value of the frame
-        int gain;
-
-        //! Exposure value of the frame
-        int exp;
-
-        //! Path of the frame stocked on the hard disk
-        string pathOnDisk;
-
-        //! Mat frame
-        Mat img;
-
-        //! Name of the frame's file
-        string fileName;
-
-        map <string, bool> threadReadingStatus;
-
-        int frameNumber;
 
         vector<string> dateString;
 
         float dateSeconds;
 
+        //! Camera's gain value used to grab the frame.
+        int gain;
+
+        //! Camera's exposure value used to grab the frame.
+        int exp;
+
+        //! Frame's image data.
+        Mat img;
+
+        //! Frame's name.
+        string fileName;
+
+        //! Each frame is identified by a number corresponding to the acquisition order.
+        int frameNumber;
+
+        //! Define the number of remaining frames if the input source is a video or a set of single frames.
         int frameRemaining;
 
+        //! Max pixel value in the image.
         double saturatedValue;
 
+        //! Camera's fps parameter.
         int fps;
 
 	public:
 
-        //! Constructor without Mat
-        Frame(vector<int>  acquisitionDate, int g, int e);
-
-        //! Constructor with Mat
         Frame(Mat capImg, int g, int e, string acquisitionDate);
 
-        Frame(string  acquisitionDate, int g, int e);
-
-        //! Simple constructor
         Frame();
 
-        //! Destructor
-        ~Frame(void);
+        ~Frame();
 
-        bool copyFrame(Frame *& frameToCopy);
+		vector<string>  getDateString       ()                      {return dateString;};
 
-        bool copyFrame(Frame*& frameToCopy, Mat mask);
+		CamBitDepth		getFrameBitDepth	()						{return bitdepth;};
 
-		//! Getter on the path where the frame data are stocked
-		string getPath();
+		int             getNumFrame         ()                      {return frameNumber;};
+		void            setNumFrame         (int n)                 {frameNumber = n;};
 
-		//! Getter on the name of the file of the frame
-		string getFileName();
+        float           getDateSeconds      ()                      {return dateSeconds;};
 
-		//! Getter on the date of acquisition
-		string getAcqDate();
+        void            setAcqDateMicro     (string date);
+		string          getAcqDateMicro     ()                      {return acqDateInMicrosec;};
 
-		vector<string> getDateString();
+		CamBitDepth     getBitDepth         ()                      {return bitdepth;};
+		void            setBitDepth         (CamBitDepth depth)     {bitdepth = depth;};
 
+        int             getFrameRemaining   ()                      {return frameRemaining;};
+        void            setFrameRemaining   (int val)               {frameRemaining = val;};
 
-		//! Getter on the date of acquisition
-		vector <int> getDate();
+        string          getRawDate          ()                      {return rawDate;};
+        void            setRawDate          (string d)              {rawDate = d;};
 
-		int getNumFrame();
+		double          getSaturatedValue   ()                      {return saturatedValue;};
+        void            setSaturatedValue   (double val)            {saturatedValue = val;};
 
-		void setNumFrame(int n);
+		int             getFPS              ()                      {return fps;};
+		void            setFPS              (int f)                 {fps = f;};
 
-		string  getRawDate();
-        float  getDateSeconds      ()              {return dateSeconds;};
-        void   setAcqDateMicro(string date);
-		string  getAcqDateMicro     ()              {return acqDateInMicrosec;};
-		CamBitDepth getBitDepth()					{return bitdepth;};
-		void setBitDepth(CamBitDepth depth)			{bitdepth = depth;};
+		int             getExposure         ()                      {return exp;};
+        void            setExposure         (int val)               {exp = val;};
 
+		int             getGain             ()                      {return gain;};
+        void            setGain             (int val)               {gain = val;};
 
-		double  getSaturatedValue   ()              {return saturatedValue;};
+		Mat             getImg              ()                      {return img;};
+        void            setImg              (Mat i)                 {i.copyTo(img);};
 
-		int     getFPS              ()              {return fps;};
-		void    setFPS              (int f)         {fps = f;};
+		string          getFileName         ()                      {return fileName;};
+		void            setFileName         (string val)            {fileName = val;};
 
+		string          getAcqDate          ()                      {return acqDate;};
+		void            setAcqDate          (string val)            {acqDate = val;};
 
-		void setRawDate(string d);
-
-
-		int getFrameRemaining();
-
-		void setFrameRemaining(int val);
-
-		//! Getter on the exposure value
-		int getExposure();
-
-        //! Getter on the gain value
-		int getGain();
-
-        //! Getter on the Mat
-		Mat getImg();
-
-        void useMask(Mat mask);
-
-        //! Setter on the Mat
-        void setImg(Mat i);
-
-		//! Setter on the path where the frame data are stocked
-		void setPath (string p);
-
-		//! Setter on the name of the file of the frame
-		void setFileName (string val);
-
-		//! Setter on the date of acquisition
-		void setAcqDate (string val);
-
-		//! Setter on the date of acquisition
-		void setDate(vector<int> val);
-
-		//! Setter on the exposure value
-		void setExposure(int val);
-
-        //! Setter on the gain value
-		void setGain(int val);
-
-		void setThreadReadingStatus(string threadName, bool status);
-
-        bool getThreadReadingStatus (string threadName);
+		vector<int>     getDate             ()                      {return date;};
+		void            setDate             (vector<int> val)       {date = val;};
 
 };

@@ -35,7 +35,7 @@
 
 #include "Fits2D.h"
 
-src::severity_logger< LogSeverityLevel >  Fits2D::logger;
+boost::log::sources::severity_logger< LogSeverityLevel >  Fits2D::logger;
 Fits2D::_Init Fits2D::_initializer;
 
 Fits2D::Fits2D(){
@@ -830,9 +830,9 @@ bool Fits2D::writeKeywords(fitsfile *fptr){
 /* Create a FITS primary array containing a 2-D image */
 /******************************************************/
 
-bool Fits2D::writeFits(Mat img, ImgBitDepth imgType, vector<string> date, bool fileNameWithDate, string fileName){
+bool Fits2D::writeFits(Mat img, ImgBitDepth imgType, string fileName){
 
-    BOOST_LOG_SEV(log, normal) << " Start write Fits.";
+    cout << " Start write Fits." << endl;
 
     int status = 0;
 
@@ -843,7 +843,7 @@ bool Fits2D::writeFits(Mat img, ImgBitDepth imgType, vector<string> date, bool f
 
     // Image size.
     long naxes[2] = { img.cols, img.rows };
-    BOOST_LOG_SEV(log, normal) << " Fits size :" << img.cols << "x" << img.rows;
+    cout << " Fits size :" << img.cols << "x" << img.rows << endl;
 
     // First pixel to write.
 	firstPixel = 1;
@@ -851,23 +851,12 @@ bool Fits2D::writeFits(Mat img, ImgBitDepth imgType, vector<string> date, bool f
 	// Number of pixels to write.
     nbelements = naxes[0] * naxes[1];
 
-    // Get current date.
-    string dateFile = "";
-    vector<string> dateString;
-    string creationDate = TimeDate::localDateTime(second_clock::universal_time(),"%Y:%m:%d:%H:%M:%S");
-    typedef boost::tokenizer<boost::char_separator<char> > tokenizer;
-    boost::char_separator<char> sep(":");
-    tokenizer tokens(creationDate, sep);
-    for (tokenizer::iterator tok_iter = tokens.begin();tok_iter != tokens.end(); ++tok_iter){
-        dateString.push_back(*tok_iter);
-    }
-    kDATE = dateString.at(0) + "-" + dateString.at(1) + "-" + dateString.at(2) + "T" + dateString.at(3) + ":" + dateString.at(4) + ":" + dateString.at(5);
+	// Fits creation date : 'YYYY-MM-JJTHH:MM:SS.SS'
+	boost::posix_time::ptime time = boost::posix_time::microsec_clock::universal_time();
+    kDATE = to_iso_extended_string(time);
 
-    if(date.size() == 6){
-
-        dateFile	= date.at(0) + date.at(1) + date.at(2) + "_" + date.at(3) + date.at(4) + date.at(5);
-
-    }
+	// Date in the fits filename.
+	string dateFileName = TimeDate::get_YYYYMMDDThhmmss(to_iso_string(time));
 
     // Define CRPIX1 and CRPIX2
     kCRPIX1 = (int)naxes[0] / 2;
@@ -880,19 +869,24 @@ bool Fits2D::writeFits(Mat img, ImgBitDepth imgType, vector<string> date, bool f
     // Creation of the fits filename.
     string pathAndname = "";
 
-    if(fileNameWithDate){
+	cout << "kTELESCOP : " << kTELESCOP << endl;
 
-        pathAndname = fitsPath + kTELESCOP + "_" + dateFile + "_UT.fit";
-        kFILENAME = kTELESCOP + "_" + dateFile + "_UT.fit";
+	if(fileName != ""){
+		
+		pathAndname = fitsPath + fileName  + ".fit";
+		kFILENAME = fileName + ".fit";
+		
+	}else{
 
-    }else{
+		pathAndname = fitsPath + kTELESCOP + "_" + dateFileName + "_UT.fit";
+		kFILENAME = kTELESCOP + "_" +  dateFileName + "_UT.fit";
 
-        pathAndname = fitsPath + fileName + ".fit";
-        kFILENAME = fileName + ".fit";
-    }
+	}
 
+	cout << "In fits 2D function -> pathAndname : " << pathAndname << endl;
+	cout << "fileName : " << fileName << endl;
     filename = pathAndname.c_str();
-    BOOST_LOG_SEV(log, normal) << " Fits name : " << pathAndname;
+    BOOST_LOG_SEV(logger, notification) << " Fits name : " << pathAndname;
 
     switch(imgType){
 
@@ -1646,14 +1640,14 @@ bool Fits2D::printerror( int status, string errorMsg){
         fits_report_error(stderr, status);
 
         cout << stderr << endl;
-        BOOST_LOG_SEV(log, normal) << stderr;
+        BOOST_LOG_SEV(logger, normal) << stderr;
 
     }
 
     if(errorMsg != ""){
 
         cout << errorMsg << endl;
-        BOOST_LOG_SEV(log, normal) << errorMsg;
+        BOOST_LOG_SEV(logger, normal) << errorMsg;
 
     }
 
@@ -1675,7 +1669,7 @@ bool Fits2D::printerror( string errorMsg){
     if(errorMsg != ""){
 
         cout << errorMsg << endl;
-        BOOST_LOG_SEV(log, normal) << errorMsg;
+        BOOST_LOG_SEV(logger, normal) << errorMsg;
 
     }
 

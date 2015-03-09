@@ -36,6 +36,8 @@
 #pragma once
 
 #include <iostream>
+#include <list>
+#include <string>
 
 #include "opencv2/highgui/highgui.hpp"
 #include <opencv2/imgproc/imgproc.hpp>
@@ -55,7 +57,7 @@ class Conversion{
 
         static string intToString(int nb);
 
-        template <typename Container> static void stringTok(Container &container, string const &in, const char * const delimiters);
+        static void stringTok(list<string>  &container, string const &in, const char * const delimiters);
 
         static double roundToNearest(double num);
 

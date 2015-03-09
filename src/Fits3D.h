@@ -38,6 +38,9 @@
 #include "opencv2/highgui/highgui.hpp"
 #include <opencv2/imgproc/imgproc.hpp>
 
+#ifdef LINUX
+#define BOOST_LOG_DYN_LINK 1
+#endif
 
 #ifdef CFITSIO_H
   #include CFITSIO_H
@@ -45,9 +48,20 @@
   #include "fitsio.h"
 #endif
 
+#include <boost/log/common.hpp>
+#include <boost/log/expressions.hpp>
+#include <boost/log/utility/setup/file.hpp>
+#include <boost/log/utility/setup/console.hpp>
+#include <boost/log/utility/setup/common_attributes.hpp>
+#include <boost/log/attributes/named_scope.hpp>
+#include <boost/log/attributes.hpp>
+#include <boost/log/sinks.hpp>
+#include <boost/log/sources/logger.hpp>
+#include <boost/log/core.hpp>
+#include "ELogSeverityLevel.h"
+
 #include "Configuration.h"
 #include "TimeDate.h"
-#include "ELogSeverityLevel.h"
 #include "Fits.h"
 #include "ECamBitDepth.h"
 
@@ -57,6 +71,17 @@ using namespace std;
 class Fits3D : public Fits{
 
     private:
+
+		static boost::log::sources::severity_logger< LogSeverityLevel > logger;
+
+		static class _Init{
+
+			public:
+				_Init()
+				{
+					logger.add_attribute("ClassName", boost::log::attributes::constant<std::string>("Fits3D"));
+				}
+		} _initializer;	
 
         fitsfile        *fptr;
         const char      *filename;

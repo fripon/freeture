@@ -37,6 +37,8 @@
 
 #include <math.h>
 #include <vector>
+#include <iterator>
+#include <algorithm>
 
 #include "opencv2/highgui/highgui.hpp"
 #include <opencv2/imgproc/imgproc.hpp>
@@ -54,7 +56,7 @@ class GlobalEvent{
 
         int             geAge;
         int             geAgeLastLE;
-        vector<string>  geDate;
+        string  geDate;
         Mat             geMap;
         int             numFirstFrame;
         int             numLastFrame;
@@ -80,7 +82,7 @@ class GlobalEvent{
         vector<float> dist;
         vector<Point>   mainPoints;
 
-        GlobalEvent(vector<string> frameDate, int frameNum, int frameHeight, int frameWidth);
+        GlobalEvent(string frameDate, int frameNum, int frameHeight, int frameWidth);
 
         ~GlobalEvent();
 
@@ -89,7 +91,7 @@ class GlobalEvent{
         Mat             getDirMap2              ()          {return dirMap2;};
         int             getAge                  ()          {return geAge;};
         int             getAgeLastElem          ()          {return geAgeLastLE;};
-        vector<string>  getDate                 ()          {return geDate;};
+        string			getDate                 ()          {return geDate;};
         bool            getLinearStatus         ()          {return linear;};
         bool            getGeStatic             ()          {return geStatic;};
         float           getVelocity             ()          {return velocity;};

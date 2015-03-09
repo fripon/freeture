@@ -82,7 +82,7 @@ double Conversion::roundToNearest(double num){
 }
 
 //string with delimiters -> list of string
-template <typename Container> void Conversion::stringTok(Container &container, string const &in, const char * const delimiters  = "_"){
+void Conversion::stringTok(list<string> &container, string const &in, const char * const delimiters  = "_"){
 
     const string::size_type len = in.length();
     string::size_type i = 0;

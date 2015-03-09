@@ -35,7 +35,7 @@
 
 #include "GlobalEvent.h"
 
-GlobalEvent::GlobalEvent(vector<string> frameDate, int frameNum, int frameHeight, int frameWidth){
+GlobalEvent::GlobalEvent(string frameDate, int frameNum, int frameHeight, int frameWidth){
 
     geAge           = 0;
     geAgeLastLE     = 0;
@@ -122,16 +122,20 @@ bool GlobalEvent::addLE(LocalEvent le){
                 circle(dirMap2, newPos, 5, Scalar(0,0,255), 1, 8, 0);
 
                 badPoint++;
-
+				cout << "USE POS:!!!"<< endl;
                 // Two consecutives bad points.
-                if(pos.back() == false) linear = false;
+                if(pos.size() != 0){
 
+					if(pos.back() == false)
+						linear = false;
+
+				}
                 pos.push_back(false);
 
                 return false;
 
             }else{
-
+				cout << "USE POS:!!"<< endl;
                 pos.push_back(true);
                 circle(dirMap, center, 5, Scalar(0,255,0), 1, 8, 0);
                 circle(dirMap2, newPos, 5, Scalar(0,255,0), 1, 8, 0);

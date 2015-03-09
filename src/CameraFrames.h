@@ -38,116 +38,68 @@
 #include "opencv2/highgui/highgui.hpp"
 #include <opencv2/imgproc/imgproc.hpp>
 
-//#define BOOST_LOG_DYN_LINK 1
+
 #ifdef LINUX
 #define BOOST_LOG_DYN_LINK 1
 #endif
 
-#include <boost/log/common.hpp>
-#include <boost/log/expressions.hpp>
-#include <boost/log/utility/setup/file.hpp>
-#include <boost/log/utility/setup/console.hpp>
-#include <boost/log/utility/setup/common_attributes.hpp>
-#include <boost/log/attributes/named_scope.hpp>
 #include <boost/log/sources/logger.hpp>
-#include <boost/log/support/date_time.hpp>
-#include <boost/log/attributes.hpp>
-#include <boost/log/sinks.hpp>
-#include <boost/log/sources/logger.hpp>
-#include <boost/log/utility/record_ordering.hpp>
-#include <boost/log/core.hpp>
-#include <boost/smart_ptr/shared_ptr.hpp>
+#include "ELogSeverityLevel.h"
 #include "Conversion.h"
 #include "TimeDate.h"
 #include "Frame.h"
 #include "Fits2D.h"
 #include "Fits.h"
 #include <list>
+#include <iterator>
 #include <boost/filesystem.hpp>
-#include "ELogSeverityLevel.h"
-#include "EImgBitDepth.h"
+#include <boost/tokenizer.hpp>
 
-#include <boost/circular_buffer.hpp>
+#include "Camera.h"
 
-using namespace boost::filesystem;
-
+using namespace boost::posix_time;
 using namespace cv;
 using namespace std;
 
-namespace logging	= boost::log;
-namespace sinks		= boost::log::sinks;
-namespace attrs		= boost::log::attributes;
-namespace src		= boost::log::sources;
-namespace expr		= boost::log::expressions;
-namespace keywords	= boost::log::keywords;
-
-class CameraFrames{
+class CameraFrames: public Camera{
 
 	private:
 
-		src::severity_logger< LogSeverityLevel > log;
+		static boost::log::sources::severity_logger< LogSeverityLevel > logger;
+
+		static class _Init{
+
+            public:
+                _Init()
+                {
+                    logger.add_attribute("ClassName", boost::log::attributes::constant<std::string>("CameraFrames"));
+                }
+        } _initializer;
 
 		//! Frame's location.
-		string dirPath;
-
-		//! Thread.
-		boost::thread *thread;
-
-		//! Frame's height.
-		int imgH;
-
-		//! Frame's width.
-		int imgW;
+		string framesDir;
 
         //! Separator in the frame's file name.
-        int separatorPosition;
+        int numPosInName;
 
-        //! Position of the frame's number in the file name.
-        string separator;
+		int firstNumFrame;
+		int lastNumFrame;
 
-        //! Frame's bit depth.
-        int bitpix;
+		bool endReadDataStatus;
 
-        Fits fitsHeader;
-
-        boost::circular_buffer<Frame>   *frameBuffer;
-        boost::mutex                    *m_frameBuffer;
-        boost::condition_variable       *c_newElemFrameBuffer;
-
-        bool                            *newFrameDet;
-        boost::mutex                    *m_newFrameDet;
-        boost::condition_variable       *c_newFrameDet;
+		int nbFramesRead;
 
 	public:
 
-		CameraFrames(   string                          dir,
-                        int                             sepPos,
-                        string                          sep,
-                        Fits                            fitsHead,
-                        int                             bitdepth,
-                        boost::circular_buffer<Frame>   *cb,
-                        boost::mutex                    *m_cb,
-                        boost::condition_variable       *c_newElemCb,
-                        bool                            *newFrameForDet,
-                        boost::mutex                    *m_newFrameForDet,
-                        boost::condition_variable       *c_newFrameForDet);
+		CameraFrames(string	dir, int nbPos);
 
-        //! Destructor
-		~CameraFrames(void);
+		~CameraFrames();
 
-		//! Create thread.
-		void startThread();
+		bool grabStart();
 
-        //! Thread operations.
-		void operator ()();
+		bool grabImage(Frame &img);
 
-        //! Wait the end of the thread.
-		void join();
-
-		//! Get frame's width.
-		int getWidth();
-
-		//! Get frame's height.
-		int getHeight();
+		bool getStopStatus();
+		
 };
 

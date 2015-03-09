@@ -35,228 +35,84 @@
 
 #include "CameraVideo.h"
 
-CameraVideo::CameraVideo(   string                          video_path,
-                            boost::circular_buffer<Frame>   *cb,
-                            boost::mutex                    *m_cb,
-                            boost::condition_variable       *c_newElemCb,
-                            bool                            *newFrameForDet,
-                            boost::mutex                    *m_newFrameForDet,
-                            boost::condition_variable       *c_newFrameForDet){
+boost::log::sources::severity_logger< LogSeverityLevel >  CameraVideo::logger;
+CameraVideo::_Init CameraVideo::_initializer;
 
+CameraVideo::CameraVideo(string video_path){
 
 	//open the video file for reading
     cap = VideoCapture(videoPath);
+    videoPath = video_path;
 
-	imgH                    = 0;
-	imgW                    = 0;
-    videoPath               = video_path;
-	thread                  = NULL;
-	newFrameDet             = newFrameForDet;
-    m_newFrameDet           = m_newFrameForDet;
-    c_newFrameDet           = c_newFrameForDet;
-    frameBuffer             = cb;
-    m_frameBuffer           = m_cb;
-    c_newElemFrameBuffer    = c_newElemCb;
+	frameWidth = 0;
+	frameHeight = 0;
+
+	endReadDataStatus = false;
 
 }
 
 CameraVideo::~CameraVideo(void){}
 
-void CameraVideo::startThread(){
-
-	// Launch acquisition thread
-	thread = new boost::thread(boost::ref(*this));
-
-}
-
-void CameraVideo::join(){
-
-	thread->join();
-
-}
-
-template <typename Container> void stringtok(Container &container, string const &in, const char * const delimiters = "_"){
-
-
-    const string::size_type len = in.length();
-
-    string::size_type i = 0;
-
-
-    while (i < len){
-
-
-        // Eat leading whitespace
-
-        i = in.find_first_not_of(delimiters, i);
-
-
-        if (i == string::npos)
-
-            return;   // Nothing left but white space
-
-
-        // Find the end of the token
-
-        string::size_type j = in.find_first_of(delimiters, i);
-
-
-        // Push token
-
-        if (j == string::npos){
-
-
-            container.push_back(in.substr(i));
-
-            return;
-
-
-        }else
-
-
-            container.push_back(in.substr(i, j-i));
-
-
-        // Set up for next loop
-
-        i = j + 1;
-
-    }
-
-}
-
-void CameraVideo::operator () (){
-
-	BOOST_LOG_SCOPED_THREAD_TAG("LogName", "ACQ_THREAD");
-	BOOST_LOG_SEV(log,notification) << "\n";
-	BOOST_LOG_SEV(log,notification) << "==============================================";
-	BOOST_LOG_SEV(log,notification) << "========== Start acquisition thread ==========";
-	BOOST_LOG_SEV(log,notification) << "==============================================";
-
-	int framebufferActualSize = 0;
-
-	int fois = 0;
+bool CameraVideo::grabStart(){
 
 	//if not success, exit program
     if ( !cap.isOpened() ){
 
-		 BOOST_LOG_SEV(log,normal) << "Cannot open the video file";
+		 cout << "Cannot open the video file" << endl;
+		 return false;
+    }
 
-    }else{
+	frameHeight = cap.get(CV_CAP_PROP_FRAME_HEIGHT);
+	cout << "Reading frame height : " << frameHeight << endl;
 
-		BOOST_LOG_SEV(log,notification) << "Open the video file for reading succeed";
-		BOOST_LOG_SEV(log,normal) << "FPS : " << cap.get(CV_CAP_PROP_FPS);
+	frameWidth = cap.get(CV_CAP_PROP_FRAME_WIDTH);
+	cout << "Reading frame width : " << frameWidth << endl;
 
-		imgH = cap.get(CV_CAP_PROP_FRAME_HEIGHT);
-		BOOST_LOG_SEV(log,normal) << "Reading frame height : " << imgH;
+	Size frameSize(static_cast<int>(frameWidth), static_cast<int>(frameHeight));
 
-		imgW = cap.get(CV_CAP_PROP_FRAME_WIDTH);
-		BOOST_LOG_SEV(log,normal) << "Reading frame width : " << imgW;
+	oVideoWriter = VideoWriter("./", CV_FOURCC('D', 'I', 'V', 'X'), 30, frameSize, true); //initialize the VideoWriter object
 
-		bool bSuccess = true;
+	int ex = static_cast<int>(cap.get(CV_CAP_PROP_FOURCC));
 
-        Size frameSize(static_cast<int>(imgW), static_cast<int>(imgH));
+	char EXT[] = {ex & 0XFF , (ex & 0XFF00) >> 8,(ex & 0XFF0000) >> 16,(ex & 0XFF000000) >> 24, 0};
 
-        //VideoWriter oVideoWriter("/home/fripon/videoMet4.avi", CV_FOURCC('D', 'I', 'V', 'X'), 30, frameSize, true); //initialize the VideoWriter object
+	return true;
+}
 
-        int ex = static_cast<int>(cap.get(CV_CAP_PROP_FOURCC));
+bool CameraVideo::getStopStatus(){
+	return endReadDataStatus;
+}
 
-        char EXT[] = {ex & 0XFF , (ex & 0XFF00) >> 8,(ex & 0XFF0000) >> 16,(ex & 0XFF000000) >> 24, 0};
+bool CameraVideo::grabImage(Frame &img){
 
-		do{
+		Mat frame, copyframe;
 
+		if(cap.read(frame)){
 
-			Mat frame;
-			Mat copyframe ;//= Mat::zeros();
+            cout << "FORMAT : " << cap.get(CV_CAP_PROP_FORMAT)<<endl;
 
-            double tacq = (double)getTickCount();
+            //BGR (3 channels) to G (1 channel)
+            cvtColor(frame, frame, CV_BGR2GRAY);
 
-			//Read a new video frame
-			bSuccess = cap.read(frame);
+            cvtColor(frame, copyframe, CV_GRAY2BGR);
 
-			if(bSuccess){
+            img.setNumFrame(cap.get(CV_CAP_PROP_POS_FRAMES));
+			img.setImg(frame);
+            img.setFrameRemaining(cap.get(CV_CAP_PROP_FRAME_COUNT) - cap.get(CV_CAP_PROP_POS_FRAMES));
 
-                double numFrame = cap.get(CV_CAP_PROP_POS_FRAMES);
+            if(oVideoWriter.isOpened()){
 
-                BOOST_LOG_SEV(log,normal) << "Reading frame n° " << numFrame;
+                oVideoWriter << copyframe;
 
-                cout << endl << endl << "-------- FRAME n°"<< numFrame << "--------" << endl;
-
-                double tacq = (double)getTickCount();
-
-                cout << "FORMAT : " << cap.get(CV_CAP_PROP_FORMAT)<<endl;
-
-                //BGR (3 channels) to G (1 channel)
-                cvtColor(frame, frame, CV_BGR2GRAY);
-
-                cvtColor(frame, copyframe, CV_GRAY2BGR);
-                //Timestamping
-                string acquisitionDate = TimeDate::localDateTime(second_clock::universal_time(),"%Y:%m:%d:%H:%M:%S");
-
-                Frame newFrame( frame, 0, 0, acquisitionDate );
-
-                newFrame.setNumFrame(numFrame);
-
-                newFrame.setFrameRemaining(cap.get(CV_CAP_PROP_FRAME_COUNT) - cap.get(CV_CAP_PROP_POS_FRAMES));
-
-
-                boost::mutex::scoped_lock lock(*m_frameBuffer);
-                frameBuffer->push_back(newFrame);
-                lock.unlock();
-
-                /*if(oVideoWriter.isOpened()){
-
-                    oVideoWriter << copyframe;
-
-                }*/
-
-                boost::mutex::scoped_lock lock2(*m_newFrameDet);
-                *newFrameDet = true;
-                c_newFrameDet->notify_one();
-                lock2.unlock();
-
-                tacq = (((double)getTickCount() - tacq)/getTickFrequency())*1000;
-                cout << " [-ACQ-]    Time : " << tacq << " ms " << endl;
-
-                //Wait in ms
-                waitKey(100) ;
-
-            }else{
-
-                cout << "Can't read the video or end to read the video"<<endl;
-                break;
             }
+	
+			return true;
 
-		}while(bSuccess);
+        }else{
 
-		BOOST_LOG_SEV(log,notification) << "Video frame read process terminated.";
+            endReadDataStatus = true;
+			return false;
 
-	}
-
-	BOOST_LOG_SEV(log,notification) << "Acquisition thread terminated.";
-
+        }
 }
 
-int CameraVideo::getCameraHeight(){
-
-    int h = 0;
-
-    if (cap.isOpened()){
-        h = cap.get(CV_CAP_PROP_FRAME_HEIGHT);
-    }
-
-	return h;
-
-}
-
-int CameraVideo::getCameraWidth(){
-
-	int w = 0;
-
-    if (cap.isOpened()){
-        w = cap.get(CV_CAP_PROP_FRAME_WIDTH);
-    }
-
-	return w;
-
-}

@@ -44,24 +44,22 @@
 #define BOOST_LOG_DYN_LINK 1
 #endif
 
+#include "Frame.h"
+#include "SaveImg.h"
+#include "TimeDate.h"
+#include "Conversion.h"
+#include "Camera.h"
+#include <string>
 #include <boost/log/common.hpp>
 #include <boost/log/expressions.hpp>
 #include <boost/log/utility/setup/file.hpp>
 #include <boost/log/utility/setup/console.hpp>
 #include <boost/log/utility/setup/common_attributes.hpp>
 #include <boost/log/attributes/named_scope.hpp>
-#include <boost/log/sources/logger.hpp>
-#include <boost/log/support/date_time.hpp>
 #include <boost/log/attributes.hpp>
 #include <boost/log/sinks.hpp>
 #include <boost/log/sources/logger.hpp>
-#include <boost/log/utility/record_ordering.hpp>
 #include <boost/log/core.hpp>
-#include <boost/smart_ptr/shared_ptr.hpp>
-#include "Frame.h"
-#include "SaveImg.h"
-#include "TimeDate.h"
-#include "Conversion.h"
 #include "ELogSeverityLevel.h"
 #include <boost/filesystem.hpp>
 #include <boost/circular_buffer.hpp>
@@ -71,66 +69,46 @@ using namespace boost::filesystem;
 using namespace cv;
 using namespace std;
 
-namespace logging	= boost::log;
-namespace sinks		= boost::log::sinks;
-namespace attrs		= boost::log::attributes;
-namespace src		= boost::log::sources;
-namespace expr		= boost::log::expressions;
-namespace keywords	= boost::log::keywords;
-
-class CameraVideo{
+class CameraVideo : public Camera{
 
 	private:
 
-		src::severity_logger< LogSeverityLevel > log;
+		static boost::log::sources::severity_logger< LogSeverityLevel > logger;
+
+		static class _Init{
+
+			public:
+				_Init()
+				{
+					logger.add_attribute("ClassName", boost::log::attributes::constant<std::string>("CameraVideo"));
+				}
+		} _initializer;	
 
 		//! Video's location
 		string videoPath;
 
-		//! Thread
-		boost::thread *thread;
 
-		//! Frame's height.
-		int imgH;
-
-		//! Frame's width.
-		int imgW;
-
+		int frameWidth;
+		int frameHeight;
+		
 		VideoCapture cap;
 
-		boost::circular_buffer<Frame>   *frameBuffer;
-        boost::mutex                    *m_frameBuffer;
-        boost::condition_variable       *c_newElemFrameBuffer;
-        bool                            *newFrameDet;
-        boost::mutex                    *m_newFrameDet;
-        boost::condition_variable       *c_newFrameDet;
+		VideoWriter oVideoWriter;
+
+		bool endReadDataStatus;
+
 
 	public:
 
-		CameraVideo(string                          video_path,
-                    boost::circular_buffer<Frame>   *cb,
-                    boost::mutex                    *m_cb,
-                    boost::condition_variable       *c_newElemCb,
-                    bool                            *newFrameForDet,
-                    boost::mutex                    *m_newFrameForDet,
-                    boost::condition_variable       *c_newFrameForDet);
+		CameraVideo(string                          video_path);
 
         //! Destructor.
 		~CameraVideo(void);
 
-		//! Create thread.
-		void startThread();
+		bool grabImage(Frame &img);
 
-        //! Thread operations.
-		void operator ()();
+		bool grabStart();
 
-        //! Wait the end of the thread.
-		void join();
-
-		//! Get frame's width.
-		int getCameraWidth();
-
-		//! Get frame's height.
-		int	getCameraHeight();
+		bool getStopStatus();
 };
 

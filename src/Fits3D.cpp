@@ -35,6 +35,9 @@
 
 #include "Fits3D.h"
 
+boost::log::sources::severity_logger< LogSeverityLevel >  Fits3D::logger;
+Fits3D::_Init Fits3D::_initializer;
+
 Fits3D::Fits3D(CamBitDepth depth, int imgHeight, int imgWidth, int imgNum, Fits fits){
 
     status      = 0;

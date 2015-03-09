@@ -63,9 +63,6 @@ double TimeDate::gregorianToJulian_1(vector<int> date){
     int min = date.at(4);
     int s   = date.at(5);
 
-    int yJ;
-    int mJ;
-
     if(m == 1 || m == 2){
 
         y = y - 1;
@@ -409,6 +406,130 @@ vector<int> TimeDate::splitStringToIntVector(string str){
     }
 
     return intOutput;
+
+}
+
+// Input date format : YYYY:MM:DD from YYYY-MM-DDTHH:MM:SS,fffffffff
+// Output : vector<int> with YYYY, MM, DD, hh, mm, ss
+vector<int> TimeDate::getIntVectorFromDateString(string date){
+
+	vector<string> output1;
+	vector<string> output2;
+	vector<string> output3;
+	vector<string> output4;
+	vector<int> finalOuput;
+
+	// Extract YYYY:MM:DD and HH:MM:SS,fffffffff from YYYY-MM-DDTHH:MM:SS,fffffffff
+    typedef boost::tokenizer<boost::char_separator<char> > tokenizer;
+    boost::char_separator<char> sep1("T");
+    tokenizer tokens1(date, sep1);
+    for (tokenizer::iterator tok_iter = tokens1.begin();tok_iter != tokens1.end(); ++tok_iter){
+        output1.push_back(*tok_iter);
+    }
+
+	// Extract YYYY, MM, DD from YYYY:MM:DD and convert them in integer.
+	boost::char_separator<char> sep2("-");
+	tokenizer tokens2(output1.front(), sep2);
+    for (tokenizer::iterator tok_iter = tokens2.begin();tok_iter != tokens2.end(); ++tok_iter){
+        output2.push_back(*tok_iter);
+    }
+    for(int i = 0 ; i< output2.size();i++){
+       finalOuput.push_back(atoi(output2.at(i).c_str()));
+    }
+
+	// Extract hh:mm:ss from hh:mm:ss,fffffffff.
+	boost::char_separator<char> sep3(",");
+	tokenizer tokens3(output1.back(), sep3);
+    for (tokenizer::iterator tok_iter = tokens3.begin();tok_iter != tokens3.end(); ++tok_iter){
+        output3.push_back(*tok_iter);
+    }
+
+	// Extract hh, mm, ss from hh:mm:ss.
+	boost::char_separator<char> sep4(":");
+	tokenizer tokens4(output3.front(), sep4);
+    for (tokenizer::iterator tok_iter = tokens4.begin();tok_iter != tokens4.end(); ++tok_iter){
+        output4.push_back(*tok_iter);
+    }
+	for(int i = 0 ; i< output4.size();i++){
+       finalOuput.push_back(atoi(output4.at(i).c_str()));
+    }
+
+	return finalOuput;
+
+}
+
+// Input date format : YYYY:MM:DD from YYYY-MM-DDTHH:MM:SS,fffffffff
+string TimeDate::get_YYYYMMDD_fromDateString(string date){
+
+	vector<string> output1;
+	vector<string> output2;
+
+	// Extract YYYY:MM:DD from YYYY-MM-DDTHH:MM:SS,fffffffff
+    typedef boost::tokenizer<boost::char_separator<char> > tokenizer;
+    boost::char_separator<char> sep("T");
+    tokenizer tokens1(date, sep);
+    for (tokenizer::iterator tok_iter = tokens1.begin();tok_iter != tokens1.end(); ++tok_iter){
+        output1.push_back(*tok_iter);
+    }
+
+	// Extract YYYY, MM, DD from YYYY:MM:DD
+	boost::char_separator<char> sep1(":");
+	tokenizer tokens2(output1.front(), sep1);
+    for (tokenizer::iterator tok_iter = tokens2.begin();tok_iter != tokens2.end(); ++tok_iter){
+        output2.push_back(*tok_iter);
+    }
+
+	// Build YYYYMMDD string.
+	string yyyymmdd = "";
+	for(int i = 0; i< output2.size(); i++){
+
+		yyyymmdd += output2.at(i);
+
+	}
+
+    return yyyymmdd;
+
+}
+
+string TimeDate::get_YYYYMMDDThhmmss(string date){
+
+	string finalDate = "";
+
+	boost::char_separator<char> sep(".");
+	boost::char_separator<char> sep1("T");
+	boost::char_separator<char> sep2("-");
+	boost::char_separator<char> sep3(":");
+
+	// Extract YYYY-MM-DDTHH:MM:SS from YYYY-MM-DDTHH:MM:SS,fffffffff
+	vector<string> output; // Two elements : YYYY-MM-DDTHH:MM:SS and fffffffff
+    typedef boost::tokenizer<boost::char_separator<char> > tokenizer;
+    tokenizer tokens(date, sep);
+    for (tokenizer::iterator tok_iter = tokens.begin();tok_iter != tokens.end(); ++tok_iter){
+        output.push_back(*tok_iter);
+    }
+
+	// Extract YYYY-MM-DD and HH:MM:SS from YYYY-MM-DDTHH:MM:SS
+	vector<string> output1; // Two elements : YYYY-MM-DD and HH:MM:SS
+    tokenizer tokens1(output.front(), sep1);
+    for (tokenizer::iterator tok_iter = tokens1.begin();tok_iter != tokens1.end(); ++tok_iter){
+        output1.push_back(*tok_iter);
+    }
+
+	// Extract YYYY, MM, DD from YYYY-MM-DD
+    tokenizer tokens2(output1.front(), sep2);
+    for (tokenizer::iterator tok_iter = tokens2.begin();tok_iter != tokens2.end(); ++tok_iter){
+		finalDate += (*tok_iter);
+    }
+
+	finalDate += "T";
+
+	// Extract hh, mm, ss from HH:MM:SS
+    tokenizer tokens3(output1.back(), sep3);
+    for (tokenizer::iterator tok_iter = tokens3.begin();tok_iter != tokens3.end(); ++tok_iter){
+        finalDate += (*tok_iter);
+    }
+	
+	return finalDate;
 
 }
 

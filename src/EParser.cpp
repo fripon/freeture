@@ -44,10 +44,11 @@ template<> EParser<CamBitDepth>::EParser(){
 
 template<> EParser<CamType>::EParser(){
 
-    enumMap["DMK"]      = DMK;
-    enumMap["BASLER"]   = BASLER;
-    enumMap["VIDEO"]    = VIDEO;
-    enumMap["FRAMES"]   = FRAMES;
+    enumMap["DMK_GIGE"]		= DMK_GIGE;
+    enumMap["BASLER_GIGE"]		= BASLER_GIGE;
+	enumMap["TYTEA_USB"]		= TYTEA_USB;
+    enumMap["VIDEO"]			= VIDEO;
+    enumMap["FRAMES"]			= FRAMES;
 
 }
 
@@ -74,3 +75,4 @@ template<> EParser<LogSeverityLevel>::EParser(){
     enumMap["critical"]         = critical;
 
 }
+
