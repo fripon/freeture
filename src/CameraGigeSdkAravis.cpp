@@ -265,8 +265,9 @@
 	bool CameraGigeSdkAravis::grabImage(Frame &newFrame){
 
 		ArvBuffer *arv_buffer;
-
+        cout << "get buffer"<< endl;
 		arv_buffer = arv_stream_pop_buffer(stream); //us
+		cout << "end get buffer"<< endl;
 
 		if (arv_buffer == NULL){
 
@@ -344,63 +345,166 @@
 
 	bool CameraGigeSdkAravis::grabSingleImage(Frame &frame, int camID){
 
-		/*arv_update_device_list();
+        if(!createDevice(camID))
+            return false;
 
-		int n_devices = arv_get_n_devices();
+        if(!setPixelFormat(frame.getBitDepth()))
+            return false;
 
-		string deviceName = "";
+        if(!setExposureTime(frame.getExposure()))
+            return false;
 
-		cout << "ID cam choose : " << camID << endl;
+        if(!setGain(frame.getGain()))
+            return false;
 
-		for(int i = 0; i< n_devices; i++){
+		int sensor_width, sensor_height;
 
-            cout << "ID : " << i << " -> " << arv_get_device_id(i) << endl;
+		arv_camera_get_sensor_size(camera, &sensor_width, &sensor_height);
 
-			if(camID == i){
+		arv_camera_set_region(camera, 0, 0,sensor_width,sensor_height);
 
-				deviceName = arv_get_device_id(i);
+		arv_camera_get_region (camera, NULL, NULL, &width, &height);
 
-			}
-		}*/
+		payload = arv_camera_get_payload (camera);
 
-		//if(deviceName != ""){
+		pixFormat = arv_camera_get_pixel_format (camera);
 
-			//cout << "Camera found : " << deviceName << endl;
+		arv_camera_get_exposure_time_bounds (camera, &exposureMin, &exposureMax);
 
-			if(!createDevice(camID))
-				return false;
+		arv_camera_get_gain_bounds (camera, &gainMin, &gainMax);
 
-			if(!setPixelFormat(frame.getBitDepth()))
-				return false;
+		arv_camera_set_frame_rate(camera, fps);
 
-			if(!setExposureTime(frame.getExposure()))
-				return false;
+		fps = arv_camera_get_frame_rate(camera);
 
-			if(!setGain(frame.getGain()))
-				return false;
+		caps_string = arv_pixel_format_to_gst_caps_string(pixFormat);
 
-			if(!grabStart())
-				return false;
+		gain    = arv_camera_get_gain(camera);
+		exp     = arv_camera_get_exposure_time(camera);
 
-			arv_camera_set_acquisition_mode(camera, ARV_ACQUISITION_MODE_SINGLE_FRAME);
+		cout << endl;
 
-            arv_camera_start_acquisition(camera);
+		cout << "DEVICE SELECTED : " << arv_camera_get_device_id(camera)    << endl;
+		cout << "DEVICE NAME     : " << arv_camera_get_model_name(camera)   << endl;
+		cout << "DEVICE VENDOR   : " << arv_camera_get_vendor_name(camera)  << endl;
+		cout << "PAYLOAD         : " << payload                             << endl;
+		cout << "Width           : " << width                               << endl
+			 << "Height          : " << height                              << endl;
+		cout << "Exp Range       : [" << exposureMin    << " - " << exposureMax   << "]"  << endl;
+		cout << "Exp             : " << exp                                 << endl;
+		cout << "Gain Range      : [" << gainMin        << " - " << gainMax       << "]"  << endl;
+		cout << "Gain            : " << gain                                << endl;
+		cout << "Fps             : " << fps                                 << endl;
+		cout << "Type            : " << caps_string                         << endl;
 
-			// Grab a frame.
-			if(!grabImage(frame)){
+		cout << endl;
 
-				acqStop();
-				return false;
-			}
+		// Create a new stream object. Open stream on Camera.
+		stream = arv_camera_create_stream(camera, NULL, NULL);
 
-			acqStop();
+		if(stream == NULL)
+			cout << "stream is null " << endl;
 
-		/*}else{
+        if (ARV_IS_GV_STREAM(stream)){
 
-			cout << "No camera found with the ID : " << camID << endl;
-			return false;
+            bool            arv_option_auto_socket_buffer   = true;
+            bool            arv_option_no_packet_resend     = true;
+            unsigned int    arv_option_packet_timeout       = 20;
+            unsigned int    arv_option_frame_retention      = 100;
 
-		}*/
+            if(arv_option_auto_socket_buffer){
+
+                g_object_set(stream,
+                             // ARV_GV_STREAM_SOCKET_BUFFER_FIXED : socket buffer is set to a given fixed value.
+                             // ARV_GV_STREAM_SOCKET_BUFFER_AUTO: socket buffer is set with respect to the payload size.
+                             "socket-buffer", ARV_GV_STREAM_SOCKET_BUFFER_AUTO,
+                             // Socket buffer size, in bytes.
+                             // Allowed values: >= G_MAXULONG
+                             // Default value: 0
+                             "socket-buffer-size", 0, NULL);
+
+            }
+
+            if(arv_option_no_packet_resend){
+
+                // # packet-resend : Enables or disables the packet resend mechanism
+
+                // If packet resend is disabled and a packet has been lost during transmission,
+                // the grab result for the returned buffer holding the image will indicate that
+                // the grab failed and the image will be incomplete.
+                //
+                // If packet resend is enabled and a packet has been lost during transmission,
+                // a request is sent to the camera. If the camera still has the packet in its
+                // buffer, it will resend the packet. If there are several lost packets in a
+                // row, the resend requests will be combined.
+
+                g_object_set(stream,
+                             // ARV_GV_STREAM_PACKET_RESEND_NEVER: never request a packet resend
+                             // ARV_GV_STREAM_PACKET_RESEND_ALWAYS: request a packet resend if a packet was missing
+                             // Default value: ARV_GV_STREAM_PACKET_RESEND_ALWAYS
+                             "packet-resend", ARV_GV_STREAM_PACKET_RESEND_ALWAYS, NULL);
+
+            }
+
+            g_object_set(stream,
+                         // # packet-timeout
+
+                         // The Packet Timeout parameter defines how long (in milliseconds) we will wait for
+                         // the next expected packet before it initiates a resend request.
+
+                         // Packet timeout, in µs.
+                         // Allowed values: [1000,10000000]
+                         // Default value: 40000
+                         "packet-timeout",/* (unsigned) arv_option_packet_timeout * 1000*/(unsigned)10000000,
+                         // # frame-retention
+
+                         // The Frame Retention parameter sets the timeout (in milliseconds) for the
+                         // frame retention timer. Whenever detection of the leader is made for a frame,
+                         // the frame retention timer starts. The timer resets after each packet in the
+                         // frame is received and will timeout after the last packet is received. If the
+                         // timer times out at any time before the last packet is received, the buffer for
+                         // the frame will be released and will be indicated as an unsuccessful grab.
+
+                         // Packet retention, in µs.
+                         // Allowed values: [1000,10000000]
+                         // Default value: 200000
+                         "frame-retention", /*(unsigned) arv_option_frame_retention * 1000*/(unsigned) 10000000,NULL);
+
+        }
+
+        arv_stream_push_buffer(stream, arv_buffer_new(payload, NULL));
+
+        cout << "set ARV_ACQUISITION_MODE_CONTINUOUS " << endl;
+        arv_camera_set_acquisition_mode(camera, ARV_ACQUISITION_MODE_CONTINUOUS);
+
+        cout << "set trigger to software " << endl;
+        arv_camera_set_trigger(camera, "Software");
+
+        //arv_camera_set_software_trigger(camera);
+
+        cout << "set trigger on " << endl;
+        //arv_device_set_string_feature_value (camera, "TriggerMode" , "On");
+
+        cout << "start acquisition " << endl;
+        arv_camera_start_acquisition(camera);
+
+        cout << "arv_camera_software_trigger" << endl;
+        arv_camera_software_trigger(camera);
+
+
+        // Grab a frame.
+        if(!grabImage(frame)){
+
+
+            arv_camera_set_trigger(camera, "Line1");
+            arv_device_set_string_feature_value ( arv_camera_get_device (camera), "TriggerMode" , "Off");
+            acqStop();
+            return false;
+        }
+
+		arv_camera_set_trigger(camera, "Line1");
+        arv_device_set_string_feature_value ( arv_camera_get_device (camera), "TriggerMode" , "Off");
+        acqStop();
 
 		return true;
 
