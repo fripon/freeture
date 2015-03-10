@@ -251,10 +251,10 @@ int main(int argc, const char ** argv){
                         std::transform(camtype.begin(), camtype.end(),camtype.begin(), ::toupper);
 
 						std::cout << "Searching cameras..." << endl << endl;
-						
+
 						EParser<CamType> cam_type;
 
-						Device *cam = new Device(cam_type.parseEnum("CAMERA_TYPE", camtype));	
+						Device *cam = new Device(cam_type.parseEnum("CAMERA_TYPE", camtype));
 
 						cam->listGigeCameras();
 
@@ -296,14 +296,14 @@ int main(int argc, const char ** argv){
 						/// ------------------------------------
                         /// ------ LOAD FREETURE PARAMETERS ----
 						/// ------------------------------------
-		
+
 						boost::filesystem::path pcfg(configPath);
 						if(!boost::filesystem::exists(pcfg))
 							throw "configuration.cfg not found.";
 
 						Configuration cfg;
 						cfg.Load(configPath);
-						
+
 						// Get Camera type in input.
 						string camera_type; cfg.Get("CAMERA_TYPE", camera_type);
 						EParser<CamType> cam_type;
@@ -320,7 +320,7 @@ int main(int argc, const char ** argv){
 
 						// Stack enabled or not.
 						bool STACK_ENABLED; cfg.Get("STACK_ENABLED", STACK_ENABLED);
-	
+
 						// Get log path.
 						string LOG_PATH; cfg.Get("LOG_PATH", LOG_PATH);
 
@@ -375,7 +375,7 @@ int main(int argc, const char ** argv){
 						/// -------------------------------------
 						/// ---------- CREATE THREADS -----------
                         /// -------------------------------------
-						
+
                         AcqThread	*inputDevice		= NULL;
                         DetThread	*detection			= NULL;
                         StackThread	*stack				= NULL;
@@ -419,7 +419,7 @@ int main(int argc, const char ** argv){
 																&frameBuffer,
 																&frameBuffer_m,
 																&frameBuffer_c);
-					
+
 									if(!stack->startThread()){
 
 										cout << "Fail to start stack Thread." << endl;
@@ -432,7 +432,7 @@ int main(int argc, const char ** argv){
 
 								/// Create detection thread.
 								if(DET_ENABLED){
-								
+
 									BOOST_LOG_SEV(slg, normal) << "Start to create detection Thread.";
 
 									detection  = new DetThread(	&cfg_m,
@@ -452,7 +452,7 @@ int main(int argc, const char ** argv){
 										detThreadCreationSuccess = false;
 
 									}
-								
+
 								}
 
 								if(detThreadCreationSuccess && stackThreadCreationSuccess){
@@ -497,7 +497,7 @@ int main(int argc, const char ** argv){
 
 										if(inputDevice != NULL)
 											if(inputDevice->getThreadTerminatedStatus()){
-									
+
 												std::cout << "Break main loop" << endl;
 												break;
 
@@ -505,23 +505,23 @@ int main(int argc, const char ** argv){
 
 									}
 								}
-						
+
 								if(detection != NULL){
-									
+
 									if(detThreadCreationSuccess) detection->stopThread();
 									delete detection;
 
 								}
 
 								if(stack != NULL){
-                            
+
 									if(stackThreadCreationSuccess) stack->stopThread();
 									delete stack;
 
 								}
-															
+
 								inputDevice->stopThread();
-                             
+
 							}
 
 							delete inputDevice;
@@ -566,7 +566,7 @@ int main(int argc, const char ** argv){
 						string camtype;
                         if(vm.count("camtype")) camtype = vm["camtype"].as<string>();
                         std::transform(camtype.begin(), camtype.end(),camtype.begin(), ::toupper);
-					
+
                         // Gain value.
                         if(vm.count("gain")) gain = vm["gain"].as<int>();
                         else throw "Please define the gain value.";
@@ -579,10 +579,10 @@ int main(int argc, const char ** argv){
 						frame.setExposure(exp);
 						frame.setGain(gain);
 						frame.setBitDepth(camFormat);
-									
+
 						EParser<CamType> cam_type;
 
-						Device *cam = new Device(cam_type.parseEnum("CAMERA_TYPE", camtype));	
+						Device *cam = new Device(cam_type.parseEnum("CAMERA_TYPE", camtype));
 
 						if(!cam->grabSingleImage(frame, camID)){
 							delete cam;
@@ -592,6 +592,8 @@ int main(int argc, const char ** argv){
 
 						// Display the frame in an opencv window
 						if(display){
+
+                            cout << "Display captured frame..." << endl;
 
 							Mat temp, temp1;
 							frame.getImg().copyTo(temp1);
@@ -637,7 +639,7 @@ int main(int argc, const char ** argv){
 							fitsHeader.setExposure(exp);
 
 							Fits2D newFits(savePath + "frame", fitsHeader);
-			
+
 							switch(camFormat){
 
 								case MONO_8 :
@@ -711,7 +713,7 @@ int main(int argc, const char ** argv){
     }catch(const char * msg){
 
         cout << msg << endl;
-	
+
     }
 
     po::notify(vm);

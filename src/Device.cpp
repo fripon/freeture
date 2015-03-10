@@ -30,7 +30,7 @@
 * \author  Yoan Audureau -- FRIPON-GEOPS-UPSUD
 * \version 1.0
 * \date    02/09/2014
-* \brief   
+* \brief
 */
 
 #include "Device.h"
@@ -42,13 +42,14 @@ Device::_Init Device::_initializer;
 
 		switch(type){
 
-			case BASLER_GIGE : 
+			case BASLER_GIGE :
 
 				{
 					#ifdef USE_PYLON
 						cam = new CameraGigeSdkPylon();
 					#else
 						#ifdef LINUX
+                            cout << "use aravis sdk" << endl;
 							cam = new CameraGigeSdkAravis();
 						#endif
 					#endif
@@ -56,7 +57,7 @@ Device::_Init Device::_initializer;
 
 				break;
 
-			case DMK_GIGE: 
+			case DMK_GIGE:
 
 				{
 
@@ -88,7 +89,7 @@ bool Device::prepareDevice(CamType type, string cfgFile){
 
 		switch(type){
 
-			case FRAMES : 
+			case FRAMES :
 
 				{
 
@@ -102,11 +103,11 @@ bool Device::prepareDevice(CamType type, string cfgFile){
 
 				break;
 
-			case VIDEO: 
+			case VIDEO:
 
 				{
 					string	INPUT_DATA_PATH; cfg.Get("INPUT_DATA_PATH", INPUT_DATA_PATH);
-					
+
 					cam = new CameraVideo(INPUT_DATA_PATH);
 				}
 
@@ -114,37 +115,46 @@ bool Device::prepareDevice(CamType type, string cfgFile){
 
 			default :
 
-				int CAMERA_ID; 
+				int CAMERA_ID;
 				cfg.Get("CAMERA_ID", CAMERA_ID);
 
-				string acq_bit_depth; 
+				string acq_bit_depth;
 				cfg.Get("ACQ_BIT_DEPTH", acq_bit_depth);
 				EParser<CamBitDepth> cam_bit_depth;
 				CamBitDepth ACQ_BIT_DEPTH = cam_bit_depth.parseEnum("ACQ_BIT_DEPTH", acq_bit_depth);
-	
-				int ACQ_EXPOSURE; 
+
+				int ACQ_EXPOSURE;
 				cfg.Get("ACQ_EXPOSURE", ACQ_EXPOSURE);
 
-				int ACQ_GAIN; 
+				int ACQ_GAIN;
 				cfg.Get("ACQ_GAIN", ACQ_GAIN);
 
 				int ACQ_FPS;
 				cfg.Get("ACQ_FPS", ACQ_FPS);
 
+                cout << "List cameras" << endl;
 				cam->listGigeCameras();
-				cam->createDevice(CAMERA_ID);
+				cout << "CreateDevice" << endl;
+				if(!cam->createDevice(CAMERA_ID))
+                    throw "Fail to create device.";
 				cam->setPixelFormat(ACQ_BIT_DEPTH);
 				cam->setExposureTime(ACQ_EXPOSURE);
 				cam->setGain(ACQ_GAIN);
 				cam->setFPS(ACQ_FPS);
 				cam->grabStart();
 				cam->acqStart();
+				getchar();
 
 		}
 
 	}catch(exception& e){
 
 		cout << e.what() << endl;
+		return false;
+
+	}catch(const char * msg){
+
+		cout << msg << endl;
 		return false;
 
 	}

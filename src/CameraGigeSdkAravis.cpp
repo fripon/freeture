@@ -64,9 +64,18 @@
 
 	}
 
-	bool CameraGigeSdkAravis::createDevice(int id, string name){
+	bool CameraGigeSdkAravis::createDevice(int id){
 
-		camera = arv_camera_new(name.c_str());
+	    cout << "Create device : " << id << endl;
+
+	    string deviceName;
+
+	    if(!getDeviceById(id, deviceName))
+            return false;
+
+        cout << "Device : " << deviceName << endl;
+
+		camera = arv_camera_new(deviceName.c_str());
 
 		if(camera != NULL){
 
@@ -88,6 +97,8 @@
 		int n_devices = arv_get_n_devices();
 
 		for(int i = 0; i< n_devices; i++){
+
+            cout << "ID : " << i << " -> " << arv_get_device_id(i) << endl;
 
 			if(id == i){
 
@@ -333,26 +344,30 @@
 
 	bool CameraGigeSdkAravis::grabSingleImage(Frame &frame, int camID){
 
-		arv_update_device_list();
+		/*arv_update_device_list();
 
 		int n_devices = arv_get_n_devices();
 
 		string deviceName = "";
 
+		cout << "ID cam choose : " << camID << endl;
+
 		for(int i = 0; i< n_devices; i++){
+
+            cout << "ID : " << i << " -> " << arv_get_device_id(i) << endl;
 
 			if(camID == i){
 
 				deviceName = arv_get_device_id(i);
 
 			}
-		}
+		}*/
 
-		if(deviceName != ""){
+		//if(deviceName != ""){
 
-			cout << "Camera found : " << deviceName << endl;
+			//cout << "Camera found : " << deviceName << endl;
 
-			if(!createDevice(0, deviceName))
+			if(!createDevice(camID))
 				return false;
 
 			if(!setPixelFormat(frame.getBitDepth()))
@@ -380,12 +395,12 @@
 
 			acqStop();
 
-		}else{
+		/*}else{
 
 			cout << "No camera found with the ID : " << camID << endl;
 			return false;
 
-		}
+		}*/
 
 		return true;
 

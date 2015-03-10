@@ -114,7 +114,7 @@
 			~CameraGigeSdkAravis();
 
 			void	listGigeCameras();
-			bool	createDevice(int id, string name);
+			bool	createDevice(int id);
 			//bool    getDeviceNameById(int id, string &device);
 
 			bool	grabStart();
