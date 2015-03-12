@@ -243,6 +243,8 @@
 
         arv_camera_set_acquisition_mode(camera, ARV_ACQUISITION_MODE_CONTINUOUS);
 
+        arv_device_set_string_feature_value(arv_camera_get_device (camera), "TriggerMode" , "Off");
+
 		arv_camera_start_acquisition(camera);
 
 	}
@@ -361,6 +363,7 @@
 
 		arv_camera_get_sensor_size(camera, &sensor_width, &sensor_height);
 
+        // Use maximum sensor size.
 		arv_camera_set_region(camera, 0, 0,sensor_width,sensor_height);
 
 		arv_camera_get_region (camera, NULL, NULL, &width, &height);
@@ -373,7 +376,7 @@
 
 		arv_camera_get_gain_bounds (camera, &gainMin, &gainMax);
 
-		arv_camera_set_frame_rate(camera, fps);
+		arv_camera_set_frame_rate(camera, 1);
 
 		fps = arv_camera_get_frame_rate(camera);
 
@@ -402,111 +405,104 @@
 		// Create a new stream object. Open stream on Camera.
 		stream = arv_camera_create_stream(camera, NULL, NULL);
 
-		if(stream == NULL)
-			cout << "stream is null " << endl;
+		if(stream != NULL){
 
-        if (ARV_IS_GV_STREAM(stream)){
+            if(ARV_IS_GV_STREAM(stream)){
 
-            bool            arv_option_auto_socket_buffer   = true;
-            bool            arv_option_no_packet_resend     = true;
-            unsigned int    arv_option_packet_timeout       = 20;
-            unsigned int    arv_option_frame_retention      = 100;
+                bool            arv_option_auto_socket_buffer   = true;
+                bool            arv_option_no_packet_resend     = true;
+                unsigned int    arv_option_packet_timeout       = 20;
+                unsigned int    arv_option_frame_retention      = 100;
 
-            if(arv_option_auto_socket_buffer){
+                if(arv_option_auto_socket_buffer){
 
-                g_object_set(stream,
-                             // ARV_GV_STREAM_SOCKET_BUFFER_FIXED : socket buffer is set to a given fixed value.
-                             // ARV_GV_STREAM_SOCKET_BUFFER_AUTO: socket buffer is set with respect to the payload size.
-                             "socket-buffer", ARV_GV_STREAM_SOCKET_BUFFER_AUTO,
-                             // Socket buffer size, in bytes.
-                             // Allowed values: >= G_MAXULONG
-                             // Default value: 0
-                             "socket-buffer-size", 0, NULL);
+                    g_object_set(stream, "socket-buffer", ARV_GV_STREAM_SOCKET_BUFFER_AUTO, "socket-buffer-size", 0, NULL);
 
-            }
+                }
 
-            if(arv_option_no_packet_resend){
+                if(arv_option_no_packet_resend){
 
-                // # packet-resend : Enables or disables the packet resend mechanism
+                    g_object_set(stream, "packet-resend", ARV_GV_STREAM_PACKET_RESEND_NEVER, NULL);
 
-                // If packet resend is disabled and a packet has been lost during transmission,
-                // the grab result for the returned buffer holding the image will indicate that
-                // the grab failed and the image will be incomplete.
-                //
-                // If packet resend is enabled and a packet has been lost during transmission,
-                // a request is sent to the camera. If the camera still has the packet in its
-                // buffer, it will resend the packet. If there are several lost packets in a
-                // row, the resend requests will be combined.
+                }
 
-                g_object_set(stream,
-                             // ARV_GV_STREAM_PACKET_RESEND_NEVER: never request a packet resend
-                             // ARV_GV_STREAM_PACKET_RESEND_ALWAYS: request a packet resend if a packet was missing
-                             // Default value: ARV_GV_STREAM_PACKET_RESEND_ALWAYS
-                             "packet-resend", ARV_GV_STREAM_PACKET_RESEND_ALWAYS, NULL);
+                g_object_set(stream, "packet-timeout", (unsigned)40000, "frame-retention", (unsigned) 200000,NULL);
 
             }
 
-            g_object_set(stream,
-                         // # packet-timeout
+            for(int i = 0; i < 50; i++)
+                arv_stream_push_buffer(stream, arv_buffer_new(payload, NULL));
 
-                         // The Packet Timeout parameter defines how long (in milliseconds) we will wait for
-                         // the next expected packet before it initiates a resend request.
+            // Acquisition mode to continous.
+            arv_camera_set_acquisition_mode(camera, ARV_ACQUISITION_MODE_CONTINUOUS);
 
-                         // Packet timeout, in µs.
-                         // Allowed values: [1000,10000000]
-                         // Default value: 40000
-                         "packet-timeout",/* (unsigned) arv_option_packet_timeout * 1000*/(unsigned)10000000,
-                         // # frame-retention
+            // Use software trigger source.
+            arv_camera_set_trigger(camera, "Software");
 
-                         // The Frame Retention parameter sets the timeout (in milliseconds) for the
-                         // frame retention timer. Whenever detection of the leader is made for a frame,
-                         // the frame retention timer starts. The timer resets after each packet in the
-                         // frame is received and will timeout after the last packet is received. If the
-                         // timer times out at any time before the last packet is received, the buffer for
-                         // the frame will be released and will be indicated as an unsuccessful grab.
+            // Start acquisition.
+            arv_camera_start_acquisition(camera);
 
-                         // Packet retention, in µs.
-                         // Allowed values: [1000,10000000]
-                         // Default value: 200000
-                         "frame-retention", /*(unsigned) arv_option_frame_retention * 1000*/(unsigned) 10000000,NULL);
+            // Send software signal.
+            arv_camera_software_trigger(camera);
 
-        }
+            // Get image buffer.
+            ArvBuffer *arv_buffer = arv_stream_pop_buffer(stream); //us
 
-        arv_stream_push_buffer(stream, arv_buffer_new(payload, NULL));
+            if (arv_buffer != NULL){
 
-        cout << "set ARV_ACQUISITION_MODE_CONTINUOUS " << endl;
-        arv_camera_set_acquisition_mode(camera, ARV_ACQUISITION_MODE_CONTINUOUS);
+                if(arv_buffer->status == ARV_BUFFER_STATUS_SUCCESS){
 
-        cout << "set trigger to software " << endl;
-        arv_camera_set_trigger(camera, "Software");
+                    //Timestamping.
+                    string acquisitionDate = TimeDate::localDateTime(microsec_clock::universal_time(),"%Y:%m:%d:%H:%M:%S");
+                    boost::posix_time::ptime time = boost::posix_time::microsec_clock::universal_time();
+                    string acqDateInMicrosec = to_iso_extended_string(time);
 
-        //arv_camera_set_software_trigger(camera);
+                    Mat image;
 
-        cout << "set trigger on " << endl;
-        //arv_device_set_string_feature_value (camera, "TriggerMode" , "On");
+                    if(pixFormat == ARV_PIXEL_FORMAT_MONO_8){
 
-        cout << "start acquisition " << endl;
-        arv_camera_start_acquisition(camera);
+                        Mat img(height, width, CV_8UC1, arv_buffer->data);
+                        img.copyTo(image);
 
-        cout << "arv_camera_software_trigger" << endl;
-        arv_camera_software_trigger(camera);
+                    }else if(pixFormat == ARV_PIXEL_FORMAT_MONO_12){
+
+                        Mat img(height, width, CV_16UC1, arv_buffer->data);
+                        img.copyTo(image);
+
+                    }
+
+                    frame = Frame(image, arv_camera_get_gain(camera), arv_camera_get_exposure_time(camera), acquisitionDate);
+                    frame.setAcqDateMicro(acqDateInMicrosec);
+                    frame.setFPS(arv_camera_get_frame_rate(camera));
+
+                    arv_stream_push_buffer(stream, arv_buffer);
+
+                }
+
+           }
+
+            arv_stream_get_statistics(stream, &nbCompletedBuffers, &nbFailures, &nbUnderruns);
+
+            cout << "Completed buffers = " << (unsigned long long) nbCompletedBuffers	<< endl;
+            cout << "Failures          = " << (unsigned long long) nbFailures           << endl;
+            cout << "Underruns         = " << (unsigned long long) nbUnderruns          << endl;
 
 
-        // Grab a frame.
-        if(!grabImage(frame)){
+            // Stop acquisition.
+            arv_camera_stop_acquisition(camera);
+
+            // TriggerMode off.
+            arv_device_set_string_feature_value(arv_camera_get_device (camera), "TriggerMode" , "Off");
+
+            g_object_unref(stream);
+            g_object_unref(camera);
 
 
-            arv_camera_set_trigger(camera, "Line1");
-            arv_device_set_string_feature_value ( arv_camera_get_device (camera), "TriggerMode" , "Off");
-            acqStop();
-            return false;
-        }
+            return true;
 
-		arv_camera_set_trigger(camera, "Line1");
-        arv_device_set_string_feature_value ( arv_camera_get_device (camera), "TriggerMode" , "Off");
-        acqStop();
+		}
 
-		return true;
+		return false;
 
 	}
 
