@@ -83,6 +83,8 @@
 #include "DetThread.h"
 #include "StackThread.h"
 #include "AcqThread.h"
+#include "CameraGigeSdkIc.h"
+
 #define BOOST_NO_SCOPED_ENUMS
 
 namespace po        = boost::program_options;
@@ -591,7 +593,7 @@ int main(int argc, const char ** argv){
 						delete cam;
 
 						// Display the frame in an opencv window
-						if(display){
+						if(display && frame.getImg().data){
 
                             cout << "Display captured frame..." << endl;
 
@@ -614,7 +616,7 @@ int main(int argc, const char ** argv){
 						}
 
 						// Save the frame in BMP.
-						if(saveBmp){
+						if(saveBmp && frame.getImg().data){
 
 							Mat temp, temp1;
 							frame.getImg().copyTo(temp1);
@@ -632,7 +634,7 @@ int main(int argc, const char ** argv){
 						}
 
 						// Save the frame in Fits 2D.
-						if(saveFits2D){
+						if(saveFits2D && frame.getImg().data){
 
 							Fits fitsHeader;
 							fitsHeader.setGaindb((int)gain);
@@ -679,6 +681,14 @@ int main(int argc, const char ** argv){
 				case 5 :
 
 					{
+
+						CameraGigeSdkIc *c = new CameraGigeSdkIc();
+						Frame n;
+						c->grabSingleImage(n, 0 );
+						//c->listGigeCameras();
+						
+						delete c;
+						getchar();
 
 
 					}
