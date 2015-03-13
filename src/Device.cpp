@@ -62,10 +62,10 @@ Device::_Init Device::_initializer;
 				{
 
 					#ifdef WINDOWS
-						//cam = new CameraGigeSdkIc();
+						cam = new CameraGigeSdkIc();
 					#else
 						#ifdef LINUX
-							cam = new CameraGigeSdkAravis();
+							cam = new CameraGigeSdkAravis(true);
 						#endif
 					#endif
 

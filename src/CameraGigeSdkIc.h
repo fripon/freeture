@@ -46,19 +46,22 @@
 	#include "Frame.h"
 	#include "TimeDate.h"
 	#include "Camera.h"
-
+	
 	#include "ECamBitDepth.h"
 	#include <boost/log/common.hpp>
-#include <boost/log/expressions.hpp>
-#include <boost/log/utility/setup/file.hpp>
-#include <boost/log/utility/setup/console.hpp>
-#include <boost/log/utility/setup/common_attributes.hpp>
-#include <boost/log/attributes/named_scope.hpp>
-#include <boost/log/attributes.hpp>
-#include <boost/log/sinks.hpp>
-#include <boost/log/sources/logger.hpp>
-#include <boost/log/core.hpp>
-#include "ELogSeverityLevel.h"
+	#include <boost/log/expressions.hpp>
+	#include <boost/log/utility/setup/file.hpp>
+	#include <boost/log/utility/setup/console.hpp>
+	#include <boost/log/utility/setup/common_attributes.hpp>
+	#include <boost/log/attributes/named_scope.hpp>
+	#include <boost/log/attributes.hpp>
+	#include <boost/log/sinks.hpp>
+	#include <boost/log/sources/logger.hpp>
+	#include <boost/log/core.hpp>
+	#include "ELogSeverityLevel.h"
+
+	#include "tisudshl.h" 
+	#include <algorithm>
 
 	using namespace cv;
 	using namespace std;
@@ -76,37 +79,33 @@
 					{
 						logger.add_attribute("ClassName", boost::log::attributes::constant<std::string>("CameraGigeSdkIc"));
 					}
-			} _initializer;			
+			} _initializer;		
+
+			DShowLib::tIVCDRangePropertyPtr	getPropertyRangeInterface(_DSHOWLIB_NAMESPACE::tIVCDPropertyItemsPtr& pItems, const GUID& id);
+			bool propertyIsAvailable(const GUID& id, _DSHOWLIB_NAMESPACE::tIVCDPropertyItemsPtr m_pItemContainer);
+			long getPropertyValue(const GUID& id, _DSHOWLIB_NAMESPACE::tIVCDPropertyItemsPtr m_pItemContainer);
+			void setPropertyValue(const GUID& id, long val, _DSHOWLIB_NAMESPACE::tIVCDPropertyItemsPtr m_pItemContainer);
+			long getPropertyRangeMin(const GUID& id, _DSHOWLIB_NAMESPACE::tIVCDPropertyItemsPtr m_pItemContainer);
+			long getPropertyRangeMax(const GUID& id, _DSHOWLIB_NAMESPACE::tIVCDPropertyItemsPtr m_pItemContainer);
 
 		public:
 
-			CameraGigeSdkIc(){};
+			DShowLib::Grabber* m_pGrabber;
+
+			CameraGigeSdkIc();
+
+			void test();
 
 			~CameraGigeSdkIc();
 
-			void	listGigeCameras(){
-			
-			//	Grabber g;
-				
-				//::tVidCapDevListPtr pVidCapDevList = grabber.getAvailableVideoCaptureDevices();
-				/*if( pVidCapDevList == 0 || pVidCapDevList->empty() )
-				{
-					return -1; // No device available.
-				}
+			void listGigeCameras();
 
-				/*int choice = presentUserChoice( toStringArrayPtr(pVidCapDevList) );
-				// Open the selected video capture device.
-				if( choice == -1 )
-				{
-					return -1;
-				}
-				grabber.openDev( pVidCapDevList->at( choice ) );*/
+			bool grabSingleImage(Frame &frame, int camID);
 
-				
-				
-			};
+			bool getAvailableFormat();
+
 			bool	createDevice(int id, string name){};
-			bool    getDeviceNameById(int id, string &device);
+			/*bool    getDeviceNameById(int id, string &device);
 
 			bool	grabStart();
 			void	grabStop();
@@ -127,7 +126,7 @@
 			bool	setExposureTime(int exp);
 			bool	setGain(int gain);
 			bool    setFPS(int fps);
-			bool	setPixelFormat(CamBitDepth depth);
+			bool	setPixelFormat(CamBitDepth depth);*/
 
 	};
 
