@@ -102,12 +102,14 @@
 			int             gain;
 			double          exp;
 
-
+			bool			shiftImage;
 			guint64         nbCompletedBuffers;
 			guint64         nbFailures;
 			guint64         nbUnderruns;
 
 		public:
+
+			CameraGigeSdkAravis(bool shift);
 
 			CameraGigeSdkAravis();
 

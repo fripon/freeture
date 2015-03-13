@@ -40,7 +40,9 @@
 	boost::log::sources::severity_logger< LogSeverityLevel >  CameraGigeSdkAravis::logger;
 	CameraGigeSdkAravis::_Init CameraGigeSdkAravis::_initializer;
 
-	CameraGigeSdkAravis::CameraGigeSdkAravis(){}
+	CameraGigeSdkAravis::CameraGigeSdkAravis(bool shift){shiftImage = shift;}
+
+	CameraGigeSdkAravis::CameraGigeSdkAravis(){shiftImage = false;}
 
 	CameraGigeSdkAravis::~CameraGigeSdkAravis(){}
 
@@ -461,15 +463,23 @@
 
                     if(pixFormat == ARV_PIXEL_FORMAT_MONO_8){
 
-                        Mat img(height, width, CV_8UC1, arv_buffer->data);
-                        img.copyTo(image);
+                        image = Mat img(height, width, CV_8UC1, arv_buffer->data);
+                        
 
                     }else if(pixFormat == ARV_PIXEL_FORMAT_MONO_12){
 
-                        Mat img(height, width, CV_16UC1, arv_buffer->data);
-                        img.copyTo(image);
+                        image = img(height, width, CV_16UC1, arv_buffer->data);
+                     
 
                     }
+
+					if(shiftImage)
+						unsigned short * ptr;
+						for(int i = 0; i < image.rows; i++){
+							ptr = image.ptr<unsigned short>(i);
+							for(int j = 0; j < image.cols; j++) ptr[j] = ptr[j] >> 4;
+						}	
+					}
 
                     frame = Frame(image, arv_camera_get_gain(camera), arv_camera_get_exposure_time(camera), acquisitionDate);
                     frame.setAcqDateMicro(acqDateInMicrosec);
