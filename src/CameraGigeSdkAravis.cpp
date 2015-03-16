@@ -463,22 +463,22 @@
 
                     if(pixFormat == ARV_PIXEL_FORMAT_MONO_8){
 
-                        image = Mat img(height, width, CV_8UC1, arv_buffer->data);
-                        
+                        image = Mat(height, width, CV_8UC1, arv_buffer->data);
+
 
                     }else if(pixFormat == ARV_PIXEL_FORMAT_MONO_12){
 
-                        image = img(height, width, CV_16UC1, arv_buffer->data);
-                     
+                        image = Mat(height, width, CV_16UC1, arv_buffer->data);
+
 
                     }
 
-					if(shiftImage)
-						unsigned short * ptr;
+					if(shiftImage){
+						unsigned short * p;
 						for(int i = 0; i < image.rows; i++){
-							ptr = image.ptr<unsigned short>(i);
-							for(int j = 0; j < image.cols; j++) ptr[j] = ptr[j] >> 4;
-						}	
+							p = image.ptr<unsigned short>(i);
+							for(int j = 0; j < image.cols; j++) p[j] = p[j] >> 4;
+						}
 					}
 
                     frame = Frame(image, arv_camera_get_gain(camera), arv_camera_get_exposure_time(camera), acquisitionDate);

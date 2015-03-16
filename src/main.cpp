@@ -682,13 +682,13 @@ int main(int argc, const char ** argv){
 
 					{
 
-						CameraGigeSdkIc *c = new CameraGigeSdkIc();
+						/*CameraGigeSdkIc *c = new CameraGigeSdkIc();
 						Frame n;
 						c->grabSingleImage(n, 0 );
 						//c->listGigeCameras();
-						
+
 						delete c;
-						getchar();
+						getchar();*/
 
 
 					}
