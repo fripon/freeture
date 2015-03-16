@@ -143,7 +143,7 @@ bool Device::prepareDevice(CamType type, string cfgFile){
 				cam->setFPS(ACQ_FPS);
 				cam->grabStart();
 				cam->acqStart();
-				getchar();
+
 
 		}
 
