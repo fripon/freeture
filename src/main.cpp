@@ -212,7 +212,7 @@ int main(int argc, const char ** argv){
         bool    display         = false;
         int     camID           = 0;
 
-		std::cout << "cfg path read : " << string(CFG_PATH) <<endl;
+		std::cout << "Configuration file location : " << string(CFG_PATH) <<endl;
 
         po::store(po::parse_command_line(argc, argv, desc), vm);
 

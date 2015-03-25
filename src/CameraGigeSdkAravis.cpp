@@ -440,12 +440,12 @@
 
                 }
 
-                g_object_set(stream, "packet-timeout", (unsigned)40000, "frame-retention", (unsigned) 200000,NULL);
+                g_object_set(stream, "packet-timeout", (unsigned)10000000, "frame-retention", (unsigned) 10000000,NULL);
 
             }
 
-            for(int i = 0; i < 50; i++)
-                arv_stream_push_buffer(stream, arv_buffer_new(payload, NULL));
+            //for(int i = 0; i < 50; i++)
+            arv_stream_push_buffer(stream, arv_buffer_new(payload, NULL));
 
             // Acquisition mode to continous.
             arv_camera_set_acquisition_mode(camera, ARV_ACQUISITION_MODE_CONTINUOUS);
@@ -453,18 +453,29 @@
             // Use software trigger source.
             arv_camera_set_trigger(camera, "Software");
 
+            //arv_camera_set_trigger_source (camera, "Software");
+            //arv_device_set_string_feature_value(arv_camera_get_device (camera), "TriggerMode" , "On");
+            //cout << "Trigger source : " << arv_camera_get_trigger_source (camera) << endl;
+
             // Start acquisition.
             arv_camera_start_acquisition(camera);
+
+            //sleep(1);
+
+            cout << "Emit software signal ..." << endl;
 
             // Send software signal.
             arv_camera_software_trigger(camera);
 
+            //arv_device_execute_command(arv_camera_get_device (camera), "TriggerSoftware");
+
             // Get image buffer.
-            ArvBuffer *arv_buffer = arv_stream_pop_buffer(stream); //us
+            ArvBuffer *arv_buffer = arv_stream_pop_buffer(stream); //*/arv_stream_timeout_pop_buffer(stream, 30000000); //us
 
             if (arv_buffer != NULL){
 
                 if(arv_buffer->status == ARV_BUFFER_STATUS_SUCCESS){
+
 
                     //Timestamping.
                     string acquisitionDate = TimeDate::localDateTime(microsec_clock::universal_time(),"%Y:%m:%d:%H:%M:%S");
@@ -499,6 +510,61 @@
                     frame.setAcqDateMicro(acqDateInMicrosec);
                     frame.setFPS(arv_camera_get_frame_rate(camera));
 
+                }else{
+
+                    switch(arv_buffer->status){
+
+                        case 0 :
+
+                            cout << "ARV_BUFFER_STATUS_SUCCESS : the buffer contains a valid image"<<endl;
+
+                            break;
+
+                        case 1 :
+
+                            cout << "ARV_BUFFER_STATUS_CLEARED: the buffer is cleared"<<endl;
+
+                            break;
+
+                        case 2 :
+
+                            cout << "ARV_BUFFER_STATUS_TIMEOUT: timeout was reached before all packets are received"<<endl;
+
+                            break;
+
+                        case 3 :
+
+                            cout << "ARV_BUFFER_STATUS_MISSING_PACKETS: stream has missing packets"<<endl;
+
+                            break;
+
+                        case 4 :
+
+                            cout << "ARV_BUFFER_STATUS_WRONG_PACKET_ID: stream has packet with wrong id"<<endl;
+
+                            break;
+
+                        case 5 :
+
+                            cout << "ARV_BUFFER_STATUS_SIZE_MISMATCH: the received image didn't fit in the buffer data space"<<endl;
+
+                            break;
+
+                        case 6 :
+
+                            cout << "ARV_BUFFER_STATUS_FILLING: the image is currently being filled"<<endl;
+
+                            break;
+
+                        case 7 :
+
+                            cout << "ARV_BUFFER_STATUS_ABORTED: the filling was aborted before completion"<<endl;
+
+                            break;
+
+
+                    }
+
                     arv_stream_push_buffer(stream, arv_buffer);
 
                 }
@@ -527,6 +593,26 @@
 		}
 
 		return false;
+
+	}
+
+	void CameraGigeSdkAravis::saveGenicamXml(string p){
+
+        const char *xml;
+
+        size_t size;
+
+        xml = arv_device_get_genicam_xml (arv_camera_get_device(camera), &size);
+
+        if (xml != NULL){
+
+            ofstream infFile;
+            string infFilePath = p + "genicam.xml";
+            infFile.open(infFilePath.c_str());
+            infFile << string ( xml, size );
+            infFile.close();
+
+        }
 
 	}
 

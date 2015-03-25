@@ -48,7 +48,7 @@
 	#include "Camera.h"
 	#include "arv.h"
 	#include "arvinterface.h"
-
+    #include <time.h>
 
 
     #define BOOST_LOG_DYN_LINK 1
@@ -56,16 +56,16 @@
 
 	#include "ECamBitDepth.h"
 	#include <boost/log/common.hpp>
-#include <boost/log/expressions.hpp>
-#include <boost/log/utility/setup/file.hpp>
-#include <boost/log/utility/setup/console.hpp>
-#include <boost/log/utility/setup/common_attributes.hpp>
-#include <boost/log/attributes/named_scope.hpp>
-#include <boost/log/attributes.hpp>
-#include <boost/log/sinks.hpp>
-#include <boost/log/sources/logger.hpp>
-#include <boost/log/core.hpp>
-#include "ELogSeverityLevel.h"
+    #include <boost/log/expressions.hpp>
+    #include <boost/log/utility/setup/file.hpp>
+    #include <boost/log/utility/setup/console.hpp>
+    #include <boost/log/utility/setup/common_attributes.hpp>
+    #include <boost/log/attributes/named_scope.hpp>
+    #include <boost/log/attributes.hpp>
+    #include <boost/log/sinks.hpp>
+    #include <boost/log/sources/logger.hpp>
+    #include <boost/log/core.hpp>
+    #include "ELogSeverityLevel.h"
 
 	using namespace cv;
 	using namespace std;
@@ -140,6 +140,8 @@
 			bool	setGain(int gain);
 			bool    setFPS(int fps);
 			bool	setPixelFormat(CamBitDepth depth);
+
+			void    saveGenicamXml(string p);
 
 	};
 
