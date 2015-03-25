@@ -57,6 +57,8 @@ class Conversion{
 
         static string intToString(int nb);
 
+        static string floatToString(float nb);
+
         static void stringTok(list<string>  &container, string const &in, const char * const delimiters);
 
         static double roundToNearest(double num);
@@ -66,6 +68,16 @@ class Conversion{
         static string numbering(int totalDigit, int n);
 
 		static void intBitDepth_To_CamBitDepth(int acqFormat, CamBitDepth &camFormat);
+
+		static int countNumberDigit(int n);
+
+		// Examples :
+		// 153 -> 200
+		// 103 -> 200
+		// 1025 -> 2000
+		// 4095 -> 5000
+		// 64000 -> 70000
+		static int roundToUpperRange(int n);
 
 };
 

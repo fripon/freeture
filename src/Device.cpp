@@ -38,46 +38,54 @@
 boost::log::sources::severity_logger< LogSeverityLevel >  Device::logger;
 Device::_Init Device::_initializer;
 
-	Device::Device(CamType type){
+Device::Device(CamType type){
 
-		switch(type){
+    switch(type){
 
-			case BASLER_GIGE :
+        case BASLER_GIGE :
 
-				{
-					#ifdef USE_PYLON
-						cam = new CameraGigeSdkPylon();
-					#else
-						#ifdef LINUX
-                            cout << "use aravis sdk" << endl;
-							cam = new CameraGigeSdkAravis();
-						#endif
-					#endif
-				}
+            {
+                #ifdef USE_PYLON
+                    BOOST_LOG_SEV(logger, normal) << "INPUT : BASLER_GIGE -> Use Pylon";
+                    cam = new CameraGigeSdkPylon();
+                #else
+                    #ifdef LINUX
+                        BOOST_LOG_SEV(logger, normal) << "INPUT : BASLER_GIGE -> Use Aravis";
+                        cam = new CameraGigeSdkAravis();
+                    #endif
+                #endif
+            }
 
-				break;
+            break;
 
-			case DMK_GIGE:
+        case DMK_GIGE:
 
-				{
+            {
 
-					#ifdef WINDOWS
-						cam = new CameraGigeSdkIc();
-					#else
-						#ifdef LINUX
-							cam = new CameraGigeSdkAravis(true);
-						#endif
-					#endif
+                #ifdef WINDOWS
+                    BOOST_LOG_SEV(logger, normal) << "INPUT : DMK_GIGE -> Use Imaging Source";
+                    cam = new CameraGigeSdkIc();
+                #else
+                    #ifdef LINUX
+                        BOOST_LOG_SEV(logger, normal) << "INPUT : DMK_GIGE -> Use Aravis";
+                        cam = new CameraGigeSdkAravis(true);
+                    #endif
+                #endif
 
-				}
+            }
 
-				break;
+            break;
 
-			default :
+        default :
 
-				cam = NULL;
+            cam = NULL;
 
-		}
+    }
+}
+
+Device::~Device(){
+
+    if(cam != NULL) delete cam;
 }
 
 bool Device::prepareDevice(CamType type, string cfgFile){
@@ -93,9 +101,15 @@ bool Device::prepareDevice(CamType type, string cfgFile){
 
 				{
 
-					string	INPUT_DATA_PATH; cfg.Get("INPUT_DATA_PATH", INPUT_DATA_PATH);
-					int		FRAMES_SEPARATOR_POSITION; cfg.Get("FRAMES_SEPARATOR_POSITION", FRAMES_SEPARATOR_POSITION);
+                    // Get frames location.
+					string INPUT_DATA_PATH; cfg.Get("INPUT_DATA_PATH", INPUT_DATA_PATH);
+					BOOST_LOG_SEV(logger, normal) << "Read INPUT_DATA_PATH from configuration file : " << INPUT_DATA_PATH;
 
+					// Get separator position in frame's name.
+					int FRAMES_SEPARATOR_POSITION; cfg.Get("FRAMES_SEPARATOR_POSITION", FRAMES_SEPARATOR_POSITION);
+					BOOST_LOG_SEV(logger, normal) << "Read FRAMES_SEPARATOR_POSITION from configuration file : " << FRAMES_SEPARATOR_POSITION;
+
+                    // Create camera using pre-recorded fits2D in input.
 					cam = new CameraFrames(INPUT_DATA_PATH, FRAMES_SEPARATOR_POSITION);
 					cam->grabStart();
 
@@ -106,8 +120,10 @@ bool Device::prepareDevice(CamType type, string cfgFile){
 			case VIDEO:
 
 				{
+				    // Get frames location.
 					string	INPUT_DATA_PATH; cfg.Get("INPUT_DATA_PATH", INPUT_DATA_PATH);
 
+                    // Create camera using pre-recorded video in input.
 					cam = new CameraVideo(INPUT_DATA_PATH);
 				}
 
@@ -115,35 +131,45 @@ bool Device::prepareDevice(CamType type, string cfgFile){
 
 			default :
 
+                // Get camera id.
 				int CAMERA_ID;
 				cfg.Get("CAMERA_ID", CAMERA_ID);
 
+                // Get camera format.
 				string acq_bit_depth;
 				cfg.Get("ACQ_BIT_DEPTH", acq_bit_depth);
 				EParser<CamBitDepth> cam_bit_depth;
 				CamBitDepth ACQ_BIT_DEPTH = cam_bit_depth.parseEnum("ACQ_BIT_DEPTH", acq_bit_depth);
 
+                // Get camera exposure.
 				int ACQ_EXPOSURE;
 				cfg.Get("ACQ_EXPOSURE", ACQ_EXPOSURE);
 
+                // Get camera gain.
 				int ACQ_GAIN;
 				cfg.Get("ACQ_GAIN", ACQ_GAIN);
 
+                // Get camera fps.
 				int ACQ_FPS;
 				cfg.Get("ACQ_FPS", ACQ_FPS);
 
-                cout << "List cameras" << endl;
+                // List Gige Camera to check the ID.
 				cam->listGigeCameras();
-				cout << "CreateDevice" << endl;
-				if(!cam->createDevice(CAMERA_ID))
-                    throw "Fail to create device.";
-				cam->setPixelFormat(ACQ_BIT_DEPTH);
-				cam->setExposureTime(ACQ_EXPOSURE);
-				cam->setGain(ACQ_GAIN);
-				cam->setFPS(ACQ_FPS);
-				cam->grabStart();
-				cam->acqStart();
 
+                // Create camera according to its ID.
+				if(!cam->createDevice(CAMERA_ID)) throw "Fail to create device.";
+				// Set camera format.
+				cam->setPixelFormat(ACQ_BIT_DEPTH);
+				// Set camera exposure time.
+				cam->setExposureTime(ACQ_EXPOSURE);
+				// Set camera gain.
+				cam->setGain(ACQ_GAIN);
+				// Set camera fps.
+				cam->setFPS(ACQ_FPS);
+				// Prepare grabbing.
+				cam->grabStart();
+				// Start acquisition.
+				cam->acqStart();
 
 		}
 
@@ -162,75 +188,70 @@ bool Device::prepareDevice(CamType type, string cfgFile){
 	return true;
 }
 
-		Device::~Device(){
-
-			if(cam != NULL) delete cam;
-}
-
-void	Device::listGigeCameras(){
+void Device::listGigeCameras(){
 	cam->listGigeCameras();
 }
 
-void	Device::grabStop(){
+void Device::grabStop(){
 	cam->grabStop();
 }
 
-bool	Device::getDeviceStopStatus(){
+bool Device::getDeviceStopStatus(){
 	return cam->getStopStatus();
 }
 
-void    Device::acqStop(){
+void Device::acqStop(){
 	cam->acqStop();
 }
 
-bool    Device::grabImage(Frame& newFrame){
+bool Device::grabImage(Frame& newFrame){
 	return cam->grabImage(newFrame);
 }
 
-bool	Device::grabSingleImage(Frame &frame, int camID){
+bool Device::grabSingleImage(Frame &frame, int camID){
 	return cam->grabSingleImage(frame, camID);
 }
 
-void	Device::getExposureBounds(int &gMin, int &gMax){
+void Device::getExposureBounds(int &gMin, int &gMax){
 	cam->getExposureBounds(gMin, gMax);
 }
 
-void	Device::getGainBounds(int &eMin, int &eMax){
+void Device::getGainBounds(int &eMin, int &eMax){
 	cam->getGainBounds(eMin, eMax);
 }
 
-bool	Device::getPixelFormat(CamBitDepth &format){
+bool Device::getPixelFormat(CamBitDepth &format){
 	return cam->getPixelFormat(format);
 }
 
-int		Device::getWidth(){
+int Device::getWidth(){
 	return cam->getWidth();
 }
 
-int		Device::getHeight(){
+int Device::getHeight(){
 	return cam->getHeight();
 }
 
-int		Device::getFPS(){
-	return cam->getFPS();
+int Device::getFPS(){
+    return cam->getFPS();
 }
 
-string	Device::getModelName(){
+string Device::getModelName(){
 	return cam->getModelName();
 }
 
-bool	Device::setExposureTime(int exp){
+bool Device::setExposureTime(int exp){
 	return cam->setExposureTime(exp);
 }
 
-bool	Device::setGain(int gain){
+bool Device::setGain(int gain){
 	return cam->setGain(gain);
 }
 
-bool    Device::setFPS(int fps){
+bool Device::setFPS(int fps){
 	return cam->setFPS(fps);
 }
 
-bool	Device::setPixelFormat(CamBitDepth depth){
+bool Device::setPixelFormat(CamBitDepth depth){
 	return cam->setPixelFormat(depth);
 }

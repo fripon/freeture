@@ -75,6 +75,15 @@ string Conversion::intToString(int nb){
 
 }
 
+string Conversion::floatToString(float nb){
+
+    std::ostringstream ss;
+    ss << nb;
+    std::string s(ss.str());
+    return s;
+
+}
+
 double Conversion::roundToNearest(double num){
 
     return (num > 0.0) ? floor(num + 0.5) : ceil(num - 0.5);
@@ -124,6 +133,41 @@ Mat Conversion::convertTo8UC1(Mat &img){
 
     return tmp;
 
+}
+
+int Conversion::countNumberDigit(int n){
+
+    int nbDigit = 0;
+
+    while(n!=0){
+
+      n/=10;
+      ++nbDigit;
+
+    }
+
+    return nbDigit;
+}
+
+int Conversion::roundToUpperRange(int n){
+
+    int nbDigit = 0;
+    int last = 0;
+
+    while(n!=0){
+
+        last =  n;
+        n/=10;
+        ++nbDigit;
+
+    }
+
+    int f = 1;
+
+    for(int i = 1; i < nbDigit; i++)
+        f *=10;
+
+    return (last+1) * f;
 }
 
 string Conversion::numbering(int totalDigit, int n){

@@ -29,16 +29,15 @@
 * \author  Yoan Audureau -- FRIPON-GEOPS-UPSUD
 * \version 1.0
 * \date    13/06/2014
-* \brief   
+* \brief
 */
 
 #pragma once
 #include "config.h"
 
-
-    #ifdef LINUX
-    #define BOOST_LOG_DYN_LINK 1
-    #endif
+#ifdef LINUX
+#define BOOST_LOG_DYN_LINK 1
+#endif
 
 #include "opencv2/highgui/highgui.hpp"
 #include <opencv2/imgproc/imgproc.hpp>
@@ -90,7 +89,7 @@ class Device{
 				{
 					logger.add_attribute("ClassName", boost::log::attributes::constant<std::string>("Device"));
 				}
-		} _initializer;	
+		} _initializer;
 
         Camera *cam;
 
@@ -103,24 +102,37 @@ class Device{
 		bool	prepareDevice(CamType type, string cfgFile);
 
 		void	listGigeCameras();
-		
+
 		void	grabStop();
+
 		void    acqStop();
+
 		bool	getDeviceStopStatus();
+
 		bool    grabImage(Frame& newFrame);
+
 		bool	grabSingleImage(Frame &frame, int camID);
 
 		void	getExposureBounds(int &gMin, int &gMax);
+
 		void	getGainBounds(int &eMin, int &eMax);
+
 		bool	getPixelFormat(CamBitDepth &format);
+
 		int		getWidth();
+
 		int		getHeight();
+
 		int		getFPS();
+
 		string	getModelName();
 
 		bool	setExposureTime(int exp);
+
 		bool	setGain(int gain);
+
 		bool    setFPS(int fps);
+
 		bool	setPixelFormat(CamBitDepth depth);
 
 };

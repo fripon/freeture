@@ -37,11 +37,23 @@
 
 LocalEvent::LocalEvent(Scalar color, Point roiPos, int frameHeight, int frameWidth, const int *roiSize){
 
-    LE_Color = color;
-    LE_Roi.push_back(roiPos);
-    LE_Map = Mat::zeros(frameHeight, frameWidth, CV_8UC1);
+    // Color id in frame.
+    leColor = color;
+    // Save position of the first ROI.
+    leRoiList.push_back(roiPos);
+    // Create LE map.
+    leMap = Mat::zeros(frameHeight, frameWidth, CV_8UC1);
+    // Add first ROI in the LE map.
     Mat roi(roiSize[1],roiSize[0],CV_8UC1,Scalar(255));
-    roi.copyTo(LE_Map(Rect(roiPos.x-roiSize[0]/2,roiPos.y-roiSize[1]/2,roiSize[0],roiSize[1])));
+    roi.copyTo(leMap(Rect(roiPos.x-roiSize[0]/2,roiPos.y-roiSize[1]/2,roiSize[0],roiSize[1])));
+
+}
+
+LocalEvent::LocalEvent(Scalar color, Point sPos, Mat s){
+
+    leColor = color;
+    subdivision.push_back(s);
+    leRoiList.push_back(sPos);
 
 }
 
@@ -49,22 +61,30 @@ LocalEvent::~LocalEvent(){
 
 }
 
-void LocalEvent::computeMassCenterWithRoi(){
+void LocalEvent::computeMassCenter(){
 
     float x = 0, y = 0;
 
     vector<Point>::iterator it;
 
-    for (it = LE_Roi.begin(); it != LE_Roi.end(); ++it){
+    for (it = leRoiList.begin(); it != leRoiList.end(); ++it){
 
         x += (*it).x;
         y += (*it).y;
 
     }
 
-    x = x / LE_Roi.size();
-    y = y / LE_Roi.size();
+    x = x / leRoiList.size();
+    y = y / leRoiList.size();
 
-    LE_MassCenter = Point(x,y);
+    leMassCenter = Point(x,y);
+
+}
+
+void LocalEvent::setMap(Point p, int h, int w){
+
+    // Add new ROI to the LE map.
+    Mat roi(h,w,CV_8UC1,Scalar(255));
+    roi.copyTo(leMap(Rect(p.x, p.y, w, h)));
 
 }

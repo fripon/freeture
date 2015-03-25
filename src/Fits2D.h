@@ -71,7 +71,7 @@ class Fits2D : public Fits{
 		string fitsPath;
 
 		static boost::log::sources::severity_logger< LogSeverityLevel > logger;
-		
+
 		static class _Init{
 
             public:
@@ -102,6 +102,8 @@ class Fits2D : public Fits{
 		bool    readFits8C      (Mat &img, string filePath);
 
 		bool    readIntKeyword  (string filePath, string keyword, int &value);
+		bool    readStringKeyword(string filePath, string keyword, string &value);
+		bool    readDoubleKeyword(string filePath, string keyword, double &value);
 
     private:
 

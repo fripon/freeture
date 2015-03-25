@@ -40,29 +40,37 @@
 
 using namespace cv;
 using namespace std;
+
 class LocalEvent{
 
     private:
 
-        Scalar  LE_Color;
-        Mat     LE_Map;
-        Point   LE_MassCenter;
-        int numFrame;
+        Scalar  leColor;
+        Mat     leMap;
+        Point   leMassCenter;
+        int     leNumFrame;
 
     public:
 
-        vector<Point> LE_Roi;
+        // Contains position of region of interest which compose a local event.
+        vector<Point> leRoiList;
+
+        vector<Mat> subdivision;
 
         LocalEvent(Scalar color, Point roiPos, int frameHeight, int frameWidth, const int *roiSize);
 
+        LocalEvent(Scalar color, Point sPos, Mat s);
+
         ~LocalEvent();
 
-        void computeMassCenterWithRoi();
+        void computeMassCenter();
 
-        Scalar  getColor()          {return LE_Color;};
-        Mat     getMap()            {return LE_Map;};
-        void    setMap(Mat mapM)    {mapM.copyTo(LE_Map);};
-        Point   getMassCenter()     {return LE_MassCenter;};
-        int getNumFrame(){return numFrame;};
-        void setNumFrame(int num){numFrame = num;};
+        Scalar  getColor()          {return leColor;};
+        Mat     getMap()            {return leMap;};
+        Point   getMassCenter()     {return leMassCenter;};
+        int     getNumFrame()       {return leNumFrame;};
+        void    setNumFrame(int n)  {leNumFrame = n;};
+
+        void    setMap(Point p, int h, int w);
+
 };

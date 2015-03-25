@@ -81,6 +81,9 @@ Fits2D::Fits2D(string recPath){
 
     fitsPath = recPath;
 
+    kPROGRAM    = "FreeTure";
+    kCREATOR    = "FRIPON";
+
 }
 
 bool Fits2D::writeKeywords(fitsfile *fptr){
@@ -872,10 +875,10 @@ bool Fits2D::writeFits(Mat img, ImgBitDepth imgType, string fileName){
 	cout << "kTELESCOP : " << kTELESCOP << endl;
 
 	if(fileName != ""){
-		
+
 		pathAndname = fitsPath + fileName  + ".fit";
 		kFILENAME = fileName + ".fit";
-		
+
 	}else{
 
 		pathAndname = fitsPath + kTELESCOP + "_" + dateFileName + "_UT.fit";
@@ -1628,6 +1631,72 @@ bool Fits2D::readIntKeyword(string filePath, string keyword, int &value){
     }
 
     delete key;
+
+    fits_close_file(fptr, &status);
+
+    return true;
+}
+
+bool Fits2D::readStringKeyword(string filePath, string keyword, string &value){
+
+    char *ptr = NULL;
+
+    int status = 0;
+
+    fitsfile *fptr;
+
+    const char * filename;
+
+    char v[40];
+
+    filename = filePath.c_str();
+
+
+    if(fits_open_file(&fptr, filename, READONLY, &status)) return false;
+
+    char * key = new char[keyword.length()+1];
+    strcpy(key,keyword.c_str());
+
+    fits_read_key(fptr, TSTRING, key, v, NULL, &status);
+
+    value = string(v);
+
+    delete key;
+
+    fits_close_file(fptr, &status);
+
+
+    return true;
+}
+
+bool Fits2D::readDoubleKeyword(string filePath, string keyword, double &value){
+
+    char *ptr = NULL;
+
+    int status = 0;
+
+    fitsfile *fptr;
+
+    const char * filename;
+
+    filename = filePath.c_str();
+
+    if(fits_open_file(&fptr, filename, READONLY, &status)){
+
+        return printerror( status, "> Failed to open the fits file." );
+    }
+
+    char * key = new char[keyword.length()+1];
+    strcpy(key,keyword.c_str());
+
+    if(fits_read_key(fptr, TDOUBLE, key, &value, NULL, &status)){
+
+        return printerror( status, "> Failed to read the fits keyword." );
+    }
+
+    delete key;
+
+    fits_close_file(fptr, &status);
 
     return true;
 }

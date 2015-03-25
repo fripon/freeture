@@ -35,25 +35,22 @@
 
 #include "GlobalEvent.h"
 
-GlobalEvent::GlobalEvent(string frameDate, int frameNum, int frameHeight, int frameWidth){
+GlobalEvent::GlobalEvent(string frameDate, int frameNum, int frameHeight, int frameWidth, Scalar c){
 
-    geAge           = 0;
-    geAgeLastLE     = 0;
-    geDate          = frameDate;
-    numFirstFrame   = frameNum;
-    numLastFrame    = frameNum;
-    newLEAdded      = false;
-    geMap           = Mat(frameHeight,frameWidth, CV_8UC1,Scalar(0));
-    geMapPrev       = Mat(frameHeight,frameWidth, CV_8UC1,Scalar(0));
-    dirMap          = Mat(frameHeight,frameWidth, CV_8UC3,Scalar(0,0,0));
-    dirMap2         = Mat(960,1280, CV_8UC3,Scalar(0,0,0));
-    linear          = true;
-    velocity        = 0;
-    badPoint        = 0;
-    goodPoint       = 0;
-    geStatic        = false;
-    checkPos        = false;
-    nbCheckConsecutivePosError = 0;
+    geAge               = 0;
+    geAgeLastLE         = 0;
+    geDate              = frameDate;
+    geFirstFrameNum     = frameNum;
+    geLastFrameNum      = frameNum;
+    newLeAdded          = false;
+    geMap               = Mat(frameHeight,frameWidth, CV_8UC1, Scalar(0));
+    geMapColor          = Mat(frameHeight,frameWidth, CV_8UC3, Scalar(0,0,0));
+    geDirMap            = Mat(frameHeight,frameWidth, CV_8UC3, Scalar(0,0,0));
+    geLinear            = true;
+    geBadPoint          = 0;
+    geGoodPoint         = 0;
+    geShifting          = 0;
+    geColor             = c;
 
 }
 
@@ -64,121 +61,115 @@ GlobalEvent::~GlobalEvent(){
 bool GlobalEvent::addLE(LocalEvent le){
 
     // Get LE position.
-    Point center = le.getMassCenter();
+    Point center = Point(le.getMassCenter().x, le.getMassCenter().y);
 
-    // Add the LE to the current GE.
-    LEList.push_back(le);
+    // Indicates if the le in input can be added to the global event.
+    bool addLeDecision = true;
 
-    // First position of the GE.
-    if(LEList.size() == 1){
+    // First LE's position become a main point.
+    if(pts.size()==0)
+        mainPts.push_back(center);
 
-        Point mapCenter = Point(640,480);
-        lastPos = Point(640,480);
+    // If the current le is at least the second.
+    else if(pts.size()>0){
 
-        putText(dirMap2, "0", Point(mapCenter.x,mapCenter.y + 7 ),FONT_HERSHEY_COMPLEX_SMALL, 0.8, cvScalar(255,255,255), 1, CV_AA);
-        circle(dirMap2, mapCenter, 5, Scalar(255,255,255), 1, 8, 0);
-        mainPoints.push_back(center);
-        dist.push_back(0.0);
+        //float d = sqrt(pow(pt.back().x - pt.at(pt.size()-2).x,2.0) + pow(pt.back().y - pt.at(pt.size()-2).y,2.0));
 
-    }else if(LEList.size() % 3 == 0){
+        // Check global event direction each 3 new local event.
+        if((pts.size()+1)%3 == 0){
 
-        // Shifted value.
-        Point diff = Point(center.x - mainPoints.back().x, center.y - mainPoints.back().y) * 5;
-        // New Position in dirMap system.
-        Point newPos = Point(lastPos.x + diff.x, lastPos.y + diff.y);
-        // Draw line.
-        line(dirMap2, lastPos, newPos, Scalar( 0, 0, 255 ), 2, 8);
-        // Update.
-        lastPos = newPos;
+            // If there is already at least two main points.
+            if(mainPts.size()>2){
 
-        putText(dirMap2, Conversion::intToString(mainPoints.size()), Point(newPos.x,newPos.y + 7 ),FONT_HERSHEY_COMPLEX_SMALL, 0.8, cvScalar(255,255,255), 1, CV_AA);
+                // Get first main point.
+                Point A = mainPts.front(),
+                // Get last main point.
+                B = mainPts.back(),
+                // Get current le position.
+                C = center;
+                // Vector from first main point to last main point.
+                Point u  = Point(B.x - A.x, B.y - A.y);
+                // Vector from last main point to current le position.
+                Point v  = Point(C.x - B.x, C.y - B.y);
+                // Norm vector u
+                float normU = sqrt(pow(u.x,2.0)+pow(u.y,2.0));
+                // Norm vector v
+                float normV = sqrt(pow(v.x,2.0)+pow(v.y,2.0));
+                // Compute angle between u and v.
+                float thetaDeg = acos((u.x*v.x+u.y*v.y)/(normU*normV));
 
-        float d = sqrt(pow(center.x - mainPoints.back().x,2.0) + pow(center.y - mainPoints.back().y,2.0));
-        dist.push_back(d);
+                //float thetaDeg = (180 * thetaRad)/3.14159265358979323846;
 
-        if(d == 0) geStatic = true;
+                if(thetaDeg > 40.0 || thetaDeg < -40.0 ){
 
-        mainPoints.push_back(center);
+                    geBadPoint++;
 
-        if(mainPoints.size() >= 3){
+                    if(geBadPoint == 2){
 
-            Point   A   = Point(mainPoints.front()),
-                    B   = Point(mainPoints.at(mainPoints.size()- 2)),
-                    C   = Point(mainPoints.back());
+                        geLinear = false;
 
-            Point   v1  = Point(B.x - A.x, B.y - A.y);
+                    }
 
-            Point   B2  = Point(B.x + v1.x, B.y + v1.y);
+                    addLeDecision = false;
+                    ptsValidity.push_back(false);
+                    circle(geDirMap, center, 5, Scalar(0,0,255), 1, 8, 0);
 
-            Point   v2  = Point(C.x - B.x, C.y - B.y);
-            Point   v3  = Point(B2.x - B.x, B2.y - B.y);
+                }else{
 
-            float thetaRad = (v3.x*v2.x+v3.y*v2.y)/(sqrt(pow(v3.x,2.0)+pow(v3.y,2.0))*sqrt(pow(v2.x,2.0)+pow(v2.y,2.0)));
-            float thetaDeg = (180 * acos(thetaRad))/3.14159265358979323846;
+                    geBadPoint = 0;
+                    geGoodPoint++;
+                    mainPts.push_back(center);
+                    ptsValidity.push_back(true);
+                    circle(geDirMap, center, 5, Scalar(255,255,255), 1, 8, 0);
 
-            if(thetaDeg > 40.0 || thetaDeg < -40.0 ){
-
-                circle(dirMap, center, 5, Scalar(0,0,255), 1, 8, 0);
-                circle(dirMap2, newPos, 5, Scalar(0,0,255), 1, 8, 0);
-
-                badPoint++;
-				cout << "USE POS:!!!"<< endl;
-                // Two consecutives bad points.
-                if(pos.size() != 0){
-
-					if(pos.back() == false)
-						linear = false;
-
-				}
-                pos.push_back(false);
-
-                return false;
+                }
 
             }else{
-				cout << "USE POS:!!"<< endl;
-                pos.push_back(true);
-                circle(dirMap, center, 5, Scalar(0,255,0), 1, 8, 0);
-                circle(dirMap2, newPos, 5, Scalar(0,255,0), 1, 8, 0);
-                goodPoint++;
+
+                // Create new main point.
+                mainPts.push_back(center);
+                ptsValidity.push_back(true);
+                circle(geDirMap, center, 5, Scalar(255,255,255), 1, 8, 0);
 
             }
-
-        }else{
-
-            circle(dirMap2, newPos, 5, Scalar(0,255,0), 1, 8, 0);
         }
     }
 
-    circle(dirMap, center, 3, Scalar(255,0,0), 1, 8, 0);
+    // Add the le in input to the current ge.
+    if(addLeDecision){
 
-    //reset ageLastELem
-    geAgeLastLE = 0;
+        // Save center of mass.
+        pts.push_back(center);
 
-    //Update event's map
-    Mat res = geMap + le.getMap();
-    res.copyTo(geMap);
+        // Add the LE to the current GE.
+        LEList.push_back(le);
 
-    if(LEList.size() == 1){
+        // Reset age without any new le.
+        geAgeLastLE = 0;
 
-        res.copyTo(geMapPrev);
+        // Update ge map.
+        Mat res = geMap + le.getMap();
+        res.copyTo(geMap);
 
-    }
+        // Update colored ge map.
+        vector<Point>::iterator it;
+        int roiH = 10, roiW = 10;
+        for(it = le.leRoiList.begin(); it != le.leRoiList.end(); ++it){
 
-    /*if(LEList.size() % 20 == 0){
-
-        Mat res2 = geMapPrev & le.getMap();
-        int nbPixNonZero = countNonZero(res2);
-
-        if( nbPixNonZero > 0 ){
-
-            geStatic = true;
+            Mat roi(roiH,roiW,CV_8UC3,geColor);
+            roi.copyTo(geMapColor(Rect((*it).x-roiW/2,(*it).y-roiH/2,roiW,roiH)));
 
         }
 
-        Mat temp = le.getMap();
-        temp.copyTo(geMapPrev);
+        // Update dirMap
+        geDirMap.at<Vec3b>(center.y,center.x) = Vec3b(0,255,0);
 
-    }*/
+    }else{
+
+        // Update dirMap
+        geDirMap.at<Vec3b>(center.y,center.x) = Vec3b(0,0,255);
+
+    }
 
     return true;
 
@@ -189,11 +180,12 @@ bool GlobalEvent::continuousGoodPos(int n){
     int nb = 0;
     int nn = 0;
 
-    for(int i = 0; i < pos.size(); i++){
+    for(int i = 0; i < ptsValidity.size(); i++){
 
-        if(pos.at(i)){
+        if(ptsValidity.at(i)){
 
             nb++;
+            nn=0;
 
             if(nb > n)
                 break;
@@ -202,7 +194,7 @@ bool GlobalEvent::continuousGoodPos(int n){
 
             nn++;
 
-            if(nn == 3)
+            if(nn == 2)
                 break;
 
         }

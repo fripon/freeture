@@ -63,6 +63,8 @@ template<> EParser<DetMeth>::EParser(){
 
     enumMap["HOUGH_MTHD"]       = HOUGH_MTHD;
     enumMap["TEMPORAL_MTHD"]    = TEMPORAL_MTHD;
+    enumMap["TEMPORAL_MTHD_"]    = TEMPORAL_MTHD_;
+    enumMap["DAYTIME_MTHD"]     = DAYTIME_MTHD;
 
 }
 

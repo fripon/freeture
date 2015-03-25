@@ -60,7 +60,7 @@ DetThread::DetThread(	boost::mutex				   *cfg_m,
 	eventPath				= "";
 	eventDate				= "";
 	detmthd					= m;
-	
+
 	waitFramesToCompleteEvent = false;
 	nbWaitFrames = 0;
 	firstFrameGrabbed = false;
@@ -70,7 +70,7 @@ DetThread::DetThread(	boost::mutex				   *cfg_m,
 DetThread::~DetThread(void){
 
 	if(detTech != NULL){
-		
+
 		BOOST_LOG_SEV(logger, normal) << "Remove detTech instance.";
 		delete detTech;
 
@@ -118,7 +118,7 @@ void DetThread::stopThread(){
 	mustStopMutex.unlock();
 
 	// Wait for the thread to finish.
-	
+
     while(m_thread->timed_join(boost::posix_time::seconds(2)) == false){
 
 		BOOST_LOG_SEV(logger, normal) << "DetThread interrupted.";
@@ -143,7 +143,7 @@ bool DetThread::loadDetThreadParameters(){
 		EParser<CamBitDepth> cam_bit_depth;
 		ACQ_BIT_DEPTH = cam_bit_depth.parseEnum("ACQ_BIT_DEPTH", acq_bit_depth);
 		BOOST_LOG_SEV(logger, normal) << "ACQ_BIT_DEPTH : " << acq_bit_depth;
-    
+
 		// Get the name of the station.
 		cfg.Get("STATION_NAME", STATION_NAME);
 		BOOST_LOG_SEV(logger, normal) << "STATION_NAME : " << STATION_NAME;
@@ -179,7 +179,7 @@ bool DetThread::loadDetThreadParameters(){
 
 		// Get the time to keep after an event.
 		cfg.Get("DET_TIME_AFTER", DET_TIME_AFTER);
-		DET_TIME_AFTER = DET_TIME_AFTER * ACQ_FPS; 
+		DET_TIME_AFTER = DET_TIME_AFTER * ACQ_FPS;
 		BOOST_LOG_SEV(logger, normal) << "DET_TIME_AFTER (in frames): " << DET_TIME_AFTER;
 
 		// Get the option to send mail notifications.
@@ -224,7 +224,7 @@ bool DetThread::loadDetThreadParameters(){
 		// Select the correct detection method according to DET_METHOD in configuration file.
 		switch(detmthd){
 
-			case TEMPORAL_MTHD : 
+			case TEMPORAL_MTHD :
 
 				{
 
@@ -233,23 +233,53 @@ bool DetThread::loadDetThreadParameters(){
 						BOOST_LOG_SEV(logger, fail) << "Fail to init temporal detection method.";
 						throw "Fail to init temporal detection method.";
 					}
-				
+
 				}
 
 				break;
 
-			case HOUGH_MTHD: 
+            case TEMPORAL_MTHD_ :
 
 				{
 
-				
+					detTech = new DetectionTemporal_();
+					if(!detTech->initMethod(cfg_path)){
+						BOOST_LOG_SEV(logger, fail) << "Fail to init temporal detection method.";
+						throw "Fail to init temporal detection method.";
+					}
+
+				}
+
+				break;
+
+			case HOUGH_MTHD:
+
+				{
+
+
+
+				}
+
+				break;
+
+            case DAYTIME_MTHD:
+
+				{
+
+				    detTech = new DetectionDayTime();
+					if(!detTech->initMethod(cfg_path)){
+						BOOST_LOG_SEV(logger, fail) << "Fail to init daytime detection method.";
+						throw "Fail to init daytime detection method.";
+					}
+
+
 
 				}
 
 				break;
 
 		}
-		
+
 	}catch(exception& e){
 
 		cout << e.what() << endl;
@@ -275,7 +305,7 @@ void DetThread::operator ()(){
 	BOOST_LOG_SEV(logger,notification) << "==============================================";
 
     bool stopThread = false;
-	
+
     /// Thread loop.
 	do{
 
@@ -286,7 +316,7 @@ void DetThread::operator ()(){
 			while (!(*detSignal)) detSignal_condition->wait(lock);
             *detSignal = false;
             lock.unlock();
-		
+
             // Fetch the two last frames grabbed.
 			Frame currentFrame, previousFrame;
 			boost::mutex::scoped_lock lock2(*frameBuffer_mutex);
@@ -297,24 +327,24 @@ void DetThread::operator ()(){
 			lock2.unlock();
 
             double t = (double)getTickCount();
-			
+
 			if(currentFrame.getImg().data && previousFrame.getImg().data){
-				
+
 				BOOST_LOG_SEV(logger, normal) << "Start detection process on frames : " << currentFrame.getNumFrame() << " and " << previousFrame.getNumFrame();
 
 				// Run detection.
 				if(detTech->run(currentFrame, previousFrame) && !waitFramesToCompleteEvent){
 
-					// Event detected. 
+					// Event detected.
 					BOOST_LOG_SEV(logger, normal) << "Event detected ! Waiting frames to complete the event..." << endl;
 					waitFramesToCompleteEvent = true;
-					
+
 				}
-				
+
 				// Wait frames to complete the detection.
 				if(waitFramesToCompleteEvent){
 
-					if(nbWaitFrames >= DET_TIME_AFTER){ 
+					if(nbWaitFrames >= DET_TIME_AFTER){
 
 						BOOST_LOG_SEV(logger, normal) << "Event completed." << endl;
 
@@ -322,7 +352,7 @@ void DetThread::operator ()(){
 						eventDate = detTech->getDateEvent();
 						BOOST_LOG_SEV(logger, normal) << "Build event directory." << endl;
 						buildEventDataDirectory(eventDate);
-			
+
 						// Save event.
 						boost::mutex::scoped_lock lock(*frameBuffer_mutex);
 						BOOST_LOG_SEV(logger, normal) << "Start saving event..." << endl;
@@ -334,7 +364,7 @@ void DetThread::operator ()(){
 						BOOST_LOG_SEV(logger, normal) << "Reset detection process." << endl;
 						detTech->resetDetection();
 						waitFramesToCompleteEvent = false;
-			
+
 					}else{
 
 						nbWaitFrames++;
@@ -342,11 +372,11 @@ void DetThread::operator ()(){
 					}
 				}
 			}
-                
+
             t = (((double)getTickCount() - t)/getTickFrequency())*1000;
             cout << " [-DET TIME-] : " << std::setprecision(3) << std::fixed << t << " ms " << endl;
 			BOOST_LOG_SEV(logger,notification) << " [-DET TIME-] : " << std::setprecision(3) << std::fixed << t << " ms ";
-           
+
 
 		}catch(const boost::thread_interrupted&){
 
@@ -364,6 +394,9 @@ void DetThread::operator ()(){
         mustStopMutex.unlock();
 
 	}while(!stopThread);
+
+	// to delete
+	//detTech->saveDetectionInfos("");
 
 	cout << "Detection Thread terminated." << endl;
 	BOOST_LOG_SEV(logger,notification) << "Detection Thread terminated.";
@@ -383,7 +416,7 @@ bool DetThread::buildEventDataDirectory(string eventDate){
 	// Create data directory for the current day.
 	string fp = DATA_PATH + STATION_NAME + "_" + YYYYMMDD +"/";
 	path p0(fp);
-  
+
     // Events directory.
     string fp1 = "events/";
 	path p1(fp + fp1);
@@ -397,24 +430,24 @@ bool DetThread::buildEventDataDirectory(string eventDate){
 
 	// Check if data path specified in the configuration file exists.
     if(fs::exists(p)){
-		
+
         // Check DataLocation/STATION_AAMMDD/
         if(fs::exists(p0)){
-			
-            // Check DataLocation/STATION_AAMMDD/events/ 
+
+            // Check DataLocation/STATION_AAMMDD/events/
             if(fs::exists(p1)){
-				
-                // Check DataLocation/STATION_AAMMDD/events/STATION_AAAAMMDDThhmmss_UT/ 
+
+                // Check DataLocation/STATION_AAMMDD/events/STATION_AAAAMMDDThhmmss_UT/
                 if(!fs::exists(p2)){
-					
-					// Create DataLocation/STATION_AAMMDD/events/STATION_AAAAMMDDThhmmss_UT/ 
+
+					// Create DataLocation/STATION_AAMMDD/events/STATION_AAAAMMDDThhmmss_UT/
                     if(!fs::create_directory(p2)){
-                        
+
 						BOOST_LOG_SEV(logger,normal) << "Fail to create : " << p2;
                         return false;
 
                     }else{
-                        
+
 						BOOST_LOG_SEV(logger,fail) << "Success to create : " << p2;
                         return true;
                     }
@@ -423,22 +456,22 @@ bool DetThread::buildEventDataDirectory(string eventDate){
 
             }else{
 
-                // Create DataLocation/STATION_AAMMDD/events/ 
+                // Create DataLocation/STATION_AAMMDD/events/
                 if(!fs::create_directory(p1)){
-                   
+
 					BOOST_LOG_SEV(logger,fail) << "Fail to create : " << p1;
                     return false;
 
                 }else{
-                    
-                    // Create DataLocation/STATION_AAMMDD/events/STATION_AAAAMMDDThhmmss_UT/ 
+
+                    // Create DataLocation/STATION_AAMMDD/events/STATION_AAAAMMDDThhmmss_UT/
                     if(!fs::create_directory(p2)){
-                        
+
 						BOOST_LOG_SEV(logger,fail) << "Fail to create : " << p2;
                         return false;
 
                     }else{
-                        
+
 						BOOST_LOG_SEV(logger,normal) << "Success to create : " << p2;
                         return true;
 
@@ -450,23 +483,23 @@ bool DetThread::buildEventDataDirectory(string eventDate){
 
             // Create DataLocation/STATION_AAMMDD/
             if(!fs::create_directory(p0)){
-                
+
 				BOOST_LOG_SEV(logger,fail) << "Fail to create : " << p0;
                 return false;
 
             }else{
 
-				// Create DataLocation/STATION_AAMMDD/events/ 
+				// Create DataLocation/STATION_AAMMDD/events/
                 if(!fs::create_directory(p1)){
-                    
+
 					BOOST_LOG_SEV(logger,fail) << "Fail to create : " << p1;
                     return false;
 
                 }else{
 
-					// Create DataLocation/STATION_AAMMDD/events/STATION_AAAAMMDDThhmmss_UT/ 
+					// Create DataLocation/STATION_AAMMDD/events/STATION_AAAAMMDDThhmmss_UT/
                     if(!fs::create_directory(p2)){
-						
+
 						BOOST_LOG_SEV(logger,fail) << "Fail to create : " << p2;
                         return false;
 
@@ -484,7 +517,7 @@ bool DetThread::buildEventDataDirectory(string eventDate){
 
 		// Create DataLocation/
         if(!fs::create_directory(p)){
-            
+
 			BOOST_LOG_SEV(logger,fail) << "Fail to create : " << p;
             return false;
 
@@ -492,23 +525,23 @@ bool DetThread::buildEventDataDirectory(string eventDate){
 
             // Create DataLocation/STATION_AAMMDD/
             if(!fs::create_directory(p0)){
-                
+
 				BOOST_LOG_SEV(logger,fail) << "Fail to create : " << p0;
                 return false;
 
             }else{
 
-				//Create DataLocation/STATION_AAMMDD/events/ 
+				//Create DataLocation/STATION_AAMMDD/events/
                 if(!fs::create_directory(p1)){
-                   
+
 					BOOST_LOG_SEV(logger,fail) << "Fail to create : " << p1;
                     return false;
 
                 }else{
 
-					// Create DataLocation/STATION_AAMMDD/events/STATION_AAAAMMDDThhmmss_UT/ 
+					// Create DataLocation/STATION_AAMMDD/events/STATION_AAAAMMDDThhmmss_UT/
                     if(!fs::create_directory(p2)){
-                        
+
 						BOOST_LOG_SEV(logger,fail) << "Fail to create : " << p2;
                         return false;
 
@@ -533,11 +566,11 @@ bool DetThread::saveEventData(int firstEvPosInFB, int lastEvPosInFB){
 	// List of data path to attach to the mail notification.
     vector<string> mailAttachments;
 
-    // Number of the first frame to save. 
+    // Number of the first frame to save.
 	// It depends of how many frames we want to keep before the event.
     int numFirstFrameToSave = firstEvPosInFB - DET_TIME_BEFORE;
 
-    // Number of the last frame to save. 
+    // Number of the last frame to save.
 	// It depends of how many frames we want to keep after the event.
     int numLastFrameToSave = lastEvPosInFB + DET_TIME_AFTER;
 
@@ -545,7 +578,7 @@ bool DetThread::saveEventData(int firstEvPosInFB, int lastEvPosInFB){
 	// The first frame to save become the first frame available in the framebuffer.
     if(frameBuffer->front().getNumFrame() > numFirstFrameToSave)
         numFirstFrameToSave = frameBuffer->front().getNumFrame();
-	
+
 
 	// Check the number of the last frame to save.
     if(frameBuffer->back().getNumFrame() < numLastFrameToSave)
@@ -561,7 +594,7 @@ bool DetThread::saveEventData(int firstEvPosInFB, int lastEvPosInFB){
       n/=10;
       ++nbDigitOnNbTotalFramesToSave;
     }
-		 
+
     cout << "> First frame to save  : " << numFirstFrameToSave	<< endl;
     cout << "> Last frame to save    : " << numLastFrameToSave	<< endl;
     cout << "> First event frame    : " << firstEvPosInFB		<< endl;
@@ -600,7 +633,7 @@ bool DetThread::saveEventData(int firstEvPosInFB, int lastEvPosInFB){
 
 	// Init sum.
 	Stack stack = Stack(lastEvPosInFB - firstEvPosInFB);
-	
+
 	// Loop framebuffer.
     boost::circular_buffer<Frame>::iterator it;
     for(it = frameBuffer->begin(); it != frameBuffer->end(); ++it){
@@ -630,7 +663,7 @@ bool DetThread::saveEventData(int firstEvPosInFB, int lastEvPosInFB){
             // Integration time : 1/fps * nb_frames (sec.)
 			if((*it).getFPS()!=0)
             fits3d.setExposure((1.0/(*it).getFPS()));
-            
+
             dateFirstFrame = (*it).getDate();
             dateSecFirstFrame = (*it).getDateSeconds();
 
@@ -649,7 +682,7 @@ bool DetThread::saveEventData(int firstEvPosInFB, int lastEvPosInFB){
 
             // Save fits2D.
 			if(DET_SAVE_FITS2D){
-				
+
                 string fits2DPath = eventPath + "fits2D/";
                 string fits2DName = "frame_" + Conversion::numbering(nbDigitOnNbTotalFramesToSave, c) + Conversion::intToString(c);
                 vector<string> DD;
@@ -667,28 +700,28 @@ bool DetThread::saveEventData(int firstEvPosInFB, int lastEvPosInFB){
                 // YYYYMMDDTHHMMSS,fffffffff where T is the date-time separator
                 newFits.setDate(to_iso_string(time));
 				cout << to_iso_string(time) << endl;
-		
+
                 // Name of the fits file.
 
                 newFits.setFilename(fits2DName);
                 // Exposure time.
-		
+
                 newFits.setOntime((*it).getExposure());
                 // Gain.
-				
+
                 newFits.setGaindb((*it).getGain());
                 // Saturation.
-			
+
                 newFits.setSaturate((*it).getSaturatedValue());
                 // FPS.
-				
+
                 newFits.setCd3_3((*it).getFPS());
                 // CRVAL1 : sideral time.
-		
+
                 double  julianDate      = TimeDate::gregorianToJulian_2((*it).getDate());
-			
+
                 double  julianCentury   = TimeDate::julianCentury(julianDate);
-			
+
                 double  sideralT        = TimeDate::localSideralTime_2(julianCentury, (*it).getDate().at(3), (*it).getDate().at(4), (*it).getDateSeconds(), fitsHeader.getSitelong());
                 newFits.setCrval1(sideralT);
                 // Integration time : 1/fps * nb_frames (sec.)
@@ -700,9 +733,9 @@ bool DetThread::saveEventData(int firstEvPosInFB, int lastEvPosInFB){
                 newFits.setCtype2("DEC--ARC");
                 // Equinox
                 newFits.setEquinox(2000.0);
-				
+
                 if(!fs::exists(p)) {
-			
+
 					fs::create_directory(p);
 
 				}
@@ -726,7 +759,7 @@ bool DetThread::saveEventData(int firstEvPosInFB, int lastEvPosInFB){
 				stack.addFrame((*it));
 
 			}
-				
+
 			c++;
 
         }
@@ -742,7 +775,7 @@ bool DetThread::saveEventData(int firstEvPosInFB, int lastEvPosInFB){
 	if(MAIL_DETECTION_ENABLED){
 
 		BOOST_LOG_SEV(logger,notification) << "Sending mail...";
-        
+
         SMTPClient mailc(MAIL_SMTP_SERVER, 25, MAIL_SMTP_HOSTNAME);
 
         mailc.send("yoan.audureau@u-psud.fr",
@@ -753,9 +786,9 @@ bool DetThread::saveEventData(int firstEvPosInFB, int lastEvPosInFB){
 					false);
 
 		BOOST_LOG_SEV(logger,notification) << "Mail sent.";
-				   
+
     }
-	
+
     return true;
 
 }

@@ -97,7 +97,7 @@ class Detection{
 
 	public:
 
-		Detection(){};
+		 Detection(){};
 
 		~Detection(){};
 

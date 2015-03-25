@@ -89,6 +89,8 @@ class CameraFrames: public Camera{
 
 		int nbFramesRead;
 
+		int nn;
+
 	public:
 
 		CameraFrames(string	dir, int nbPos);
@@ -100,6 +102,6 @@ class CameraFrames: public Camera{
 		bool grabImage(Frame &img);
 
 		bool getStopStatus();
-		
+
 };
 

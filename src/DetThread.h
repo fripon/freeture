@@ -53,6 +53,8 @@
 #include "Stack.h"
 #include "Detection.h"
 #include "DetectionTemporal.h"
+#include "DetectionTemporal_.h"
+#include "DetectionDayTime.h"
 
 #include "EStackMeth.h"
 #include "EDetMeth.h"

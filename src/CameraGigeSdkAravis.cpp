@@ -132,7 +132,7 @@
 
 		arv_camera_get_gain_bounds (camera, &gainMin, &gainMax);
 
-		arv_camera_set_frame_rate(camera, fps);
+		arv_camera_set_frame_rate(camera, 30);
 
 		fps = arv_camera_get_frame_rate(camera);
 
@@ -298,6 +298,18 @@
 
 					Mat img(height, width, CV_16UC1, arv_buffer->data);
 					img.copyTo(image);
+
+					if(shiftImage){
+
+						unsigned short * p;
+
+						for(int i = 0; i < image.rows; i++){
+							p = image.ptr<unsigned short>(i);
+							for(int j = 0; j < image.cols; j++)
+                                p[j] = p[j] >> 4;
+						}
+
+					}
 
 				}
 
@@ -470,16 +482,18 @@
 
                         image = Mat(height, width, CV_16UC1, arv_buffer->data);
 
+                        if(shiftImage){
+                            unsigned short * p;
+                            for(int i = 0; i < image.rows; i++){
+                                p = image.ptr<unsigned short>(i);
+                                for(int j = 0; j < image.cols; j++) p[j] = p[j] >> 4;
+                            }
+                        }
+
 
                     }
 
-					if(shiftImage){
-						unsigned short * p;
-						for(int i = 0; i < image.rows; i++){
-							p = image.ptr<unsigned short>(i);
-							for(int j = 0; j < image.cols; j++) p[j] = p[j] >> 4;
-						}
-					}
+
 
                     frame = Frame(image, arv_camera_get_gain(camera), arv_camera_get_exposure_time(camera), acquisitionDate);
                     frame.setAcqDateMicro(acqDateInMicrosec);
