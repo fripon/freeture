@@ -159,15 +159,15 @@ bool Device::prepareDevice(CamType type, string cfgFile){
                 // Create camera according to its ID.
 				if(!cam->createDevice(CAMERA_ID)) throw "Fail to create device.";
 				// Set camera format.
-				cam->setPixelFormat(ACQ_BIT_DEPTH);
+				if(!cam->setPixelFormat(ACQ_BIT_DEPTH)) throw "Fail to set Format.";
 				// Set camera exposure time.
-				cam->setExposureTime(ACQ_EXPOSURE);
+				if(!cam->setExposureTime(ACQ_EXPOSURE)) throw "Fail to set Exposure.";
 				// Set camera gain.
-				cam->setGain(ACQ_GAIN);
+				if(!cam->setGain(ACQ_GAIN)) throw "Fail to set Gain.";
 				// Set camera fps.
-				cam->setFPS(ACQ_FPS);
+				if(!cam->setFPS(ACQ_FPS)) throw "Fail to set Fps.";
 				// Prepare grabbing.
-				cam->grabStart();
+				if(!cam->grabStart()) throw "Fail to start grab.";
 				// Start acquisition.
 				cam->acqStart();
 

@@ -269,9 +269,9 @@
 	bool CameraGigeSdkAravis::grabImage(Frame &newFrame){
 
 		ArvBuffer *arv_buffer;
-        cout << "get buffer"<< endl;
+
 		arv_buffer = arv_stream_pop_buffer(stream); //us
-		cout << "end get buffer"<< endl;
+
 
 		if (arv_buffer == NULL){
 
@@ -317,10 +317,6 @@
 				newFrame.setAcqDateMicro(acqDateInMicrosec);
 				newFrame.setFPS(arv_camera_get_frame_rate(camera));
 
-				arv_stream_push_buffer(stream, arv_buffer);
-
-				return true;
-
 			}else{
 
 				switch(arv_buffer->status){
@@ -352,10 +348,13 @@
 
 				}
 
-				arv_stream_push_buffer(stream, arv_buffer);
-
 				return false;
 			}
+
+			arv_stream_push_buffer(stream, arv_buffer);
+
+            return true;
+
 		 }
 	}
 
@@ -390,7 +389,7 @@
 
 		arv_camera_get_gain_bounds (camera, &gainMin, &gainMax);
 
-		arv_camera_set_frame_rate(camera, 1);
+		arv_camera_set_frame_rate(camera, 3.75);
 
 		fps = arv_camera_get_frame_rate(camera);
 
@@ -447,27 +446,31 @@
             //for(int i = 0; i < 50; i++)
             arv_stream_push_buffer(stream, arv_buffer_new(payload, NULL));
 
-            // Acquisition mode to continous.
+            // Set acquisition mode to continuous.
             arv_camera_set_acquisition_mode(camera, ARV_ACQUISITION_MODE_CONTINUOUS);
 
-            // Use software trigger source.
+            // Configure camera to use software source as a trigger :
+            // - AcquisitionStart in TriggerSelector is set to off.
+            // - FrameStart in TriggerSelector is set to on.
+            // - TriggerActivation is set to RisingEdge.
+            // - TriggerSource is set to Software.
             arv_camera_set_trigger(camera, "Software");
 
-            //arv_camera_set_trigger_source (camera, "Software");
-            //arv_device_set_string_feature_value(arv_camera_get_device (camera), "TriggerMode" , "On");
-            //cout << "Trigger source : " << arv_camera_get_trigger_source (camera) << endl;
+            //arv_device_set_integer_feature_value(arv_camera_get_device (camera), "TriggerDelay" , 0);
 
             // Start acquisition.
             arv_camera_start_acquisition(camera);
 
-            //sleep(1);
 
-            cout << "Emit software signal ..." << endl;
+            sleep(1);
 
-            // Send software signal.
+
+            // Send Trigger Command to capture image.
             arv_camera_software_trigger(camera);
 
-            //arv_device_execute_command(arv_camera_get_device (camera), "TriggerSoftware");
+
+           // sleep(1);
+
 
             // Get image buffer.
             ArvBuffer *arv_buffer = arv_stream_pop_buffer(stream); //*/arv_stream_timeout_pop_buffer(stream, 30000000); //us
@@ -565,9 +568,9 @@
 
                     }
 
-                    arv_stream_push_buffer(stream, arv_buffer);
-
                 }
+
+                arv_stream_push_buffer(stream, arv_buffer);
 
            }
 
