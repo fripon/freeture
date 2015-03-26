@@ -299,6 +299,8 @@
 					Mat img(height, width, CV_16UC1, arv_buffer->data);
 					img.copyTo(image);
 
+					cout << "shiftImage: " << shiftImage << endl;
+
 					if(shiftImage){
 
 						unsigned short * p;
@@ -316,6 +318,17 @@
 				newFrame = Frame(image, arv_camera_get_gain(camera), arv_camera_get_exposure_time(camera), acquisitionDate);
 				newFrame.setAcqDateMicro(acqDateInMicrosec);
 				newFrame.setFPS(arv_camera_get_frame_rate(camera));
+
+				if(pixFormat == ARV_PIXEL_FORMAT_MONO_8){
+
+                    newFrame.setBitDepth(MONO_8);
+                    newFrame.setSaturatedValue(255);
+
+				}else if(pixFormat == ARV_PIXEL_FORMAT_MONO_12){
+
+                    newFrame.setBitDepth(MONO_12);
+                    newFrame.setSaturatedValue(4095);
+				}
 
 			}else{
 

@@ -100,17 +100,23 @@ bool StackThread::loadStackParameters(){
 		Configuration cfg;
 		cfg.Load(cfgPath);
 
-		int ACQ_FPS; cfg.Get("ACQ_FPS", ACQ_FPS);
+        // Get acquisition frequency.
+		int ACQ_FPS;
+		cfg.Get("ACQ_FPS", ACQ_FPS);
 
+        // Get camera format.
 		string acq_bit_depth; cfg.Get("ACQ_BIT_DEPTH", acq_bit_depth);
 		EParser<CamBitDepth> cam_bit_depth;
 		ACQ_BIT_DEPTH = cam_bit_depth.parseEnum("ACQ_BIT_DEPTH", acq_bit_depth);
-    
+
+        // Get time of stacking frames.
 		cfg.Get("STACK_TIME", STACK_TIME);
 		STACK_TIME = STACK_TIME * ACQ_FPS;
 
+        // Get time to wait before a new stack.
 		cfg.Get("STACK_INTERVAL", STACK_INTERVAL);
 
+        // Get stack method to use.
 		string stack_method; cfg.Get("STACK_MTHD", stack_method);
 		EParser<StackMeth> stack_mth;
 		STACK_MTHD = stack_mth.parseEnum("STACK_MTHD", stack_method);
@@ -252,7 +258,7 @@ void StackThread::operator()(){
 				lock.unlock();
 
 				double t = (double)getTickCount();
-				
+
 				// Fetch last frame grabbed.
 				boost::mutex::scoped_lock lock2(*frameBuffer_mutex);
 				Frame newFrame = frameBuffer->back();
@@ -271,7 +277,7 @@ void StackThread::operator()(){
 
 				t = (((double)getTickCount() - t)/getTickFrequency())*1000;
 				std::cout << "[ Stack time ] : " << std::setprecision(5) << std::fixed << t << " ms" << endl;
-				
+
 			}while(!stack.getFullStatus());
 
             // Get the "must stop" state (thread-safe)
@@ -289,6 +295,6 @@ void StackThread::operator()(){
     }while(!stop);
 
 	std::cout << "Stack Thread terminated" << endl;
-	
+
 }
 

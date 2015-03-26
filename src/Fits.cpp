@@ -109,7 +109,7 @@ Fits::Fits(){
     cXPIXEL     = "";
     cYPIXEL     = "";
     cGAINDB     = "detector gain";
-    cSATURATE   = "saturated or max value (not sat. when OBS_MODE = SUM)";
+    cSATURATE   = "saturated value";
     cPROGRAM    = "name of the acquisition software";
     cCREATOR    = "http://fripon.org";
     cBZERO      = "";

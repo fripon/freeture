@@ -118,7 +118,7 @@ bool Fits2D::writeKeywords(fitsfile *fptr){
         24. XPIXEL      = 3.75
         25. YPIXEL      = 3.75
         26. GAINDB      = 400                                       / detector gain
-        27. SATURATE    = 4095                                      / saturation value or max value (not saturated) in case where OBS_MODE = SUM
+        27. SATURATE    = 4095                                      / saturation value
         28. PROGRAM     = 'FreeTure v0.1'                           / name of the acquisition software
         29. CREATOR     = 'FRIPON TEAM'                             / http://fripon.org
         30. BZERO       = 0

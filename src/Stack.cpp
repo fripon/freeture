@@ -29,7 +29,7 @@
 * \author  Yoan Audureau -- FRIPON-GEOPS-UPSUD
 * \version 1.0
 * \date    19/06/2014
-* \brief   
+* \brief
 */
 
 #include "Stack.h"
@@ -47,13 +47,14 @@ Stack::~Stack(){}
 void Stack::addFrame(Frame &i){
 
 	if(curFrames == 0){
-		
+
 		stack			= Mat::zeros(i.getImg().rows, i.getImg().cols, CV_32FC1);
 		gainFirstFrame	= i.getGain();
 		expFirstFrame	= i.getExposure();
 		dateFirstFrame	= i.getAcqDateMicro();
 		fps				= i.getFPS();
 		bitdepth		= i.getFrameBitDepth();
+		cout << "bitdepth : "<<bitdepth<< endl;
 
 	}
 
@@ -118,11 +119,107 @@ bool Stack::saveStack(Fits fitsHeader, string path, StackMeth STACK_MTHD, string
                 // 'SINGLE' 'SUM' 'AVERAGE' ('MEDIAN')
                 newFits.setObsmode("AVERAGE");
 				stack = stack/maxFrames;
-                double minVal, maxVal;
-                minMaxLoc(stack, &minVal, &maxVal);
 
-                // Saturated or max value (not saturated) in case where OBS_MODE = SUM
-                newFits.setSaturate(maxVal);
+                if(bitdepth == MONO_8) newFits.setSaturate(255);
+                else if(bitdepth = MONO_12) newFits.setSaturate(4095);
+
+                 if(STACK_REDUCTION){
+
+                    Mat newMat ;
+
+                    float bzero	 = 0.0;
+                    float bscale = 1.0;
+                    float factor;
+
+                    switch(bitdepth){
+
+                        case MONO_8 :
+
+                            {
+                                newMat = Mat(stack.rows,stack.cols, CV_8SC1, Scalar(0));
+                                factor = 1;
+                                bscale = factor;
+                                bzero  = 128 * factor;
+
+                                newFits.setBzero(bzero);
+                                newFits.setBscale(bscale);
+
+                                float * ptr;
+                                char * ptr2;
+
+                                for(int i = 0; i < stack.rows; i++){
+
+                                    ptr = stack.ptr<float>(i);
+                                    ptr2 = newMat.ptr<char>(i);
+
+                                    for(int j = 0; j < stack.cols; j++){
+
+                                        if(cvRound(ptr[j] / factor) - 128 > 127){
+
+                                            ptr2[j] = 127;
+
+                                        }else{
+
+                                            ptr2[j] = cvRound(ptr[j] / factor) - 128;
+                                        }
+
+                                    }
+                                }
+
+                                newFits.writeFits(newMat, C8, "" );
+
+                            }
+
+                            break;
+
+                        case MONO_12 :
+
+                            {
+
+                                newMat = Mat(stack.rows,stack.cols, CV_16SC1, Scalar(0));
+                                factor = 1;
+
+                                bscale = factor;
+                                bzero  = 32768 * factor;
+
+                                newFits.setBzero(bzero);
+                                newFits.setBscale(bscale);
+
+                                float * ptr;
+                                short * ptr2;
+
+                                for(int i = 0; i < stack.rows; i++){
+
+                                    ptr = stack.ptr<float>(i);
+                                    ptr2 = newMat.ptr<short>(i);
+
+                                    for(int j = 0; j < stack.cols; j++){
+
+                                        if(cvRound(ptr[j] / factor) - 32768 > 32767){
+
+                                            ptr2[j] = 32767;
+
+                                        }else{
+
+                                            ptr2[j] = cvRound(ptr[j] / factor) - 32768;
+                                        }
+                                    }
+                                }
+
+                                newFits.writeFits(newMat, S16, "" );
+
+                            }
+
+                            break;
+
+                    }
+
+                }else{
+
+                    // Save fits in 32 bits.
+                    newFits.writeFits(stack, F32, ""  );
+
+                }
 
             }
 
@@ -133,58 +230,57 @@ bool Stack::saveStack(Fits fitsHeader, string path, StackMeth STACK_MTHD, string
             {
                 // 'SINGLE' 'SUM' 'AVERAGE' ('MEDIAN')
                 newFits.setObsmode("SUM");
-                double minVal, maxVal;
-                minMaxLoc(stack, &minVal, &maxVal);
 
-                // Saturated or max value (not saturated) in case where OBS_MODE = SUM
-                newFits.setSaturate(maxVal);
+                if(bitdepth == MONO_8) newFits.setSaturate(255 * maxFrames);
+                else if(bitdepth = MONO_12) newFits.setSaturate(4095 * maxFrames);
+
+
+                 if(STACK_REDUCTION){
+
+                    Mat newMat ;
+
+                    float bzero	 = 0.0;
+                    float bscale = 1.0;
+
+                    reductionByFactorDivision(bzero, bscale).copyTo(newMat);
+
+                    newFits.setBzero(bzero);
+                    newFits.setBscale(bscale);
+
+                    switch(bitdepth){
+
+                        case MONO_8 :
+
+                            {
+
+                                newFits.writeFits(newMat, C8, "" );
+
+                            }
+
+                            break;
+
+                        case MONO_12 :
+
+                            {
+
+                                newFits.writeFits(newMat, S16, "" );
+
+                            }
+
+                            break;
+
+                    }
+
+                }else{
+
+                    // Save fits in 32 bits.
+                    newFits.writeFits(stack, F32, ""  );
+
+                }
 
             }
 
             break;
-
-    }
-
-    if(STACK_REDUCTION){
-
-        Mat newMat ;
-
-        float bzero	 = 0.0;
-        float bscale = 1.0;
-
-        reductionByFactorDivision(bzero, bscale).copyTo(newMat);
-
-        newFits.setBzero(bzero);
-        newFits.setBscale(bscale);
-
-		switch(bitdepth){
-
-            case MONO_8 :
-
-                {
-
-                        newFits.writeFits(newMat, C8, "" );
-
-                }
-
-                break;
-
-            case MONO_12 :
-
-                {
-
-                        newFits.writeFits(newMat, S16, "" );
-
-                }
-
-                break;
-
-        }
-
-    }else{
-
-        // Save fits in 32 bits.
-        newFits.writeFits(stack, F32, ""  );
 
     }
 
@@ -218,9 +314,9 @@ Mat Stack::reductionByFactorDivision(float &bzero, float &bscale){
 
                     for(int j = 0; j < stack.cols; j++){
 
-                        if(cvRound(ptr[j] / factor) - 128 > 255){
+                        if(cvRound(ptr[j] / factor) - 128 > 127){
 
-                            ptr2[j] = 255;
+                            ptr2[j] = 127;
 
                         }else{
 

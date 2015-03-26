@@ -59,11 +59,6 @@ Frame::Frame(Mat capImg, int g, int e, string acquisitionDate){
        date.push_back(atoi(dateString.at(i).c_str()));
     }
 
-    // Find saturated value.
-    double minVal, maxVal;
-    minMaxLoc(capImg, &minVal, &maxVal);
-    saturatedValue = maxVal;
-
 }
 
 Frame::Frame(){
