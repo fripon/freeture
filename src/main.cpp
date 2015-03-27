@@ -72,7 +72,9 @@
 #include <memory>
 
 #include "Frame.h"
-
+#include "Histogram.h"
+#include "HistogramGray.h"
+#include "HistogramRGB.h"
 #include "SaveImg.h"
 #include "Conversion.h"
 #include "Fits2D.h"
@@ -171,6 +173,7 @@ void init_log(string path, LogSeverityLevel sev){
     // Add some attributes too
     logging::add_common_attributes();
     logging::core::get()->add_global_attribute("TimeStamp", attrs::local_clock());
+
 
 }
 
@@ -682,13 +685,34 @@ int main(int argc, const char ** argv){
 
 					{
 
-						/*CameraGigeSdkIc *c = new CameraGigeSdkIc();
-						Frame n;
-						c->grabSingleImage(n, 0 );
-						//c->listGigeCameras();
+						/*Mat image;
+                        image = imread("/home/fripon/shrek-test-3.jpg", CV_LOAD_IMAGE_COLOR);   // Read the file
+                        //cvtColor(image,image,CV_BGR2GRAY);
 
-						delete c;
-						getchar();*/
+                        if(! image.data )                              // Check for invalid input
+                        {
+                            cout <<  "Could not open or find the image" << std::endl ;
+                            return -1;
+                        }
+
+                        namedWindow( "Display window", WINDOW_AUTOSIZE );// Create a window for display.
+                        imshow( "Display window", image );
+
+                        HistogramRGB histogram;
+
+                        if( histogram.calculate (image) == 0 ) {
+                            histogram.normalize ();
+                            Mat display = histogram.render ();
+
+                            namedWindow( "Histogram" );
+                            imshow( "Histogram", display );
+                        } else {
+                            cerr << "Can't calculate histogram" << endl;
+                        }
+
+
+
+                        waitKey(0);*/
 
 
 					}

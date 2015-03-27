@@ -1,5 +1,5 @@
 /*
-				Histogram.h
+                            HistogramRGB.h
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 *
@@ -26,11 +26,11 @@
 *%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%*/
 
 /**
-* \file    Histogram.h
+* \file    HistogramRGB.h
 * \author  Yoan Audureau -- FRIPON-GEOPS-UPSUD
 * \version 1.0
 * \date    03/06/2014
-* \brief   Create/Analyse histogram of a given image.
+* \brief   Create/Analyse histogram of a rgb image.
 */
 
 #pragma once
@@ -38,24 +38,24 @@
 #include "opencv2/highgui/highgui.hpp"
 #include <opencv2/imgproc/imgproc.hpp>
 #include <iostream>
+#include "Histogram.h"
 
 using namespace std;
 using namespace cv;
 
+class HistogramRGB : public Histogram{
 
-class Histogram{
-
-    protected:
-
-        cv::Mat	bins;
+	void clear(){
+		bins.setTo(Scalar( 0.f ));
+	};
 
     public:
 
-        Histogram() {};
-        ~Histogram() {};
+        HistogramRGB();
 
-        virtual int calculate(cv::Mat &image) = 0;
-        virtual void normalize(void) = 0;
-        virtual cv::Mat render(void) = 0;
+        int calculate(Mat& image);
 
+        void normalize(void);
+
+        Mat render(void);
 };
