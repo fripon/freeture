@@ -152,6 +152,7 @@ IF(${OperatingSystem} MATCHES "Windows")
 					program_options
 					iostreams
 					serialization
+					regex
 					REQUIRED)
 
 	if(Boost_FOUND)
@@ -164,6 +165,7 @@ IF(${OperatingSystem} MATCHES "Windows")
 		target_link_libraries(${EXE_NAME} ${Boost_LIBRARIES})
 	else(NOT Boost_FOUND)
 		message("> Fail to find boost")
+		message("> Boost_INCLUDE_DIRS : " ${Boost_INCLUDE_DIRS})
 	endif(Boost_FOUND)
 
 	# Genicam.
@@ -187,6 +189,17 @@ IF(${OperatingSystem} MATCHES "Windows")
 	include_directories(${PYLON_INCLUDE_DIR})
 	link_directories(${PYLON_LIBRARY})
 	target_link_libraries( ${EXE_NAME} ${PYLON_LIBRARIES} )
+
+	# TIS
+	message("> Searching the imaging source...")
+	find_package( TIS )
+	message ("TIS_FOUND : " ${TIS_FOUND})
+	message ("TIS_INCLUDE_DIR : " ${TIS_INCLUDE_DIR})
+	message ("TIS_LIBRARIES : " ${TIS_LIBRARIES})
+	message ("TIS_LIBRARY : " ${TIS_LIBRARY})
+	include_directories(${TIS_INCLUDE_DIR})
+	#link_directories(${TIS_LIBRARY})
+	target_link_libraries( ${EXE_NAME} ${TIS_LIBRARIES} )
 
 ELSE(${OperatingSystem} MATCHES "Windows")
 	IF(${OperatingSystem} MATCHES "Linux")
