@@ -271,7 +271,8 @@
 		ArvBuffer *arv_buffer;
 
 		arv_buffer = arv_stream_pop_buffer(stream); //us
-
+        char *buffer_data;
+        size_t buffer_size;
 
 		if (arv_buffer == NULL){
 
@@ -280,7 +281,9 @@
 
 		}else{
 
-			if(arv_buffer->status == ARV_BUFFER_STATUS_SUCCESS){
+			if(arv_buffer_get_status(arv_buffer) == ARV_BUFFER_STATUS_SUCCESS){
+
+                buffer_data = (char *) arv_buffer_get_data (arv_buffer, &buffer_size);
 
 				//Timestamping.
 				string acquisitionDate = TimeDate::localDateTime(microsec_clock::universal_time(),"%Y:%m:%d:%H:%M:%S");
@@ -291,12 +294,12 @@
 
 				if(pixFormat == ARV_PIXEL_FORMAT_MONO_8){
 
-					Mat img(height, width, CV_8UC1, arv_buffer->data);
+					Mat img(height, width, CV_8UC1, buffer_data);
 					img.copyTo(image);
 
 				}else if(pixFormat == ARV_PIXEL_FORMAT_MONO_12){
 
-					Mat img(height, width, CV_16UC1, arv_buffer->data);
+					Mat img(height, width, CV_16UC1, buffer_data);
 					img.copyTo(image);
 
 					cout << "shiftImage: " << shiftImage << endl;
@@ -332,7 +335,7 @@
 
 			}else{
 
-				switch(arv_buffer->status){
+				switch(arv_buffer_get_status(arv_buffer)){
 
 					case 0 :
 						cout << "ARV_BUFFER_STATUS_SUCCESS : the buffer contains a valid image"<<endl;
@@ -488,10 +491,17 @@
             // Get image buffer.
             ArvBuffer *arv_buffer = arv_stream_pop_buffer(stream); //*/arv_stream_timeout_pop_buffer(stream, 30000000); //us
 
+
+
+            char *buffer_data;
+            size_t buffer_size;
+
             if (arv_buffer != NULL){
 
-                if(arv_buffer->status == ARV_BUFFER_STATUS_SUCCESS){
+                if(arv_buffer_get_status(arv_buffer) == ARV_BUFFER_STATUS_SUCCESS){
 
+
+                    buffer_data = (char *) arv_buffer_get_data (arv_buffer, &buffer_size);
 
                     //Timestamping.
                     string acquisitionDate = TimeDate::localDateTime(microsec_clock::universal_time(),"%Y:%m:%d:%H:%M:%S");
@@ -502,12 +512,12 @@
 
                     if(pixFormat == ARV_PIXEL_FORMAT_MONO_8){
 
-                        image = Mat(height, width, CV_8UC1, arv_buffer->data);
+                        image = Mat(height, width, CV_8UC1, buffer_data);
 
 
                     }else if(pixFormat == ARV_PIXEL_FORMAT_MONO_12){
 
-                        image = Mat(height, width, CV_16UC1, arv_buffer->data);
+                        image = Mat(height, width, CV_16UC1, buffer_data);
 
                         if(shiftImage){
                             unsigned short * p;
@@ -528,7 +538,7 @@
 
                 }else{
 
-                    switch(arv_buffer->status){
+                    switch(arv_buffer_get_status(arv_buffer)){
 
                         case 0 :
 

@@ -125,7 +125,20 @@
 			void    acqStop();
 
 			bool    grabImage(Frame& newFrame);
+
+            /**
+             * This function configure the correct camera to use, prepare the grabbing of a single frame.
+             * With the Aravis library, it uses software trigger to capture a frame. When the camera receives
+             * this trigger pulse, the exposure begins. Once the image readout has finished, the camera is able
+             * to accept a new software trigger pulse.
+             *
+             * @param frame It contains the single frame grabbed by a camera in case of success.
+             * @param camID ID of the camera to use.
+             * @return The success status of grabbing a single frame.
+             */
 			bool	grabSingleImage(Frame &frame, int camID);
+
+
 			bool    getDeviceById(int id, string &device);
 
 			void	getExposureBounds(int &eMin, int &eMax);
