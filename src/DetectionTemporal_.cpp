@@ -188,7 +188,9 @@ void DetectionTemporal_::initDebug(){
     debugSubDir.push_back("thsh");
     debugSubDir.push_back("evMp");
     debugSubDir.push_back("motionMap");
+    debugSubDir.push_back("motionMap2");
     debugSubDir.push_back("GEMAP");
+    debugSubDir.push_back("map1");
 
     for(int i = 0; i< debugSubDir.size(); i++){
 
@@ -430,17 +432,17 @@ bool DetectionTemporal_::run(Frame &c, Frame &p){
 		imgNum = c.getNumFrame();
 
         /// Apply mask.
-		Mat currImg, prevImg;
+		Mat currImg/*, prevImg*/;
 
 		if(ACQ_MASK_ENABLED){
 
             c.getImg().copyTo(currImg, frameMask);
-            p.getImg().copyTo(prevImg, frameMask);
+            //p.getImg().copyTo(prevImg, frameMask);
 
 		}else{
 
             c.getImg().copyTo(currImg);
-            p.getImg().copyTo(prevImg);
+            //p.getImg().copyTo(prevImg);
 
 		}
 
@@ -459,30 +461,49 @@ bool DetectionTemporal_::run(Frame &c, Frame &p){
 			imgW /= 2;
 
 			pyrDown(currImg, currImg, Size(imgW, imgH));
-			pyrDown(prevImg, prevImg, Size(imgW, imgH));
+			//pyrDown(prevImg, prevImg, Size(imgW, imgH));
 
 			t1_downsample = (((double)getTickCount() - t1_downsample)/getTickFrequency())*1000;
             cout << "> Downsample Time : " << t1_downsample << endl;
 
 		}
 
+		if(!prevImg.data){
+
+            currImg.copyTo(prevImg);
+            return false;
+
+        }
+
 		Conversion::convertTo8UC1(currImg).copyTo(currImg);
 		Conversion::convertTo8UC1(prevImg).copyTo(prevImg);
 
+        if(DET_DEBUG) SaveImg::saveBMP(currImg, DET_DEBUG_PATH + "/curr/curr_"+Conversion::intToString(imgNum));
 
+		// Threshold maps.
+		Mat mapC = Mat(imgH,imgW, CV_8UC1,Scalar(0));
+		Mat mapP = Mat(imgH,imgW, CV_8UC1,Scalar(0));
+		threshold(currImg, mapC, defineThreshold(currImg), 255, THRESH_BINARY);
+		threshold(prevImg, mapP, defineThreshold(prevImg), 255, THRESH_BINARY);
+		mapC = mapC + mapP;
 
-		if(DET_DEBUG) SaveImg::saveBMP(currImg, DET_DEBUG_PATH + "/curr/curr_"+Conversion::intToString(imgNum));
+        if(DET_DEBUG) SaveImg::saveBMP(mapC, DET_DEBUG_PATH + "/map1/map1_"+Conversion::intToString(imgNum));
 
 		double t1_difference = (double)getTickCount();
 
 		/// Search pixels which have increased in intensity.
-		Mat diffImg ;
-        diffImg = currImg - prevImg;
+		//Mat mapThreshold;
+        //mapThreshold = mapC - mapP;
+
+		Mat diffImg; absdiff(currImg, prevImg, diffImg);
+		//diff.copyTo(mapThreshold);
 
 		t1_difference = (((double)getTickCount() - t1_difference)/getTickFrequency())*1000;
 		cout << "> Difference Time : " << t1_difference << endl;
 
 		if(DET_DEBUG) SaveImg::saveBMP(diffImg, DET_DEBUG_PATH + "/diff/diff_"+Conversion::intToString(imgNum));
+
+		currImg.copyTo(prevImg);
 
         /// Apply threshold to create binary map.
 
@@ -539,7 +560,7 @@ bool DetectionTemporal_::run(Frame &c, Frame &p){
 		}
 
 		t1_threshold2 = (((double)getTickCount() - t1_threshold2)/getTickFrequency())*1000;
-		//cout << "> Eliminate single white pixels Time : " << t1_threshold2 << endl;
+		cout << "> Eliminate single white pixels Time : " << t1_threshold2 << endl;
 
         /// Difference of 2 last threshold map.
         Mat motionMap;
@@ -549,6 +570,10 @@ bool DetectionTemporal_::run(Frame &c, Frame &p){
 			motionMap = mapThreshold & prevThreshMap;
 
 			if(DET_DEBUG) SaveImg::saveBMP(motionMap, DET_DEBUG_PATH + "/motionMap/motionMap_"+Conversion::intToString(imgNum));
+
+			motionMap = motionMap & mapC;
+
+			if(DET_DEBUG) SaveImg::saveBMP(motionMap, DET_DEBUG_PATH + "/motionMap2/motionMap2_"+Conversion::intToString(imgNum));
 
 			mapThreshold.copyTo(prevThreshMap);
 
@@ -717,7 +742,7 @@ bool DetectionTemporal_::run(Frame &c, Frame &p){
 			if((*itGE).getAgeLastElem() > 5){
 
                 // Linear profil ? Minimum duration respected ?
-				if(((*itGE).LEList.size() >= 10 && ((*itGE).getLinearStatus() || (*itGE).continuousGoodPos(5)))){
+				if(((*itGE).LEList.size() >= 8 && ((*itGE).getLinearStatus() && (*itGE).continuousGoodPos(4)))){
 
 					GEToSave = itGE;
 
@@ -737,7 +762,7 @@ bool DetectionTemporal_::run(Frame &c, Frame &p){
 			}else{
 
                 // Too long event ? or not linear ?
-				if( (*itGE).getAge() > 400 ||
+				if( (*itGE).getAge() > 500 ||
 					!(*itGE).getLinearStatus()){
 
 					// Delete the event.

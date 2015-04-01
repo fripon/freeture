@@ -161,6 +161,8 @@ class DetectionTemporal_ : public Detection{
 
         bool ACQ_MASK_ENABLED;
 
+        Mat prevImg;
+
 
 	public:
 

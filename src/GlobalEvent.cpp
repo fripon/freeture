@@ -67,8 +67,13 @@ bool GlobalEvent::addLE(LocalEvent le){
     bool addLeDecision = true;
 
     // First LE's position become a main point.
-    if(pts.size()==0)
+    if(pts.size()==0){
+
         mainPts.push_back(center);
+        geGoodPoint++;
+        ptsValidity.push_back(true);
+
+    }
 
     // If the current le is at least the second.
     else if(pts.size()>0){
@@ -116,11 +121,29 @@ bool GlobalEvent::addLE(LocalEvent le){
 
                 }else{
 
-                    geBadPoint = 0;
-                    geGoodPoint++;
-                    mainPts.push_back(center);
-                    ptsValidity.push_back(true);
-                    circle(geDirMap, center, 5, Scalar(255,255,255), 1, 8, 0);
+                    if(center.x != mainPts.back().x && center.y != mainPts.back().y){
+
+                        geBadPoint = 0;
+                        geGoodPoint++;
+                        mainPts.push_back(center);
+                        ptsValidity.push_back(true);
+                        circle(geDirMap, center, 5, Scalar(255,255,255), 1, 8, 0);
+
+                    }else{
+
+                        geBadPoint++;
+
+                        if(geBadPoint == 2){
+
+                            geLinear = false;
+
+                        }
+
+                        addLeDecision = false;
+                        ptsValidity.push_back(false);
+                        circle(geDirMap, center, 5, Scalar(0,0,255), 1, 8, 0);
+
+                    }
 
                 }
 
@@ -128,6 +151,7 @@ bool GlobalEvent::addLE(LocalEvent le){
 
                 // Create new main point.
                 mainPts.push_back(center);
+                geGoodPoint++;
                 ptsValidity.push_back(true);
                 circle(geDirMap, center, 5, Scalar(255,255,255), 1, 8, 0);
 
