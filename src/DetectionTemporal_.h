@@ -163,7 +163,6 @@ class DetectionTemporal_ : public Detection{
 
         Mat prevImg;
 
-
 	public:
 
 		DetectionTemporal_();

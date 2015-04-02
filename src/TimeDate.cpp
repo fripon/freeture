@@ -473,7 +473,7 @@ string TimeDate::get_YYYYMMDD_fromDateString(string date){
     }
 
 	// Extract YYYY, MM, DD from YYYY:MM:DD
-	boost::char_separator<char> sep1(":");
+	boost::char_separator<char> sep1("-");
 	tokenizer tokens2(output1.front(), sep1);
     for (tokenizer::iterator tok_iter = tokens2.begin();tok_iter != tokens2.end(); ++tok_iter){
         output2.push_back(*tok_iter);
@@ -528,7 +528,7 @@ string TimeDate::get_YYYYMMDDThhmmss(string date){
     for (tokenizer::iterator tok_iter = tokens3.begin();tok_iter != tokens3.end(); ++tok_iter){
         finalDate += (*tok_iter);
     }
-	
+
 	return finalDate;
 
 }

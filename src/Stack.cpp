@@ -60,13 +60,15 @@ void Stack::addFrame(Frame &i){
 
 	Mat curr = Mat::zeros(i.getImg().rows, i.getImg().cols, CV_32FC1);
 	cout << "> STACK : " << curFrames << " / " << maxFrames  << endl;
+
     i.getImg().convertTo(curr, CV_32FC1);
+
     accumulate(curr, stack);
 	curFrames++;
+    dateLastFrame = i.getAcqDateMicro();
 
 	if(curFrames >= maxFrames){
 
-		dateLastFrame = i.getAcqDateMicro();
 		fullStatus = true;
 
 	}
@@ -75,6 +77,7 @@ void Stack::addFrame(Frame &i){
 
 bool Stack::saveStack(Fits fitsHeader, string path, StackMeth STACK_MTHD, string STATION_NAME, bool STACK_REDUCTION){
 
+    cout << "dateLastFrame: " << dateLastFrame<< endl;
 	// Vector<int> : YYYY, MM, DD, hh,mm, ss
 	vector<int> firstDateInt = TimeDate::getIntVectorFromDateString(dateFirstFrame);
 	vector<int> lastDateInt  = TimeDate::getIntVectorFromDateString(dateLastFrame);
@@ -98,7 +101,8 @@ bool Stack::saveStack(Fits fitsHeader, string path, StackMeth STACK_MTHD, string
     // Acquisition date of the first frame 'YYYY-MM-JJTHH:MM:SS.SS'
     newFits.setDateobs(dateFirstFrame);
     // Integration time : 1/fps * nb_frames (sec.)
-    newFits.setExposure((1.0f/fps)*maxFrames);
+    if(fps <= 0) fps = 1;
+    newFits.setExposure((1.0f/fps)*curFrames);
     // end obs. date - start obs. date (sec.)
     newFits.setElaptime(elapTime);
     // Sideral time
@@ -118,7 +122,7 @@ bool Stack::saveStack(Fits fitsHeader, string path, StackMeth STACK_MTHD, string
             {
                 // 'SINGLE' 'SUM' 'AVERAGE' ('MEDIAN')
                 newFits.setObsmode("AVERAGE");
-				stack = stack/maxFrames;
+				stack = stack/curFrames;
 
                 if(bitdepth == MONO_8) newFits.setSaturate(255);
                 else if(bitdepth = MONO_12) newFits.setSaturate(4095);
@@ -228,11 +232,13 @@ bool Stack::saveStack(Fits fitsHeader, string path, StackMeth STACK_MTHD, string
         case SUM :
 
             {
+                cout << "SUM " << endl;
+
                 // 'SINGLE' 'SUM' 'AVERAGE' ('MEDIAN')
                 newFits.setObsmode("SUM");
 
-                if(bitdepth == MONO_8) newFits.setSaturate(255 * maxFrames);
-                else if(bitdepth = MONO_12) newFits.setSaturate(4095 * maxFrames);
+                if(bitdepth == MONO_8) newFits.setSaturate(255 * curFrames);
+                else if(bitdepth = MONO_12) newFits.setSaturate(4095 * curFrames);
 
 
                  if(STACK_REDUCTION){
@@ -300,7 +306,7 @@ Mat Stack::reductionByFactorDivision(float &bzero, float &bscale){
             {
 
                 newMat = Mat(stack.rows,stack.cols, CV_8SC1, Scalar(0));
-				factor = maxFrames;
+				factor = curFrames;
                 bscale = factor;
                 bzero  = 128 * factor;
 
@@ -334,7 +340,7 @@ Mat Stack::reductionByFactorDivision(float &bzero, float &bscale){
             {
 
                 newMat = Mat(stack.rows,stack.cols, CV_16SC1, Scalar(0));
-                factor = (4095.0f * maxFrames)/65535;
+                factor = (4095.0f * curFrames)/65535;
 
                 bscale = factor;
                 bzero  = 32768 * factor;

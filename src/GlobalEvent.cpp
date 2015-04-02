@@ -84,7 +84,7 @@ bool GlobalEvent::addLE(LocalEvent le){
         if((pts.size()+1)%3 == 0){
 
             // If there is already at least two main points.
-            if(mainPts.size()>2){
+            if(mainPts.size()>=2){
 
                 // Get first main point.
                 Point A = mainPts.front(),

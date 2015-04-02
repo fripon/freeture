@@ -354,11 +354,11 @@ void DetThread::operator ()(){
 						buildEventDataDirectory(eventDate);
 
 						// Save event.
-						boost::mutex::scoped_lock lock(*frameBuffer_mutex);
 						BOOST_LOG_SEV(logger, normal) << "Start saving event..." << endl;
+						detTech->saveDetectionInfos(eventPath);
+						boost::mutex::scoped_lock lock(*frameBuffer_mutex);
 						saveEventData(detTech->getNumFirstEventFrame(), detTech->getNumLastEventFrame());
 						lock.unlock();
-						detTech->saveDetectionInfos(eventPath);
 
 						// Reset detection.
 						BOOST_LOG_SEV(logger, normal) << "Reset detection process." << endl;
@@ -775,6 +775,10 @@ bool DetThread::saveEventData(int firstEvPosInFB, int lastEvPosInFB){
 	if(MAIL_DETECTION_ENABLED){
 
 		BOOST_LOG_SEV(logger,notification) << "Sending mail...";
+
+		mailAttachments.push_back(eventPath + "DirMap.bmp");
+
+		mailAttachments.push_back(eventPath + "GeMap.bmp");
 
         SMTPClient mailc(MAIL_SMTP_SERVER, 25, MAIL_SMTP_HOSTNAME);
 
