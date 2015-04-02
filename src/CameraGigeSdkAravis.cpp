@@ -161,8 +161,10 @@
 		// Create a new stream object. Open stream on Camera.
 		stream = arv_camera_create_stream(camera, NULL, NULL);
 
-		if(stream == NULL)
-			cout << "stream is null " << endl;
+		if(stream == NULL){
+			cout << "Stream is null ! " << endl;
+			return false;
+        }
 
 		if (ARV_IS_GV_STREAM(stream)){
 
@@ -229,7 +231,8 @@
 						 // Default value: 200000
 						 "frame-retention", /*(unsigned) arv_option_frame_retention * 1000*/(unsigned) 200000,NULL);
 
-		}
+		}else
+            return false;
 
 		// Push 50 buffer in the stream input buffer queue.
 		for (int i = 0; i < 50; i++)
@@ -270,7 +273,7 @@
 
 		ArvBuffer *arv_buffer;
 
-		arv_buffer = arv_stream_pop_buffer(stream); //us
+		arv_buffer = arv_stream_timeout_pop_buffer(stream,2000000); //us
         char *buffer_data;
         size_t buffer_size;
 
@@ -333,6 +336,10 @@
                     newFrame.setSaturatedValue(4095);
 				}
 
+				arv_stream_push_buffer(stream, arv_buffer);
+
+				return true;
+
 			}else{
 
 				switch(arv_buffer_get_status(arv_buffer)){
@@ -364,13 +371,10 @@
 
 				}
 
+				arv_stream_push_buffer(stream, arv_buffer);
+
 				return false;
 			}
-
-			arv_stream_push_buffer(stream, arv_buffer);
-
-            return true;
-
 		 }
 	}
 
