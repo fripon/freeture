@@ -163,6 +163,9 @@ class DetectionTemporal_ : public Detection{
 
         Mat prevImg;
 
+        bool STATIC_MASK;
+        Mat staticObjectsMask;
+
 	public:
 
 		DetectionTemporal_();

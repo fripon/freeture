@@ -124,104 +124,74 @@ bool Stack::saveStack(Fits fitsHeader, string path, StackMeth STACK_MTHD, string
                 newFits.setObsmode("AVERAGE");
 				stack = stack/curFrames;
 
-                if(bitdepth == MONO_8) newFits.setSaturate(255);
-                else if(bitdepth = MONO_12) newFits.setSaturate(4095);
+                switch(bitdepth){
 
-                 if(STACK_REDUCTION){
+                    case MONO_8 :
 
-                    Mat newMat ;
+                        {
 
-                    float bzero	 = 0.0;
-                    float bscale = 1.0;
-                    float factor;
+                            newFits.setSaturate(255);
 
-                    switch(bitdepth){
+                            Mat newMat = Mat(stack.rows,stack.cols, CV_8UC1, Scalar(0));
 
-                        case MONO_8 :
+                            float * ptr;
+                            unsigned char * ptr2;
 
-                            {
-                                newMat = Mat(stack.rows,stack.cols, CV_8SC1, Scalar(0));
-                                factor = 1;
-                                bscale = factor;
-                                bzero  = 128 * factor;
+                            for(int i = 0; i < stack.rows; i++){
 
-                                newFits.setBzero(bzero);
-                                newFits.setBscale(bscale);
+                                ptr = stack.ptr<float>(i);
+                                ptr2 = newMat.ptr<unsigned char>(i);
 
-                                float * ptr;
-                                char * ptr2;
+                                for(int j = 0; j < stack.cols; j++){
 
-                                for(int i = 0; i < stack.rows; i++){
+                                    ptr2[j] = (unsigned char)ptr[j];
 
-                                    ptr = stack.ptr<float>(i);
-                                    ptr2 = newMat.ptr<char>(i);
-
-                                    for(int j = 0; j < stack.cols; j++){
-
-                                        if(cvRound(ptr[j] / factor) - 128 > 127){
-
-                                            ptr2[j] = 127;
-
-                                        }else{
-
-                                            ptr2[j] = cvRound(ptr[j] / factor) - 128;
-                                        }
-
-                                    }
                                 }
-
-                                newFits.writeFits(newMat, C8, "" );
-
                             }
 
-                            break;
+                            // Create FITS image with BITPIX = BYTE_IMG (8-bits unsigned integers), pixel with TBYTE (8-bit unsigned byte)
+                            newFits.writeFits(newMat, UC8, "" );
 
-                        case MONO_12 :
+                        }
 
-                            {
+                        break;
 
-                                newMat = Mat(stack.rows,stack.cols, CV_16SC1, Scalar(0));
-                                factor = 1;
+                    case MONO_12 :
 
-                                bscale = factor;
-                                bzero  = 32768 * factor;
+                        {
 
-                                newFits.setBzero(bzero);
-                                newFits.setBscale(bscale);
+                            Mat newMat = Mat(stack.rows,stack.cols, CV_16SC1, Scalar(0));
 
-                                float * ptr;
-                                short * ptr2;
+                            newFits.setBzero(32768);
+                            newFits.setBscale(1);
+                            newFits.setSaturate(4095);
 
-                                for(int i = 0; i < stack.rows; i++){
+                            float * ptr;
+                            short * ptr2;
 
-                                    ptr = stack.ptr<float>(i);
-                                    ptr2 = newMat.ptr<short>(i);
+                            for(int i = 0; i < stack.rows; i++){
 
-                                    for(int j = 0; j < stack.cols; j++){
+                                ptr = stack.ptr<float>(i);
+                                ptr2 = newMat.ptr<short>(i);
 
-                                        if(cvRound(ptr[j] / factor) - 32768 > 32767){
+                                for(int j = 0; j < stack.cols; j++){
 
-                                            ptr2[j] = 32767;
+                                    if(ptr[j] - 32768 > 32767){
 
-                                        }else{
+                                        ptr2[j] = 32767;
 
-                                            ptr2[j] = cvRound(ptr[j] / factor) - 32768;
-                                        }
+                                    }else{
+
+                                        ptr2[j] = ptr[j] - 32768;
                                     }
                                 }
-
-                                newFits.writeFits(newMat, S16, "" );
-
                             }
 
-                            break;
+                            newFits.writeFits(newMat, S16, "" );
 
-                    }
+                        }
 
-                }else{
-
-                    // Save fits in 32 bits.
-                    newFits.writeFits(stack, F32, ""  );
+                        break;
 
                 }
 
@@ -232,16 +202,18 @@ bool Stack::saveStack(Fits fitsHeader, string path, StackMeth STACK_MTHD, string
         case SUM :
 
             {
-                cout << "SUM " << endl;
 
                 // 'SINGLE' 'SUM' 'AVERAGE' ('MEDIAN')
                 newFits.setObsmode("SUM");
 
-                if(bitdepth == MONO_8) newFits.setSaturate(255 * curFrames);
-                else if(bitdepth = MONO_12) newFits.setSaturate(4095 * curFrames);
+                if(bitdepth == MONO_8)
+                    newFits.setSaturate(255 * curFrames);
+
+                else if(bitdepth = MONO_12)
+                    newFits.setSaturate(4095 * curFrames);
 
 
-                 if(STACK_REDUCTION){
+                if(STACK_REDUCTION){
 
                     Mat newMat ;
 
@@ -259,7 +231,7 @@ bool Stack::saveStack(Fits fitsHeader, string path, StackMeth STACK_MTHD, string
 
                             {
 
-                                newFits.writeFits(newMat, C8, "" );
+                                newFits.writeFits(newMat, UC8, "" );
 
                             }
 
@@ -297,37 +269,28 @@ Mat Stack::reductionByFactorDivision(float &bzero, float &bscale){
 
     Mat newMat;
 
-    float factor;
-
     switch(bitdepth){
 
         case MONO_8 :
 
             {
 
-                newMat = Mat(stack.rows,stack.cols, CV_8SC1, Scalar(0));
-				factor = curFrames;
+                newMat = Mat(stack.rows,stack.cols, CV_8UC1, Scalar(0));
+				float factor = curFrames;
                 bscale = factor;
-                bzero  = 128 * factor;
+                bzero  = 0;
 
                 float * ptr;
-                char * ptr2;
+                unsigned char * ptr2;
 
                 for(int i = 0; i < stack.rows; i++){
 
                     ptr = stack.ptr<float>(i);
-                    ptr2 = newMat.ptr<char>(i);
+                    ptr2 = newMat.ptr<unsigned char>(i);
 
                     for(int j = 0; j < stack.cols; j++){
 
-                        if(cvRound(ptr[j] / factor) - 128 > 127){
-
-                            ptr2[j] = 127;
-
-                        }else{
-
-                            ptr2[j] = cvRound(ptr[j] / factor) - 128;
-                        }
+                        ptr2[j] = cvRound(ptr[j] / factor) ;
 
                     }
                 }
@@ -340,7 +303,7 @@ Mat Stack::reductionByFactorDivision(float &bzero, float &bscale){
             {
 
                 newMat = Mat(stack.rows,stack.cols, CV_16SC1, Scalar(0));
-                factor = (4095.0f * curFrames)/65535;
+                float factor = (4095.0f * curFrames)/65535;
 
                 bscale = factor;
                 bzero  = 32768 * factor;

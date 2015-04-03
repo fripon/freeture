@@ -43,6 +43,7 @@ DetectionTemporal_::DetectionTemporal_(){
 
 	DET_DEBUG = false;
 	DET_DEBUG_VIDEO = false;
+	STATIC_MASK = false;
 
 	listColors.push_back(Scalar(0,0,139));      // DarkRed
 	listColors.push_back(Scalar(0,0,255));      // Red
@@ -145,6 +146,8 @@ bool DetectionTemporal_::initMethod(string cfg_path){
 
         // Get stdev option.
         cfg.Get("DET_SAVE_STDEV", DET_SAVE_STDEV);
+
+        //cfg.Get("STATIC_MASK", STATIC_MASK);
 
         // Create directories for debugging method.
         if(DET_DEBUG)
@@ -422,29 +425,16 @@ bool DetectionTemporal_::run(Frame &c, Frame &p){
 
 	}else{
 
-		// Height of the frame.
-		int imgH = c.getImg().rows;
-
-		// Width of the frame.
-		int imgW = c.getImg().cols;
+		// Frame's size.
+		int imgH = c.getImg().rows, imgW = c.getImg().cols;
 
 		// Num of the current frame.
 		imgNum = c.getNumFrame();
 
         /// Apply mask.
-		Mat currImg/*, prevImg*/;
-
-		if(ACQ_MASK_ENABLED){
-
-            c.getImg().copyTo(currImg, frameMask);
-            //p.getImg().copyTo(prevImg, frameMask);
-
-		}else{
-
-            c.getImg().copyTo(currImg);
-            //p.getImg().copyTo(prevImg);
-
-		}
+		Mat currImg;
+		if(ACQ_MASK_ENABLED) c.getImg().copyTo(currImg, frameMask);
+		else c.getImg().copyTo(currImg);
 
 		/// %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 		/// %%%%%%%%%%%%%%%%%%%%%%%%%%% STEP 1 : FILETRING / THRESHOLDING %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
@@ -452,7 +442,7 @@ bool DetectionTemporal_::run(Frame &c, Frame &p){
 
 		double t1 = (double)getTickCount();
 
-        /// Downsample previous and current image.
+        /// Downsample current image.
 		if(DET_DOWNSAMPLE_ENABLED){
 
             double t1_downsample = (double)getTickCount();
@@ -461,26 +451,27 @@ bool DetectionTemporal_::run(Frame &c, Frame &p){
 			imgW /= 2;
 
 			pyrDown(currImg, currImg, Size(imgW, imgH));
-			//pyrDown(prevImg, prevImg, Size(imgW, imgH));
 
 			t1_downsample = (((double)getTickCount() - t1_downsample)/getTickFrequency())*1000;
             cout << "> Downsample Time : " << t1_downsample << endl;
 
 		}
 
+        /// If previous image has no data.
+        /// The current image become the previous and we do not continue the detection process for the current image.
 		if(!prevImg.data){
 
             currImg.copyTo(prevImg);
+            Conversion::convertTo8UC1(prevImg).copyTo(prevImg);
             return false;
 
         }
 
 		Conversion::convertTo8UC1(currImg).copyTo(currImg);
-		Conversion::convertTo8UC1(prevImg).copyTo(prevImg);
 
         if(DET_DEBUG) SaveImg::saveBMP(currImg, DET_DEBUG_PATH + "/curr/curr_"+Conversion::intToString(imgNum));
 
-		// Threshold maps.
+		/// Threshold previous and current images to find pixels with high intensity value.
 		Mat mapC = Mat(imgH,imgW, CV_8UC1,Scalar(0));
 		Mat mapP = Mat(imgH,imgW, CV_8UC1,Scalar(0));
 		threshold(currImg, mapC, defineThreshold(currImg), 255, THRESH_BINARY);
@@ -489,23 +480,22 @@ bool DetectionTemporal_::run(Frame &c, Frame &p){
 
         if(DET_DEBUG) SaveImg::saveBMP(mapC, DET_DEBUG_PATH + "/map1/map1_"+Conversion::intToString(imgNum));
 
-		double t1_difference = (double)getTickCount();
+		/// Search pixels which have changed.
+        double t1_difference = (double)getTickCount();
 
-		/// Search pixels which have increased in intensity.
-		//Mat mapThreshold;
-        //mapThreshold = mapC - mapP;
-
-		Mat diffImg; absdiff(currImg, prevImg, diffImg);
-		//diff.copyTo(mapThreshold);
+		Mat diffImg;
+		absdiff(currImg, prevImg, diffImg);
 
 		t1_difference = (((double)getTickCount() - t1_difference)/getTickFrequency())*1000;
 		cout << "> Difference Time : " << t1_difference << endl;
 
 		if(DET_DEBUG) SaveImg::saveBMP(diffImg, DET_DEBUG_PATH + "/diff/diff_"+Conversion::intToString(imgNum));
 
+        /// The current image become the previous image.
 		currImg.copyTo(prevImg);
+		Conversion::convertTo8UC1(prevImg).copyTo(prevImg);
 
-        /// Apply threshold to create binary map.
+        /// Apply threshold to create a binary map of changed pixels.
 
 		double t1_threshold = (double)getTickCount();
 
@@ -571,6 +561,7 @@ bool DetectionTemporal_::run(Frame &c, Frame &p){
 
 			if(DET_DEBUG) SaveImg::saveBMP(motionMap, DET_DEBUG_PATH + "/motionMap/motionMap_"+Conversion::intToString(imgNum));
 
+            // Create the final map according to the map of pixels with high values and the map of changed pixels.
 			motionMap = motionMap & mapC;
 
 			if(DET_DEBUG) SaveImg::saveBMP(motionMap, DET_DEBUG_PATH + "/motionMap2/motionMap2_"+Conversion::intToString(imgNum));
@@ -791,6 +782,8 @@ bool DetectionTemporal_::run(Frame &c, Frame &p){
                 GEMAP = GEMAP + (*itGE).getGeMapColor();
 
             }
+
+            if(DET_DEBUG) SaveImg::saveBMP(GEMAP, DET_DEBUG_PATH + "/GEMAP/GEMAP_"+Conversion::intToString(imgNum));
 
             Mat VIDEO               = Mat(960,1280, CV_8UC3,Scalar(255,255,255));
             Mat VIDEO_frame         = Mat(470,630, CV_8UC3,Scalar(0,0,0));

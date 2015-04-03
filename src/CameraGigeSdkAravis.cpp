@@ -437,7 +437,7 @@
 
 		// Create a new stream object. Open stream on Camera.
 		stream = arv_camera_create_stream(camera, NULL, NULL);
-
+cout << "shiftImage: " << shiftImage << endl;
 		if(stream != NULL){
 
             if(ARV_IS_GV_STREAM(stream)){
@@ -531,10 +531,7 @@
                             }
                         }
 
-
                     }
-
-
 
                     frame = Frame(image, arv_camera_get_gain(camera), arv_camera_get_exposure_time(camera), acquisitionDate);
                     frame.setAcqDateMicro(acqDateInMicrosec);

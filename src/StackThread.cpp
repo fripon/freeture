@@ -273,6 +273,8 @@ void StackThread::operator()(){
 					if(buildStackDataDirectory(stack.getDateFirstFrame()))
 						stack.saveStack(fitsHeader, completeDataPath, STACK_MTHD, STATION_NAME, STACK_REDUCTION);
 
+                    cout << "Save stack : " << completeDataPath << endl;
+
 				}
 
 				t = (((double)getTickCount() - t)/getTickFrequency())*1000;

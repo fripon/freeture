@@ -647,7 +647,7 @@ int main(int argc, const char ** argv){
 
 							switch(camFormat){
 
-								case MONO_8 :
+								/*case MONO_8 :
 
 									{
 
@@ -664,7 +664,7 @@ int main(int argc, const char ** argv){
 
 									{
 
-										if(newFits.writeFits(frame.getImg(), S16, "capture" ))
+										if(newFits.writeFits(frame.getImg(), US16, "capture" ))
 											cout << "> Fits saved in " << savePath << endl;
 										else
 											cout << "Failed to save Fits." << endl;
@@ -672,7 +672,59 @@ int main(int argc, const char ** argv){
 
 									}
 
-									break;
+									break;*/
+
+
+                                case MONO_8 :
+
+                                    {
+                                        // Create FITS image with BITPIX = BYTE_IMG (8-bits unsigned integers), pixel with TBYTE (8-bit unsigned byte)
+                                        if(newFits.writeFits(frame.getImg(), UC8, "SingleCapture" )) cout << "> Fits saved in " << savePath << endl;
+
+                                    }
+
+                                    break;
+
+                                case MONO_12 :
+
+                                    {
+
+                                        // Convert unsigned short type image in short type image.
+                                        Mat newMat = Mat(frame.getImg().rows, frame.getImg().cols, CV_16SC1, Scalar(0));
+
+                                        // Set bzero and bscale for print unsigned short value in soft visualization.
+                                        double bscale = 1;
+                                        double bzero  = 32768;
+                                        newFits.setBzero(bzero);
+                                        newFits.setBscale(bscale);
+
+                                        unsigned short * ptr;
+                                        short * ptr2;
+
+                                        for(int i = 0; i < frame.getImg().rows; i++){
+
+                                            ptr = frame.getImg().ptr<unsigned short>(i);
+                                            ptr2 = newMat.ptr<short>(i);
+
+                                            for(int j = 0; j < frame.getImg().cols; j++){
+
+                                                if(ptr[j] - 32768 > 32767){
+
+                                                    ptr2[j] = 32767;
+
+                                                }else{
+
+                                                    ptr2[j] = ptr[j] - 32768;
+                                                }
+                                            }
+                                        }
+
+
+                                        // Create FITS image with BITPIX = SHORT_IMG (16-bits signed integers), pixel with TSHORT (signed short)
+                                        if(newFits.writeFits(newMat, S16, "SingleCapture" ))cout << "> Fits saved in " << savePath << endl;
+
+                                    }
+
 
 							}
 						}
