@@ -4,10 +4,12 @@
 #  TIS_INCLUDE_DIRS - The TIS include directories
 #  TIS_LIBRARIES - The libraries needed to use TIS
 
-FIND_PATH(	TIS_INCLUDE_DIRS tisudshl.h
+FIND_PATH(	TIS_INCLUDE_DIR tisudshl.h MemBufferCollection.h
 			PATHS
 			"$ENV{TIS_INCLUDEDIR}"
 )
+
+message("ENV : " $ENV{TIS_INCLUDEDIR})
 
 FIND_LIBRARY(	TIS_LIBRARY 
 				NAMES 
