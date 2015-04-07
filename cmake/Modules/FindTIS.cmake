@@ -9,8 +9,6 @@ FIND_PATH(	TIS_INCLUDE_DIR tisudshl.h MemBufferCollection.h
 			"$ENV{TIS_INCLUDEDIR}"
 )
 
-message("ENV : " $ENV{TIS_INCLUDEDIR})
-
 FIND_LIBRARY(	TIS_LIBRARY 
 				NAMES 
 				TIS_UDSHL11d_x64 TIS_UDSHL10d_x64
