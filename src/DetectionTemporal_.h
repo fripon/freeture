@@ -163,8 +163,20 @@ class DetectionTemporal_ : public Detection{
 
         Mat prevImg;
 
-        bool STATIC_MASK;
-        Mat staticObjectsMask;
+        int ACQ_FPS;
+
+        bool STATIC_MASK_OPTION;
+
+        int STATIC_MASK_INTERVAL;
+
+        Mat staticMask;
+
+        bool staticMaskInitialized;
+
+        // Map of pixel with high intensity.
+        Mat HighIntensityMap;
+
+        Mat mask;
 
 	public:
 

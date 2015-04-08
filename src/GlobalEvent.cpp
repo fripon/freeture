@@ -230,3 +230,15 @@ bool GlobalEvent::continuousGoodPos(int n){
 
 }
 
+bool GlobalEvent::ratioFramesDist(){
+
+    int d = (int)sqrt(pow(mainPts.back().x - mainPts.front().x,2.0) + pow(mainPts.back().y - mainPts.front().y,2.0));
+
+    int n = geLastFrameNum - geFirstFrameNum;
+
+    if(d > (n /2)) return true;
+    else return false;
+
+
+}
+

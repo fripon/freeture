@@ -103,6 +103,8 @@ class GlobalEvent{
         void    setNumFirstFrame        (int n)     {geFirstFrameNum = n;};
         void    setNumLastFrame         (int n)     {geLastFrameNum = n;};
 
+        bool    ratioFramesDist();
+
         bool    addLE(LocalEvent le);
         bool    continuousGoodPos(int n);
 

@@ -129,7 +129,7 @@ Mat Conversion::convertTo8UC1(Mat &img){
     img.copyTo(tmp);
     double min, max;
     minMaxLoc(tmp, &min, &max);
-    tmp.convertTo(tmp, CV_8UC1, 255.0/(max - min));
+    tmp.convertTo(tmp, CV_8UC1, 255.0/(max - min), -min * 255.0/(max - min));
 
     return tmp;
 

@@ -97,7 +97,7 @@ void AcqThread::stopThread(){
 	mustStopMutex.unlock();
 
 	// Wait for the thread to finish.
-	
+
 	while(acquisitionThread->timed_join(boost::posix_time::seconds(2)) == false){
 
         acquisitionThread->interrupt();
@@ -161,7 +161,7 @@ void AcqThread::operator()(){
 				boost::mutex::scoped_lock lock(*frameBuffer_mutex);
 				frameBuffer->push_back(newFrame);
 				lock.unlock();
-			
+
 				boost::mutex::scoped_lock lock2(*detSignal_mutex);
 				*detSignal = true;
 				detSignal_condition->notify_one();
@@ -171,7 +171,7 @@ void AcqThread::operator()(){
 				*stackSignal = true;
 				stackSignal_condition->notify_one();
 				lock3.unlock();
-		
+
 				nbFailGrabbedFrames++;
 
 			}else{
@@ -185,11 +185,11 @@ void AcqThread::operator()(){
 			tacq = (((double)getTickCount() - tacq)/getTickFrequency())*1000;
 			std::cout << " [ TIME ACQ ] : " << tacq << " ms" << endl;
 			BOOST_LOG_SEV(logger, normal) << " [ TIME ACQ ] : " << tacq << " ms";
-		
+
 			mustStopMutex.lock();
 			stop = mustStop;
 			mustStopMutex.unlock();
-		
+
 		}while(stop == false && !cam->getDeviceStopStatus());
 
 	}catch(const boost::thread_interrupted&){
@@ -198,12 +198,13 @@ void AcqThread::operator()(){
             cout << "Acquisition Thread INTERRUPTED" <<endl;
 
     }
-		
+
     cam->acqStop();
 	cam->grabStop();
 
 	threadTerminated = true;
 
 	std::cout << "Acquisition Thread terminated." << endl;
+	BOOST_LOG_SEV(logger,notification) << "Acquisition Thread TERMINATED";
 
 }

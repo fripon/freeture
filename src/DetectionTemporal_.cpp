@@ -43,7 +43,7 @@ DetectionTemporal_::DetectionTemporal_(){
 
 	DET_DEBUG = false;
 	DET_DEBUG_VIDEO = false;
-	STATIC_MASK = false;
+	STATIC_MASK_OPTION = false;
 
 	listColors.push_back(Scalar(0,0,139));      // DarkRed
 	listColors.push_back(Scalar(0,0,255));      // Red
@@ -72,6 +72,7 @@ DetectionTemporal_::DetectionTemporal_(){
 	imgNum = 0;
 
 	detStatus = false;
+	staticMaskInitialized = false;
 
 	roiSize[0] = 10;
 	roiSize[1] = 10;
@@ -91,42 +92,64 @@ bool DetectionTemporal_::initMethod(string cfg_path){
 		cfg.Load(cfg_path);
 
         // Get acquisition frequency.
-		int ACQ_FPS; cfg.Get("ACQ_FPS", ACQ_FPS);
+		cfg.Get("ACQ_FPS", ACQ_FPS);
+		BOOST_LOG_SEV(logger, notification) << "ACQ_FPS : " << ACQ_FPS;
 
         // Get acquisition format.
 		string acq_bit_depth; cfg.Get("ACQ_BIT_DEPTH", acq_bit_depth);
 		EParser<CamBitDepth> cam_bit_depth;
 		ACQ_BIT_DEPTH = cam_bit_depth.parseEnum("ACQ_BIT_DEPTH", acq_bit_depth);
+		BOOST_LOG_SEV(logger, notification) << "acq_bit_depth : " << acq_bit_depth;
 
         // Get downsample option.
 		cfg.Get("DET_DOWNSAMPLE_ENABLED", DET_DOWNSAMPLE_ENABLED);
+		BOOST_LOG_SEV(logger, notification) << "DET_DOWNSAMPLE_ENABLED : " << DET_DOWNSAMPLE_ENABLED;
 
         // Get gemap option.
 		cfg.Get("DET_SAVE_GEMAP", DET_SAVE_GEMAP);
+		BOOST_LOG_SEV(logger, notification) << "DET_SAVE_GEMAP : " << DET_SAVE_GEMAP;
 
 		// Get dirmap option.
 		cfg.Get("DET_SAVE_DIRMAP", DET_SAVE_DIRMAP);
+		BOOST_LOG_SEV(logger, notification) << "DET_SAVE_DIRMAP : " << DET_SAVE_DIRMAP;
 
         // Get save position option.
 		cfg.Get("DET_SAVE_POS", DET_SAVE_POS);
+		BOOST_LOG_SEV(logger, notification) << "DET_SAVE_POS : " << DET_SAVE_POS;
 
 		// Get save ge infos option.
 		cfg.Get("DET_SAVE_GE_INFOS", DET_SAVE_GE_INFOS);
+		BOOST_LOG_SEV(logger, notification) << "DET_SAVE_GE_INFOS : " << DET_SAVE_GE_INFOS;
 
         // Get use mask option.
 		cfg.Get("ACQ_MASK_ENABLED", ACQ_MASK_ENABLED);
+		BOOST_LOG_SEV(logger, notification) << "ACQ_MASK_ENABLED : " << ACQ_MASK_ENABLED;
 
 		if(ACQ_MASK_ENABLED){
 
 			string ACQ_MASK_PATH;
 			cfg.Get("ACQ_MASK_PATH", ACQ_MASK_PATH);
+			BOOST_LOG_SEV(logger, notification) << "ACQ_MASK_PATH : " << ACQ_MASK_PATH;
 
 			frameMask = imread(ACQ_MASK_PATH, CV_LOAD_IMAGE_GRAYSCALE);
 
 			if(!frameMask.data){
 				cout << " Can't load the mask from this location : " << ACQ_MASK_PATH;
+				BOOST_LOG_SEV(logger, notification) << " Can't load the mask from this location : " << ACQ_MASK_PATH;
 				throw "Can't load the mask. Wrong location.";
 			}
+
+			if(DET_DOWNSAMPLE_ENABLED){
+
+                int imgH = frameMask.rows; imgH /= 2;
+                int imgW = frameMask.cols; imgW /= 2;
+
+                pyrDown(frameMask, frameMask, Size(imgW, imgH));
+
+			}
+
+
+			frameMask.copyTo(mask);
 
 		}
 
@@ -137,17 +160,31 @@ bool DetectionTemporal_::initMethod(string cfg_path){
 
         // Get debug option.
         cfg.Get("DET_DEBUG", DET_DEBUG);
+        BOOST_LOG_SEV(logger, notification) << "DET_DEBUG : " << DET_DEBUG;
 
         // Get debug path.
         cfg.Get("DET_DEBUG_PATH", DET_DEBUG_PATH);
+        BOOST_LOG_SEV(logger, notification) << "DET_DEBUG_PATH : " << DET_DEBUG_PATH;
 
         // Get debug video option.
         cfg.Get("DET_DEBUG_VIDEO", DET_DEBUG_VIDEO);
+        BOOST_LOG_SEV(logger, notification) << "DET_DEBUG_VIDEO : " << DET_DEBUG_VIDEO;
 
         // Get stdev option.
         cfg.Get("DET_SAVE_STDEV", DET_SAVE_STDEV);
+        BOOST_LOG_SEV(logger, notification) << "DET_SAVE_STDEV : " << DET_SAVE_STDEV;
 
-        //cfg.Get("STATIC_MASK", STATIC_MASK);
+
+        cfg.Get("STATIC_MASK_OPTION", STATIC_MASK_OPTION);
+        BOOST_LOG_SEV(logger, notification) << "STATIC_MASK_OPTION : " << STATIC_MASK_OPTION;
+
+
+        cfg.Get("STATIC_MASK_INTERVAL", STATIC_MASK_INTERVAL);
+        BOOST_LOG_SEV(logger, notification) << "STATIC_MASK_INTERVAL : " << STATIC_MASK_INTERVAL;
+        if(STATIC_MASK_INTERVAL<= 0){
+            STATIC_MASK_INTERVAL = ACQ_FPS * 10;
+            BOOST_LOG_SEV(logger, fail) << "Error about STATIC_MASK_INTERVAL's value. Value changed to : " << STATIC_MASK_INTERVAL;
+        }
 
         // Create directories for debugging method.
         if(DET_DEBUG)
@@ -187,13 +224,19 @@ void DetectionTemporal_::initDebug(){
 
     vector<string> debugSubDir;
     debugSubDir.push_back("curr");
+    debugSubDir.push_back("prev");
     debugSubDir.push_back("diff");
     debugSubDir.push_back("thsh");
     debugSubDir.push_back("evMp");
     debugSubDir.push_back("motionMap");
     debugSubDir.push_back("motionMap2");
     debugSubDir.push_back("GEMAP");
-    debugSubDir.push_back("map1");
+    debugSubDir.push_back("HighIntensityMap");
+    debugSubDir.push_back("static");
+    debugSubDir.push_back("mask");
+    debugSubDir.push_back("avt");
+    debugSubDir.push_back("apr");
+    debugSubDir.push_back("currwithmask");
 
     for(int i = 0; i< debugSubDir.size(); i++){
 
@@ -234,11 +277,22 @@ void DetectionTemporal_::saveDetectionInfos(string p){
 		infFile << " * NUM FIRST FRAME  : " << (*GEToSave).getNumFirstFrame()   << "\n";
 		infFile << " * NUM LAST FRAME   : " << (*GEToSave).getNumLastFrame()    << "\n";
 
+		float d = sqrt(pow((*GEToSave).mainPts.back().x - (*GEToSave).mainPts.front().x,2.0) + pow((*GEToSave).mainPts.back().y - (*GEToSave).mainPts.front().y,2.0));
+		infFile << "\n * Distance   : " << d    << "\n";
+
 		infFile << "\n * mainPoints     : \n";
 
 		for(int i = 0; i < (*GEToSave).mainPts.size(); i++){
 
-			infFile << "(" << (*GEToSave).mainPts.at(i).x << ";"<<  (*GEToSave).mainPts.at(i).y << ")\n";
+			infFile << "    (" << (*GEToSave).mainPts.at(i).x << ";"<<  (*GEToSave).mainPts.at(i).y << ")\n";
+
+		}
+
+		infFile << "\n * ptsValidity     : \n";
+
+		for(int i = 0; i < (*GEToSave).ptsValidity.size(); i++){
+
+			infFile << "    " << (*GEToSave).ptsValidity.at(i) << "\n";
 
 		}
 
@@ -431,10 +485,8 @@ bool DetectionTemporal_::run(Frame &c, Frame &p){
 		// Num of the current frame.
 		imgNum = c.getNumFrame();
 
-        /// Apply mask.
-		Mat currImg;
-		if(ACQ_MASK_ENABLED) c.getImg().copyTo(currImg, frameMask);
-		else c.getImg().copyTo(currImg);
+        // Get frame.
+		Mat cc, currImg;
 
 		/// %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 		/// %%%%%%%%%%%%%%%%%%%%%%%%%%% STEP 1 : FILETRING / THRESHOLDING %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
@@ -442,7 +494,30 @@ bool DetectionTemporal_::run(Frame &c, Frame &p){
 
 		double t1 = (double)getTickCount();
 
-        /// Downsample current image.
+        if(DET_DEBUG) SaveImg::saveBMP(c.getImg(), DET_DEBUG_PATH + "/curr/curr_"+Conversion::intToString(imgNum));
+        if(DET_DEBUG && prevImg.data) SaveImg::saveBMP(prevImg, DET_DEBUG_PATH + "/prev/prev"+Conversion::intToString(imgNum));
+
+        // Not use mask.
+        if(!frameMask.data && !mask.data){
+
+            if(DET_DOWNSAMPLE_ENABLED){
+
+                frameMask = Mat(imgH/2,imgW/2, CV_8UC1,Scalar(255));
+                mask = Mat(imgH/2,imgW/2, CV_8UC1,Scalar(255));
+
+            }else{
+
+                frameMask = Mat(imgH,imgW, CV_8UC1,Scalar(255));
+                mask = Mat(imgH,imgW, CV_8UC1,Scalar(255));
+
+
+            }
+
+        }
+
+        c.getImg().copyTo(cc);
+
+        // Downsample current image.
 		if(DET_DOWNSAMPLE_ENABLED){
 
             double t1_downsample = (double)getTickCount();
@@ -450,41 +525,83 @@ bool DetectionTemporal_::run(Frame &c, Frame &p){
 			imgH /= 2;
 			imgW /= 2;
 
-			pyrDown(currImg, currImg, Size(imgW, imgH));
+			pyrDown(cc, cc, Size(imgW, imgH));
 
 			t1_downsample = (((double)getTickCount() - t1_downsample)/getTickFrequency())*1000;
             cout << "> Downsample Time : " << t1_downsample << endl;
 
 		}
 
+        // Convert to 8 bits.
+        Mat ccc;
+		Conversion::convertTo8UC1(cc).copyTo(ccc);
+
+        if(STATIC_MASK_OPTION){
+
+            int dilation_type = MORPH_RECT;
+            int dilation_size = 5;
+
+            double t_static = (double)getTickCount();
+
+            if(!staticMask.data){
+
+                // Threshold current image to find pixels with high intensity value.
+                Mat map1 = Mat(imgH,imgW, CV_8UC1,Scalar(0));
+                threshold(ccc, map1, defineThreshold(ccc), 255, THRESH_BINARY);
+
+                Mat element = getStructuringElement(dilation_type, Size(2*dilation_size + 1, 2*dilation_size+1), Point(dilation_size, dilation_size));
+
+                dilate(map1, staticMask, element);
+
+            }else{
+
+                // Update staticMask
+                if(imgNum % STATIC_MASK_INTERVAL == 0){
+
+                    // Threshold current image to find pixels with high intensity value.
+                    Mat map1 = Mat(imgH,imgW, CV_8UC1,Scalar(0));
+                    threshold(ccc, map1, defineThreshold(ccc), 255, THRESH_BINARY);
+
+                    Mat tempHighIntensityMap;
+                    Mat element = getStructuringElement(dilation_type, Size(2*dilation_size + 1, 2*dilation_size+1), Point(dilation_size, dilation_size));
+
+                    dilate( map1, tempHighIntensityMap, element );
+
+                    staticMask = staticMask & tempHighIntensityMap;
+
+                    Mat invertStaticMask = cv::Mat::ones(staticMask.size(), staticMask.type()) * 255 - staticMask;
+
+                    // Update mask.
+                    invertStaticMask.copyTo(mask,frameMask);
+
+                    if(DET_DEBUG) SaveImg::saveBMP(staticMask, DET_DEBUG_PATH + "/static/static_"+Conversion::intToString(imgNum));
+                    if(DET_DEBUG) SaveImg::saveBMP(mask, DET_DEBUG_PATH + "/mask/mask_"+Conversion::intToString(imgNum));
+
+                }
+            }
+
+            t_static = (((double)getTickCount() - t_static)/getTickFrequency())*1000;
+            cout << " [- STATIC TIME-] : " << std::setprecision(3) << std::fixed << t_static << " ms " << endl;
+
+        }
+
+        cc.copyTo(currImg, mask);
+
         /// If previous image has no data.
         /// The current image become the previous and we do not continue the detection process for the current image.
 		if(!prevImg.data){
 
             currImg.copyTo(prevImg);
-            Conversion::convertTo8UC1(prevImg).copyTo(prevImg);
             return false;
 
         }
-
-		Conversion::convertTo8UC1(currImg).copyTo(currImg);
-
-        if(DET_DEBUG) SaveImg::saveBMP(currImg, DET_DEBUG_PATH + "/curr/curr_"+Conversion::intToString(imgNum));
-
-		/// Threshold previous and current images to find pixels with high intensity value.
-		Mat mapC = Mat(imgH,imgW, CV_8UC1,Scalar(0));
-		Mat mapP = Mat(imgH,imgW, CV_8UC1,Scalar(0));
-		threshold(currImg, mapC, defineThreshold(currImg), 255, THRESH_BINARY);
-		threshold(prevImg, mapP, defineThreshold(prevImg), 255, THRESH_BINARY);
-		mapC = mapC + mapP;
-
-        if(DET_DEBUG) SaveImg::saveBMP(mapC, DET_DEBUG_PATH + "/map1/map1_"+Conversion::intToString(imgNum));
 
 		/// Search pixels which have changed.
         double t1_difference = (double)getTickCount();
 
 		Mat diffImg;
 		absdiff(currImg, prevImg, diffImg);
+		Conversion::convertTo8UC1(diffImg).copyTo(diffImg);
 
 		t1_difference = (((double)getTickCount() - t1_difference)/getTickFrequency())*1000;
 		cout << "> Difference Time : " << t1_difference << endl;
@@ -493,7 +610,6 @@ bool DetectionTemporal_::run(Frame &c, Frame &p){
 
         /// The current image become the previous image.
 		currImg.copyTo(prevImg);
-		Conversion::convertTo8UC1(prevImg).copyTo(prevImg);
 
         /// Apply threshold to create a binary map of changed pixels.
 
@@ -562,7 +678,7 @@ bool DetectionTemporal_::run(Frame &c, Frame &p){
 			if(DET_DEBUG) SaveImg::saveBMP(motionMap, DET_DEBUG_PATH + "/motionMap/motionMap_"+Conversion::intToString(imgNum));
 
             // Create the final map according to the map of pixels with high values and the map of changed pixels.
-			motionMap = motionMap & mapC;
+			//motionMap = motionMap & mapC;
 
 			if(DET_DEBUG) SaveImg::saveBMP(motionMap, DET_DEBUG_PATH + "/motionMap2/motionMap2_"+Conversion::intToString(imgNum));
 
@@ -733,7 +849,7 @@ bool DetectionTemporal_::run(Frame &c, Frame &p){
 			if((*itGE).getAgeLastElem() > 5){
 
                 // Linear profil ? Minimum duration respected ?
-				if(((*itGE).LEList.size() >= 8 && ((*itGE).getLinearStatus() && (*itGE).continuousGoodPos(4)))){
+				if((*itGE).LEList.size() >= 8 && (*itGE).continuousGoodPos(4) && (*itGE).ratioFramesDist()){
 
 					GEToSave = itGE;
 
@@ -754,7 +870,7 @@ bool DetectionTemporal_::run(Frame &c, Frame &p){
 
                 // Too long event ? or not linear ?
 				if( (*itGE).getAge() > 500 ||
-					!(*itGE).getLinearStatus()){
+					(!(*itGE).getLinearStatus() && !(*itGE).continuousGoodPos(5))){
 
 					// Delete the event.
 					itGE = listGlobalEvents.erase(itGE);
