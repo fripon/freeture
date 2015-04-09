@@ -34,6 +34,9 @@
 
 #include "Stack.h"
 
+boost::log::sources::severity_logger< LogSeverityLevel >  Stack::logger;
+Stack::_Init Stack::_initializer;
+
 Stack::Stack(int nbFrameToSum){
 
 	fullStatus			= false;
@@ -60,6 +63,7 @@ void Stack::addFrame(Frame &i){
 
 	Mat curr = Mat::zeros(i.getImg().rows, i.getImg().cols, CV_32FC1);
 	cout << "> STACK : " << curFrames << " / " << maxFrames  << endl;
+	BOOST_LOG_SEV(logger, normal) << "> STACK : " << curFrames << " / " << maxFrames;
 
     i.getImg().convertTo(curr, CV_32FC1);
 

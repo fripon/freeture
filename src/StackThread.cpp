@@ -62,6 +62,7 @@ StackThread::StackThread(   boost::mutex							*cfg_m,
 
 StackThread::~StackThread(void){
 
+    BOOST_LOG_SEV(logger,notification) << "Call StackThread destructor.";
 	if (thread!=NULL) delete thread;
 
 }
@@ -69,12 +70,20 @@ StackThread::~StackThread(void){
 bool StackThread::startThread(){
 
 	boost::mutex::scoped_lock lock(*cfg_mutex);
+
+	BOOST_LOG_SEV(logger,notification) << "Try to load parameters for StackThread...";
+
 	if(!loadStackParameters()){
 		lock.unlock();
+		BOOST_LOG_SEV(logger,fail) << "Fail to load parameters for StackThread.";
 		return false;
 	}
+
+	BOOST_LOG_SEV(logger,notification) << "Success to load parameters for StackThread.";
+
 	lock.unlock();
 
+    BOOST_LOG_SEV(logger,notification) << "Create StackThread.";
     thread = new boost::thread(boost::ref(*this));
 	return true;
 }
@@ -86,8 +95,11 @@ void StackThread::stopThread(){
 	mustStop =true;
 	mustStopMutex.unlock();
 
+	BOOST_LOG_SEV(logger,notification) << "Signal to stop StackThread received. Wait 2 seconds before interruption ...";
+
     while(thread->timed_join(boost::posix_time::seconds(2)) == false){
 
+        BOOST_LOG_SEV(logger,notification) << "Interruption signal sent.";
         thread->interrupt();
 
     }
@@ -103,28 +115,40 @@ bool StackThread::loadStackParameters(){
         // Get acquisition frequency.
 		int ACQ_FPS;
 		cfg.Get("ACQ_FPS", ACQ_FPS);
+		BOOST_LOG_SEV(logger,notification) << "Load ACQ_FPS : " << ACQ_FPS;
 
         // Get camera format.
 		string acq_bit_depth; cfg.Get("ACQ_BIT_DEPTH", acq_bit_depth);
 		EParser<CamBitDepth> cam_bit_depth;
 		ACQ_BIT_DEPTH = cam_bit_depth.parseEnum("ACQ_BIT_DEPTH", acq_bit_depth);
+		BOOST_LOG_SEV(logger,notification) << "Load ACQ_BIT_DEPTH : " << acq_bit_depth;
 
         // Get time of stacking frames.
 		cfg.Get("STACK_TIME", STACK_TIME);
+		BOOST_LOG_SEV(logger,notification) << "Load STACK_TIME : " << STACK_TIME;
 		STACK_TIME = STACK_TIME * ACQ_FPS;
 
         // Get time to wait before a new stack.
 		cfg.Get("STACK_INTERVAL", STACK_INTERVAL);
+		BOOST_LOG_SEV(logger,notification) << "Load STACK_INTERVAL : " << STACK_INTERVAL;
 
         // Get stack method to use.
 		string stack_method; cfg.Get("STACK_MTHD", stack_method);
 		EParser<StackMeth> stack_mth;
 		STACK_MTHD = stack_mth.parseEnum("STACK_MTHD", stack_method);
+		BOOST_LOG_SEV(logger,notification) << "Load STACK_MTHD : " << stack_method;
 
         cfg.Get("STACK_REDUCTION", STACK_REDUCTION);
+        BOOST_LOG_SEV(logger,notification) << "Load STACK_REDUCTION : " << STACK_REDUCTION;
+
 		cfg.Get("STATION_NAME", STATION_NAME);
+		BOOST_LOG_SEV(logger,notification) << "Load STATION_NAME : " << STATION_NAME;
+
 		cfg.Get("CFG_FILECOPY_ENABLED", CFG_FILECOPY_ENABLED);
+		BOOST_LOG_SEV(logger,notification) << "Load CFG_FILECOPY_ENABLED : " << CFG_FILECOPY_ENABLED;
+
 		cfg.Get("DATA_PATH", DATA_PATH);
+		BOOST_LOG_SEV(logger,notification) << "Load DATA_PATH : " << DATA_PATH;
 
 		fitsHeader.loadKeywordsFromConfigFile(cfgPath);
 
@@ -132,6 +156,7 @@ bool StackThread::loadStackParameters(){
 	}catch(exception& e){
 
 		cout << e.what() << endl;
+		BOOST_LOG_SEV(logger,critical) << e.what();
 		return false;
 
 	}
@@ -149,79 +174,102 @@ bool StackThread::buildStackDataDirectory(string date){
     string	finalPath	= root + subDir;
 
 	completeDataPath	= finalPath;
+	BOOST_LOG_SEV(logger,notification) << "CompleteDataPath : " << completeDataPath;
 
     path p(DATA_PATH);
     path p1(root);
     path p2(root + subDir);
 
+    // If DATA_PATH exists
     if(fs::exists(p)){
 
+        // If DATA_PATH/STATION_YYYYMMDD/ exists
         if(fs::exists(p1)){
 
+            // If DATA_PATH/STATION_YYYYMMDD/astro/ doesn't exists
             if(!fs::exists(p2)){
-				return false;
-                cout << "directory not exist : " << p2.string() << endl;
 
+                // If fail to create DATA_PATH/STATION_YYYYMMDD/astro/
                 if(!fs::create_directory(p2)){
-					return false;
-                    cout << "directory not created : " << p2.string() << endl;
-                    //BOOST_LOG_SEV(log,notification) << "Unable to create destination directory" << p2.string();
 
+                    BOOST_LOG_SEV(logger,critical) << "Unable to create astro directory : " << p2.string();
+                    return false;
+
+                // If success to create DATA_PATH/STATION_YYYYMMDD/astro/
                 }else{
 
-					return true;
-                    cout << "directory created : " << p2.string() << endl;
-                   // BOOST_LOG_SEV(log,notification) << "Following directory created : " << p2.string();
+                   BOOST_LOG_SEV(logger,notification) << "Success to create astro directory : " << p2.string();
+                   return true;
 
                 }
             }
 
+        // If DATA_PATH/STATION_YYYYMMDD/ doesn't exists
         }else{
 
+            // If fail to create DATA_PATH/STATION_YYYYMMDD/
             if(!fs::create_directory(p1)){
-                cout << "Unable to create destination directory" << endl;
+
+                BOOST_LOG_SEV(logger,fail) << "Unable to create STATION_YYYYMMDD directory : " << p1.string();
 				return false;
-                //BOOST_LOG_SEV(log,notification) << "Unable to create destination directory" << p1.string();
 
+            // If success to create DATA_PATH/STATION_YYYYMMDD/
             }else{
-                cout << "Following directory created : " << p1.string() << endl;
-               // BOOST_LOG_SEV(log,notification) << "Following directory created : " << p1.string();
 
+                BOOST_LOG_SEV(logger,notification) << "Success to create STATION_YYYYMMDD directory : " << p1.string();
+
+                // If fail to create DATA_PATH/STATION_YYYYMMDD/astro/
                 if(!fs::create_directory(p2)){
-					return false;
-                   // BOOST_LOG_SEV(log,notification) << "Unable to create destination directory" << p2.string();
 
+                    BOOST_LOG_SEV(logger,critical) << "Unable to create astro directory : " << p2.string();
+					return false;
+
+                // If success to create DATA_PATH/STATION_YYYYMMDD/astro/
                 }else{
+
+                    BOOST_LOG_SEV(logger,notification) << "Success to create astro directory : " << p2.string();
 					return true;
-                    //BOOST_LOG_SEV(log,notification) << "Following directory created : " << p2.string();
 
                 }
             }
         }
 
+    // If DATA_PATH doesn't exists
     }else{
 
+        // If fail to create DATA_PATH
         if(!fs::create_directory(p)){
-			return false;
-            //BOOST_LOG_SEV(log,notification) << "Unable to create destination directory" << p.string();
 
+            BOOST_LOG_SEV(logger,fail) << "Unable to create DATA_PATH directory : " << p.string();
+			return false;
+
+        // If success to create DATA_PATH
         }else{
 
-            if(!fs::create_directory(p1)){
-				return false;
-                //BOOST_LOG_SEV(log,notification) << "Unable to create destination directory" << p1.string();
+            BOOST_LOG_SEV(logger,notification) << "Success to create DATA_PATH directory : " << p.string();
 
+            // If fail to create DATA_PATH/STATION_YYYYMMDD/
+            if(!fs::create_directory(p1)){
+
+                BOOST_LOG_SEV(logger,fail) << "Unable to create STATION_YYYYMMDD directory : " << p1.string();
+				return false;
+
+            // If success to create DATA_PATH/STATION_YYYYMMDD/
             }else{
 
-                //BOOST_LOG_SEV(log,notification) << "Following directory created : " << p1.string();
+                BOOST_LOG_SEV(logger,notification) << "Success to create STATION_YYYYMMDD directory : " << p1.string();
 
+                // If fail to create DATA_PATH/STATION_YYYYMMDD/astro/
                 if(!fs::create_directory(p2)){
-					return false;
-                   // BOOST_LOG_SEV(log,notification) << "Unable to create destination directory" << p2.string();
 
+                    BOOST_LOG_SEV(logger,critical) << "Unable to create astro directory : " << p2.string();
+					return false;
+
+                // If success to create DATA_PATH/STATION_YYYYMMDD/astro/
                 }else{
+
+                    BOOST_LOG_SEV(logger,notification) << "Success to create astro directory : " << p2.string();
 					return true;
-                    //BOOST_LOG_SEV(log,notification) << "Following directory created : " << p2.string();
 
                 }
             }
@@ -243,18 +291,19 @@ void StackThread::operator()(){
 
         try{
 
-			std::cout << "Stack Thread sleep... " << endl;
+			BOOST_LOG_SEV(logger,notification) << "Stack thread is going to sleep ... ";
 			boost::this_thread::sleep(boost::posix_time::millisec(STACK_INTERVAL*1000));
-			std::cout << "Stack Thread wake up ! " << endl;
+			BOOST_LOG_SEV(logger,notification) << "Stack thread wake up ...";
 
+            // Create a stack to accumulate n frames.
 			Stack stack(STACK_TIME);
 
 			do{
 
-				// Communication with AcqThread.
+				// Communication with AcqThread. Wait for a new frame.
 				boost::mutex::scoped_lock lock(*stackSignal_mutex);
 				while(!(*stackSignal)) stackSignal_condition->wait(lock);
-				 *stackSignal = false;
+                *stackSignal = false;
 				lock.unlock();
 
 				double t = (double)getTickCount();
@@ -262,7 +311,7 @@ void StackThread::operator()(){
 				// Fetch last frame grabbed.
 				boost::mutex::scoped_lock lock2(*frameBuffer_mutex);
 				Frame newFrame = frameBuffer->back();
-				std::cout << "New frame received by stackThread :  "<< newFrame.getNumFrame() << endl;
+				BOOST_LOG_SEV(logger,normal) << "New frame received by stackThread :  "<< newFrame.getNumFrame();
 				lock2.unlock();
 
 				// Add the new frame to the stack.
@@ -270,15 +319,22 @@ void StackThread::operator()(){
 
 				if(stack.getFullStatus()){
 
-					if(buildStackDataDirectory(stack.getDateFirstFrame()))
-						stack.saveStack(fitsHeader, completeDataPath, STACK_MTHD, STATION_NAME, STACK_REDUCTION);
+					if(buildStackDataDirectory(stack.getDateFirstFrame())){
 
-                    cout << "Save stack : " << completeDataPath << endl;
+						stack.saveStack(fitsHeader, completeDataPath, STACK_MTHD, STATION_NAME, STACK_REDUCTION);
+						BOOST_LOG_SEV(logger,notification) << "Stack saved : " << completeDataPath;
+
+					}else{
+
+					    BOOST_LOG_SEV(logger,fail) << "Fail to build stack directory. ";
+
+					}
 
 				}
 
 				t = (((double)getTickCount() - t)/getTickFrequency())*1000;
 				std::cout << "[ Stack time ] : " << std::setprecision(5) << std::fixed << t << " ms" << endl;
+				BOOST_LOG_SEV(logger,normal) << "[ Stack time ] : " << std::setprecision(5) << std::fixed << t << " ms" ;
 
 			}while(!stack.getFullStatus());
 
@@ -289,14 +345,14 @@ void StackThread::operator()(){
 
         }catch(const boost::thread_interrupted&){
 
-            std::cout << "Stack thread INTERRUPTED" <<endl;
+            BOOST_LOG_SEV(logger,notification) << "Stack thread INTERRUPTED";
             break;
 
         }
 
     }while(!stop);
 
-	std::cout << "Stack Thread terminated" << endl;
+	BOOST_LOG_SEV(logger,notification) << "Stack thread TERMINATED";
 
 }
 
