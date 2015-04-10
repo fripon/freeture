@@ -216,7 +216,9 @@ DetectionTemporal_::~DetectionTemporal_(){
 
 void DetectionTemporal_::resetDetection(){
 
+    BOOST_LOG_SEV(logger, notification) << "Start clear listGlobalEvents";
 	listGlobalEvents.clear();
+	BOOST_LOG_SEV(logger, notification) << "Clear finished" << DET_DEBUG;
 
 }
 
@@ -531,6 +533,8 @@ bool DetectionTemporal_::run(Frame &c, Frame &p){
         // Downsample current image.
 		if(DET_DOWNSAMPLE_ENABLED){
 
+            BOOST_LOG_SEV(logger, normal) << "Downsampling current frame ... ";
+
             double t1_downsample = (double)getTickCount();
 
 			imgH /= 2;
@@ -568,6 +572,8 @@ bool DetectionTemporal_::run(Frame &c, Frame &p){
 
                 // Update staticMask
                 if(imgNum % STATIC_MASK_INTERVAL == 0){
+
+                    BOOST_LOG_SEV(logger, normal) << "Updating staticMask ... ";
 
                     // Threshold current image to find pixels with high intensity value.
                     Mat map1 = Mat(imgH,imgW, CV_8UC1,Scalar(0));
@@ -610,6 +616,8 @@ bool DetectionTemporal_::run(Frame &c, Frame &p){
 		/// Search pixels which have changed.
         double t1_difference = (double)getTickCount();
 
+        BOOST_LOG_SEV(logger, normal) << "Computing absolute difference ... ";
+
 		Mat diffImg;
 		absdiff(currImg, prevImg, diffImg);
 		Conversion::convertTo8UC1(diffImg).copyTo(diffImg);
@@ -630,6 +638,7 @@ bool DetectionTemporal_::run(Frame &c, Frame &p){
 		Mat mapThreshold = Mat(imgH,imgW, CV_8UC1,Scalar(0));
 
 		// Thresholding diff.
+		BOOST_LOG_SEV(logger, normal) << "Thresholding absolute difference ... ";
 		threshold(diffImg, mapThreshold, defineThreshold(diffImg), 255, THRESH_BINARY);
 
 		if(imgNum > maxNumFrame) maxNumFrame = imgNum;
@@ -643,6 +652,7 @@ bool DetectionTemporal_::run(Frame &c, Frame &p){
 		double t1_threshold2 = (double)getTickCount();
 
 		/// Remove single white pixel.
+		BOOST_LOG_SEV(logger, normal) << "Removing single white pixel ... ";
 		unsigned char * ptrT;
 
 		Mat black(3,3,CV_8UC1,Scalar(0));
@@ -680,6 +690,7 @@ bool DetectionTemporal_::run(Frame &c, Frame &p){
 		cout << "> Eliminate single white pixels Time : " << t1_threshold2 << endl;
 
         /// Difference of 2 last threshold map.
+        BOOST_LOG_SEV(logger, normal) << "Differencing of 2 last threshold map ... ";
         Mat motionMap;
 
 		if(prevThreshMap.data){
@@ -722,6 +733,7 @@ bool DetectionTemporal_::run(Frame &c, Frame &p){
         vector<Point>::iterator itR;
 
         // Analyse regions.
+        BOOST_LOG_SEV(logger, normal) << "Loop subdivisions ... ";
         for(itR = subdivisionPos.begin(); itR != subdivisionPos.end(); ++itR){
 
             // Extract regions from motionMap.
@@ -736,7 +748,7 @@ bool DetectionTemporal_::run(Frame &c, Frame &p){
 
         }
 
-		cout << "> LE number : " << listLocalEvents.size() << endl;
+		BOOST_LOG_SEV(logger, normal) << "LE number : " << listLocalEvents.size();
 
 		if(DET_DEBUG) SaveImg::saveBMP(eventMap, DET_DEBUG_PATH + "/evMp/evMp_"+Conversion::intToString(imgNum));
 
@@ -746,6 +758,8 @@ bool DetectionTemporal_::run(Frame &c, Frame &p){
 		/// %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 		/// %%%%%%%%%%%%%%%%%%%%%%%%%% STEP 3 : ATTACH LE TO GE OR CREATE NEW ONE %%%%%%%%%%%%%%%%%%%%%%%%%
 		/// %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+        BOOST_LOG_SEV(logger, normal) << "Running step 3 ... ";
 
 		// Iterator on list of global event.
 		vector<GlobalEvent>::iterator itGE;
@@ -775,15 +789,19 @@ bool DetectionTemporal_::run(Frame &c, Frame &p){
 					// The current LE has found a possible global event.
                     if(GESelected){
 
+                        //cout << "The current LE has found a possible global event."<< endl;
+
                         // Choose the older global event.
                         if((*itGE).getAge() > (*itGESelected).getAge()){
 
+                            //cout << "Choose the older global event."<< endl;
                             itGESelected = itGE;
 
                         }
 
                     }else{
 
+                        //cout << "Keep same"<< endl;
                         itGESelected = itGE;
                         GESelected = true;
 
@@ -797,10 +815,13 @@ bool DetectionTemporal_::run(Frame &c, Frame &p){
 			// Add current LE to an existing GE
             if(GESelected){
 
+                //cout << "Add current LE to an existing GE ... "<< endl;
                 // Add LE.
                 (*itGESelected).addLE((*itLE));
+                //cout << "Flag to indicate that a local event has been added ... "<< endl;
                 // Flag to indicate that a local event has been added.
                 (*itGESelected).setNewLEStatus(true);
+                //cout << "reset age of the last local event received by the global event.... "<< endl;
                 // reset age of the last local event received by the global event.
                 (*itGESelected).setAgeLastElem(0);
 
@@ -809,17 +830,21 @@ bool DetectionTemporal_::run(Frame &c, Frame &p){
                 // The current LE has not been linked. It became a new GE.
                 if(listGlobalEvents.size() < 10){
 
-                    Scalar geColor = availableGeColor.back();
-                    availableGeColor.pop_back();
+                    //cout << "Selecting last available color ... "<< endl;
+                    Scalar geColor = Scalar(255,255,255);//availableGeColor.back();
+                    //cout << "Deleting last available color ... "<< endl;
+                    //availableGeColor.pop_back();
+                    //cout << "Creating new GE ... "<< endl;
                     GlobalEvent newGE(c.getAcqDateMicro(), c.getNumFrame(), currImg.rows, currImg.cols, geColor);
+                    //cout << "Adding current LE ... "<< endl;
                     newGE.addLE((*itLE));
-
+                    //cout << "Pushing new LE to GE list  ... "<< endl;
                     //Add the new globalEvent to the globalEvent's list
                     listGlobalEvents.push_back(newGE);
 
                 }
             }
-
+            //cout << "Deleting the current localEvent  ... "<< endl;
             // Delete the current localEvent.
 			itLE = listLocalEvents.erase(itLE);
 
@@ -831,6 +856,8 @@ bool DetectionTemporal_::run(Frame &c, Frame &p){
 		/// %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 		/// %%%%%%%%%%%%%%%%%%%%%%%%%%%%%% STEP 4 : MANAGE LIST GLOBAL EVENT %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 		/// %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+        BOOST_LOG_SEV(logger, normal) << "Running step 4 ... ";
 
 		double  t4 = (double)getTickCount();
 
@@ -881,7 +908,8 @@ bool DetectionTemporal_::run(Frame &c, Frame &p){
 
                 // Too long event ? or not linear ?
 				if( (*itGE).getAge() > 500 ||
-					(!(*itGE).getLinearStatus() && !(*itGE).continuousGoodPos(5))){
+					(!(*itGE).getLinearStatus() && !(*itGE).continuousGoodPos(5)) ||
+                    (!(*itGE).getLinearStatus() && (*itGE).continuousBadPos((int)(*itGE).getAge()/2))){
 
 					// Delete the event.
 					itGE = listGlobalEvents.erase(itGE);

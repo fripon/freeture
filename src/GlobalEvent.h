@@ -117,5 +117,6 @@ class GlobalEvent{
 
         bool    addLE(LocalEvent le);
         bool    continuousGoodPos(int n);
+        bool    continuousBadPos(int n);
 
 };

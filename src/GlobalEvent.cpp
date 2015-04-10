@@ -207,6 +207,38 @@ bool GlobalEvent::continuousGoodPos(int n){
         }else{
 
             nn++;
+            nb=0;
+
+            if(nn == 2)
+                return false;
+
+        }
+
+    }
+
+    return false;
+
+}
+
+bool GlobalEvent::continuousBadPos(int n){
+
+    int nb = 0;
+    int nn = 0;
+
+    for(int i = 0; i < ptsValidity.size(); i++){
+
+        if(!ptsValidity.at(i)){
+
+            nb++;
+            nn=0;
+
+            if(nb >= n)
+                return true;
+
+        }else{
+
+            nn++;
+            nb=0;
 
             if(nn == 2)
                 return false;

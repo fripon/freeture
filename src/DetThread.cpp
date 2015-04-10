@@ -317,12 +317,14 @@ void DetThread::operator ()(){
             try{
 
                 /// Wait new frame from AcqThread.
+                BOOST_LOG_SEV(logger, normal) << "Wait new frame from AcqThread.";
                 boost::mutex::scoped_lock lock(*detSignal_mutex);
                 while (!(*detSignal)) detSignal_condition->wait(lock);
                 *detSignal = false;
                 lock.unlock();
 
                 // Fetch the two last frames grabbed.
+                BOOST_LOG_SEV(logger, normal) << "Fetch the two last frames grabbed.";
                 Frame currentFrame, previousFrame;
                 boost::mutex::scoped_lock lock2(*frameBuffer_mutex);
                 if(frameBuffer->size() > 2){
@@ -356,8 +358,11 @@ void DetThread::operator ()(){
 
                             // Build event directory.
                             eventDate = detTech->getDateEvent();
-                            BOOST_LOG_SEV(logger, notification) << "Build event directory." << endl;
-                            buildEventDataDirectory(eventDate);
+                            BOOST_LOG_SEV(logger, notification) << "Building event directory..." << endl;
+                            if(buildEventDataDirectory(eventDate))
+                                BOOST_LOG_SEV(logger, fail) << "Fail to build event directory !" << endl;
+                            else
+                                BOOST_LOG_SEV(logger, notification) << "Success to build event directory !" << endl;
 
                             // Save event.
                             BOOST_LOG_SEV(logger, notification) << "Start saving event..." << endl;
@@ -367,6 +372,8 @@ void DetThread::operator ()(){
                                 lock.unlock();
                                 BOOST_LOG_SEV(logger,critical) << "Error saving event data.";
                                 throw "Error saving event data.";
+                            }else{
+                                BOOST_LOG_SEV(logger, notification) << "Success to save event !" << endl;
                             }
                             lock.unlock();
 
