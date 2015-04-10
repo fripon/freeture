@@ -43,45 +43,66 @@ Stack::Stack(int nbFrameToSum){
 	curFrames			= 0;
 	maxFrames			= nbFrameToSum;
 
+
 }
 
 Stack::~Stack(){}
 
 void Stack::addFrame(Frame &i){
 
-	if(curFrames == 0){
+    try{
 
-		stack			= Mat::zeros(i.getImg().rows, i.getImg().cols, CV_32FC1);
-		gainFirstFrame	= i.getGain();
-		expFirstFrame	= i.getExposure();
-		dateFirstFrame	= i.getAcqDateMicro();
-		fps				= i.getFPS();
-		bitdepth		= i.getFrameBitDepth();
-		cout << "bitdepth : "<<bitdepth<< endl;
+        if(curFrames == 0){
 
-	}
+            BOOST_LOG_SEV(logger, notification) << "First frame of stack received.";
 
-	Mat curr = Mat::zeros(i.getImg().rows, i.getImg().cols, CV_32FC1);
-	cout << "> STACK : " << curFrames << " / " << maxFrames  << endl;
-	BOOST_LOG_SEV(logger, normal) << "> STACK : " << curFrames << " / " << maxFrames;
+            stack			= Mat::zeros(i.getImg().rows, i.getImg().cols, CV_32FC1);
+            gainFirstFrame	= i.getGain();
+            expFirstFrame	= i.getExposure();
+            dateFirstFrame	= i.getAcqDateMicro();
+            fps				= i.getFPS();
+            bitdepth		= i.getFrameBitDepth();
 
-    i.getImg().convertTo(curr, CV_32FC1);
+            BOOST_LOG_SEV(logger, notification) << "Gain : " << gainFirstFrame;
+            BOOST_LOG_SEV(logger, notification) << "Exposure : " << expFirstFrame;
+            BOOST_LOG_SEV(logger, notification) << "Date : " << dateFirstFrame;
+            BOOST_LOG_SEV(logger, notification) << "Fps : " << fps;
+            BOOST_LOG_SEV(logger, notification) << "Bitdepth : " << bitdepth;
 
-    accumulate(curr, stack);
-	curFrames++;
-    dateLastFrame = i.getAcqDateMicro();
+        }
 
-	if(curFrames >= maxFrames){
+        Mat curr = Mat::zeros(i.getImg().rows, i.getImg().cols, CV_32FC1);
 
-		fullStatus = true;
+        cout << "> STACK : " << curFrames << " / " << maxFrames  << endl;
+        BOOST_LOG_SEV(logger, normal) << "> STACK : " << curFrames << " / " << maxFrames;
 
-	}
+        i.getImg().convertTo(curr, CV_32FC1);
+        cout << "accumulate" << endl;
+        accumulate(curr, stack);
+        curFrames++;
+        dateLastFrame = i.getAcqDateMicro();
+        cout << "dateLastFrame: " << dateLastFrame << endl;
+
+        if(curFrames >= maxFrames){
+
+            BOOST_LOG_SEV(logger, notification) << "Last frame of stack received.";
+            BOOST_LOG_SEV(logger, notification) << "Date : " << dateLastFrame;
+
+            fullStatus = true;
+
+        }
+
+    }catch(exception& e){
+
+        cout << e.what() << endl;
+        BOOST_LOG_SEV(logger, critical) << e.what() ;
+
+    }
 
 }
 
 bool Stack::saveStack(Fits fitsHeader, string path, StackMeth STACK_MTHD, string STATION_NAME, bool STACK_REDUCTION){
 
-    cout << "dateLastFrame: " << dateLastFrame<< endl;
 	// Vector<int> : YYYY, MM, DD, hh,mm, ss
 	vector<int> firstDateInt = TimeDate::getIntVectorFromDateString(dateFirstFrame);
 	vector<int> lastDateInt  = TimeDate::getIntVectorFromDateString(dateLastFrame);
@@ -93,30 +114,44 @@ bool Stack::saveStack(Fits fitsHeader, string path, StackMeth STACK_MTHD, string
 	double  julianCentury   = TimeDate::julianCentury(julianDate);
 	double  sideralT        = TimeDate::localSideralTime_2(julianCentury, firstDateInt.at(3), firstDateInt.at(4), firstDateInt.at(5), fitsHeader.getSitelong());
 
+    BOOST_LOG_SEV(logger, notification) << "Start create fits2D to save the stack.";
+
 	// Fits creation.
     Fits2D newFits(path, fitsHeader);
+    BOOST_LOG_SEV(logger, notification) << "Fits path : " << path;
 	// Creation date of the fits file : YYYY-MM-DDTHH:MM:SS
     boost::posix_time::ptime time = boost::posix_time::microsec_clock::universal_time();
+    BOOST_LOG_SEV(logger, notification) << "Setting Fits DATE (creation date) key : " << to_iso_extended_string(time);
     newFits.setDate(to_iso_extended_string(time));
     // Frame exposure time (sec.)
+    BOOST_LOG_SEV(logger, notification) << "Setting fits ONTIME (Frame exposure time (sec.)) key : " << expFirstFrame;
     newFits.setOntime(expFirstFrame);
     // Detector gain
+    BOOST_LOG_SEV(logger, notification) << "Setting fits GAIN key : " << gainFirstFrame;
     newFits.setGaindb(gainFirstFrame);
     // Acquisition date of the first frame 'YYYY-MM-JJTHH:MM:SS.SS'
+    BOOST_LOG_SEV(logger, notification) << "Setting fits DATEOBS (Acquisition date of the first frame) key : " << dateFirstFrame;
     newFits.setDateobs(dateFirstFrame);
     // Integration time : 1/fps * nb_frames (sec.)
+    BOOST_LOG_SEV(logger, notification) << "Setting fits EXPOSURE (Integration time : 1/fps * nb_frames (sec.)) key : " << (1.0f/fps)*curFrames;
     if(fps <= 0) fps = 1;
     newFits.setExposure((1.0f/fps)*curFrames);
     // end obs. date - start obs. date (sec.)
+    BOOST_LOG_SEV(logger, notification) << "Setting fits ELAPTIME (end obs. date - start obs. date (sec.)) key : " << elapTime;
     newFits.setElaptime(elapTime);
     // Sideral time
+    BOOST_LOG_SEV(logger, notification) << "Setting fits CRVAL1 (sideraltime) key : " << sideralT;
     newFits.setCrval1(sideralT);
     // Fps
+    BOOST_LOG_SEV(logger, notification) << "Setting fits CD3_3 (fps) key : " << fps;
     newFits.setCd3_3((double)fps);
     // Projection and reference system
+    BOOST_LOG_SEV(logger, notification) << "Setting fits DATEOBS key : RA---ARC";
     newFits.setCtype1("RA---ARC");
+    BOOST_LOG_SEV(logger, notification) << "Setting fits DATEOBS key : DEC--ARC";
     newFits.setCtype2("DEC--ARC");
     // Equinox
+    BOOST_LOG_SEV(logger, notification) << "Setting fits DATEOBS key : 2000.0";
     newFits.setEquinox(2000.0);
 
     switch(STACK_MTHD){
@@ -124,6 +159,9 @@ bool Stack::saveStack(Fits fitsHeader, string path, StackMeth STACK_MTHD, string
         case MEAN :
 
             {
+
+                BOOST_LOG_SEV(logger, notification) << "MEAN STACK MODE";
+
                 // 'SINGLE' 'SUM' 'AVERAGE' ('MEDIAN')
                 newFits.setObsmode("AVERAGE");
 				stack = stack/curFrames;
@@ -133,7 +171,9 @@ bool Stack::saveStack(Fits fitsHeader, string path, StackMeth STACK_MTHD, string
                     case MONO_8 :
 
                         {
+                            BOOST_LOG_SEV(logger, notification) << "Mono8 format";
 
+                            BOOST_LOG_SEV(logger, notification) << "Setting fits SATURATE key : 255";
                             newFits.setSaturate(255);
 
                             Mat newMat = Mat(stack.rows,stack.cols, CV_8UC1, Scalar(0));
@@ -154,7 +194,8 @@ bool Stack::saveStack(Fits fitsHeader, string path, StackMeth STACK_MTHD, string
                             }
 
                             // Create FITS image with BITPIX = BYTE_IMG (8-bits unsigned integers), pixel with TBYTE (8-bit unsigned byte)
-                            newFits.writeFits(newMat, UC8, "" );
+                            BOOST_LOG_SEV(logger, notification) << "Writing FITS image with BITPIX = BYTE_IMG (8-bits unsigned integers), pixel with TBYTE (8-bit unsigned byte)";
+                            return newFits.writeFits(newMat, UC8, "" );
 
                         }
 
@@ -163,12 +204,17 @@ bool Stack::saveStack(Fits fitsHeader, string path, StackMeth STACK_MTHD, string
                     case MONO_12 :
 
                         {
+                            BOOST_LOG_SEV(logger, notification) << "Mono12 format";
 
                             Mat newMat = Mat(stack.rows,stack.cols, CV_16SC1, Scalar(0));
 
+                            BOOST_LOG_SEV(logger, notification) << "Setting fits BZERO key : 32768";
                             newFits.setBzero(32768);
+                            BOOST_LOG_SEV(logger, notification) << "Setting fits BSCALE key : 1";
                             newFits.setBscale(1);
+                            BOOST_LOG_SEV(logger, notification) << "Setting fits SATURATE key : 4095";
                             newFits.setSaturate(4095);
+
 
                             float * ptr;
                             short * ptr2;
@@ -191,7 +237,8 @@ bool Stack::saveStack(Fits fitsHeader, string path, StackMeth STACK_MTHD, string
                                 }
                             }
 
-                            newFits.writeFits(newMat, S16, "" );
+                            BOOST_LOG_SEV(logger, notification) << "Writing FITS signed short image.";
+                            return newFits.writeFits(newMat, S16, "" );
 
                         }
 
@@ -206,27 +253,35 @@ bool Stack::saveStack(Fits fitsHeader, string path, StackMeth STACK_MTHD, string
         case SUM :
 
             {
+                BOOST_LOG_SEV(logger, notification) << "SUM STACK MODE";
 
                 // 'SINGLE' 'SUM' 'AVERAGE' ('MEDIAN')
                 newFits.setObsmode("SUM");
 
-                if(bitdepth == MONO_8)
+                if(bitdepth == MONO_8){
+                    BOOST_LOG_SEV(logger, notification) << "Setting fits SATURATE key : 255 * curFrames";
                     newFits.setSaturate(255 * curFrames);
-
-                else if(bitdepth = MONO_12)
+                }
+                else if(bitdepth = MONO_12){
+                    BOOST_LOG_SEV(logger, notification) << "Setting fits SATURATE key : 4095 * curFrames";
                     newFits.setSaturate(4095 * curFrames);
-
+                }
 
                 if(STACK_REDUCTION){
+
+                    BOOST_LOG_SEV(logger, notification) << "STACK_REDUCTION option enabled";
 
                     Mat newMat ;
 
                     float bzero	 = 0.0;
                     float bscale = 1.0;
 
+                    BOOST_LOG_SEV(logger, notification) << "Call reduction function.";
                     reductionByFactorDivision(bzero, bscale).copyTo(newMat);
 
+                    BOOST_LOG_SEV(logger, notification) << "Setting fits BZERO key : " << bzero;
                     newFits.setBzero(bzero);
+                    BOOST_LOG_SEV(logger, notification) << "Setting fits BSCALE key : " << bscale;
                     newFits.setBscale(bscale);
 
                     switch(bitdepth){
@@ -234,8 +289,8 @@ bool Stack::saveStack(Fits fitsHeader, string path, StackMeth STACK_MTHD, string
                         case MONO_8 :
 
                             {
-
-                                newFits.writeFits(newMat, UC8, "" );
+                                BOOST_LOG_SEV(logger, notification) << "Writting Fits unsigned char.";
+                                return newFits.writeFits(newMat, UC8, "" );
 
                             }
 
@@ -244,8 +299,8 @@ bool Stack::saveStack(Fits fitsHeader, string path, StackMeth STACK_MTHD, string
                         case MONO_12 :
 
                             {
-
-                                newFits.writeFits(newMat, S16, "" );
+                                BOOST_LOG_SEV(logger, notification) << "Writting Fits signed short.";
+                                return newFits.writeFits(newMat, S16, "" );
 
                             }
 
@@ -256,7 +311,8 @@ bool Stack::saveStack(Fits fitsHeader, string path, StackMeth STACK_MTHD, string
                 }else{
 
                     // Save fits in 32 bits.
-                    newFits.writeFits(stack, F32, ""  );
+                    BOOST_LOG_SEV(logger, notification) << "Writting Fits 32 bits.";
+                    return newFits.writeFits(stack, F32, ""  );
 
                 }
 
@@ -266,7 +322,6 @@ bool Stack::saveStack(Fits fitsHeader, string path, StackMeth STACK_MTHD, string
 
     }
 
-	return true;
 }
 
 Mat Stack::reductionByFactorDivision(float &bzero, float &bscale){

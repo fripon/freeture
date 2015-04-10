@@ -57,6 +57,7 @@ StackThread::StackThread(   boost::mutex							*cfg_m,
     stackSignal_mutex		= sS_m;
     stackSignal_condition	= sS_c;
 	completeDataPath		= "";
+    isRunning               = false;
 
 }
 
@@ -277,7 +278,16 @@ bool StackThread::buildStackDataDirectory(string date){
     }
 }
 
+bool StackThread::getRunStatus(){
+
+    return isRunning;
+
+}
+
 void StackThread::operator()(){
+
+    bool stop = false;
+    isRunning = true;
 
     BOOST_LOG_SCOPED_THREAD_TAG("LogName", "STACK_THREAD");
 	BOOST_LOG_SEV(logger,notification) << "\n";
@@ -285,72 +295,95 @@ void StackThread::operator()(){
 	BOOST_LOG_SEV(logger,notification) << "============== Start stack thread ============";
 	BOOST_LOG_SEV(logger,notification) << "==============================================";
 
-    bool stop = false;
+    try{
 
-    do{
+        do{
 
-        try{
+            try{
 
-			BOOST_LOG_SEV(logger,notification) << "Stack thread is going to sleep ... ";
-			boost::this_thread::sleep(boost::posix_time::millisec(STACK_INTERVAL*1000));
-			BOOST_LOG_SEV(logger,notification) << "Stack thread wake up ...";
+                BOOST_LOG_SEV(logger,notification) << "Stack thread is going to sleep ... ";
+                boost::this_thread::sleep(boost::posix_time::millisec(STACK_INTERVAL*1000));
+                BOOST_LOG_SEV(logger,notification) << "Stack thread wake up ...";
 
-            // Create a stack to accumulate n frames.
-			Stack stack(STACK_TIME);
+                // Create a stack to accumulate n frames.
+                BOOST_LOG_SEV(logger, notification) << "Create a new STACK.";
+                Stack stack(STACK_TIME);
 
-			do{
+                do{
 
-				// Communication with AcqThread. Wait for a new frame.
-				boost::mutex::scoped_lock lock(*stackSignal_mutex);
-				while(!(*stackSignal)) stackSignal_condition->wait(lock);
-                *stackSignal = false;
-				lock.unlock();
+                    // Communication with AcqThread. Wait for a new frame.
+                    BOOST_LOG_SEV(logger,normal) << "Waiting for a new frame ...";
+                    boost::mutex::scoped_lock lock(*stackSignal_mutex);
+                    while(!(*stackSignal)) stackSignal_condition->wait(lock);
+                    BOOST_LOG_SEV(logger,normal) << "End waiting for a new frame.";
+                    *stackSignal = false;
+                    lock.unlock();
 
-				double t = (double)getTickCount();
+                    double t = (double)getTickCount();
 
-				// Fetch last frame grabbed.
-				boost::mutex::scoped_lock lock2(*frameBuffer_mutex);
-				Frame newFrame = frameBuffer->back();
-				BOOST_LOG_SEV(logger,normal) << "New frame received by stackThread :  "<< newFrame.getNumFrame();
-				lock2.unlock();
+                    // Fetch last frame grabbed.
+                    boost::mutex::scoped_lock lock2(*frameBuffer_mutex);
+                    Frame newFrame = frameBuffer->back();
+                    BOOST_LOG_SEV(logger,normal) << "New frame received by stackThread :  "<< newFrame.getNumFrame();
+                    lock2.unlock();
 
-				// Add the new frame to the stack.
-				stack.addFrame(newFrame);
+                    // Add the new frame to the stack.
+                    stack.addFrame(newFrame);
 
-				if(stack.getFullStatus()){
+                    if(stack.getFullStatus()){
 
-					if(buildStackDataDirectory(stack.getDateFirstFrame())){
+                        if(buildStackDataDirectory(stack.getDateFirstFrame())){
 
-						stack.saveStack(fitsHeader, completeDataPath, STACK_MTHD, STATION_NAME, STACK_REDUCTION);
-						BOOST_LOG_SEV(logger,notification) << "Stack saved : " << completeDataPath;
+                            if(!stack.saveStack(fitsHeader, completeDataPath, STACK_MTHD, STATION_NAME, STACK_REDUCTION)){
 
-					}else{
+                                BOOST_LOG_SEV(logger,critical) << "Error saving stack data.";
+                                throw "Error saving stack data.";
 
-					    BOOST_LOG_SEV(logger,fail) << "Fail to build stack directory. ";
+                            }
 
-					}
+                            BOOST_LOG_SEV(logger,notification) << "Stack saved : " << completeDataPath;
 
-				}
+                        }else{
 
-				t = (((double)getTickCount() - t)/getTickFrequency())*1000;
-				std::cout << "[ Stack time ] : " << std::setprecision(5) << std::fixed << t << " ms" << endl;
-				BOOST_LOG_SEV(logger,normal) << "[ Stack time ] : " << std::setprecision(5) << std::fixed << t << " ms" ;
+                            BOOST_LOG_SEV(logger,fail) << "Fail to build stack directory. ";
 
-			}while(!stack.getFullStatus());
+                        }
 
-            // Get the "must stop" state (thread-safe)
-            mustStopMutex.lock();
-            stop = mustStop;
-            mustStopMutex.unlock();
+                    }
 
-        }catch(const boost::thread_interrupted&){
+                    t = (((double)getTickCount() - t)/getTickFrequency())*1000;
+                    std::cout << "[ Stack time ] : " << std::setprecision(5) << std::fixed << t << " ms" << endl;
+                    BOOST_LOG_SEV(logger,normal) << "[ Stack time ] : " << std::setprecision(5) << std::fixed << t << " ms" ;
 
-            BOOST_LOG_SEV(logger,notification) << "Stack thread INTERRUPTED";
-            break;
+                }while(!stack.getFullStatus());
 
-        }
+                // Get the "must stop" state (thread-safe)
+                mustStopMutex.lock();
+                stop = mustStop;
+                mustStopMutex.unlock();
 
-    }while(!stop);
+            }catch(const boost::thread_interrupted&){
+
+                BOOST_LOG_SEV(logger,notification) << "Stack thread INTERRUPTED";
+                break;
+
+            }
+
+        }while(!stop);
+
+    }catch(const char * msg){
+
+        cout << msg << endl;
+        BOOST_LOG_SEV(logger,critical) << msg;
+
+    }catch(exception& e){
+
+        cout << "An exception occured : " << e.what() << endl;
+        BOOST_LOG_SEV(logger, critical) << e.what();
+
+    }
+
+    isRunning = false;
 
 	BOOST_LOG_SEV(logger,notification) << "Stack thread TERMINATED";
 

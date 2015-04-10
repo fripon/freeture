@@ -356,180 +356,207 @@ int main(int argc, const char ** argv){
                         src::severity_logger< LogSeverityLevel > slg;
                         slg.add_attribute("ClassName", boost::log::attributes::constant<std::string>("main.cpp"));
                         BOOST_LOG_SCOPED_THREAD_TAG("LogName", "MAIN_THREAD");
-                        BOOST_LOG_SEV(slg, notification) << " FREETURE - Meteor detection mode ";
+                        BOOST_LOG_SEV(slg,notification) << "\n";
+                        BOOST_LOG_SEV(slg,notification) << "==============================================";
+                        BOOST_LOG_SEV(slg,notification) << "====== FREETURE - Meteor detection mode ======";
+                        BOOST_LOG_SEV(slg,notification) << "==============================================";
 
-						/// ------------------------------------
-						/// --------- SHARED RESSOURCES --------
-						/// ------------------------------------
+                        try{
 
-                        // Circular buffer to store last n grabbed frames.
-                        boost::circular_buffer<Frame> frameBuffer(ACQ_BUFFER_SIZE * ACQ_FPS);
-                        boost::mutex frameBuffer_m;
-                        boost::condition_variable frameBuffer_c;
+                            /// ------------------------------------
+                            /// --------- SHARED RESSOURCES --------
+                            /// ------------------------------------
 
-                        bool signalDet = false;
-                        boost::mutex signalDet_m;
-                        boost::condition_variable signalDet_c;
+                            // Circular buffer to store last n grabbed frames.
+                            boost::circular_buffer<Frame> frameBuffer(ACQ_BUFFER_SIZE * ACQ_FPS);
+                            boost::mutex frameBuffer_m;
+                            boost::condition_variable frameBuffer_c;
 
-                        bool signalStack = false;
-                        boost::mutex signalStack_m;
-                        boost::condition_variable signalStack_c;
+                            bool signalDet = false;
+                            boost::mutex signalDet_m;
+                            boost::condition_variable signalDet_c;
 
-						boost::mutex cfg_m;
+                            bool signalStack = false;
+                            boost::mutex signalStack_m;
+                            boost::condition_variable signalStack_c;
 
-						/// -------------------------------------
-						/// ---------- CREATE THREADS -----------
-                        /// -------------------------------------
+                            boost::mutex cfg_m;
 
-                        AcqThread	*inputDevice		= NULL;
-                        DetThread	*detection			= NULL;
-                        StackThread	*stack				= NULL;
-						bool stackThreadCreationSuccess	= true;
-						bool detThreadCreationSuccess	= true;
+                            /// -------------------------------------
+                            /// ---------- CREATE THREADS -----------
+                            /// -------------------------------------
 
-						inputDevice = new AcqThread(	CAMERA_TYPE,
-														&cfg_m,
-														configPath,
-														&frameBuffer,
-														&frameBuffer_m,
-														&frameBuffer_c,
-														&signalStack,
-														&signalStack_m,
-														&signalStack_c,
-														&signalDet,
-														&signalDet_m,
-														&signalDet_c);
+                            AcqThread	*inputDevice		= NULL;
+                            DetThread	*detection			= NULL;
+                            StackThread	*stack				= NULL;
+                            bool stackThreadCreationSuccess	= true;
+                            bool detThreadCreationSuccess	= true;
 
-                        if(inputDevice != NULL){
+                            inputDevice = new AcqThread(	CAMERA_TYPE,
+                                                            &cfg_m,
+                                                            configPath,
+                                                            &frameBuffer,
+                                                            &frameBuffer_m,
+                                                            &frameBuffer_c,
+                                                            &signalStack,
+                                                            &signalStack_m,
+                                                            &signalStack_c,
+                                                            &signalDet,
+                                                            &signalDet_m,
+                                                            &signalDet_c);
 
-                            if(!inputDevice->startThread()){
+                            if(inputDevice != NULL){
 
-								std::cout << "Fail to start acquisition Thread." << endl;
-								BOOST_LOG_SEV(slg, fail) << "Fail to start acquisition Thread.";
+                                if(!inputDevice->startThread()){
 
-							}else{
+                                    std::cout << "Fail to start acquisition Thread." << endl;
+                                    BOOST_LOG_SEV(slg, fail) << "Fail to start acquisition Thread.";
 
-								BOOST_LOG_SEV(slg, normal) << "Success to start acquisition Thread.";
+                                }else{
 
-								/// Create stack thread.
-								if(STACK_ENABLED){
+                                    BOOST_LOG_SEV(slg, normal) << "Success to start acquisition Thread.";
 
-									BOOST_LOG_SEV(slg, normal) << "Start to create stack Thread.";
+                                    /// Create stack thread.
+                                    if(STACK_ENABLED){
 
-									stack = new StackThread(	&cfg_m,
-																configPath,
-																&signalStack,
-																&signalStack_m,
-																&signalStack_c,
-																&frameBuffer,
-																&frameBuffer_m,
-																&frameBuffer_c);
+                                        BOOST_LOG_SEV(slg, normal) << "Start to create stack Thread.";
 
-									if(!stack->startThread()){
+                                        stack = new StackThread(	&cfg_m,
+                                                                    configPath,
+                                                                    &signalStack,
+                                                                    &signalStack_m,
+                                                                    &signalStack_c,
+                                                                    &frameBuffer,
+                                                                    &frameBuffer_m,
+                                                                    &frameBuffer_c);
 
-										cout << "Fail to start stack Thread." << endl;
-										BOOST_LOG_SEV(slg, fail) << "Fail to start stack Thread.";
-										stackThreadCreationSuccess = false;
+                                        if(!stack->startThread()){
 
-									}
+                                            cout << "Fail to start stack Thread." << endl;
+                                            BOOST_LOG_SEV(slg, fail) << "Fail to start stack Thread.";
+                                            stackThreadCreationSuccess = false;
 
-								}
+                                        }
 
-								/// Create detection thread.
-								if(DET_ENABLED){
+                                    }
 
-									BOOST_LOG_SEV(slg, normal) << "Start to create detection Thread.";
+                                    /// Create detection thread.
+                                    if(DET_ENABLED){
 
-									detection  = new DetThread(	&cfg_m,
-																configPath,
-																DET_METHOD,
-																&frameBuffer,
-																&frameBuffer_m,
-																&frameBuffer_c,
-																&signalDet,
-																&signalDet_m,
-																&signalDet_c);
+                                        BOOST_LOG_SEV(slg, normal) << "Start to create detection Thread.";
 
-									if(!detection->startThread()){
+                                        detection  = new DetThread(	&cfg_m,
+                                                                    configPath,
+                                                                    DET_METHOD,
+                                                                    &frameBuffer,
+                                                                    &frameBuffer_m,
+                                                                    &frameBuffer_c,
+                                                                    &signalDet,
+                                                                    &signalDet_m,
+                                                                    &signalDet_c);
 
-										cout << "Fail to start detection Thread." << endl;
-										BOOST_LOG_SEV(slg, fail) << "Fail to start detection Thread.";
-										detThreadCreationSuccess = false;
+                                        if(!detection->startThread()){
 
-									}
+                                            cout << "Fail to start detection Thread." << endl;
+                                            BOOST_LOG_SEV(slg, fail) << "Fail to start detection Thread.";
+                                            detThreadCreationSuccess = false;
 
-								}
+                                        }
 
-								if(detThreadCreationSuccess && stackThreadCreationSuccess){
+                                    }
 
-									#ifdef WINDOWS
+                                    if(detThreadCreationSuccess && stackThreadCreationSuccess){
 
-										 std::cout << "This is the process : " << (unsigned long)_getpid() << endl;
+                                        #ifdef WINDOWS
 
-									#elif defined LINUX
+                                             std::cout << "This is the process : " << (unsigned long)_getpid() << endl;
 
-										BOOST_LOG_SEV(slg, notification) << "This is the process : " << (unsigned long)getpid();
+                                        #elif defined LINUX
 
-										memset(&act, 0, sizeof(act));
-										act.sa_sigaction = sigTermHandler;
-										act.sa_flags = SA_SIGINFO;
-										sigaction(SIGTERM,&act,NULL);
+                                            BOOST_LOG_SEV(slg, notification) << "This is the process : " << (unsigned long)getpid();
 
-									#endif
+                                            memset(&act, 0, sizeof(act));
+                                            act.sa_sigaction = sigTermHandler;
+                                            act.sa_flags = SA_SIGINFO;
+                                            sigaction(SIGTERM,&act,NULL);
 
-									int cptTime = 0;
+                                        #endif
 
-									while(!sigTermFlag){
+                                        int cptTime = 0;
 
-										#ifdef WINDOWS
-											waitKey(1000);
-											//cout << "wait 1 in main sec" << endl;
-										#elif defined LINUX
-											sleep(1);
-										#endif
+                                        while(!sigTermFlag){
 
-										if(executionTime != 0){
+                                            #ifdef WINDOWS
+                                                waitKey(1000);
+                                                //cout << "wait 1 in main sec" << endl;
+                                            #elif defined LINUX
+                                                sleep(1);
+                                            #endif
 
-											if(cptTime > executionTime){
+                                            if(executionTime != 0){
 
-												std::cout << "Break main loop"<< endl;
+                                                if(cptTime > executionTime){
 
-												break;
-											}
-											cptTime ++;
+                                                    std::cout << "Break main loop"<< endl;
 
-										}
+                                                    break;
+                                                }
+                                                cptTime ++;
 
-										if(inputDevice != NULL)
-											if(inputDevice->getThreadTerminatedStatus()){
+                                            }
 
-												std::cout << "Break main loop" << endl;
-												break;
+                                            if(inputDevice != NULL){
 
-											}
+                                                if(inputDevice->getThreadTerminatedStatus()){
 
-									}
-								}
+                                                    std::cout << "Break main loop" << endl;
+                                                    break;
 
-								if(detection != NULL){
+                                                }
 
-									if(detThreadCreationSuccess) detection->stopThread();
-									delete detection;
+                                                if(detection != NULL){
+                                                    if(!detection->getRunStatus()){
+                                                        BOOST_LOG_SEV(slg, critical) << "DetThread not running. Stopping the process ...";
+                                                        break;
+                                                    }
+                                                }
 
-								}
+                                                if(stack != NULL){
+                                                    if(!stack->getRunStatus()){
+                                                        BOOST_LOG_SEV(slg, critical) << "StackThread not running. Stopping the process ...";
+                                                        break;
+                                                    }
+                                                }
+                                            }
+                                        }
+                                    }
 
-								if(stack != NULL){
+                                    if(detection != NULL){
 
-									if(stackThreadCreationSuccess) stack->stopThread();
-									delete stack;
+                                        if(detThreadCreationSuccess) detection->stopThread();
+                                        delete detection;
 
-								}
+                                    }
 
-								inputDevice->stopThread();
+                                    if(stack != NULL){
 
-							}
+                                        if(stackThreadCreationSuccess) stack->stopThread();
+                                        delete stack;
 
-							delete inputDevice;
+                                    }
+
+                                    inputDevice->stopThread();
+
+                                }
+
+                                delete inputDevice;
+                            }
+
+                        }catch(exception& e){
+
+                            cout << "An exception occured : " << e.what() << endl;
+                            BOOST_LOG_SEV(slg, critical) << e.what();
+
                         }
                     }
 
@@ -724,12 +751,10 @@ int main(int argc, const char ** argv){
                                         if(newFits.writeFits(newMat, S16, "SingleCapture" ))cout << "> Fits saved in " << savePath << endl;
 
                                     }
-
-
-							}
-						}
-
+                            }
+                        }
                     }
+
 
                     break;
 

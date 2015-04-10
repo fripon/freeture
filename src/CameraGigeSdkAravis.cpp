@@ -40,9 +40,13 @@
 	boost::log::sources::severity_logger< LogSeverityLevel >  CameraGigeSdkAravis::logger;
 	CameraGigeSdkAravis::_Init CameraGigeSdkAravis::_initializer;
 
-	CameraGigeSdkAravis::CameraGigeSdkAravis(bool shift){shiftImage = shift;}
+	CameraGigeSdkAravis::CameraGigeSdkAravis(bool shift){
+	    shiftImage = shift;
+    }
 
-	CameraGigeSdkAravis::CameraGigeSdkAravis(){shiftImage = false;}
+	CameraGigeSdkAravis::CameraGigeSdkAravis(){
+	    shiftImage = false;
+    }
 
 	CameraGigeSdkAravis::~CameraGigeSdkAravis(){}
 
@@ -52,12 +56,15 @@
 
 		int n_devices = arv_get_n_devices();
 
+        BOOST_LOG_SEV(logger, notification) << "Cameras detected with Aravis : ";
+
 		cout << "******** DETECTED CAMERAS WITH ARAVIS ********** " << endl;
 		cout << "*" << endl;
 
 		for(int i = 0; i < n_devices; i++){
 
 			cout << "* -> [" << i << "] " << arv_get_device_id(i) << endl;
+			BOOST_LOG_SEV(logger, notification) << " -> [" << i << "] " << arv_get_device_id(i);
 
 		}
 
@@ -69,6 +76,7 @@
 	bool CameraGigeSdkAravis::createDevice(int id){
 
 	    cout << "Create device : " << id << endl;
+	    BOOST_LOG_SEV(logger, notification) << "Create device : " << id;
 
 	    string deviceName;
 
@@ -76,17 +84,20 @@
             return false;
 
         cout << "Device : " << deviceName << endl;
+        BOOST_LOG_SEV(logger, notification) << "Device selected: " << deviceName;
 
 		camera = arv_camera_new(deviceName.c_str());
 
 		if(camera != NULL){
 
 			cout << "Connection success to the camera." << endl;
+			BOOST_LOG_SEV(logger, notification) << "Connection success to the camera.";
 			return true;
 
 		}else{
 
 			cout << "Connection fail to the camera." << endl;
+			BOOST_LOG_SEV(logger, fail) << "Connection fail to the camera.";
 			return false;
 
 		}
@@ -119,27 +130,39 @@
 		int sensor_width, sensor_height;
 
 		arv_camera_get_sensor_size(camera, &sensor_width, &sensor_height);
+		BOOST_LOG_SEV(logger, notification) << "Camera sensor size : " << sensor_width << "x" << sensor_height;
 
 		arv_camera_set_region(camera, 0, 0,sensor_width,sensor_height);
 
 		arv_camera_get_region (camera, NULL, NULL, &width, &height);
+		BOOST_LOG_SEV(logger, notification) << "Camera region size : " << width << "x" << height;
 
 		payload = arv_camera_get_payload (camera);
+		BOOST_LOG_SEV(logger, notification) << "Camera payload : " << payload;
 
-		pixFormat = arv_camera_get_pixel_format (camera);
+		pixFormat = arv_camera_get_pixel_format(camera);
 
 		arv_camera_get_exposure_time_bounds (camera, &exposureMin, &exposureMax);
+		BOOST_LOG_SEV(logger, notification) << "Camera exposure bound min : " << exposureMin;
+		BOOST_LOG_SEV(logger, notification) << "Camera exposure bound max : " << exposureMax;
 
 		arv_camera_get_gain_bounds (camera, &gainMin, &gainMax);
+		BOOST_LOG_SEV(logger, notification) << "Camera gain bound min : " << gainMin;
+		BOOST_LOG_SEV(logger, notification) << "Camera gain bound max : " << gainMax;
 
 		arv_camera_set_frame_rate(camera, 30);
 
 		fps = arv_camera_get_frame_rate(camera);
+		BOOST_LOG_SEV(logger, notification) << "Camera frame rate : " << fps;
 
 		caps_string = arv_pixel_format_to_gst_caps_string(pixFormat);
+		BOOST_LOG_SEV(logger, notification) << "Camera format : " << caps_string;
 
-		gain    = arv_camera_get_gain(camera);
-		exp     = arv_camera_get_exposure_time(camera);
+		gain = arv_camera_get_gain(camera);
+		BOOST_LOG_SEV(logger, notification) << "Camera gain : " << gain;
+
+		exp = arv_camera_get_exposure_time(camera);
+		BOOST_LOG_SEV(logger, notification) << "Camera exposure : " << exp;
 
 		cout << endl;
 
@@ -162,8 +185,10 @@
 		stream = arv_camera_create_stream(camera, NULL, NULL);
 
 		if(stream == NULL){
-			cout << "Stream is null ! " << endl;
+
+			BOOST_LOG_SEV(logger, critical) << "Fail to create stream with arv_camera_create_stream()";
 			return false;
+
         }
 
 		if (ARV_IS_GV_STREAM(stream)){
@@ -246,10 +271,13 @@
 
 	void CameraGigeSdkAravis::acqStart(){
 
+        BOOST_LOG_SEV(logger, notification) << "Set camera to CONTINUOUS MODE";
         arv_camera_set_acquisition_mode(camera, ARV_ACQUISITION_MODE_CONTINUOUS);
 
+        BOOST_LOG_SEV(logger, notification) << "Set camera TriggerMode to Off";
         arv_device_set_string_feature_value(arv_camera_get_device (camera), "TriggerMode" , "Off");
 
+        BOOST_LOG_SEV(logger, notification) << "Start acquisition on camera";
 		arv_camera_start_acquisition(camera);
 
 	}
@@ -262,6 +290,11 @@
 		cout << "Failures          = " << (unsigned long long) nbFailures           << endl;
 		cout << "Underruns         = " << (unsigned long long) nbUnderruns          << endl;
 
+		BOOST_LOG_SEV(logger, notification) << "Completed buffers = " << (unsigned long long) nbCompletedBuffers;
+		BOOST_LOG_SEV(logger, notification) << "Failures          = " << (unsigned long long) nbFailures;
+		BOOST_LOG_SEV(logger, notification) << "Underruns         = " << (unsigned long long) nbUnderruns;
+
+        BOOST_LOG_SEV(logger, notification) << "Stop acquisition on camera";
 		arv_camera_stop_acquisition(camera);
 
 		g_object_unref(stream);
@@ -277,105 +310,131 @@
         char *buffer_data;
         size_t buffer_size;
 
-		if (arv_buffer == NULL){
+		if(arv_buffer == NULL){
 
 			 throw runtime_error("arv_buffer is NULL");
 			 return false;
 
 		}else{
 
-			if(arv_buffer_get_status(arv_buffer) == ARV_BUFFER_STATUS_SUCCESS){
+		    try{
 
-                buffer_data = (char *) arv_buffer_get_data (arv_buffer, &buffer_size);
+                if(arv_buffer_get_status(arv_buffer) == ARV_BUFFER_STATUS_SUCCESS){
 
-				//Timestamping.
-				string acquisitionDate = TimeDate::localDateTime(microsec_clock::universal_time(),"%Y:%m:%d:%H:%M:%S");
-				boost::posix_time::ptime time = boost::posix_time::microsec_clock::universal_time();
-				string acqDateInMicrosec = to_iso_extended_string(time);
+                    BOOST_LOG_SEV(logger, normal) << "Success to grab a frame.";
 
-				Mat image;
+                    buffer_data = (char *) arv_buffer_get_data (arv_buffer, &buffer_size);
 
-				if(pixFormat == ARV_PIXEL_FORMAT_MONO_8){
+                    //Timestamping.
+                    string acquisitionDate = TimeDate::localDateTime(microsec_clock::universal_time(),"%Y:%m:%d:%H:%M:%S");
+                    BOOST_LOG_SEV(logger, normal) << "Date : " << acquisitionDate;
+                    boost::posix_time::ptime time = boost::posix_time::microsec_clock::universal_time();
+                    string acqDateInMicrosec = to_iso_extended_string(time);
+                    BOOST_LOG_SEV(logger, normal) << "Date : " << acqDateInMicrosec;
 
-					Mat img(height, width, CV_8UC1, buffer_data);
-					img.copyTo(image);
+                    Mat image;
 
-				}else if(pixFormat == ARV_PIXEL_FORMAT_MONO_12){
+                    if(pixFormat == ARV_PIXEL_FORMAT_MONO_8){
 
-					Mat img(height, width, CV_16UC1, buffer_data);
-					img.copyTo(image);
+                        BOOST_LOG_SEV(logger, normal) << "Creating Mat 8 bits ...";
+                        Mat img(height, width, CV_8UC1, buffer_data);
+                        img.copyTo(image);
 
-					cout << "shiftImage: " << shiftImage << endl;
+                    }else if(pixFormat == ARV_PIXEL_FORMAT_MONO_12){
 
-					if(shiftImage){
+                        BOOST_LOG_SEV(logger, normal) << "Creating Mat 16 bits ...";
+                        Mat img(height, width, CV_16UC1, buffer_data);
+                        img.copyTo(image);
 
-						unsigned short * p;
+                        if(shiftImage){
 
-						for(int i = 0; i < image.rows; i++){
-							p = image.ptr<unsigned short>(i);
-							for(int j = 0; j < image.cols; j++)
-                                p[j] = p[j] >> 4;
-						}
+                            BOOST_LOG_SEV(logger, normal) << "Shifting bits ...";
 
-					}
 
-				}
+                                unsigned short * p;
 
-				newFrame = Frame(image, arv_camera_get_gain(camera), arv_camera_get_exposure_time(camera), acquisitionDate);
-				newFrame.setAcqDateMicro(acqDateInMicrosec);
-				newFrame.setFPS(arv_camera_get_frame_rate(camera));
+                                for(int i = 0; i < image.rows; i++){
+                                    p = image.ptr<unsigned short>(i);
+                                    for(int j = 0; j < image.cols; j++)
+                                        p[j] = p[j] >> 4;
+                                }
 
-				if(pixFormat == ARV_PIXEL_FORMAT_MONO_8){
+                            BOOST_LOG_SEV(logger, normal) << "Bits shifted.";
 
-                    newFrame.setBitDepth(MONO_8);
-                    newFrame.setSaturatedValue(255);
+                        }
+                    }
 
-				}else if(pixFormat == ARV_PIXEL_FORMAT_MONO_12){
+                    BOOST_LOG_SEV(logger, normal) << "Creating frame object ...";
+                    newFrame = Frame(image, arv_camera_get_gain(camera), arv_camera_get_exposure_time(camera), acquisitionDate);
+                    BOOST_LOG_SEV(logger, normal) << "Setting date of frame ...";
+                    newFrame.setAcqDateMicro(acqDateInMicrosec);
+                    BOOST_LOG_SEV(logger, normal) << "Setting fps of frame ...";
+                    newFrame.setFPS(arv_camera_get_frame_rate(camera));
 
-                    newFrame.setBitDepth(MONO_12);
-                    newFrame.setSaturatedValue(4095);
-				}
+                    if(pixFormat == ARV_PIXEL_FORMAT_MONO_8){
 
-				arv_stream_push_buffer(stream, arv_buffer);
+                        BOOST_LOG_SEV(logger, normal) << "Setting bitdepth of frame ...";
+                        newFrame.setBitDepth(MONO_8);
+                        BOOST_LOG_SEV(logger, normal) << "Setting saturated value of frame ...";
+                        newFrame.setSaturatedValue(255);
 
-				return true;
+                    }else if(pixFormat == ARV_PIXEL_FORMAT_MONO_12){
 
-			}else{
+                        BOOST_LOG_SEV(logger, normal) << "Setting bitdepth of frame ...";
+                        newFrame.setBitDepth(MONO_12);
+                        BOOST_LOG_SEV(logger, normal) << "Setting saturated value of frame ...";
+                        newFrame.setSaturatedValue(4095);
+                    }
 
-				switch(arv_buffer_get_status(arv_buffer)){
+                    BOOST_LOG_SEV(logger, normal) << "Re-pushing arv buffer in stream ...";
+                    arv_stream_push_buffer(stream, arv_buffer);
 
-					case 0 :
-						cout << "ARV_BUFFER_STATUS_SUCCESS : the buffer contains a valid image"<<endl;
-						break;
-					case 1 :
-						cout << "ARV_BUFFER_STATUS_CLEARED: the buffer is cleared"<<endl;
-						break;
-					case 2 :
-						cout << "ARV_BUFFER_STATUS_TIMEOUT: timeout was reached before all packets are received"<<endl;
-						break;
-					case 3 :
-						cout << "ARV_BUFFER_STATUS_MISSING_PACKETS: stream has missing packets"<<endl;
-						break;
-					case 4 :
-						cout << "ARV_BUFFER_STATUS_WRONG_PACKET_ID: stream has packet with wrong id"<<endl;
-						break;
-					case 5 :
-						cout << "ARV_BUFFER_STATUS_SIZE_MISMATCH: the received image didn't fit in the buffer data space"<<endl;
-						break;
-					case 6 :
-						cout << "ARV_BUFFER_STATUS_FILLING: the image is currently being filled"<<endl;
-						break;
-					case 7 :
-						cout << "ARV_BUFFER_STATUS_ABORTED: the filling was aborted before completion"<<endl;
-						break;
+                    return true;
 
-				}
+                }else{
 
-				arv_stream_push_buffer(stream, arv_buffer);
+                    switch(arv_buffer_get_status(arv_buffer)){
 
-				return false;
-			}
-		 }
+                        case 0 :
+                            cout << "ARV_BUFFER_STATUS_SUCCESS : the buffer contains a valid image"<<endl;
+                            break;
+                        case 1 :
+                            cout << "ARV_BUFFER_STATUS_CLEARED: the buffer is cleared"<<endl;
+                            break;
+                        case 2 :
+                            cout << "ARV_BUFFER_STATUS_TIMEOUT: timeout was reached before all packets are received"<<endl;
+                            break;
+                        case 3 :
+                            cout << "ARV_BUFFER_STATUS_MISSING_PACKETS: stream has missing packets"<<endl;
+                            break;
+                        case 4 :
+                            cout << "ARV_BUFFER_STATUS_WRONG_PACKET_ID: stream has packet with wrong id"<<endl;
+                            break;
+                        case 5 :
+                            cout << "ARV_BUFFER_STATUS_SIZE_MISMATCH: the received image didn't fit in the buffer data space"<<endl;
+                            break;
+                        case 6 :
+                            cout << "ARV_BUFFER_STATUS_FILLING: the image is currently being filled"<<endl;
+                            break;
+                        case 7 :
+                            cout << "ARV_BUFFER_STATUS_ABORTED: the filling was aborted before completion"<<endl;
+                            break;
+
+                    }
+
+                    arv_stream_push_buffer(stream, arv_buffer);
+
+                    return false;
+                }
+
+            }catch(exception& e){
+
+                cout << e.what() << endl;
+                BOOST_LOG_SEV(logger, critical) << e.what() ;
+                return false;
+
+            }
+        }
 	}
 
 	bool CameraGigeSdkAravis::grabSingleImage(Frame &frame, int camID){

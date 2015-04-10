@@ -86,6 +86,8 @@ class StackThread{
 		bool		CFG_FILECOPY_ENABLED;
 		Fits		fitsHeader;
 
+		bool isRunning;
+
 		bool mustStop;
 		boost::mutex mustStopMutex;
 
@@ -120,6 +122,8 @@ class StackThread{
 		void stopThread();
 
 		void operator()();
+
+		bool getRunStatus();
 
 	private :
 

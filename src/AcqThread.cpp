@@ -148,47 +148,46 @@ void AcqThread::operator()(){
 
 		do{
 
-			Frame newFrame;
+            Frame newFrame;
 
-			double tacq = (double)getTickCount();
-			BOOST_LOG_SEV(logger, normal) << "============= FRAME " << frameCpt << " ============= ";
-			cout << "============= FRAME " << frameCpt << " ============= " << endl;
+            double tacq = (double)getTickCount();
+            BOOST_LOG_SEV(logger, normal) << "============= FRAME " << frameCpt << " ============= ";
+            cout << "============= FRAME " << frameCpt << " ============= " << endl;
 
-			if(cam->grabImage(newFrame)){
+            if(cam->grabImage(newFrame)){
 
-				newFrame.setNumFrame(frameCpt);
+                newFrame.setNumFrame(frameCpt);
 
-				boost::mutex::scoped_lock lock(*frameBuffer_mutex);
-				frameBuffer->push_back(newFrame);
-				lock.unlock();
+                boost::mutex::scoped_lock lock(*frameBuffer_mutex);
+                frameBuffer->push_back(newFrame);
+                lock.unlock();
 
-				boost::mutex::scoped_lock lock2(*detSignal_mutex);
-				*detSignal = true;
-				detSignal_condition->notify_one();
-				lock2.unlock();
+                boost::mutex::scoped_lock lock2(*detSignal_mutex);
+                *detSignal = true;
+                detSignal_condition->notify_one();
+                lock2.unlock();
 
-				boost::mutex::scoped_lock lock3(*stackSignal_mutex);
-				*stackSignal = true;
-				stackSignal_condition->notify_one();
-				lock3.unlock();
+                boost::mutex::scoped_lock lock3(*stackSignal_mutex);
+                *stackSignal = true;
+                stackSignal_condition->notify_one();
+                lock3.unlock();
 
-				nbFailGrabbedFrames++;
+                frameCpt++;
 
-			}else{
+            }else{
 
-				BOOST_LOG_SEV(logger, fail) << "> Fail to grab frame " << frameCpt + 1;
-				nbFailGrabbedFrames++;
-			}
+                BOOST_LOG_SEV(logger, notification) << "> Fail to grab frame : " << frameCpt;
+                nbFailGrabbedFrames++;
+            }
 
-			frameCpt++;
+            tacq = (((double)getTickCount() - tacq)/getTickFrequency())*1000;
+            std::cout << " [ TIME ACQ ] : " << tacq << " ms" << endl;
+            BOOST_LOG_SEV(logger, normal) << " [ TIME ACQ ] : " << tacq << " ms";
 
-			tacq = (((double)getTickCount() - tacq)/getTickFrequency())*1000;
-			std::cout << " [ TIME ACQ ] : " << tacq << " ms" << endl;
-			BOOST_LOG_SEV(logger, normal) << " [ TIME ACQ ] : " << tacq << " ms";
+            mustStopMutex.lock();
+            stop = mustStop;
+            mustStopMutex.unlock();
 
-			mustStopMutex.lock();
-			stop = mustStop;
-			mustStopMutex.unlock();
 
 		}while(stop == false && !cam->getDeviceStopStatus());
 
@@ -196,6 +195,11 @@ void AcqThread::operator()(){
 
 			BOOST_LOG_SEV(logger,notification) << "Acquisition Thread INTERRUPTED";
             cout << "Acquisition Thread INTERRUPTED" <<endl;
+
+    }catch(exception& e){
+
+        cout << "An exception occured : " << e.what() << endl;
+        BOOST_LOG_SEV(logger, critical) << e.what();
 
     }
 
