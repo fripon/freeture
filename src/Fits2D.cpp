@@ -835,7 +835,7 @@ bool Fits2D::writeKeywords(fitsfile *fptr){
 
 bool Fits2D::writeFits(Mat img, ImgBitDepth imgType, string fileName){
 
-    cout << " Start write Fits." << endl;
+    BOOST_LOG_SEV(logger, notification) << "Start write Fits 2D.";
 
     int status = 0;
 
@@ -846,7 +846,6 @@ bool Fits2D::writeFits(Mat img, ImgBitDepth imgType, string fileName){
 
     // Image size.
     long naxes[2] = { img.cols, img.rows };
-    cout << " Fits size :" << img.cols << "x" << img.rows << endl;
 
     // First pixel to write.
 	firstPixel = 1;
@@ -872,8 +871,6 @@ bool Fits2D::writeFits(Mat img, ImgBitDepth imgType, string fileName){
     // Creation of the fits filename.
     string pathAndname = "";
 
-	cout << "kTELESCOP : " << kTELESCOP << endl;
-
 	if(fileName != ""){
 
 		pathAndname = fitsPath + fileName  + ".fit";
@@ -886,28 +883,36 @@ bool Fits2D::writeFits(Mat img, ImgBitDepth imgType, string fileName){
 
 	}
 
-	cout << "In fits 2D function -> pathAndname : " << pathAndname << endl;
-	cout << "fileName : " << fileName << endl;
+	BOOST_LOG_SEV(logger, notification) << "Fits 2D location and name : " << pathAndname;
+
     filename = pathAndname.c_str();
     BOOST_LOG_SEV(logger, notification) << " Fits name : " << pathAndname;
 
     switch(imgType){
 
+        // UC8
         case 0:
         {
+
+            BOOST_LOG_SEV(logger, notification) << "Fits 2D image type : UC8";
+
             //https://www-n.oca.eu/pichon/Tableau_2D.pdf
             unsigned char ** tab = (unsigned char * *)malloc( img.rows * sizeof(unsigned char *)) ;
 
             if(tab == NULL){
 
-                return printerror("Fits2D::writeimage() case 8 bits -> tab == NULL");
+                BOOST_LOG_SEV(logger, fail) << "Fail to allocate unsigned char** array (NULL).";
+                return false;
+
             }
 
             tab[0] = (unsigned char  *) malloc( naxes[0] * naxes[1] * sizeof(unsigned char) ) ;
 
             if(tab[0] == NULL){
 
-                return printerror("Fits2D::writeimage() case 8 bits -> tab[0] == NULL");
+                BOOST_LOG_SEV(logger, fail) << "Fail to allocate unsigned char* array (NULL).";
+                return false;
+
             }
 
             for( int a = 1; a<naxes[1]; a++ ){
@@ -919,15 +924,20 @@ bool Fits2D::writeFits(Mat img, ImgBitDepth imgType, string fileName){
             remove(filename);
 
             // Create new FITS file.
-            if (fits_create_file(&fptr, filename, &status)){
+            if(fits_create_file(&fptr, filename, &status)){
 
-                 return printerror( status, "Fits2D::writeimage() case 8 bits -> fits_create_file() failed" );
+                 printerror(status);
+                 free(tab[0]);
+                 return false;
+
             }
-
 
             if (fits_create_img(fptr, BYTE_IMG, naxis, naxes, &status)){
 
-                 return printerror( status, "Fits2D::writeimage() case 8 bits -> fits_create_img() failed" );
+                 printerror(status);
+                 free(tab[0]);
+                 return false;
+
             }
 
             // Initialize the values in the fits image with the mat's values.
@@ -944,9 +954,12 @@ bool Fits2D::writeFits(Mat img, ImgBitDepth imgType, string fileName){
             }
 
             // Write the array of unsigned short to the FITS file.
-             if(fits_write_img(fptr, TBYTE, firstPixel, nbelements, tab[0], &status)){
+            if(fits_write_img(fptr, TBYTE, firstPixel, nbelements, tab[0], &status)){
 
-                 return printerror( status, "Fits2D::writeimage() case 8 bits -> fits_write_img() failed" );
+                 printerror(status);
+                 free(tab[0]);
+                 return false;
+
             }
 
             // Free previously allocated memory.
@@ -962,14 +975,18 @@ bool Fits2D::writeFits(Mat img, ImgBitDepth imgType, string fileName){
 
             if(tab == NULL){
 
-                return printerror("Fits2D::writeimage() case 8 bits -> tab == NULL");
+                BOOST_LOG_SEV(logger, fail) << "Fail to allocate char** array (NULL).";
+                return false;
+
             }
 
             tab[0] = (char *) malloc( naxes[0] * naxes[1] * sizeof(char) ) ;
 
             if(tab[0] == NULL){
 
-                return printerror("Fits2D::writeimage() case 8 bits -> tab[0] == NULL");
+                BOOST_LOG_SEV(logger, fail) << "Fail to allocate char* array (NULL).";
+                return false;
+
             }
 
             for( int a = 1; a<naxes[1]; a++ ){
@@ -981,23 +998,29 @@ bool Fits2D::writeFits(Mat img, ImgBitDepth imgType, string fileName){
             remove(filename);
 
             // Create new FITS file.
-            if (fits_create_file(&fptr, filename, &status)){
+            if(fits_create_file(&fptr, filename, &status)){
 
-                 return printerror( status, "Fits2D::writeimage() case 8 signed bits -> fits_create_file() failed" );
+                 printerror(status);
+                 free(tab[0]);
+                 return false;
+
             }
 
 
-            if (fits_create_img(fptr,  SBYTE_IMG, naxis, naxes, &status)){
+            if(fits_create_img(fptr,  SBYTE_IMG, naxis, naxes, &status)){
 
-                 return printerror( status, "Fits2D::writeimage() case 8 signed bits -> fits_create_img() failed" );
+                 printerror(status);
+                 free(tab[0]);
+                 return false;
+
             }
 
             // Initialize the values in the fits image with the mat's values.
-             for ( int j = 0; j < naxes[1]; j++){
+             for( int j = 0; j < naxes[1]; j++){
 
                  char * matPtr = img.ptr<char>(j);
 
-                 for ( int i = 0; i < naxes[0]; i++){
+                 for(int i = 0; i < naxes[0]; i++){
 
                      // Affect a value and inverse the image.
                      tab[img.rows-1-j][i] = (char)matPtr[i];
@@ -1008,7 +1031,10 @@ bool Fits2D::writeFits(Mat img, ImgBitDepth imgType, string fileName){
             // Write the array of unsigned short to the FITS file.
              if(fits_write_img(fptr, TSBYTE, firstPixel, nbelements, tab[0], &status)){
 
-                 return printerror( status, "Fits2D::writeimage() case 8 signed bits -> fits_write_img() failed" );
+                 printerror(status);
+                 free(tab[0]);
+                 return false;
+
             }
 
             // Free previously allocated memory.
@@ -1025,14 +1051,18 @@ bool Fits2D::writeFits(Mat img, ImgBitDepth imgType, string fileName){
 
             if(tab == NULL){
 
-                return printerror("Fits2D::writeimage() case 16 bits -> tab == NULL");
+                BOOST_LOG_SEV(logger, fail) << "Fail to allocate unsigned short** array (NULL).";
+                return false;
+
             }
 
             tab[0] = (unsigned short  *) malloc( naxes[0] * naxes[1] * sizeof(unsigned short) ) ;
 
             if(tab[0] == NULL){
 
-                return printerror("Fits2D::writeimage() case 16 bits -> tab[0] == NULL");
+                BOOST_LOG_SEV(logger, fail) << "Fail to allocate unsigned short* array (NULL).";
+                return false;
+
             }
 
             for( int a = 1; a<naxes[1]; a++ ){
@@ -1046,16 +1076,19 @@ bool Fits2D::writeFits(Mat img, ImgBitDepth imgType, string fileName){
             // Create new FITS file.
             if (fits_create_file(&fptr, filename, &status)){
 
-                 return printerror( status, "Fits2D::writeimage() case 16 bits -> fits_create_file() failed" );
+                 printerror(status);
+                 free( *tab);
+                 free( tab );
+                 return false;
+
             }
-
-           // fits_set_compression_type(fptr, GZIP_1, &status);
-
-
 
             if ( fits_create_img(fptr,  USHORT_IMG, naxis, naxes, &status)){
 
-                 return printerror( status, "Fits2D::writeimage() case 16 bits -> fits_create_img() failed" );
+                 printerror(status);
+                 free( *tab);
+                 free( tab );
+                 return false;
             }
 
             // Initialize the values in the fits image with the mat's values.
@@ -1073,7 +1106,10 @@ bool Fits2D::writeFits(Mat img, ImgBitDepth imgType, string fileName){
             // write the array of unsigned short to the FITS file
             if ( fits_write_img(fptr, TUSHORT, firstPixel, nbelements, tab[0], &status)){
 
-                 return printerror( status, "Fits2D::writeimage() case 16 bits -> fits_write_img() failed" );
+                 printerror(status);
+                 free( *tab);
+                 free( tab );
+                 return false;
             }
 
             // Free previously allocated memory.
@@ -1092,14 +1128,18 @@ bool Fits2D::writeFits(Mat img, ImgBitDepth imgType, string fileName){
 
             if(tab == NULL){
 
-                return printerror("Fits2D::writeimage() case 16 signed bits -> tab == NULL");
+                BOOST_LOG_SEV(logger, fail) << "Fail to allocate short** array (NULL).";
+                return false;
+
             }
 
             tab[0] = (short  *) malloc( naxes[0] * naxes[1] * sizeof(short) ) ;
 
             if(tab[0] == NULL){
 
-                return printerror("Fits2D::writeimage() case 16 signed bits -> tab[0] == NULL");
+                BOOST_LOG_SEV(logger, fail) << "Fail to allocate short* array (NULL).";
+                return false;
+
             }
 
             for( int a = 1; a<naxes[1]; a++ ){
@@ -1113,13 +1153,19 @@ bool Fits2D::writeFits(Mat img, ImgBitDepth imgType, string fileName){
             // Create new FITS file.
             if (fits_create_file(&fptr, filename, &status)){
 
-                 return printerror( status, "Fits2D::writeimage() case 16 signed bits -> fits_create_file() failed" );
+                 printerror(status);
+                 free( *tab);
+                 free( tab );
+                 return false;
             }
 
 
             if ( fits_create_img(fptr,  SHORT_IMG, naxis, naxes, &status)){
 
-                 return printerror( status, "Fits2D::writeimage() case 16 signed bits -> fits_create_img() failed" );
+                 printerror(status);
+                 free( *tab);
+                 free( tab );
+                 return false;
             }
 
             // Initialize the values in the fits image with the mat's values.
@@ -1137,7 +1183,10 @@ bool Fits2D::writeFits(Mat img, ImgBitDepth imgType, string fileName){
             // write the array of unsigned short to the FITS file
             if ( fits_write_img(fptr, TSHORT, firstPixel, nbelements, tab[0], &status)){
 
-                 return printerror( status, "Fits2D::writeimage() case 16 signed bits -> fits_write_img() failed" );
+                 printerror(status);
+                 free( *tab);
+                 free( tab );
+                 return false;
             }
 
             // Free previously allocated memory.
@@ -1156,14 +1205,16 @@ bool Fits2D::writeFits(Mat img, ImgBitDepth imgType, string fileName){
 
             if(tab == NULL){
 
-                return printerror("Fits2D::writeimage() case 32 bits -> tab == NULL");
+                BOOST_LOG_SEV(logger, fail) << "Fail to allocate float** array (NULL).";
+                return false;
             }
 
             tab[0] = (float *) malloc( naxes[0] * naxes[1] * sizeof(float) ) ;
 
             if(tab[0] == NULL){
 
-                return printerror("Fits2D::writeimage() case 32 bits -> tab[0] == NULL");
+                BOOST_LOG_SEV(logger, fail) << "Fail to allocate float* array (NULL).";
+                return false;
             }
 
             for( int a = 1; a<naxes[1]; a++ ){
@@ -1175,18 +1226,24 @@ bool Fits2D::writeFits(Mat img, ImgBitDepth imgType, string fileName){
             remove(filename);
 
             // Create new FITS file
-            if (fits_create_file(&fptr, filename, &status)){
+            if(fits_create_file(&fptr, filename, &status)){
 
-                 return printerror( status, "Fits2D::writeimage() case 32 bits -> fits_create_file() failed" );
+                 printerror(status);
+                 free( *tab);
+                 free( tab );
+                 return false;
             }
 
-            if ( fits_create_img(fptr,  FLOAT_IMG, naxis, naxes, &status)){
+            if( fits_create_img(fptr,  FLOAT_IMG, naxis, naxes, &status)){
 
-                 return printerror( status, "Fits2D::writeimage() case 32 bits -> fits_create_img() failed" );
+                 printerror(status);
+                 free( *tab);
+                 free( tab );
+                 return false;
             }
 
             // Initialize the values in the fits image with the mat's values.
-            for ( int j = 0; j < naxes[1]; j++){
+            for( int j = 0; j < naxes[1]; j++){
 
                  float * matPtr = img.ptr<float>(j);
 
@@ -1198,9 +1255,12 @@ bool Fits2D::writeFits(Mat img, ImgBitDepth imgType, string fileName){
             }
 
             // Write the array of unsigned short to the FITS file.
-            if ( fits_write_img(fptr, TFLOAT, firstPixel, nbelements, tab[0], &status)){
+            if( fits_write_img(fptr, TFLOAT, firstPixel, nbelements, tab[0], &status)){
 
-                 return printerror( status, "Fits2D::writeimage() case 32 bits -> fits_write_img() failed" );
+                 printerror(status);
+                 free( *tab);
+                 free( tab );
+                 return false;
             }
 
             // Free previously allocated memory.
@@ -1211,27 +1271,22 @@ bool Fits2D::writeFits(Mat img, ImgBitDepth imgType, string fileName){
             break;
         }
 
-        default :
-
-            return printerror("Fits2D::writeimage() -> bitDepth doesn't exists");
-
-            break;
-
     }
 
     if(!writeKeywords(fptr)){
 
-        if( fits_close_file(fptr, &status)){
+        if(fits_close_file(fptr, &status)){
 
-             return printerror( status, "Fits2D::writeimage() -> fits_close_file() failed" );
+             printerror(status);
         }
 
         return false;
     }
 
-    if( fits_close_file(fptr, &status)){
+    if(fits_close_file(fptr, &status)){
 
-        return printerror( status, "Fits2D::writeimage() -> fits_close_file() failed" );
+        printerror(status);
+        return false;
     }
 
     return true;
@@ -1257,13 +1312,17 @@ bool Fits2D::readFits32F(Mat &img, string filePath){
 
     if(fits_open_file(&fptr, filename, READONLY, &status)){
 
-        return printerror( status, "Fits2D::readFits32F() -> fits_open_file() failed" );
+        printerror(status);
+        return false;
+
     }
 
     // Read the NAXIS1 and NAXIS2 keyword to get image size.
     if(fits_read_keys_lng(fptr, "NAXIS", 1, 2, naxes, &nfound, &status)){
 
-        return printerror( status, "Fits2D::readFits32F() -> fits_read_keys_lng() failed" );
+        printerror(status);
+        return false;
+
     }
 
     Mat image = Mat::zeros( naxes[1],naxes[0], CV_32FC1);
@@ -1279,7 +1338,10 @@ bool Fits2D::readFits32F(Mat &img, string filePath){
 
     if(fits_read_img(fptr, TFLOAT, fpixel, nbuffer, &nullval,buffer, &anynull, &status)){
 
-        return printerror( status, "Fits2D::readFits32F() -> fits_read_img() failed" );
+        printerror(status);
+        delete buffer;
+        return false;
+
     }
 
     memcpy(image.ptr(), buffer, npixels * 4);
@@ -1305,7 +1367,9 @@ bool Fits2D::readFits32F(Mat &img, string filePath){
 
     if(fits_close_file(fptr, &status)){
 
-        return printerror( status, "Fits2D::readFits32F() -> fits_close_file() failed" );
+        printerror(status);
+        return false;
+
     }
 
     return true;
@@ -1332,13 +1396,17 @@ bool Fits2D::readFits16US(Mat &img, string filePath){
 
     if(fits_open_file(&fptr, filename, READONLY, &status)){
 
-        return printerror( status, "Fits2D::readFits16US() -> fits_open_file() failed" );
+        printerror(status);
+        return false;
+
     }
 
     // Read the NAXIS1 and NAXIS2 keyword to get image size.
     if(fits_read_keys_lng(fptr, "NAXIS", 1, 2, naxes, &nfound, &status)){
 
-        return printerror( status, "Fits2D::readFits16US() -> fits_read_keys_lng() failed" );
+        printerror(status);
+        return false;
+
     }
 
     Mat image = Mat::zeros( naxes[1],naxes[0], CV_16UC1);
@@ -1353,7 +1421,10 @@ bool Fits2D::readFits16US(Mat &img, string filePath){
 	unsigned short* buffer = new unsigned short[npixels];
     if(fits_read_img(fptr, TUSHORT, fpixel, nbuffer, &nullval,buffer, &anynull, &status)){
 
-        return printerror( status, "Fits2D::readFits16US() -> fits_read_img() failed" );
+        printerror(status);
+        delete buffer;
+        return false;
+
     }
 
     memcpy(image.ptr(), buffer, npixels * 2);
@@ -1376,9 +1447,12 @@ bool Fits2D::readFits16US(Mat &img, string filePath){
 
     loadImg.copyTo(img);
 	delete buffer;
+
     if(fits_close_file(fptr, &status)){
 
-        return printerror( status, "Fits2D::readFits16US() -> fits_close_file() failed" );
+        printerror(status);
+        return false;
+
     }
 
     return true;
@@ -1404,13 +1478,15 @@ bool Fits2D::readFits16S(Mat &img, string filePath){
 
     if(fits_open_file(&fptr, filename, READONLY, &status)){
 
-        return printerror( status, "Fits2D::readFits16S() -> fits_open_file() failed" );
+        printerror(status);
+        return false;
     }
 
     // Read the NAXIS1 and NAXIS2 keyword to get image size.
     if(fits_read_keys_lng(fptr, "NAXIS", 1, 2, naxes, &nfound, &status)){
 
-        return printerror( status, "Fits2D::readFits16S() -> fits_read_keys_lng() failed" );
+        printerror(status);
+        return false;
     }
 
     Mat image = Mat::zeros( naxes[1],naxes[0], CV_16SC1);
@@ -1425,7 +1501,9 @@ bool Fits2D::readFits16S(Mat &img, string filePath){
 	short* buffer = new short[npixels];
     if(fits_read_img(fptr, TSHORT, fpixel, nbuffer, &nullval,buffer, &anynull, &status)){
 
-        return printerror( status, "Fits2D::readFits16S() -> fits_read_img() failed" );
+        printerror(status);
+        delete buffer;
+        return false;
     }
 
     memcpy(image.ptr(), buffer, npixels * 2);
@@ -1450,7 +1528,8 @@ bool Fits2D::readFits16S(Mat &img, string filePath){
 	delete buffer;
     if(fits_close_file(fptr, &status)){
 
-        return printerror( status, "Fits2D::readFits16S() -> fits_close_file() failed" );
+        printerror(status);
+        return false;
     }
 
 
@@ -1477,13 +1556,15 @@ bool Fits2D::readFits8UC(Mat &img, string filePath){
 
     if(fits_open_file(&fptr, filename, READONLY, &status)){
 
-        return printerror( status, "Fits2D::readFits8UC() -> fits_open_file() failed" );
+        printerror(status);
+        return false;
     }
 
     // Read the NAXIS1 and NAXIS2 keyword to get image size.
     if(fits_read_keys_lng(fptr, "NAXIS", 1, 2, naxes, &nfound, &status)){
 
-        return printerror( status, "Fits2D::readFits8UC() -> fits_read_keys_lng() failed" );
+        printerror(status);
+        return false;
     }
 
     Mat image = Mat::zeros( naxes[1],naxes[0], CV_8UC1);
@@ -1499,7 +1580,9 @@ bool Fits2D::readFits8UC(Mat &img, string filePath){
 
     if(fits_read_img(fptr, TBYTE, fpixel, nbuffer, &nullval,buffer, &anynull, &status)){
 
-        return printerror( status, "Fits2D::readFits8UC() -> fits_read_img() failed" );
+        printerror(status);
+        delete buffer;
+        return false;
     }
 
     memcpy(image.ptr(), buffer, npixels * 2);
@@ -1526,7 +1609,8 @@ bool Fits2D::readFits8UC(Mat &img, string filePath){
 
     if(fits_close_file(fptr, &status)){
 
-        return printerror( status, "Fits2D::readFits8UC() -> fits_close_file() failed" );
+        printerror(status);
+        return false;
     }
 
     return true;
@@ -1552,13 +1636,15 @@ bool Fits2D::readFits8C(Mat &img, string filePath){
 
     if(fits_open_file(&fptr, filename, READONLY, &status)){
 
-        return printerror( status, "Fits2D::readFits8C() -> fits_open_file() failed" );
+        printerror(status);
+        return false;
     }
 
     // Read the NAXIS1 and NAXIS2 keyword to get image size.
     if(fits_read_keys_lng(fptr, "NAXIS", 1, 2, naxes, &nfound, &status)){
 
-        return printerror( status, "Fits2D::readFits8C() -> fits_read_keys_lng() failed" );
+        printerror(status);
+        return false;
     }
 
     Mat image = Mat::zeros( naxes[1],naxes[0], CV_8SC1);
@@ -1573,7 +1659,9 @@ bool Fits2D::readFits8C(Mat &img, string filePath){
 	char* buffer = new char[npixels];
     if(fits_read_img(fptr, TSBYTE, fpixel, nbuffer, &nullval,buffer, &anynull, &status)){
 
-        return printerror( status, "Fits2D::readFits8C() -> fits_read_img() failed" );
+        printerror(status);
+        delete buffer;
+        return false;
     }
 
     memcpy(image.ptr(), buffer, npixels * 2);
@@ -1598,7 +1686,8 @@ bool Fits2D::readFits8C(Mat &img, string filePath){
 	delete buffer;
     if(fits_close_file(fptr, &status)){
 
-        return printerror( status, "Fits2D::readFits8C() -> fits_close_file() failed" );
+        printerror(status);
+        return false;
     }
 
     return true;
@@ -1619,7 +1708,8 @@ bool Fits2D::readIntKeyword(string filePath, string keyword, int &value){
 
     if(fits_open_file(&fptr, filename, READONLY, &status)){
 
-        return printerror( status, "> Failed to open the fits file." );
+        printerror(status);
+        return false;
     }
 
     char * key = new char[keyword.length()+1];
@@ -1627,7 +1717,9 @@ bool Fits2D::readIntKeyword(string filePath, string keyword, int &value){
 
     if(fits_read_key(fptr, TINT, key, &value, NULL, &status)){
 
-        return printerror( status, "> Failed to read the fits keyword." );
+        printerror(status);
+        delete key;
+        return false;
     }
 
     delete key;
@@ -1652,19 +1744,35 @@ bool Fits2D::readStringKeyword(string filePath, string keyword, string &value){
     filename = filePath.c_str();
 
 
-    if(fits_open_file(&fptr, filename, READONLY, &status)) return false;
+    if(fits_open_file(&fptr, filename, READONLY, &status)){
+
+        printerror(status);
+        return false;
+
+    }
 
     char * key = new char[keyword.length()+1];
     strcpy(key,keyword.c_str());
 
-    fits_read_key(fptr, TSTRING, key, v, NULL, &status);
+    if(fits_read_key(fptr, TSTRING, key, v, NULL, &status)){
+
+
+        printerror(status);
+        delete key;
+        return false;
+
+    }
 
     value = string(v);
 
     delete key;
 
-    fits_close_file(fptr, &status);
+    if(fits_close_file(fptr, &status)){
 
+        printerror(status);
+        return false;
+
+    }
 
     return true;
 }
@@ -1683,7 +1791,8 @@ bool Fits2D::readDoubleKeyword(string filePath, string keyword, double &value){
 
     if(fits_open_file(&fptr, filename, READONLY, &status)){
 
-        return printerror( status, "> Failed to open the fits file." );
+        printerror(status);
+        return false;
     }
 
     char * key = new char[keyword.length()+1];
@@ -1691,45 +1800,64 @@ bool Fits2D::readDoubleKeyword(string filePath, string keyword, double &value){
 
     if(fits_read_key(fptr, TDOUBLE, key, &value, NULL, &status)){
 
-        return printerror( status, "> Failed to read the fits keyword." );
+        printerror(status);
+        delete key;
+        return false;
     }
 
     delete key;
 
-    fits_close_file(fptr, &status);
+    if(fits_close_file(fptr, &status)){
+
+        printerror(status);
+        return false;
+
+    }
 
     return true;
 }
 
+// http://lbti.as.arizona.edu/svn/lbti/fits_index/src/AutoLog/autolog.c
+bool Fits2D::printerror(int status, string errorMsg){
 
-bool Fits2D::printerror( int status, string errorMsg){
-
-    if (status){
+    if(status){
 
         fits_report_error(stderr, status);
 
+        char status_str[200];
+        fits_get_errstatus(status, status_str);
+
         cout << stderr << endl;
-        BOOST_LOG_SEV(logger, normal) << stderr;
+        BOOST_LOG_SEV(logger, fail) << errorMsg;
 
-    }
+        if(status_str!= NULL){
+            std::string str(status_str);
+            BOOST_LOG_SEV(logger, fail) << "CFITSIO error " << status << " : " << str;
 
-    if(errorMsg != ""){
-
-        cout << errorMsg << endl;
-        BOOST_LOG_SEV(logger, normal) << errorMsg;
+        }
 
     }
 
     return false;
 }
 
-void Fits2D::printerror( int status ){
+void Fits2D::printerror(int status){
 
     if (status){
 
         fits_report_error(stderr, status);
 
+        char status_str[200];
+        fits_get_errstatus(status, status_str);
 
+        cout << stderr << endl;
+
+        if(status_str!= NULL){
+
+            std::string str(status_str);
+            BOOST_LOG_SEV(logger, fail) << "CFITSIO error " << status << " : " << str;
+
+        }
     }
 }
 
@@ -1738,7 +1866,7 @@ bool Fits2D::printerror( string errorMsg){
     if(errorMsg != ""){
 
         cout << errorMsg << endl;
-        BOOST_LOG_SEV(logger, normal) << errorMsg;
+        BOOST_LOG_SEV(logger, fail) << errorMsg;
 
     }
 
