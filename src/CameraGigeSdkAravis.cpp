@@ -321,34 +321,40 @@
 
                 if(arv_buffer_get_status(arv_buffer) == ARV_BUFFER_STATUS_SUCCESS){
 
-                    BOOST_LOG_SEV(logger, normal) << "Success to grab a frame.";
+                    //BOOST_LOG_SEV(logger, normal) << "Success to grab a frame.";
 
                     buffer_data = (char *) arv_buffer_get_data (arv_buffer, &buffer_size);
 
                     //Timestamping.
                     string acquisitionDate = TimeDate::localDateTime(microsec_clock::universal_time(),"%Y:%m:%d:%H:%M:%S");
-                    BOOST_LOG_SEV(logger, normal) << "Date : " << acquisitionDate;
+                    //BOOST_LOG_SEV(logger, normal) << "Date : " << acquisitionDate;
                     boost::posix_time::ptime time = boost::posix_time::microsec_clock::universal_time();
                     string acqDateInMicrosec = to_iso_extended_string(time);
-                    BOOST_LOG_SEV(logger, normal) << "Date : " << acqDateInMicrosec;
+                    //BOOST_LOG_SEV(logger, normal) << "Date : " << acqDateInMicrosec;
 
                     Mat image;
+                    CamBitDepth imgDepth;
+                    int saturateVal = 0;
 
                     if(pixFormat == ARV_PIXEL_FORMAT_MONO_8){
 
-                        BOOST_LOG_SEV(logger, normal) << "Creating Mat 8 bits ...";
-                        Mat img(height, width, CV_8UC1, buffer_data);
-                        img.copyTo(image);
+                        //BOOST_LOG_SEV(logger, normal) << "Creating Mat 8 bits ...";
+                        image = Mat(height, width, CV_8UC1, buffer_data);
+                        imgDepth = MONO_8;
+                        saturateVal = 255;
 
                     }else if(pixFormat == ARV_PIXEL_FORMAT_MONO_12){
 
-                        BOOST_LOG_SEV(logger, normal) << "Creating Mat 16 bits ...";
-                        Mat img(height, width, CV_16UC1, buffer_data);
-                        img.copyTo(image);
+                        //BOOST_LOG_SEV(logger, normal) << "Creating Mat 16 bits ...";
+                        image = Mat(height, width, CV_16UC1, buffer_data);
+                        imgDepth = MONO_12;
+                        saturateVal = 4095;
+
+                        //double t3 = (double)getTickCount();
 
                         if(shiftImage){
 
-                            BOOST_LOG_SEV(logger, normal) << "Shifting bits ...";
+                            //BOOST_LOG_SEV(logger, normal) << "Shifting bits ...";
 
 
                                 unsigned short * p;
@@ -359,34 +365,25 @@
                                         p[j] = p[j] >> 4;
                                 }
 
-                            BOOST_LOG_SEV(logger, normal) << "Bits shifted.";
+                            //BOOST_LOG_SEV(logger, normal) << "Bits shifted.";
 
                         }
+
+                        //t3 = (((double)getTickCount() - t3)/getTickFrequency())*1000;
+                        //cout << "> Time shift : " << t3 << endl;
                     }
 
-                    BOOST_LOG_SEV(logger, normal) << "Creating frame object ...";
-                    newFrame = Frame(image, arv_camera_get_gain(camera), arv_camera_get_exposure_time(camera), acquisitionDate);
-                    BOOST_LOG_SEV(logger, normal) << "Setting date of frame ...";
+                    //BOOST_LOG_SEV(logger, normal) << "Creating frame object ...";
+                    newFrame = Frame(image, gain, exp, acquisitionDate);
+                    //BOOST_LOG_SEV(logger, normal) << "Setting date of frame ...";
                     newFrame.setAcqDateMicro(acqDateInMicrosec);
-                    BOOST_LOG_SEV(logger, normal) << "Setting fps of frame ...";
-                    newFrame.setFPS(arv_camera_get_frame_rate(camera));
+                    //BOOST_LOG_SEV(logger, normal) << "Setting fps of frame ...";
+                    newFrame.setFPS(fps);
+                    newFrame.setBitDepth(imgDepth);
+                    //BOOST_LOG_SEV(logger, normal) << "Setting saturated value of frame ...";
+                    newFrame.setSaturatedValue(saturateVal);
 
-                    if(pixFormat == ARV_PIXEL_FORMAT_MONO_8){
-
-                        BOOST_LOG_SEV(logger, normal) << "Setting bitdepth of frame ...";
-                        newFrame.setBitDepth(MONO_8);
-                        BOOST_LOG_SEV(logger, normal) << "Setting saturated value of frame ...";
-                        newFrame.setSaturatedValue(255);
-
-                    }else if(pixFormat == ARV_PIXEL_FORMAT_MONO_12){
-
-                        BOOST_LOG_SEV(logger, normal) << "Setting bitdepth of frame ...";
-                        newFrame.setBitDepth(MONO_12);
-                        BOOST_LOG_SEV(logger, normal) << "Setting saturated value of frame ...";
-                        newFrame.setSaturatedValue(4095);
-                    }
-
-                    BOOST_LOG_SEV(logger, normal) << "Re-pushing arv buffer in stream ...";
+                    //BOOST_LOG_SEV(logger, normal) << "Re-pushing arv buffer in stream ...";
                     arv_stream_push_buffer(stream, arv_buffer);
 
                     return true;
