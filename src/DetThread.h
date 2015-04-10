@@ -115,6 +115,8 @@ class DetThread{
 		StackMeth		STACK_MTHD;
 		DetMeth			detmthd;
 
+		bool isRunning;
+
 		bool waitFramesToCompleteEvent;
 		int nbWaitFrames;
 
@@ -125,6 +127,7 @@ class DetThread{
 
 		string eventPath;
 		string eventDate;
+		int nbDetection;
 
 	public:
 
@@ -153,6 +156,8 @@ class DetThread{
 		bool saveEventData(int firstEvPosInFB, int lastEvPosInFB);
 
 		bool loadDetThreadParameters();
+
+		bool getRunStatus();
 
 };
 

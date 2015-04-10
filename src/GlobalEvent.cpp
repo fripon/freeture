@@ -87,23 +87,29 @@ bool GlobalEvent::addLE(LocalEvent le){
             if(mainPts.size()>=2){
 
                 // Get first main point.
-                Point A = mainPts.front(),
+                Point A = mainPts.front();
+                listA.push_back(A);
                 // Get last main point.
-                B = mainPts.back(),
+                Point B = mainPts.back();
+                listB.push_back(B);
                 // Get current le position.
-                C = center;
+                Point C = center;
+                listC.push_back(C);
                 // Vector from first main point to last main point.
                 Point u  = Point(B.x - A.x, B.y - A.y);
+                listu.push_back(u);
                 // Vector from last main point to current le position.
                 Point v  = Point(C.x - B.x, C.y - B.y);
+                listv.push_back(v);
                 // Norm vector u
                 float normU = sqrt(pow(u.x,2.0)+pow(u.y,2.0));
                 // Norm vector v
                 float normV = sqrt(pow(v.x,2.0)+pow(v.y,2.0));
                 // Compute angle between u and v.
-                float thetaDeg = acos((u.x*v.x+u.y*v.y)/(normU*normV));
-
-                //float thetaDeg = (180 * thetaRad)/3.14159265358979323846;
+                float thetaRad = (u.x*v.x+u.y*v.y)/(normU*normV);
+                listRad.push_back(thetaRad);
+                float thetaDeg = (180 * acos(thetaRad))/3.14159265358979323846;
+                listAngle.push_back(thetaDeg);
 
                 if(thetaDeg > 40.0 || thetaDeg < -40.0 ){
 
@@ -117,33 +123,17 @@ bool GlobalEvent::addLE(LocalEvent le){
 
                     addLeDecision = false;
                     ptsValidity.push_back(false);
+                    mainPtsValidity.push_back(false);
                     circle(geDirMap, center, 5, Scalar(0,0,255), 1, 8, 0);
 
                 }else{
 
-                    if(center.x != mainPts.back().x && center.y != mainPts.back().y){
-
-                        geBadPoint = 0;
-                        geGoodPoint++;
-                        mainPts.push_back(center);
-                        ptsValidity.push_back(true);
-                        circle(geDirMap, center, 5, Scalar(255,255,255), 1, 8, 0);
-
-                    }else{
-
-                        geBadPoint++;
-
-                        if(geBadPoint == 2){
-
-                            geLinear = false;
-
-                        }
-
-                        addLeDecision = false;
-                        ptsValidity.push_back(false);
-                        circle(geDirMap, center, 5, Scalar(0,0,255), 1, 8, 0);
-
-                    }
+                    geBadPoint = 0;
+                    geGoodPoint++;
+                    mainPts.push_back(center);
+                    ptsValidity.push_back(true);
+                    mainPtsValidity.push_back(true);
+                    circle(geDirMap, center, 5, Scalar(255,255,255), 1, 8, 0);
 
                 }
 
@@ -211,22 +201,21 @@ bool GlobalEvent::continuousGoodPos(int n){
             nb++;
             nn=0;
 
-            if(nb > n)
-                break;
+            if(nb >= n)
+                return true;
 
         }else{
 
             nn++;
 
             if(nn == 2)
-                break;
+                return false;
 
         }
 
     }
 
-    if(nb >= n) return true;
-    else return false;
+    return false;
 
 }
 

@@ -61,6 +61,9 @@ DetThread::DetThread(	boost::mutex				   *cfg_m,
 	eventDate				= "";
 	detmthd					= m;
 
+	isRunning               = false;
+	nbDetection             = 0;
+
 	waitFramesToCompleteEvent = false;
 	nbWaitFrames = 0;
 	firstFrameGrabbed = false;
@@ -298,108 +301,130 @@ bool DetThread::loadDetThreadParameters(){
 
 void DetThread::operator ()(){
 
+    bool stopThread = false;
+    isRunning = true;
+
 	BOOST_LOG_SCOPED_THREAD_TAG("LogName", "DET_THREAD");
 	BOOST_LOG_SEV(logger,notification) << "\n";
     BOOST_LOG_SEV(logger,notification) << "==============================================";
 	BOOST_LOG_SEV(logger,notification) << "=========== Start detection thread ===========";
 	BOOST_LOG_SEV(logger,notification) << "==============================================";
 
-    bool stopThread = false;
-
     /// Thread loop.
-	do{
+    try{
+        do{
 
-        try{
+            try{
 
-            /// Wait new frame from AcqThread.
-			boost::mutex::scoped_lock lock(*detSignal_mutex);
-			while (!(*detSignal)) detSignal_condition->wait(lock);
-            *detSignal = false;
-            lock.unlock();
+                /// Wait new frame from AcqThread.
+                boost::mutex::scoped_lock lock(*detSignal_mutex);
+                while (!(*detSignal)) detSignal_condition->wait(lock);
+                *detSignal = false;
+                lock.unlock();
 
-            // Fetch the two last frames grabbed.
-			Frame currentFrame, previousFrame;
-			boost::mutex::scoped_lock lock2(*frameBuffer_mutex);
-			if(frameBuffer->size() > 2){
-                currentFrame    = frameBuffer->back();
-                previousFrame   = frameBuffer->at(frameBuffer->size()-2);
+                // Fetch the two last frames grabbed.
+                Frame currentFrame, previousFrame;
+                boost::mutex::scoped_lock lock2(*frameBuffer_mutex);
+                if(frameBuffer->size() > 2){
+                    currentFrame    = frameBuffer->back();
+                    previousFrame   = frameBuffer->at(frameBuffer->size()-2);
+                }
+                lock2.unlock();
+
+                double t = (double)getTickCount();
+
+                if(currentFrame.getImg().data && previousFrame.getImg().data){
+
+                    BOOST_LOG_SEV(logger, normal) << "Start detection process on frames : " << currentFrame.getNumFrame() << " and " << previousFrame.getNumFrame();
+
+                    // Run detection.
+                    if(detTech->run(currentFrame, previousFrame) && !waitFramesToCompleteEvent){
+
+                        // Event detected.
+                        BOOST_LOG_SEV(logger, notification) << "Event detected ! Waiting frames to complete the event..." << endl;
+                        waitFramesToCompleteEvent = true;
+                        nbDetection++;
+
+                    }
+
+                    // Wait frames to complete the detection.
+                    if(waitFramesToCompleteEvent){
+
+                        if(nbWaitFrames >= DET_TIME_AFTER){
+
+                            BOOST_LOG_SEV(logger, notification) << "Event completed." << endl;
+
+                            // Build event directory.
+                            eventDate = detTech->getDateEvent();
+                            BOOST_LOG_SEV(logger, notification) << "Build event directory." << endl;
+                            buildEventDataDirectory(eventDate);
+
+                            // Save event.
+                            BOOST_LOG_SEV(logger, notification) << "Start saving event..." << endl;
+                            detTech->saveDetectionInfos(eventPath);
+                            boost::mutex::scoped_lock lock(*frameBuffer_mutex);
+                            if(!saveEventData(detTech->getNumFirstEventFrame(), detTech->getNumLastEventFrame())){
+                                lock.unlock();
+                                BOOST_LOG_SEV(logger,critical) << "Error saving event data.";
+                                throw "Error saving event data.";
+                            }
+                            lock.unlock();
+
+                            // Reset detection.
+                            BOOST_LOG_SEV(logger, notification) << "Reset detection process." << endl;
+                            detTech->resetDetection();
+                            waitFramesToCompleteEvent = false;
+
+                        }else{
+
+                            nbWaitFrames++;
+
+                        }
+                    }
+                }
+
+                t = (((double)getTickCount() - t)/getTickFrequency())*1000;
+                cout << " [-DET TIME-] : " << std::setprecision(3) << std::fixed << t << " ms " << endl;
+                BOOST_LOG_SEV(logger,normal) << " [-DET TIME-] : " << std::setprecision(3) << std::fixed << t << " ms ";
+
+
+            }catch(const boost::thread_interrupted&){
+
+                BOOST_LOG_SEV(logger,notification) << "Detection Thread INTERRUPTED";
+                cout << "Detection Thread INTERRUPTED" <<endl;
+
             }
-			lock2.unlock();
 
-            double t = (double)getTickCount();
+            mustStopMutex.lock();
+            stopThread = mustStop;
+            mustStopMutex.unlock();
 
-			if(currentFrame.getImg().data && previousFrame.getImg().data){
+        }while(!stopThread);
 
-				BOOST_LOG_SEV(logger, normal) << "Start detection process on frames : " << currentFrame.getNumFrame() << " and " << previousFrame.getNumFrame();
+        cout << "--> NUMBER OF DETECTED EVENTS : " << nbDetection << endl;
 
-				// Run detection.
-				if(detTech->run(currentFrame, previousFrame) && !waitFramesToCompleteEvent){
+    }catch(const char * msg){
 
-					// Event detected.
-					BOOST_LOG_SEV(logger, normal) << "Event detected ! Waiting frames to complete the event..." << endl;
-					waitFramesToCompleteEvent = true;
+        cout << msg << endl;
+        BOOST_LOG_SEV(logger,critical) << msg;
 
-				}
+    }catch(exception& e){
 
-				// Wait frames to complete the detection.
-				if(waitFramesToCompleteEvent){
+        cout << "An exception occured : " << e.what() << endl;
+        BOOST_LOG_SEV(logger, critical) << e.what();
 
-					if(nbWaitFrames >= DET_TIME_AFTER){
+    }
 
-						BOOST_LOG_SEV(logger, normal) << "Event completed." << endl;
-
-						// Build event directory.
-						eventDate = detTech->getDateEvent();
-						BOOST_LOG_SEV(logger, normal) << "Build event directory." << endl;
-						buildEventDataDirectory(eventDate);
-
-						// Save event.
-						BOOST_LOG_SEV(logger, normal) << "Start saving event..." << endl;
-						detTech->saveDetectionInfos(eventPath);
-						boost::mutex::scoped_lock lock(*frameBuffer_mutex);
-						saveEventData(detTech->getNumFirstEventFrame(), detTech->getNumLastEventFrame());
-						lock.unlock();
-
-						// Reset detection.
-						BOOST_LOG_SEV(logger, normal) << "Reset detection process." << endl;
-						detTech->resetDetection();
-						waitFramesToCompleteEvent = false;
-
-					}else{
-
-						nbWaitFrames++;
-
-					}
-				}
-			}
-
-            t = (((double)getTickCount() - t)/getTickFrequency())*1000;
-            cout << " [-DET TIME-] : " << std::setprecision(3) << std::fixed << t << " ms " << endl;
-			BOOST_LOG_SEV(logger,normal) << " [-DET TIME-] : " << std::setprecision(3) << std::fixed << t << " ms ";
-
-
-		}catch(const boost::thread_interrupted&){
-
-			BOOST_LOG_SEV(logger,notification) << "Detection Thread INTERRUPTED";
-            cout << "Detection Thread INTERRUPTED" <<endl;
-
-        }catch(const char * msg){
-
-            cout << msg << endl;
-
-        }
-
-		mustStopMutex.lock();
-        stopThread = mustStop;
-        mustStopMutex.unlock();
-
-	}while(!stopThread);
-
-	// to delete
-	//detTech->saveDetectionInfos("");
+    isRunning = false;
 
 	cout << "Detection Thread terminated." << endl;
 	BOOST_LOG_SEV(logger,notification) << "Detection Thread terminated.";
+
+}
+
+bool DetThread::getRunStatus(){
+
+    return isRunning;
 
 }
 

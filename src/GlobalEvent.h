@@ -78,6 +78,16 @@ class GlobalEvent{
         vector<Point>       mainPts;
         vector<Point>       pts;
 
+        vector<Point>       listA;
+        vector<Point>       listB;
+        vector<Point>       listC;
+        vector<Point>       listu;
+        vector<Point>       listv;
+        vector<float>       listAngle;
+        vector<float>       listRad;
+        vector<bool>        mainPtsValidity;
+
+
         GlobalEvent(string frameDate, int frameNum, int frameHeight, int frameWidth, Scalar c);
 
         ~GlobalEvent();

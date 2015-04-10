@@ -278,9 +278,9 @@ void DetectionTemporal_::saveDetectionInfos(string p){
 		infFile << " * NUM LAST FRAME   : " << (*GEToSave).getNumLastFrame()    << "\n";
 
 		float d = sqrt(pow((*GEToSave).mainPts.back().x - (*GEToSave).mainPts.front().x,2.0) + pow((*GEToSave).mainPts.back().y - (*GEToSave).mainPts.front().y,2.0));
-		infFile << "\n * Distance   : " << d    << "\n";
+		infFile << "\n * Distance between first and last  : " << d << "\n";
 
-		infFile << "\n * mainPoints     : \n";
+		infFile << "\n * MainPoints position : \n";
 
 		for(int i = 0; i < (*GEToSave).mainPts.size(); i++){
 
@@ -288,11 +288,22 @@ void DetectionTemporal_::saveDetectionInfos(string p){
 
 		}
 
-		infFile << "\n * ptsValidity     : \n";
+		infFile << "\n * MainPoints details : \n";
 
-		for(int i = 0; i < (*GEToSave).ptsValidity.size(); i++){
+		for(int i = 0; i < (*GEToSave).listA.size(); i++){
 
-			infFile << "    " << (*GEToSave).ptsValidity.at(i) << "\n";
+			infFile << "    A(" << (*GEToSave).listA.at(i).x << ";" << (*GEToSave).listA.at(i).y << ") ----> ";
+			infFile << "    B(" << (*GEToSave).listB.at(i).x << ";" << (*GEToSave).listB.at(i).y << ") ----> ";
+			infFile << "    C(" << (*GEToSave).listC.at(i).x << ";" << (*GEToSave).listC.at(i).y << ")\n";
+			infFile << "    u(" << (*GEToSave).listu.at(i).x << ";" << (*GEToSave).listu.at(i).y << ")       ";
+			infFile << "    v(" << (*GEToSave).listv.at(i).x << ";" << (*GEToSave).listv.at(i).y << ")\n";
+			infFile << "    Angle rad between BA' / BC = " << (*GEToSave).listRad.at(i) << "\n";
+			infFile << "    Angle between BA' / BC = " << (*GEToSave).listAngle.at(i) << "\n";
+
+			if((*GEToSave).mainPtsValidity.at(i))
+                infFile << "    NEW POSITION ACCEPTED\n\n";
+            else
+                infFile << "    NEW POSITION REFUSED\n\n";
 
 		}
 
