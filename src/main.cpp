@@ -247,6 +247,29 @@ int main(int argc, const char ** argv){
                     ///%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
                     {
+
+                        path pLog("./flog/");
+
+                        if(!boost::filesystem::exists(pLog)){
+
+                            if(!create_directory(pLog))
+                                throw "> Failed to create a directory for logs files.";
+                        }
+
+                        string log_severity = "normal";
+						EParser<LogSeverityLevel> log_sev;
+						LogSeverityLevel LOG_SEVERITY = log_sev.parseEnum("LOG_SEVERITY", log_severity);
+
+                        init_log("./flog/", LOG_SEVERITY);
+                        src::severity_logger< LogSeverityLevel > slg;
+                        slg.add_attribute("ClassName", boost::log::attributes::constant<std::string>("main.cpp"));
+                        BOOST_LOG_SCOPED_THREAD_TAG("LogName", "MAIN_THREAD");
+                        BOOST_LOG_SEV(slg,notification) << "\n";
+                        BOOST_LOG_SEV(slg,notification) << "==============================================";
+                        BOOST_LOG_SEV(slg,notification) << "======== FREETURE - Available cameras ========";
+                        BOOST_LOG_SEV(slg,notification) << "==============================================";
+
+
                         std::cout << "================================================" << endl;
                         std::cout << "========= FREETURE - Available cameras =========" << endl;
                         std::cout << "================================================" << endl << endl;
@@ -570,9 +593,32 @@ int main(int argc, const char ** argv){
 
                     {
 
+                        path pLog("./flog/");
+
+                        if(!boost::filesystem::exists(pLog)){
+
+                            if(!create_directory(pLog))
+                                throw "> Failed to create a directory for logs files.";
+                        }
+
+                        string log_severity = "normal";
+						EParser<LogSeverityLevel> log_sev;
+						LogSeverityLevel LOG_SEVERITY = log_sev.parseEnum("LOG_SEVERITY", log_severity);
+
+                        init_log("./flog/", LOG_SEVERITY);
+                        src::severity_logger< LogSeverityLevel > slg;
+                        slg.add_attribute("ClassName", boost::log::attributes::constant<std::string>("main.cpp"));
+                        BOOST_LOG_SCOPED_THREAD_TAG("LogName", "MAIN_THREAD");
+                        BOOST_LOG_SEV(slg,notification) << "\n";
+                        BOOST_LOG_SEV(slg,notification) << "==============================================";
+                        BOOST_LOG_SEV(slg,notification) << "====== FREETURE - Acquisition test mode ======";
+                        BOOST_LOG_SEV(slg,notification) << "==============================================";
+
+
                         std::cout << "================================================" << endl;
                         std::cout << "======= FREETURE - Acquisition test mode =======" << endl;
                         std::cout << "================================================" << endl << endl;
+
 
                         // Display or not the grabbed frame.
                         if(vm.count("display")) display = vm["display"].as<bool>();
