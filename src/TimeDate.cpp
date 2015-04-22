@@ -113,7 +113,7 @@ double TimeDate::gregorianToJulian_2(vector<int> date){
     double val = B+C+D+d+1720994.5;
     strs << val;
     std::string str = strs.str();
-    cout <<std::setprecision(5)<< std::fixed<< val<<endl;
+    //cout <<std::setprecision(5)<< std::fixed<< val<<endl;
 
     return B+C+D+d+1720994.5;
 
@@ -266,7 +266,7 @@ double TimeDate::localSideralTime_2(double julianCentury, int gregorianH, int gr
 
     //Conversion de l'heure en temps sidéral écoulé
     double HTS =(gregorianH*3600+gregorianMin*60+gregorianS)* 1.00273790935;
-    cout << "HTS_sec-> "<<HTS<<endl;
+    //cout << "HTS_sec-> "<<HTS<<endl;
 
 
     double GTSMLocal_sec=GTSM0_sec+entPart_lon_h*3600+entPart_lon_m*60+entPart_lon_s+HTS;
@@ -291,7 +291,7 @@ double TimeDate::localSideralTime_2(double julianCentury, int gregorianH, int gr
     double sideralT = 0.0;
     sideralT = GTSM0Local_hms.at(0) * 15 + GTSM0Local_hms.at(1) * 0.250 + GTSM0Local_hms.at(2) *  0.00416667;
 
-    cout << "sideralT in degree-> "<<sideralT<<endl;
+    //cout << "sideralT in degree-> "<<sideralT<<endl;
 
     return sideralT;
 
@@ -343,7 +343,7 @@ double TimeDate::localSideralTime_2(double julianCentury, int gregorianH, int gr
 
     //Conversion de l'heure en temps sidéral écoulé
     double HTS =(gregorianH*3600+gregorianMin*60+gregorianS)* 1.00273790935;
-    cout << "HTS_sec-> "<<HTS<<endl;
+    //cout << "HTS_sec-> "<<HTS<<endl;
 
 
     double GTSMLocal_sec=GTSM0_sec+entPart_lon_h*3600+entPart_lon_m*60+entPart_lon_s+HTS;
@@ -368,7 +368,7 @@ double TimeDate::localSideralTime_2(double julianCentury, int gregorianH, int gr
     double sideralT = 0.0;
     sideralT = GTSM0Local_hms.at(0) * 15 + GTSM0Local_hms.at(1) * 0.250 + GTSM0Local_hms.at(2) *  0.00416667;
 
-    cout << "sideralT in degree-> "<<sideralT<<endl;
+    //cout << "sideralT in degree-> "<<sideralT<<endl;
 
     return sideralT;
 

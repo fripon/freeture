@@ -156,6 +156,8 @@
 
 			void    saveGenicamXml(string p);
 
+			bool    grabTest();
+
 	};
 
 #endif

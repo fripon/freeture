@@ -195,7 +195,8 @@ int main(int argc, const char ** argv){
       ("camtype",       po::value<string>()->default_value("BASLER_GIGE"),                              "Type of camera")
       ("display",       po::value<bool>()->default_value(false),                                        "In mode 4 : Display the grabbed frame")
       ("id",            po::value<int>(),                                                               "Camera ID")
-      ("fps",           po::value<int>(),                                                               "Acquisition frequency")
+      ("filename,n",    po::value<string>()->default_value("snap"),                                     "Name to use when a single frame is captured")
+      ("sendmail,s",    po::value<string>()->default_value(""),                                         "Send a mail to the specified adress when a single frame is captured")
       ("savepath,p",    po::value<string>()->default_value("./"),                                       "Save path");
 
     po::variables_map vm;
@@ -214,8 +215,10 @@ int main(int argc, const char ** argv){
         string  version         = string(VERSION);
         bool    display         = false;
         int     camID           = 0;
+        string  fileName        = "snap";
+        string  sendMail        = "";
 
-		std::cout << "Configuration file location : " << string(CFG_PATH) <<endl;
+		std::cout << "Default configuration file location : " << string(CFG_PATH) << "configuration.cfg" <<endl;
 
         po::store(po::parse_command_line(argc, argv, desc), vm);
 
@@ -593,6 +596,12 @@ int main(int argc, const char ** argv){
 
                     {
 
+                        std::cout << "================================================" << endl;
+                        std::cout << "======= FREETURE - Acquisition test mode =======" << endl;
+                        std::cout << "================================================" << endl << endl;
+
+                        /// -------------------- Initialize logger system --------------------
+
                         path pLog("./flog/");
 
                         if(!boost::filesystem::exists(pLog)){
@@ -614,44 +623,111 @@ int main(int argc, const char ** argv){
                         BOOST_LOG_SEV(slg,notification) << "====== FREETURE - Acquisition test mode ======";
                         BOOST_LOG_SEV(slg,notification) << "==============================================";
 
-
-                        std::cout << "================================================" << endl;
-                        std::cout << "======= FREETURE - Acquisition test mode =======" << endl;
-                        std::cout << "================================================" << endl << endl;
-
+                        /// --------------------- Manage program options -----------------------
 
                         // Display or not the grabbed frame.
                         if(vm.count("display")) display = vm["display"].as<bool>();
+                        BOOST_LOG_SEV(slg,notification) << "display option : " << display;
 
                         // Path where to save files.
                         if(vm.count("savepath")) savePath = vm["savepath"].as<string>();
+                        BOOST_LOG_SEV(slg,notification) << "savepath option : " << savePath;
 
                         // Acquisition format.
                         if(vm.count("bitdepth")) acqFormat = vm["bitdepth"].as<int>();
 						CamBitDepth camFormat;
 						Conversion::intBitDepth_To_CamBitDepth(acqFormat, camFormat);
+						BOOST_LOG_SEV(slg,notification) << "bitdepth option : " << acqFormat;
 
                         // Cam id.
                         if(vm.count("id")) camID = vm["id"].as<int>();
+                        BOOST_LOG_SEV(slg,notification) << "id option : " << camID;
 
                         // Save bmp.
                         if(vm.count("bmp")) saveBmp = vm["bmp"].as<bool>();
+                        BOOST_LOG_SEV(slg,notification) << "bmp option : " << saveBmp;
 
                         // Save fits.
                         if(vm.count("fits")) saveFits2D = vm["fits"].as<bool>();
+                        BOOST_LOG_SEV(slg,notification) << "fits option : " << saveFits2D;
 
                         // Type of camera in input.
 						string camtype;
                         if(vm.count("camtype")) camtype = vm["camtype"].as<string>();
                         std::transform(camtype.begin(), camtype.end(),camtype.begin(), ::toupper);
+                        BOOST_LOG_SEV(slg,notification) << "camtype option : " << camtype;
 
                         // Gain value.
-                        if(vm.count("gain")) gain = vm["gain"].as<int>();
-                        else throw "Please define the gain value.";
+                        if(vm.count("gain")){
+                            gain = vm["gain"].as<int>();
+                            BOOST_LOG_SEV(slg,notification) << "gain option : " << gain;
+                        }else{
+                            BOOST_LOG_SEV(slg,notification) << "Please define the gain value.";
+                            throw "Please define the gain value.";
+                        }
 
                         // Exposure value.
-                        if(vm.count("exposure")) exp = vm["exposure"].as<int>();
-                        else throw "Please define the exposure time value.";
+                        if(vm.count("exposure")){
+                            exp = vm["exposure"].as<int>();
+                            BOOST_LOG_SEV(slg,notification) << "exposure option : " << exp;
+                        }else{
+                            BOOST_LOG_SEV(slg,notification) << "Please define the exposure time value.";
+                            throw "Please define the exposure time value.";
+                        }
+
+                        // Filename.
+                        if(vm.count("filename")) fileName = vm["filename"].as<string>();
+                        BOOST_LOG_SEV(slg,notification) << "filename option : " << fileName;
+
+                        // Send mail.
+                        if(vm.count("sendmail")) sendMail = vm["sendmail"].as<string>();
+                        BOOST_LOG_SEV(slg,notification) << "sendmail option : " << sendMail;
+
+                        /// ----------------------- Manage filename -----------------------------
+
+                        int filenum = 0;
+                        bool increment = false;
+
+                        path p(savePath);
+
+                        /// Search a frame in the directory.
+                        for(directory_iterator file(p);file!= directory_iterator(); ++file){
+
+                            path curr(file->path());
+
+                            if(is_regular_file(curr)){
+
+                                list<string> ch;
+                                string fname = curr.filename().string();
+                                Conversion::stringTok(ch, fname.c_str(), "-");
+
+                                int i = 0;
+                                int n = 0;
+
+                                if(ch.front() == fileName && ch.size() == 2){
+
+                                    cout << "File found :" << file->path().string() << endl;
+
+                                    list<string> ch_;
+                                    Conversion::stringTok(ch_, ch.back().c_str(), ".");
+
+                                    int nn = atoi(ch_.front().c_str());
+
+                                    if(nn >= filenum){
+
+                                        filenum = nn;
+                                        increment = true;
+
+                                    }
+
+                                }
+                            }
+
+                        }
+
+                        if(increment) filenum++;
+
+                        /// -------------------- Capture a single frame -------------------------
 
 						Frame frame;
 						frame.setExposure(exp);
@@ -668,31 +744,14 @@ int main(int argc, const char ** argv){
 						}
 						delete cam;
 
-						// Display the frame in an opencv window
-						if(display && frame.getImg().data){
+						cout << endl << ">> Single capture succeed !" << endl;
 
-                            cout << "Display captured frame..." << endl;
-
-							Mat temp, temp1;
-							frame.getImg().copyTo(temp1);
-
-							if(camFormat == MONO_12){
-
-								temp = Conversion::convertTo8UC1(temp1);
-
-							}else{
-
-								frame.getImg().copyTo(temp);
-							}
-
-							namedWindow( "Frame", WINDOW_AUTOSIZE );
-							imshow( "Frame", temp);
-							waitKey(0);
-
-						}
+						/// ---------------------- Save grabbed frame --------------------------
 
 						// Save the frame in BMP.
 						if(saveBmp && frame.getImg().data){
+
+                            cout << ">> Saving bmp file ..." << endl;
 
 							Mat temp, temp1;
 							frame.getImg().copyTo(temp1);
@@ -705,54 +764,59 @@ int main(int argc, const char ** argv){
 
 								frame.getImg().copyTo(temp);
 
-							SaveImg::saveBMP(temp, savePath + "frame");
+							SaveImg::saveBMP(temp, savePath + fileName + "-" + Conversion::intToString(filenum));
 
 						}
 
 						// Save the frame in Fits 2D.
 						if(saveFits2D && frame.getImg().data){
 
-							Fits fitsHeader;
-							fitsHeader.setGaindb((int)gain);
-							fitsHeader.setExposure(exp);
+                            cout << ">> Saving fits file ..." << endl;
 
-							Fits2D newFits(savePath + "frame", fitsHeader);
+							Fits fitsHeader;
+
+							// Load keywords from cfg file
+							bool useCfg = false;
+
+							path c(configPath);
+
+                            if(is_regular_file(c)){
+
+                                useCfg = true;
+                                fitsHeader.loadKeywordsFromConfigFile(configPath);
+
+                            }else
+                                cout << ">> Can't load fits keywords from configuration file (not found or not exist). Try to use -c option or check your path." << endl;
+
+							Fits2D newFits(savePath, fitsHeader);
+							newFits.setGaindb((int)gain);
+							double exptime = exp/1000000.0;
+							newFits.setOntime(exptime);
+                            newFits.setDateobs(frame.getAcqDateMicro());
+
+                            if(useCfg){
+
+                                vector<int> firstDateInt = TimeDate::getIntVectorFromDateString(frame.getAcqDateMicro());
+                                double  debObsInSeconds = firstDateInt.at(3)*3600 + firstDateInt.at(4)*60 + firstDateInt.at(5);
+                                double  julianDate      = TimeDate::gregorianToJulian_2(firstDateInt);
+                                double  julianCentury   = TimeDate::julianCentury(julianDate);
+                                double  sideralT        = TimeDate::localSideralTime_2(julianCentury, firstDateInt.at(3), firstDateInt.at(4), firstDateInt.at(5), fitsHeader.getSitelong());
+                                newFits.setCrval1(sideralT);
+
+                            }
+
+                            newFits.setCtype1("RA---ARC");
+                            newFits.setCtype2("DEC--ARC");
+                            newFits.setEquinox(2000.0);
 
 							switch(camFormat){
-
-								/*case MONO_8 :
-
-									{
-
-										if(newFits.writeFits(frame.getImg(), UC8, "capture" ))
-											cout << "> Fits saved in " << savePath << endl;
-										else
-											cout << "Failed to save Fits." << endl;
-
-									}
-
-									break;
-
-								case MONO_12 :
-
-									{
-
-										if(newFits.writeFits(frame.getImg(), US16, "capture" ))
-											cout << "> Fits saved in " << savePath << endl;
-										else
-											cout << "Failed to save Fits." << endl;
-
-
-									}
-
-									break;*/
-
 
                                 case MONO_8 :
 
                                     {
                                         // Create FITS image with BITPIX = BYTE_IMG (8-bits unsigned integers), pixel with TBYTE (8-bit unsigned byte)
-                                        if(newFits.writeFits(frame.getImg(), UC8, "SingleCapture" )) cout << "> Fits saved in " << savePath << endl;
+                                        if(newFits.writeFits(frame.getImg(), UC8, fileName + "-" + Conversion::intToString(filenum)))
+                                            cout << ">> Fits saved in : " << savePath << fileName << "-" << Conversion::intToString(filenum) << endl;
 
                                     }
 
@@ -794,11 +858,62 @@ int main(int argc, const char ** argv){
 
 
                                         // Create FITS image with BITPIX = SHORT_IMG (16-bits signed integers), pixel with TSHORT (signed short)
-                                        if(newFits.writeFits(newMat, S16, "SingleCapture" ))cout << "> Fits saved in " << savePath << endl;
+                                        if(newFits.writeFits(newMat, S16, fileName + "-" + Conversion::intToString(filenum)))
+                                            cout << ">> Fits saved in : " << savePath << fileName << "-" << Conversion::intToString(filenum)<< endl;
 
                                     }
                             }
+
+                            /// ---------------------- Send grabbed frame --------------------------
+
+                            if(sendMail != ""){
+
+                                cout << ">> Sending fits by mail to " << sendMail << "..." << endl;
+                                cout << "(This option in only available inside fripon network.)" << endl;
+
+                                vector<string> mailAttachments;
+                                mailAttachments.push_back(savePath + fileName + "-" + Conversion::intToString(filenum) + ".fit");
+
+                                SMTPClient mailc("10.8.0.1", 25, "u-psud.fr");
+
+                                vector<string> to;
+                                to.push_back(sendMail);
+                                mailc.send("yoan.audureau@u-psud.fr",
+                                            to,
+                                            fileName + "-" + Conversion::intToString(filenum) + ".fit",
+                                            " Exposure time : " + Conversion::intToString((int)exp) + "\n Gain : " + Conversion::intToString((int)gain) + "\n Format : " + Conversion::intToString(acqFormat),
+                                            mailAttachments,
+                                            false);
+
+
+                            }
                         }
+
+
+						/// -------------------- Display grabbed frame --------------------------
+
+						// Display the frame in an opencv window
+						if(display && frame.getImg().data){
+
+                            cout << ">> Display captured frame..." << endl;
+
+							Mat temp, temp1;
+							frame.getImg().copyTo(temp1);
+
+							if(camFormat == MONO_12){
+
+								temp = Conversion::convertTo8UC1(temp1);
+
+							}else{
+
+								frame.getImg().copyTo(temp);
+							}
+
+							namedWindow( "Frame", WINDOW_AUTOSIZE );
+							imshow("Frame", temp);
+							waitKey(0);
+
+						}
                     }
 
 
@@ -809,6 +924,33 @@ int main(int argc, const char ** argv){
 					{
 
 
+					    /*EParser<CamType> cam_type;
+
+						Device *cam = new Device(cam_type.parseEnum("CAMERA_TYPE", "DMK_GIGE"));
+
+						if(!cam->grabTest()){
+							delete cam;
+							throw "> Failed to grab a single frame.";
+						}
+						delete cam;*/
+
+
+					}
+
+                case 6 :
+
+					{
+
+
+					    /*EParser<CamType> cam_type;
+
+						Device *cam = new Device(cam_type.parseEnum("CAMERA_TYPE", "DMK_GIGE"));
+
+						if(!cam->grabTest()){
+							delete cam;
+							throw "> Failed to grab a single frame.";
+						}
+						delete cam;*/
 
 
 					}
@@ -848,8 +990,6 @@ int main(int argc, const char ** argv){
 
     po::notify(vm);
 
-	cout << "Program terminated (press a key)." << endl;
-	getchar();
 	return 0 ;
 
 }

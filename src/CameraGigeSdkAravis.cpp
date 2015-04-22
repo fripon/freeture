@@ -63,7 +63,7 @@
 
 		for(int i = 0; i < n_devices; i++){
 
-			cout << "* -> [" << i << "] " << arv_get_device_id(i) << endl;
+			cout << "* -> [" << i << "] " << arv_get_device_id(i)<< endl;
 			BOOST_LOG_SEV(logger, notification) << " -> [" << i << "] " << arv_get_device_id(i);
 
 		}
@@ -75,8 +75,8 @@
 
 	bool CameraGigeSdkAravis::createDevice(int id){
 
-	    cout << "Create device : " << id << endl;
-	    BOOST_LOG_SEV(logger, notification) << "Create device : " << id;
+	    cout << "Creating device " << id << endl;
+	    BOOST_LOG_SEV(logger, notification) << "Creating device " << id;
 
 	    string deviceName;
 
@@ -434,6 +434,299 @@
         }
 	}
 
+
+	bool CameraGigeSdkAravis::grabTest(){
+
+	    ArvCamera       *cam;
+	    ArvPixelFormat  format;
+        ArvStream       *stream_;
+
+        int             width_;
+        int             height_;
+        double          fps_;
+        double          gainMin_,
+                        gainMax_;
+        unsigned int    payload_;
+        const char      *pixel_format_string_;
+        double          exposureMin_,
+                        exposureMax_;
+        const char      *caps_string_;
+        int             gain_;
+        double          exp_;
+
+        bool			shiftImage;
+        guint64         nbCompletedBuffers_;
+        guint64         nbFailures_;
+        guint64         nbUnderruns_;
+
+        namedWindow( "Display window", WINDOW_AUTOSIZE );
+
+	    /// List connected cameras
+	    arv_update_device_list();
+
+		int n_devices = arv_get_n_devices();
+
+		cout << "************** DETECTED CAMERAS *************** " << endl;
+		cout << "*" << endl;
+
+		for(int i = 0; i < n_devices; i++){
+
+			cout << "* -> [" << i << "] " << arv_get_device_id(i) << endl;
+
+		}
+
+		cout << "*" << endl;
+		cout << "************************************************ " << endl;
+
+
+        /// Camera to use
+        int cameraID = 2;
+
+        /// Parameters
+        double e = 4000000; // exposition time to use
+        double g = 15; // gain to use
+        bool shiftImageBits = true; // 1 for DMK, 0 for BASLER
+
+        /// Get camera name
+        string deviceName = "";
+
+		for(int i = 0; i< n_devices; i++){
+
+			if(cameraID == i){
+
+				deviceName = arv_get_device_id(i);
+				break;
+
+			}
+		}
+
+		if(deviceName != ""){
+
+            cout << "Device : " << deviceName << endl;
+
+            cam = arv_camera_new(deviceName.c_str());
+
+            if(cam != NULL){
+
+                cout << "Connection success to the camera." << endl;
+
+                // Set format MONO_12
+                arv_camera_set_pixel_format(cam, ARV_PIXEL_FORMAT_MONO_12);
+
+                // Set exposure
+                arv_camera_set_exposure_time(cam, e); // in us
+
+                // Set gain
+                arv_camera_set_gain(cam, g);
+
+
+                int sensor_width, sensor_height;
+
+                arv_camera_get_sensor_size(cam, &sensor_width, &sensor_height);
+
+                // Use maximum sensor size.
+                arv_camera_set_region(cam, 0, 0,sensor_width,sensor_height);
+
+                arv_camera_get_region(cam, NULL, NULL, &width_, &height_);
+
+                payload_ = arv_camera_get_payload(cam);
+
+                format = arv_camera_get_pixel_format(cam);
+
+                arv_camera_get_exposure_time_bounds (cam, &exposureMin_, &exposureMax_);
+
+                arv_camera_get_gain_bounds (cam, &gainMin_, &gainMax_);
+
+                arv_camera_set_frame_rate(cam, 3.75);
+
+                fps_= arv_camera_get_frame_rate(cam);
+
+                caps_string_= arv_pixel_format_to_gst_caps_string(format);
+
+                gain_    = arv_camera_get_gain(cam);
+                exp_     = arv_camera_get_exposure_time(cam);
+
+                cout << endl;
+
+                cout << "DEVICE SELECTED : " << arv_camera_get_device_id(cam)    << endl;
+                cout << "DEVICE NAME     : " << arv_camera_get_model_name(cam)   << endl;
+                cout << "DEVICE VENDOR   : " << arv_camera_get_vendor_name(cam)  << endl;
+                cout << "PAYLOAD         : " << payload_                             << endl;
+                cout << "Width           : " << width_                               << endl
+                     << "Height          : " << height_                              << endl;
+                cout << "Exp Range       : [" << exposureMin_    << " - " << exposureMax_   << "]"  << endl;
+                cout << "Exp             : " << exp_                                 << endl;
+                cout << "Gain Range      : [" << gainMin_        << " - " << gainMax_       << "]"  << endl;
+                cout << "Gain            : " << gain_                                << endl;
+                cout << "Fps             : " << fps_                                 << endl;
+                cout << "Type            : " << caps_string_                         << endl;
+
+                cout << endl;
+
+                // Create a new stream object. Open stream on Camera.
+                stream_ = arv_camera_create_stream(cam, NULL, NULL);
+
+                if(stream_ != NULL){
+
+                    if(ARV_IS_GV_STREAM(stream_)){
+
+                        g_object_set(stream_, "socket-buffer", ARV_GV_STREAM_SOCKET_BUFFER_AUTO, "socket-buffer-size", 0, NULL);
+
+                        g_object_set(stream_, "packet-resend", ARV_GV_STREAM_PACKET_RESEND_NEVER, NULL);
+
+                        g_object_set(stream_, "packet-timeout", (unsigned)40000, "frame-retention", (unsigned) 200000,NULL);
+
+                    }
+
+                    // Add a buffer in the stream
+                    arv_stream_push_buffer(stream_, arv_buffer_new(payload_, NULL));
+
+                    // Set acquisition mode to continuous.
+                    //arv_camera_set_acquisition_mode(cam, ARV_ACQUISITION_MODE_CONTINUOUS);
+
+                    arv_camera_set_acquisition_mode(cam, ARV_ACQUISITION_MODE_SINGLE_FRAME);
+
+                    // Configure camera to use software source as a trigger :
+                    // - AcquisitionStart in TriggerSelector is set to off.
+                    // - FrameStart in TriggerSelector is set to on.
+                    // - TriggerActivation is set to RisingEdge.
+                    // - TriggerSource is set to Software.
+                    //arv_camera_set_trigger(cam, "Software");
+
+                    // Start acquisition.
+                    arv_camera_start_acquisition(cam);
+
+                    //sleep(1); // with basler
+
+                    // Send Trigger Command to capture image.
+                    //arv_camera_software_trigger(cam);
+
+                    // Get image buffer.
+                    ArvBuffer *arv_buffer = /*arv_stream_pop_buffer(stream);*/ arv_stream_timeout_pop_buffer(stream_, e + 1000000); //us
+
+                    char *buffer_data;
+                    size_t buffer_size;
+
+                    if (arv_buffer != NULL){
+
+                        if(arv_buffer_get_status(arv_buffer) == ARV_BUFFER_STATUS_SUCCESS){
+
+                            buffer_data = (char *) arv_buffer_get_data (arv_buffer, &buffer_size);
+
+                            Mat image;
+
+                            if(format == ARV_PIXEL_FORMAT_MONO_8){
+
+                                image = Mat(height_, width_, CV_8UC1, buffer_data);
+
+                            }else if(format == ARV_PIXEL_FORMAT_MONO_12){
+
+                                image = Mat(height_, width_, CV_16UC1, buffer_data);
+
+                                if(shiftImageBits){
+                                    unsigned short * p;
+                                    for(int i = 0; i < image.rows; i++){
+                                        p = image.ptr<unsigned short>(i);
+                                        for(int j = 0; j < image.cols; j++) p[j] = p[j] >> 4;
+                                    }
+                                }
+
+                            }
+
+                            imshow( "Display window", image );                   // Show our image inside it.
+
+                            waitKey(0);
+
+
+                        }else{
+
+                            switch(arv_buffer_get_status(arv_buffer)){
+
+                                case 0 :
+
+                                    cout << "ARV_BUFFER_STATUS_SUCCESS : the buffer contains a valid image"<<endl;
+
+                                    break;
+
+                                case 1 :
+
+                                    cout << "ARV_BUFFER_STATUS_CLEARED: the buffer is cleared"<<endl;
+
+                                    break;
+
+                                case 2 :
+
+                                    cout << "ARV_BUFFER_STATUS_TIMEOUT: timeout was reached before all packets are received"<<endl;
+
+                                    break;
+
+                                case 3 :
+
+                                    cout << "ARV_BUFFER_STATUS_MISSING_PACKETS: stream has missing packets"<<endl;
+
+                                    break;
+
+                                case 4 :
+
+                                    cout << "ARV_BUFFER_STATUS_WRONG_PACKET_ID: stream has packet with wrong id"<<endl;
+
+                                    break;
+
+                                case 5 :
+
+                                    cout << "ARV_BUFFER_STATUS_SIZE_MISMATCH: the received image didn't fit in the buffer data space"<<endl;
+
+                                    break;
+
+                                case 6 :
+
+                                    cout << "ARV_BUFFER_STATUS_FILLING: the image is currently being filled"<<endl;
+
+                                    break;
+
+                                case 7 :
+
+                                    cout << "ARV_BUFFER_STATUS_ABORTED: the filling was aborted before completion"<<endl;
+
+                                    break;
+
+
+                            }
+
+                        }
+
+                        arv_stream_push_buffer(stream_, arv_buffer);
+
+                   }else{
+
+                        cout << "Fail to pop buffer from stream." << endl;
+
+                   }
+
+                    arv_stream_get_statistics(stream_, &nbCompletedBuffers_, &nbFailures_, &nbUnderruns_);
+
+                    cout << "Completed buffers = " << (unsigned long long) nbCompletedBuffers_	<< endl;
+                    cout << "Failures          = " << (unsigned long long) nbFailures_           << endl;
+                    cout << "Underruns         = " << (unsigned long long) nbUnderruns_          << endl;
+
+
+                    // Stop acquisition.
+                    arv_camera_stop_acquisition(cam);
+
+                    // TriggerMode off.
+                    arv_device_set_string_feature_value(arv_camera_get_device(cam), "TriggerMode" , "Off");
+
+                    g_object_unref(stream_);
+                    g_object_unref(cam);
+
+                }
+
+            }
+
+        }
+
+	}
+
 	bool CameraGigeSdkAravis::grabSingleImage(Frame &frame, int camID){
 
         if(!createDevice(camID))
@@ -493,7 +786,9 @@
 
 		// Create a new stream object. Open stream on Camera.
 		stream = arv_camera_create_stream(camera, NULL, NULL);
-cout << "shiftImage: " << shiftImage << endl;
+
+        cout << "shiftBits status : " << shiftImage << endl;
+
 		if(stream != NULL){
 
             if(ARV_IS_GV_STREAM(stream)){
@@ -515,7 +810,7 @@ cout << "shiftImage: " << shiftImage << endl;
 
                 }
 
-                g_object_set(stream, "packet-timeout", (unsigned)10000000, "frame-retention", (unsigned) 10000000,NULL);
+                g_object_set(stream, "packet-timeout", (unsigned)40000, "frame-retention", (unsigned) 200000,NULL);
 
             }
 
@@ -523,14 +818,15 @@ cout << "shiftImage: " << shiftImage << endl;
             arv_stream_push_buffer(stream, arv_buffer_new(payload, NULL));
 
             // Set acquisition mode to continuous.
-            arv_camera_set_acquisition_mode(camera, ARV_ACQUISITION_MODE_CONTINUOUS);
+            //arv_camera_set_acquisition_mode(camera, ARV_ACQUISITION_MODE_CONTINUOUS);
+            arv_camera_set_acquisition_mode(camera, ARV_ACQUISITION_MODE_SINGLE_FRAME);
 
             // Configure camera to use software source as a trigger :
             // - AcquisitionStart in TriggerSelector is set to off.
             // - FrameStart in TriggerSelector is set to on.
             // - TriggerActivation is set to RisingEdge.
             // - TriggerSource is set to Software.
-            arv_camera_set_trigger(camera, "Software");
+            //arv_camera_set_trigger(camera, "Software");
 
             //arv_device_set_integer_feature_value(arv_camera_get_device (camera), "TriggerDelay" , 0);
 
@@ -538,20 +834,18 @@ cout << "shiftImage: " << shiftImage << endl;
             arv_camera_start_acquisition(camera);
 
 
-            sleep(1);
+            //sleep(1);
 
 
             // Send Trigger Command to capture image.
-            arv_camera_software_trigger(camera);
+            //arv_camera_software_trigger(camera);
 
 
-           // sleep(1);
+            //sleep(6);
 
 
             // Get image buffer.
-            ArvBuffer *arv_buffer = arv_stream_pop_buffer(stream); //*/arv_stream_timeout_pop_buffer(stream, 30000000); //us
-
-
+            ArvBuffer *arv_buffer = /*arv_stream_pop_buffer(stream);*/ arv_stream_timeout_pop_buffer(stream, frame.getExposure() + 1000000); //us
 
             char *buffer_data;
             size_t buffer_size;
@@ -651,6 +945,11 @@ cout << "shiftImage: " << shiftImage << endl;
                 }
 
                 arv_stream_push_buffer(stream, arv_buffer);
+
+           }else{
+
+                cout << "Fail to pop buffer from stream." << endl;
+                BOOST_LOG_SEV(logger, fail) << "Fail to pop buffer from stream.";
 
            }
 

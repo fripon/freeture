@@ -29,7 +29,7 @@
 * \author  Yoan Audureau -- FRIPON-GEOPS-UPSUD
 * \version 1.0
 * \date    13/06/2014
-* \brief   
+* \brief
 */
 
 #pragma once
@@ -55,7 +55,7 @@ class Camera{
 		virtual void	listGigeCameras()							{};
 		virtual bool	createDevice(int)							{return false;};
 		virtual bool    getDeviceNameById(int id, string &device)   {return false;};
-		virtual bool	getStopStatus()								{return false;};						
+		virtual bool	getStopStatus()								{return false;};
 		virtual bool	grabStart()									{return false;};	// Prepare grabbing.
 		virtual void	acqStart()									{};					// Launch grabbing.
 		virtual void	acqStop()							        {};					// Stop grabbing.
@@ -78,5 +78,6 @@ class Camera{
 		virtual bool	setGain(int)						        {return false;};
 		virtual bool	setFPS(int)						            {return false;};
 		virtual	bool	setPixelFormat(CamBitDepth)					{return false;};
+		virtual bool    grabTest() {return false;};
 
 };

@@ -43,6 +43,8 @@ void SMTPClient::getServerResponse(string request){
 	size_t requestLength = strlen(request.c_str());
 	char reply[1024];
 	size_t reply_length = boost::asio::read(socket, boost::asio::buffer(reply, requestLength));
+	string str(reply);
+	BOOST_LOG_SEV(logger,notification) << "Reply is :" << str;
 	cout << "Reply is: ";
 	cout.write(reply, reply_length);
 	cout << "\n";
@@ -70,7 +72,8 @@ bool SMTPClient::checkSMTPAnswer(const std::string & responseWaited, boost::asio
 
         }else{
 
-			cout << "code : " <<code <<endl;
+			//cout << "code : " <<code <<endl;
+			BOOST_LOG_SEV(logger,notification) << "code :" << code;
 
 		}
 
@@ -96,7 +99,9 @@ bool SMTPClient::checkSMTPAnswer(const std::string & responseWaited, boost::asio
 void SMTPClient::write(string data, string expectedAnswer, bool checkAnswer, bool printCmd){
 
 	if(printCmd)
-		cout << data << endl;
+		//cout << data << endl;
+		BOOST_LOG_SEV(logger,notification) << "data :" << data;
+
 
 	boost::asio::write(socket, boost::asio::buffer(data));
 
@@ -127,7 +132,7 @@ void SMTPClient::smtpServerConnection(){
 
 	// Si aucun serveur n'a été trouvé.
 	if( error ){
-		cout << "aucun serveur de trouvé" <<endl;
+		cout << "SMTP server not found" <<endl;
 		throw boost::system::system_error(error);
 	}
 
@@ -261,7 +266,7 @@ string SMTPClient::message(){
 						elements.push_back(s);
 
 						fileName = elements.back();
-						cout << "fileName : " << fileName << endl;
+						//cout << "fileName : " << fileName << endl;
 
 						s = mailAttachments.at(i);
 						delimiter = ".";
@@ -277,7 +282,7 @@ string SMTPClient::message(){
 						elements.push_back(s);
 
 						fileExtension = elements.back();
-						cout << "fileExtension : " <<fileExtension << endl;
+						//cout << "fileExtension : " <<fileExtension << endl;
 
 
 						message += "Content-Type: image/" + fileExtension + "; name =\"" + fileName + "\"\r\n";
@@ -300,13 +305,13 @@ string SMTPClient::message(){
 		// ATTACHMENTS.
 
 		// .txt attachment.
-		message += "\r\n--" + section  + "\r\n";
+		/*message += "\r\n--" + section  + "\r\n";
 
 		message += "Content-Type: text/plain; name =\"test.txt\"\r\n";
 		message += "Content-Disposition: attachment\r\n";
 		message += "filename=\"test.txt\"\r\n";
 
-		message += "this is the attachment text\r\n";
+		message += "this is the attachment text\r\n";*/
 
 		// png attachment.
 		//http://dataurl.net/#dataurlmaker
@@ -340,7 +345,7 @@ string SMTPClient::message(){
 				elements.push_back(s);
 
 				fileName = elements.back();
-				cout << fileName << endl;
+				//cout << fileName << endl;
 
 				s = mailAttachments.at(i);
 				delimiter = ".";
@@ -356,7 +361,7 @@ string SMTPClient::message(){
 				elements.push_back(s);
 
 				fileExtension = elements.back();
-				cout << fileExtension << endl;
+				//cout << fileExtension << endl;
 
 				message += "Content-Type: image/" + fileExtension + "; name =\"" + fileName + "\"\r\n";
 				message += "Content-Transfer-Encoding: Base64\r\n";

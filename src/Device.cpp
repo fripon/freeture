@@ -188,6 +188,12 @@ bool Device::prepareDevice(CamType type, string cfgFile){
 	return true;
 }
 
+bool Device::grabTest(){
+
+    cam->grabTest();
+
+}
+
 void Device::listGigeCameras(){
 	cam->listGigeCameras();
 }
