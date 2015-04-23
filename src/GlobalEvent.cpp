@@ -101,39 +101,60 @@ bool GlobalEvent::addLE(LocalEvent le){
                 // Vector from last main point to current le position.
                 Point v  = Point(C.x - B.x, C.y - B.y);
                 listv.push_back(v);
-                // Norm vector u
-                float normU = sqrt(pow(u.x,2.0)+pow(u.y,2.0));
-                // Norm vector v
-                float normV = sqrt(pow(v.x,2.0)+pow(v.y,2.0));
-                // Compute angle between u and v.
-                float thetaRad = (u.x*v.x+u.y*v.y)/(normU*normV);
-                listRad.push_back(thetaRad);
-                float thetaDeg = (180 * acos(thetaRad))/3.14159265358979323846;
-                listAngle.push_back(thetaDeg);
 
-                if(thetaDeg > 40.0 || thetaDeg < -40.0 ){
+                // Same mainPts position : No Displacement
+                if((v.x == 0 && v.y == 0) || (u.x == 0 && u.y == 0)){
 
-                    geBadPoint++;
-
-                    if(geBadPoint == 2){
-
-                        geLinear = false;
-
-                    }
-
+                    listRad.push_back(0);
+                    listAngle.push_back(0);
+                    mainPtsValidity.push_back(false);
                     addLeDecision = false;
                     ptsValidity.push_back(false);
-                    mainPtsValidity.push_back(false);
-                    circle(geDirMap, center, 5, Scalar(0,0,255), 1, 8, 0);
 
-                }else{
-
-                    geBadPoint = 0;
+                    /*geBadPoint = 0;
                     geGoodPoint++;
                     mainPts.push_back(center);
                     ptsValidity.push_back(true);
                     mainPtsValidity.push_back(true);
-                    circle(geDirMap, center, 5, Scalar(255,255,255), 1, 8, 0);
+                    circle(geDirMap, center, 5, Scalar(255,255,255), 1, 8, 0);*/
+
+                }else{
+
+                    // Norm vector u
+                    float normU = sqrt(pow(u.x,2.0)+pow(u.y,2.0));
+                    // Norm vector v
+                    float normV = sqrt(pow(v.x,2.0)+pow(v.y,2.0));
+                    // Compute angle between u and v.
+                    float thetaRad = (u.x*v.x+u.y*v.y)/(normU*normV);
+                    listRad.push_back(thetaRad);
+                    float thetaDeg = (180 * acos(thetaRad))/3.14159265358979323846;
+                    listAngle.push_back(thetaDeg);
+
+                    if(thetaDeg > 40.0 || thetaDeg < -40.0 ){
+
+                        geBadPoint++;
+
+                        if(geBadPoint == 2){
+
+                            geLinear = false;
+
+                        }
+
+                        addLeDecision = false;
+                        ptsValidity.push_back(false);
+                        mainPtsValidity.push_back(false);
+                        circle(geDirMap, center, 5, Scalar(0,0,255), 1, 8, 0);
+
+                    }else{
+
+                        geBadPoint = 0;
+                        geGoodPoint++;
+                        mainPts.push_back(center);
+                        ptsValidity.push_back(true);
+                        mainPtsValidity.push_back(true);
+                        circle(geDirMap, center, 5, Scalar(255,255,255), 1, 8, 0);
+
+                    }
 
                 }
 

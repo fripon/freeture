@@ -733,7 +733,9 @@ bool DetectionTemporal_::run(Frame &c, Frame &p){
         vector<Point>::iterator itR;
 
         // Analyse regions.
-        BOOST_LOG_SEV(logger, normal) << "Loop subdivisions ... ";
+        BOOST_LOG_SEV(logger, normal) << "Loop subdivisions on frame " << Conversion::intToString(imgNum)<< " ... ";
+        cout << "curr frame " << Conversion::intToString(c.getNumFrame())<< " ... " << endl;
+        cout << "prev frame " << Conversion::intToString(p.getNumFrame())<< " ... " << endl;
         for(itR = subdivisionPos.begin(); itR != subdivisionPos.end(); ++itR){
 
             // Extract regions from motionMap.
@@ -783,6 +785,8 @@ bool DetectionTemporal_::run(Frame &c, Frame &p){
 				Mat res = (*itLE).getMap() & (*itGE).getMapEvent();
 
 				if(countNonZero(res) > 0){
+
+
 
 					LELinked = true;
 
@@ -1126,7 +1130,7 @@ void DetectionTemporal_::searchROI( Mat &region,
                                     // Add LE in the list of localEvent.
                                     listLE.push_back(newLocalEvent);
                                     // Update eventMap with the color of the new localEvent.
-                                    Mat roi(roiSize[1], roiSize[0], CV_8UC3, listColors.at(listLE.size()));
+                                    Mat roi(roiSize[1], roiSize[0], CV_8UC3, listColors.at(listLE.size()-1));
                                     roi.copyTo(eventMap(Rect(regionPosInFrame.x + j-roiSize[0]/2, regionPosInFrame.y + i-roiSize[1]/2,roiSize[0],roiSize[1])));
                                     // Color roi in black in the current region.
                                     colorRoiInBlack(Point(j,i), roiSize[1], roiSize[0], region);
@@ -1142,7 +1146,7 @@ void DetectionTemporal_::searchROI( Mat &region,
 
                                 vector<LocalEvent>::iterator it;
 
-                                for (it=listLE.begin(); it!=listLE.end(); ++it){
+                                for(it=listLE.begin(); it!=listLE.end(); ++it){
 
                                     // Try to find a local event which has the same color.
                                     if((*it).getColor() == listColorInRoi.at(0)){

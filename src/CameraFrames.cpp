@@ -344,9 +344,9 @@ cout << "end save"<<endl;
 		img = f;
 
 		img.setAcqDateMicro(acqDateInMicrosec);
-
-		img.setNumFrame(firstNumFrame-1);
-		img.setFrameRemaining(lastNumFrame - firstNumFrame - 1);
+        cout << "set num frame: " << firstNumFrame-1<<  endl;
+		img.setNumFrame(firstNumFrame -1 );
+		img.setFrameRemaining(lastNumFrame - firstNumFrame-1);
 		img.setFPS(1);
 		img.setBitDepth(frameFormat);
 
