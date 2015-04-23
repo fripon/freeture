@@ -216,7 +216,7 @@ bool DetThread::loadDetThreadParameters(){
         cfg.Get("MAIL_RECIPIENT", mailRecipients);
 		BOOST_LOG_SEV(logger, notification) << "MAIL_RECIPIENT : " << mailRecipients;
         typedef boost::tokenizer<boost::char_separator<char> > tokenizer;
-        boost::char_separator<char> sep(";");
+        boost::char_separator<char> sep(",");
         tokenizer tokens(mailRecipients, sep);
 
         for (tokenizer::iterator tok_iter = tokens.begin();tok_iter != tokens.end(); ++tok_iter){
@@ -675,7 +675,7 @@ bool DetThread::saveEventData(int firstEvPosInFB, int lastEvPosInFB){
 
             fits3d.setDateobs((*it).getAcqDateMicro());
             // Exposure time.
-            fits3d.setOntime((*it).getExposure());
+            fits3d.setOntime((*it).getExposure()/1000000.0);
             // Gain.
             fits3d.setGaindb((*it).getGain());
             // Saturation.
@@ -738,7 +738,7 @@ bool DetThread::saveEventData(int firstEvPosInFB, int lastEvPosInFB){
                 newFits.setFilename(fits2DName);
                 // Exposure time.
 
-                newFits.setOntime((*it).getExposure());
+                newFits.setOntime((*it).getExposure()/1000000.0);
                 // Gain.
 
                 newFits.setGaindb((*it).getGain());

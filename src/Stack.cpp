@@ -124,8 +124,8 @@ bool Stack::saveStack(Fits fitsHeader, string path, StackMeth STACK_MTHD, string
     BOOST_LOG_SEV(logger, notification) << "Setting Fits DATE (creation date) key : " << to_iso_extended_string(time);
     newFits.setDate(to_iso_extended_string(time));
     // Frame exposure time (sec.)
-    BOOST_LOG_SEV(logger, notification) << "Setting fits ONTIME (Frame exposure time (sec.)) key : " << expFirstFrame;
-    newFits.setOntime(expFirstFrame);
+    BOOST_LOG_SEV(logger, notification) << "Setting fits ONTIME (Frame exposure time (sec.)) key : " << expFirstFrame/1000000.0;
+    newFits.setOntime(expFirstFrame/1000000.0);
     // Detector gain
     BOOST_LOG_SEV(logger, notification) << "Setting fits GAIN key : " << gainFirstFrame;
     newFits.setGaindb(gainFirstFrame);

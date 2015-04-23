@@ -719,10 +719,8 @@ int main(int argc, const char ** argv){
                                         increment = true;
 
                                     }
-
                                 }
                             }
-
                         }
 
                         if(increment) filenum++;
