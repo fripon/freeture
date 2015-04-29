@@ -133,6 +133,8 @@ class DetectionTemporal_ : public Detection{
 
 		bool DET_DEBUG_VIDEO;
 
+		string ACQ_MASK_PATH;
+
         bool detStatus ;
 
         int nbGE;
@@ -192,11 +194,15 @@ class DetectionTemporal_ : public Detection{
 
 		void resetDetection();
 
+		void resetMask();
+
 		int getNumFirstEventFrame() {return (*GEToSave).getNumFirstFrame();};
 
 		string getDateEvent()       {return (*GEToSave).getDate();};
 
 		int getNumLastEventFrame()  {return (*GEToSave).getNumLastFrame();};
+
+		void test();
 
     private :
 

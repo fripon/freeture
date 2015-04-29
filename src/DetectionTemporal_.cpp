@@ -127,7 +127,6 @@ bool DetectionTemporal_::initMethod(string cfg_path){
 
 		if(ACQ_MASK_ENABLED){
 
-			string ACQ_MASK_PATH;
 			cfg.Get("ACQ_MASK_PATH", ACQ_MASK_PATH);
 			BOOST_LOG_SEV(logger, notification) << "ACQ_MASK_PATH : " << ACQ_MASK_PATH;
 
@@ -217,8 +216,21 @@ DetectionTemporal_::~DetectionTemporal_(){
 void DetectionTemporal_::resetDetection(){
 
     BOOST_LOG_SEV(logger, notification) << "Start clear listGlobalEvents";
+    cout << "Start clear listGlobalEvents" << endl;
 	listGlobalEvents.clear();
 	BOOST_LOG_SEV(logger, notification) << "Clear finished" << DET_DEBUG;
+	cout << "Clear finished" << endl;
+
+	initStatus = false;
+	prevThreshMap.release();
+	prevImg.release();
+
+}
+
+void DetectionTemporal_::resetMask(){
+
+	frameMask.release();
+	mask.release();
 
 }
 
@@ -236,8 +248,7 @@ void DetectionTemporal_::initDebug(){
     debugSubDir.push_back("HighIntensityMap");
     debugSubDir.push_back("static");
     debugSubDir.push_back("mask");
-    debugSubDir.push_back("avt");
-    debugSubDir.push_back("apr");
+    debugSubDir.push_back("dilateMotionMap");
     debugSubDir.push_back("currwithmask");
 
     for(int i = 0; i< debugSubDir.size(); i++){
@@ -251,6 +262,13 @@ void DetectionTemporal_::initDebug(){
             boost::filesystem::create_directories(path);
 
     }
+
+}
+
+void DetectionTemporal_::test(){
+
+
+    cout << "Communication is ok." << endl;
 
 }
 
@@ -736,6 +754,16 @@ bool DetectionTemporal_::run(Frame &c, Frame &p){
         BOOST_LOG_SEV(logger, normal) << "Loop subdivisions on frame " << Conversion::intToString(imgNum)<< " ... ";
         cout << "curr frame " << Conversion::intToString(c.getNumFrame())<< " ... " << endl;
         cout << "prev frame " << Conversion::intToString(p.getNumFrame())<< " ... " << endl;
+
+        /*double td = (double)getTickCount();
+        int dilation_size = 10;
+        Mat element = getStructuringElement(MORPH_RECT, Size(2*dilation_size + 1, 2*dilation_size+1), Point(dilation_size, dilation_size));
+        dilate(motionMap, motionMap, element);
+        td = (((double)getTickCount() - td)/getTickFrequency())*1000;
+		cout << "> Dilatation time : " << td << endl << endl;
+
+        if(DET_DEBUG) SaveImg::saveBMP(motionMap, DET_DEBUG_PATH + "/dilateMotionMap/dilate_"+Conversion::intToString(imgNum));*/
+
         for(itR = subdivisionPos.begin(); itR != subdivisionPos.end(); ++itR){
 
             // Extract regions from motionMap.
@@ -919,6 +947,25 @@ bool DetectionTemporal_::run(Frame &c, Frame &p){
 					itGE = listGlobalEvents.erase(itGE);
 
                 // Let the GE alive.
+				}else if(c.getFrameRemaining() < 10 && c.getFrameRemaining() != 0){
+
+				    if((*itGE).LEList.size() >= 8 && (*itGE).continuousGoodPos(4) && (*itGE).ratioFramesDist()){
+
+                        GEToSave = itGE;
+
+                        saveSignal = true;
+
+                        break;
+
+
+                    }else{
+
+                        // Delete the event.
+                        itGE = listGlobalEvents.erase(itGE);
+
+                    }
+
+
 				}else{
 
 					++itGE;
