@@ -38,11 +38,16 @@
 boost::log::sources::severity_logger< LogSeverityLevel >  CameraVideo::logger;
 CameraVideo::_Init CameraVideo::_initializer;
 
-CameraVideo::CameraVideo(string video_path){
+CameraVideo::CameraVideo(vector<string> video_list){
+
+    videoList = video_list;
+
+    string source = video_list.front();
 
 	//open the video file for reading
-    cap = VideoCapture(videoPath);
-    videoPath = video_path;
+    cap = VideoCapture(source);
+
+    videoID = 0;
 
 	frameWidth = 0;
 	frameHeight = 0;
@@ -62,25 +67,60 @@ bool CameraVideo::grabStart(){
 		 return false;
     }
 
-	frameHeight = cap.get(CV_CAP_PROP_FRAME_HEIGHT);
-	cout << "Reading frame height : " << frameHeight << endl;
-
-	frameWidth = cap.get(CV_CAP_PROP_FRAME_WIDTH);
-	cout << "Reading frame width : " << frameWidth << endl;
-
-	Size frameSize(static_cast<int>(frameWidth), static_cast<int>(frameHeight));
-
-	oVideoWriter = VideoWriter("./", CV_FOURCC('D', 'I', 'V', 'X'), 30, frameSize, true); //initialize the VideoWriter object
-
-	int ex = static_cast<int>(cap.get(CV_CAP_PROP_FOURCC));
-
-	char EXT[] = {ex & 0XFF , (ex & 0XFF00) >> 8,(ex & 0XFF0000) >> 16,(ex & 0XFF000000) >> 24, 0};
-
 	return true;
+
 }
 
 bool CameraVideo::getStopStatus(){
 	return endReadDataStatus;
+}
+
+bool CameraVideo::getDataStatus(){
+
+    if(videoID == videoList.size())
+        return false;
+    else
+        return true;
+}
+
+bool CameraVideo::loadData(){
+
+    if(videoID!=0){
+
+        cout << "change video ! " << videoID << endl;
+        string source = videoList.at(videoID);
+        cout << "source : " << source << endl;
+        //open the video file for reading
+        cap = VideoCapture(source);
+
+        //if not success, exit program
+        if ( !cap.isOpened() ){
+
+             cout << "Cannot open the video file" << endl;
+             return false;
+
+        }else{
+
+            cout << "Success to open the video file" << endl;
+
+        }
+
+        frameHeight = cap.get(CV_CAP_PROP_FRAME_HEIGHT);
+        cout << "Reading frame height : " << frameHeight << endl;
+
+        frameWidth = cap.get(CV_CAP_PROP_FRAME_WIDTH);
+        cout << "Reading frame width : " << frameWidth << endl;
+
+        cout << "cap.get(CV_CAP_PROP_POS_FRAMES) :  " << cap.get(CV_CAP_PROP_POS_FRAMES) << endl;
+
+        cout << "cap.get(CV_CAP_PROP_FRAME_COUNT) :  " << cap.get(CV_CAP_PROP_FRAME_COUNT) << endl;
+
+        endReadDataStatus = false;
+
+    }
+
+    return true;
+
 }
 
 bool CameraVideo::grabImage(Frame &img){
@@ -89,26 +129,38 @@ bool CameraVideo::grabImage(Frame &img){
 
 		if(cap.read(frame)){
 
-            cout << "FORMAT : " << cap.get(CV_CAP_PROP_FORMAT)<<endl;
-
             //BGR (3 channels) to G (1 channel)
             cvtColor(frame, frame, CV_BGR2GRAY);
 
-            cvtColor(frame, copyframe, CV_GRAY2BGR);
+            cout << "FORMAT : " << Conversion::matTypeToString(frame.type())<<endl;
+
+            string acquisitionDate = TimeDate::localDateTime(microsec_clock::universal_time(),"%Y:%m:%d:%H:%M:%S");
+            boost::posix_time::ptime time = boost::posix_time::microsec_clock::universal_time();
+            string acqDateInMicrosec = to_iso_extended_string(time);
+
+            Frame f = Frame(frame, 0, 0, acquisitionDate);
+
+            img = f;
 
             img.setNumFrame(cap.get(CV_CAP_PROP_POS_FRAMES));
-			img.setImg(frame);
+
             img.setFrameRemaining(cap.get(CV_CAP_PROP_FRAME_COUNT) - cap.get(CV_CAP_PROP_POS_FRAMES));
 
-            if(oVideoWriter.isOpened()){
+            img.setAcqDateMicro(acqDateInMicrosec);
 
-                oVideoWriter << copyframe;
+            img.setFPS(1);
 
-            }
-	
+            img.setBitDepth(MONO_8);
+
+            waitKey(150);
+
 			return true;
 
         }else{
+
+            waitKey(150);
+
+            videoID++;
 
             endReadDataStatus = true;
 			return false;

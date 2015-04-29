@@ -50,6 +50,7 @@
 #include "Conversion.h"
 #include "Camera.h"
 #include <string>
+#include <vector>
 #include <boost/log/common.hpp>
 #include <boost/log/expressions.hpp>
 #include <boost/log/utility/setup/file.hpp>
@@ -82,25 +83,23 @@ class CameraVideo : public Camera{
 				{
 					logger.add_attribute("ClassName", boost::log::attributes::constant<std::string>("CameraVideo"));
 				}
-		} _initializer;	
-
-		//! Video's location
-		string videoPath;
-
+		} _initializer;
 
 		int frameWidth;
 		int frameHeight;
-		
+
 		VideoCapture cap;
 
-		VideoWriter oVideoWriter;
-
 		bool endReadDataStatus;
+
+		int videoID;
+
+		vector<string> videoList;
 
 
 	public:
 
-		CameraVideo(string                          video_path);
+		CameraVideo(vector<string> video_list);
 
         //! Destructor.
 		~CameraVideo(void);
@@ -110,5 +109,9 @@ class CameraVideo : public Camera{
 		bool grabStart();
 
 		bool getStopStatus();
+
+		bool getDataStatus();
+
+		bool loadData();
 };
 
