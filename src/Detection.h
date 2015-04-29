@@ -94,7 +94,6 @@ class Detection{
 		int frameHeight;
 		int frameWidth;
 
-
 	public:
 
 		 Detection(){};
@@ -108,6 +107,10 @@ class Detection{
 		virtual string getDateEvent(){return "";};
 
 		virtual void resetDetection(){};
+
+		virtual void resetMask(){};
+
+		virtual void test(){};
 
 		virtual void saveDetectionInfos(string p){};
 

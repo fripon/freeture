@@ -129,6 +129,9 @@ class DetThread{
 		string eventDate;
 		int nbDetection;
 
+		bool interruptionStatus;
+        boost::mutex interruptionStatusMutex;
+
 	public:
 
         DetThread(  boost::mutex					*cfg_m,
@@ -158,6 +161,10 @@ class DetThread{
 		bool loadDetThreadParameters();
 
 		bool getRunStatus();
+
+		Detection* getDetMethod();
+
+		void interruptThread();
 
 };
 
