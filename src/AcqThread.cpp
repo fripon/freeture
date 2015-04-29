@@ -48,7 +48,9 @@ AcqThread::AcqThread(	CamType									camType,
 						boost::condition_variable               *sSignal_c,
 						bool                                    *dSignal,
 						boost::mutex                            *dSignal_m,
-						boost::condition_variable               *dSignal_c){
+						boost::condition_variable               *dSignal_c,
+						DetThread	                            *detection,
+                        StackThread	                            *stack){
 
     acquisitionThread			    = NULL;
     mustStop				        = false;
@@ -73,6 +75,13 @@ AcqThread::AcqThread(	CamType									camType,
     nbSuccessGrabbedFrames          = 0;
 
 	threadTerminated				= false;
+
+	detectionProcess                = detection;
+	stackProcess                    = stack;
+
+
+
+
 
 }
 
@@ -144,52 +153,119 @@ void AcqThread::operator()(){
 	BOOST_LOG_SEV(logger,notification) << "========== Start acquisition thread ==========";
 	BOOST_LOG_SEV(logger,notification) << "==============================================";
 
+    vector<AcqRegular> ACQ_SCHEDULE = cam->getSchedule();
+    AcqRegular nextTask;
+    int indexNextTask = 0;
+    if(ACQ_SCHEDULE.size() != 0) nextTask = ACQ_SCHEDULE.at(indexNextTask);
+    bool scheduleTaskStatus = false;
+    bool scheduleTaskActive = false;
+    vector<string> frameDate;
+    string accurateFrameDate;
+
+    /*The static member function boost::thread::hardware_concurrency() returns the number of threads that can physically
+    be executed at the same time, based on the underlying number of CPUs or CPU cores. Calling this function on a dual-core
+    processor returns a value of 2. This function provides a simple method to identify the theoretical maximum number
+    of threads that should be used.*/
+    std::cout << "core : " << boost::thread::hardware_concurrency()<< '\n';
+
 	try{
 
-		do{
+	    do{
 
-            Frame newFrame;
+	        if(!cam->loadDataset()) break;
 
-            double tacq = (double)getTickCount();
-            BOOST_LOG_SEV(logger, normal) << "============= FRAME " << frameCpt << " ============= ";
-            cout << "============= FRAME " << frameCpt << " ============= " << endl;
+	        //namedWindow("Display window", WINDOW_AUTOSIZE );
 
-            if(cam->grabImage(newFrame)){
+            // Acquisition
+            do{
 
-                newFrame.setNumFrame(frameCpt);
+                Frame newFrame;
 
-                boost::mutex::scoped_lock lock(*frameBuffer_mutex);
-                frameBuffer->push_back(newFrame);
-                lock.unlock();
+                double tacq = (double)getTickCount();
 
-                boost::mutex::scoped_lock lock2(*detSignal_mutex);
-                *detSignal = true;
-                detSignal_condition->notify_one();
-                lock2.unlock();
+                if(cam->grabImage(newFrame)){
 
-                boost::mutex::scoped_lock lock3(*stackSignal_mutex);
-                *stackSignal = true;
-                stackSignal_condition->notify_one();
-                lock3.unlock();
+                    BOOST_LOG_SEV(logger, normal) << "============= FRAME " << newFrame.getNumFrame() << " ============= ";
+                    cout << "============= FRAME " << newFrame.getNumFrame() << " ============= " << endl;
 
-                frameCpt++;
+                    // Get date.
+                    frameDate = newFrame.getDateString();
+                    accurateFrameDate = newFrame.getAcqDateMicro();
+                    cout << "Date : " << accurateFrameDate << endl;
 
-            }else{
+                    boost::mutex::scoped_lock lock(*frameBuffer_mutex);
+                    frameBuffer->push_back(newFrame);
+                    lock.unlock();
 
-                BOOST_LOG_SEV(logger, notification) << "> Fail to grab frame : " << frameCpt;
-                nbFailGrabbedFrames++;
+                    boost::mutex::scoped_lock lock2(*detSignal_mutex);
+                    *detSignal = true;
+                    detSignal_condition->notify_one();
+                    lock2.unlock();
+
+                    boost::mutex::scoped_lock lock3(*stackSignal_mutex);
+                    *stackSignal = true;
+                    stackSignal_condition->notify_one();
+                    lock3.unlock();
+
+                    //imshow("Display window", newFrame.getImg());
+
+                }else{
+
+                    BOOST_LOG_SEV(logger, notification) << "> Fail to grab frame";
+                    nbFailGrabbedFrames++;
+
+                }
+
+                tacq = (((double)getTickCount() - tacq)/getTickFrequency())*1000;
+                std::cout << " [ TIME ACQ ] : " << tacq << " ms" << endl;
+                BOOST_LOG_SEV(logger, normal) << " [ TIME ACQ ] : " << tacq << " ms";
+
+                // Check schedule.
+                if(ACQ_SCHEDULE.size() != 0 && frameDate.size() == 6){
+
+                    if(nextTask.getH() == atoi(frameDate.at(3).c_str()) && nextTask.getM() == atoi(frameDate.at(4).c_str()) && atoi(frameDate.at(5).c_str()) == 0){
+
+                        nextTask.setAccurateDate(accurateFrameDate);
+
+                        // Launch single acquisition
+                        bool result = runScheduledAcquisition(nextTask);
+
+                        if(indexNextTask + 1 == ACQ_SCHEDULE.size())
+                            indexNextTask = 0;
+                        else
+                            indexNextTask += 1;
+
+
+                        nextTask = ACQ_SCHEDULE.at(indexNextTask);
+
+                        sleep(1);
+
+                    }
+
+                }
+
+                mustStopMutex.lock();
+                stop = mustStop;
+                mustStopMutex.unlock();
+
+            }while(stop == false && !cam->getDeviceStopStatus());
+
+            cout << "Clear detection method." << endl;
+            if( detectionProcess != NULL){
+                detectionProcess->getDetMethod()->resetDetection();
+                detectionProcess->getDetMethod()->resetMask();
+
             }
+            else { cout << "detectionProcess is null" << endl; break; }
 
-            tacq = (((double)getTickCount() - tacq)/getTickFrequency())*1000;
-            std::cout << " [ TIME ACQ ] : " << tacq << " ms" << endl;
-            BOOST_LOG_SEV(logger, normal) << " [ TIME ACQ ] : " << tacq << " ms";
+            cout << "Clear framebuffer" << endl;
+            boost::mutex::scoped_lock lock(*frameBuffer_mutex);
+            frameBuffer->clear();
+            lock.unlock();
 
-            mustStopMutex.lock();
-            stop = mustStop;
-            mustStopMutex.unlock();
+            waitKey(5000);
 
-
-		}while(stop == false && !cam->getDeviceStopStatus());
+	    }while(cam->getDatasetStatus());
 
 	}catch(const boost::thread_interrupted&){
 
@@ -210,5 +286,282 @@ void AcqThread::operator()(){
 
 	std::cout << "Acquisition Thread terminated." << endl;
 	BOOST_LOG_SEV(logger,notification) << "Acquisition Thread TERMINATED";
+
+}
+
+bool AcqThread::buildRegularAcquisitionDirectory(string YYYYMMDD){
+
+	namespace fs = boost::filesystem;
+	string	root		= cam->getDataPath() + cam->getStationName() + "_" + YYYYMMDD +"/";
+
+	cout << "root : " << root<< endl;
+
+    string	subDir		= "captures/";
+    string	finalPath	= root + subDir;
+
+	completeDataPath	= finalPath;
+	BOOST_LOG_SEV(logger,notification) << "CompleteDataPath : " << completeDataPath;
+
+    path p(cam->getDataPath());
+    path p1(root);
+    path p2(root + subDir);
+
+    // If DATA_PATH exists
+    if(fs::exists(p)){
+
+        // If DATA_PATH/STATION_YYYYMMDD/ exists
+        if(fs::exists(p1)){
+
+            // If DATA_PATH/STATION_YYYYMMDD/astro/ doesn't exists
+            if(!fs::exists(p2)){
+
+                // If fail to create DATA_PATH/STATION_YYYYMMDD/astro/
+                if(!fs::create_directory(p2)){
+
+                    BOOST_LOG_SEV(logger,critical) << "Unable to create astro directory : " << p2.string();
+                    return false;
+
+                // If success to create DATA_PATH/STATION_YYYYMMDD/astro/
+                }else{
+
+                   BOOST_LOG_SEV(logger,notification) << "Success to create astro directory : " << p2.string();
+                   return true;
+
+                }
+            }
+
+        // If DATA_PATH/STATION_YYYYMMDD/ doesn't exists
+        }else{
+
+            // If fail to create DATA_PATH/STATION_YYYYMMDD/
+            if(!fs::create_directory(p1)){
+
+                BOOST_LOG_SEV(logger,fail) << "Unable to create STATION_YYYYMMDD directory : " << p1.string();
+				return false;
+
+            // If success to create DATA_PATH/STATION_YYYYMMDD/
+            }else{
+
+                BOOST_LOG_SEV(logger,notification) << "Success to create STATION_YYYYMMDD directory : " << p1.string();
+
+                // If fail to create DATA_PATH/STATION_YYYYMMDD/astro/
+                if(!fs::create_directory(p2)){
+
+                    BOOST_LOG_SEV(logger,critical) << "Unable to create astro directory : " << p2.string();
+					return false;
+
+                // If success to create DATA_PATH/STATION_YYYYMMDD/astro/
+                }else{
+
+                    BOOST_LOG_SEV(logger,notification) << "Success to create astro directory : " << p2.string();
+					return true;
+
+                }
+            }
+        }
+
+    // If DATA_PATH doesn't exists
+    }else{
+
+        // If fail to create DATA_PATH
+        if(!fs::create_directory(p)){
+
+            BOOST_LOG_SEV(logger,fail) << "Unable to create DATA_PATH directory : " << p.string();
+			return false;
+
+        // If success to create DATA_PATH
+        }else{
+
+            BOOST_LOG_SEV(logger,notification) << "Success to create DATA_PATH directory : " << p.string();
+
+            // If fail to create DATA_PATH/STATION_YYYYMMDD/
+            if(!fs::create_directory(p1)){
+
+                BOOST_LOG_SEV(logger,fail) << "Unable to create STATION_YYYYMMDD directory : " << p1.string();
+				return false;
+
+            // If success to create DATA_PATH/STATION_YYYYMMDD/
+            }else{
+
+                BOOST_LOG_SEV(logger,notification) << "Success to create STATION_YYYYMMDD directory : " << p1.string();
+
+                // If fail to create DATA_PATH/STATION_YYYYMMDD/astro/
+                if(!fs::create_directory(p2)){
+
+                    BOOST_LOG_SEV(logger,critical) << "Unable to create astro directory : " << p2.string();
+					return false;
+
+                // If success to create DATA_PATH/STATION_YYYYMMDD/astro/
+                }else{
+
+                    BOOST_LOG_SEV(logger,notification) << "Success to create astro directory : " << p2.string();
+					return true;
+
+                }
+            }
+        }
+    }
+}
+
+bool AcqThread::runScheduledAcquisition(AcqRegular task){
+
+    // Stop camera
+    cout << "Stopping camera..." << endl;
+    cam->acqStop();
+	cam->grabStop();
+
+    // If stack process exists.
+    if(stackProcess != NULL){
+
+        boost::mutex::scoped_lock lock(*stackSignal_mutex);
+        *stackSignal = false;
+        cout << "*stackSignal to false : " << *stackSignal << endl;
+        lock.unlock();
+
+        // Force interruption.
+        cout << "Send interruption signal. " << endl;
+        stackProcess->interruptThread();
+
+
+    }
+
+    // If detection process exists
+    if(detectionProcess != NULL){
+
+        boost::mutex::scoped_lock lock(*detSignal_mutex);
+        *detSignal = false;
+        lock.unlock();
+
+        detectionProcess->interruptThread();
+
+    }
+
+    // Reset framebuffer.
+    cout << "Cleaning frameBuffer..." << endl;
+    boost::mutex::scoped_lock lock(*frameBuffer_mutex);
+    frameBuffer->clear();
+    lock.unlock();
+
+    for(int i = 0; i < task.getN(); i++){
+
+        // Configuration pour single capture
+        Frame frame;
+        cout << "Exposure : " << task.getE() << endl;
+        frame.setExposure(task.getE());
+        cout << "Gain : " << task.getG() << endl;
+        frame.setGain(task.getG());
+        CamBitDepth camFormat;
+        cout << "Format : " << task.getF() << endl;
+        Conversion::intBitDepth_To_CamBitDepth(task.getF(), camFormat);
+        frame.setBitDepth(camFormat);
+
+        // Single capture.
+        if(cam->grabSingleImage(frame, cam->getCameraId())){
+
+            cout << endl << "Single capture succeed !" << endl;
+
+            /// ---------------------- Save grabbed frame --------------------------
+
+            // Save the frame in Fits 2D.
+            if(frame.getImg().data){
+
+                string	YYYYMMDD = TimeDate::get_YYYYMMDD_fromDateString(task.getAccurateDate());
+                cout << "YYYYMMDD : " << YYYYMMDD << endl;
+                if(buildRegularAcquisitionDirectory(YYYYMMDD)){
+
+                    cout << "Saving fits file ..." << endl;
+
+                    Fits2D newFits(completeDataPath, cam->getFitsHeader());
+                    newFits.setGaindb(task.getG());
+                    double exptime = task.getE()/1000000.0;
+                    newFits.setOntime(exptime);
+                    newFits.setDateobs(frame.getAcqDateMicro());
+
+                    vector<int> firstDateInt = TimeDate::getIntVectorFromDateString(task.getAccurateDate());
+                    double  debObsInSeconds = firstDateInt.at(3)*3600 + firstDateInt.at(4)*60 + firstDateInt.at(5);
+                    double  julianDate      = TimeDate::gregorianToJulian_2(firstDateInt);
+                    double  julianCentury   = TimeDate::julianCentury(julianDate);
+                    double  sideralT        = TimeDate::localSideralTime_2(julianCentury, firstDateInt.at(3), firstDateInt.at(4), firstDateInt.at(5), cam->getFitsHeader().getSitelong());
+                    newFits.setCrval1(sideralT);
+
+                    newFits.setCtype1("RA---ARC");
+                    newFits.setCtype2("DEC--ARC");
+                    newFits.setEquinox(2000.0);
+
+                    string HHMMSS = Conversion::numbering(2, task.getH()) + Conversion::intToString(task.getH()) + Conversion::numbering(2, task.getM()) + Conversion::intToString(task.getM()) + "00";
+                    string fileName = "CAP_" + YYYYMMDD + "T" + HHMMSS + "_UT-" + Conversion::intToString(i);
+
+                    switch(camFormat){
+
+                        case MONO_8 :
+
+                            {
+                                // Create FITS image with BITPIX = BYTE_IMG (8-bits unsigned integers), pixel with TBYTE (8-bit unsigned byte)
+
+                                if(newFits.writeFits(frame.getImg(), UC8, fileName))
+                                    cout << ">> Fits saved in : " << completeDataPath << fileName << endl;
+
+                            }
+
+                            break;
+
+                        case MONO_12 :
+
+                            {
+
+                                // Convert unsigned short type image in short type image.
+                                Mat newMat = Mat(frame.getImg().rows, frame.getImg().cols, CV_16SC1, Scalar(0));
+
+                                // Set bzero and bscale for print unsigned short value in soft visualization.
+                                double bscale = 1;
+                                double bzero  = 32768;
+                                newFits.setBzero(bzero);
+                                newFits.setBscale(bscale);
+
+                                unsigned short * ptr;
+                                short * ptr2;
+
+                                for(int i = 0; i < frame.getImg().rows; i++){
+
+                                    ptr = frame.getImg().ptr<unsigned short>(i);
+                                    ptr2 = newMat.ptr<short>(i);
+
+                                    for(int j = 0; j < frame.getImg().cols; j++){
+
+                                        if(ptr[j] - 32768 > 32767){
+
+                                            ptr2[j] = 32767;
+
+                                        }else{
+
+                                            ptr2[j] = ptr[j] - 32768;
+                                        }
+                                    }
+                                }
+
+
+                                // Create FITS image with BITPIX = SHORT_IMG (16-bits signed integers), pixel with TSHORT (signed short)
+                                if(newFits.writeFits(newMat, S16, fileName))
+                                    cout << ">> Fits saved in : " << completeDataPath << fileName << endl;
+
+                            }
+                    }
+                }
+
+            }
+
+
+
+        }else{
+
+            cout << endl << "Single capture failed !" << endl;
+
+        }
+
+
+    }
+
+    cout<< "Restarting camera in continuous mode..." << endl;
+    cam->acqRestart();
 
 }

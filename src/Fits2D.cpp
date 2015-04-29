@@ -42,6 +42,7 @@ Fits2D::Fits2D(){
 
     kPROGRAM    = "FreeTure";
     kCREATOR    = "FRIPON";
+    fitsPath = "";
 
 }
 
@@ -1180,7 +1181,7 @@ bool Fits2D::writeFits(Mat img, ImgBitDepth imgType, string fileName){
                 }
             }
 
-            // write the array of unsigned short to the FITS file
+            // write the array of signed short to the FITS file
             if ( fits_write_img(fptr, TSHORT, firstPixel, nbelements, tab[0], &status)){
 
                  printerror(status);

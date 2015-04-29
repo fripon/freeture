@@ -40,6 +40,9 @@ Device::_Init Device::_initializer;
 
 Device::Device(CamType type){
 
+    STATION_NAME = "STATION";
+    DATA_PATH = "./";
+
     switch(type){
 
         case BASLER_GIGE :
@@ -92,7 +95,7 @@ bool Device::prepareDevice(CamType type, string cfgFile){
 
 	try{
 
-		Configuration cfg;
+        Configuration cfg;
 		cfg.Load(cfgFile);
 
 		switch(type){
@@ -102,15 +105,15 @@ bool Device::prepareDevice(CamType type, string cfgFile){
 				{
 
                     // Get frames location.
-					string INPUT_DATA_PATH; cfg.Get("INPUT_DATA_PATH", INPUT_DATA_PATH);
-					BOOST_LOG_SEV(logger, normal) << "Read INPUT_DATA_PATH from configuration file : " << INPUT_DATA_PATH;
+					string INPUT_FRAMES_DIRECTORY_PATH; cfg.Get("INPUT_FRAMES_DIRECTORY_PATH", INPUT_FRAMES_DIRECTORY_PATH);
+					BOOST_LOG_SEV(logger, normal) << "Read INPUT_FRAMES_DIRECTORY_PATH from configuration file : " << INPUT_FRAMES_DIRECTORY_PATH;
 
 					// Get separator position in frame's name.
 					int FRAMES_SEPARATOR_POSITION; cfg.Get("FRAMES_SEPARATOR_POSITION", FRAMES_SEPARATOR_POSITION);
 					BOOST_LOG_SEV(logger, normal) << "Read FRAMES_SEPARATOR_POSITION from configuration file : " << FRAMES_SEPARATOR_POSITION;
 
                     // Create camera using pre-recorded fits2D in input.
-					cam = new CameraFrames(INPUT_DATA_PATH, FRAMES_SEPARATOR_POSITION);
+					cam = new CameraFrames(INPUT_FRAMES_DIRECTORY_PATH, FRAMES_SEPARATOR_POSITION);
 					cam->grabStart();
 
 				}
@@ -120,56 +123,95 @@ bool Device::prepareDevice(CamType type, string cfgFile){
 			case VIDEO:
 
 				{
-				    // Get frames location.
-					string	INPUT_DATA_PATH; cfg.Get("INPUT_DATA_PATH", INPUT_DATA_PATH);
+				    // Get frames locations.
+					string	INPUT_VIDEO_PATH; cfg.Get("INPUT_VIDEO_PATH", INPUT_VIDEO_PATH);
+
+					vector<string> videoList;
+
+                    typedef boost::tokenizer<boost::char_separator<char> > tokenizer;
+                    boost::char_separator<char> sep(",");
+                    tokenizer tokens(INPUT_VIDEO_PATH, sep);
+
+                    int n = 1;
+
+                    for(tokenizer::iterator tok_iter = tokens.begin();tok_iter != tokens.end(); ++tok_iter){
+                        videoList.push_back(*tok_iter);
+                        cout << "VIDEO " << Conversion::intToString(n) << " : " << *tok_iter << endl;
+                        n++;
+                    }
 
                     // Create camera using pre-recorded video in input.
-					cam = new CameraVideo(INPUT_DATA_PATH);
+					cam = new CameraVideo(videoList);
+					cam->grabStart();
 				}
 
 				break;
 
 			default :
 
-                // Get camera id.
-				int CAMERA_ID;
-				cfg.Get("CAMERA_ID", CAMERA_ID);
+                cfg.Get("CAMERA_ID", CAMERA_ID);
+                cfg.Get("DATA_PATH", DATA_PATH);
+                cfg.Get("STATION_NAME", STATION_NAME);
 
-                // Get camera format.
-				string acq_bit_depth;
-				cfg.Get("ACQ_BIT_DEPTH", acq_bit_depth);
-				EParser<CamBitDepth> cam_bit_depth;
-				CamBitDepth ACQ_BIT_DEPTH = cam_bit_depth.parseEnum("ACQ_BIT_DEPTH", acq_bit_depth);
+                string acq_bit_depth; cfg.Get("ACQ_BIT_DEPTH", acq_bit_depth);
+                EParser<CamBitDepth> cam_bit_depth;
+                ACQ_BIT_DEPTH = cam_bit_depth.parseEnum("ACQ_BIT_DEPTH", acq_bit_depth);
 
-                // Get camera exposure.
-				int ACQ_EXPOSURE;
-				cfg.Get("ACQ_EXPOSURE", ACQ_EXPOSURE);
+                cfg.Get("ACQ_EXPOSURE", ACQ_EXPOSURE);
+                cfg.Get("ACQ_GAIN", ACQ_GAIN);
+                cfg.Get("ACQ_FPS", ACQ_FPS);
+                cfg.Get("ACQ_SCHEDULE_ENABLED", ACQ_SCHEDULE_ENABLED);
 
-                // Get camera gain.
-				int ACQ_GAIN;
-				cfg.Get("ACQ_GAIN", ACQ_GAIN);
+                if(ACQ_SCHEDULE_ENABLED){
 
-                // Get camera fps.
-				int ACQ_FPS;
-				cfg.Get("ACQ_FPS", ACQ_FPS);
+                    string	sACQ_SCHEDULE;
+                    cfg.Get("ACQ_SCHEDULE", sACQ_SCHEDULE);
 
-                // List Gige Camera to check the ID.
-				cam->listGigeCameras();
+                    vector<string> sch1;
 
-                // Create camera according to its ID.
-				if(!cam->createDevice(CAMERA_ID)) throw "Fail to create device.";
-				// Set camera format.
-				if(!cam->setPixelFormat(ACQ_BIT_DEPTH)) throw "Fail to set Format.";
-				// Set camera exposure time.
-				if(!cam->setExposureTime(ACQ_EXPOSURE)) throw "Fail to set Exposure.";
-				// Set camera gain.
-				if(!cam->setGain(ACQ_GAIN)) throw "Fail to set Gain.";
-				// Set camera fps.
-				if(!cam->setFPS(ACQ_FPS)) throw "Fail to set Fps.";
-				// Prepare grabbing.
-				if(!cam->grabStart()) throw "Fail to start grab.";
-				// Start acquisition.
-				cam->acqStart();
+                    typedef boost::tokenizer<boost::char_separator<char> > tokenizer;
+                    boost::char_separator<char> sep(",");
+                    tokenizer tokens(sACQ_SCHEDULE, sep);
+
+                    int n = 1;
+                    cout << "SCHEDULE : " << endl;
+                    for(tokenizer::iterator tok_iter = tokens.begin();tok_iter != tokens.end(); ++tok_iter){
+                        string s = *tok_iter;
+                        std::transform(s.begin(), s.end(),s.begin(), ::toupper);
+                        sch1.push_back(s);
+                        cout << "- " << Conversion::intToString(n) << " - " << s << endl;
+                        n++;
+                    }
+
+                    //23h25m10000000e400g12f1n
+                    for(int i = 0; i < sch1.size(); i++){
+
+                         typedef boost::tokenizer<boost::char_separator<char> > tokenizer_;
+                         boost::char_separator<char> sep_("HMEGFN");
+                         tokenizer tokens_(sch1.at(i), sep_);
+
+                         vector<string> sp;
+
+                         for(tokenizer::iterator tok_iter_ = tokens_.begin();tok_iter_ != tokens_.end(); ++tok_iter_){
+
+                            sp.push_back(*tok_iter_);
+
+                         }
+
+                         if(sp.size() == 6){
+
+                            AcqRegular r = AcqRegular(atoi(sp.at(0).c_str()), atoi(sp.at(1).c_str()), atoi(sp.at(2).c_str()), atoi(sp.at(3).c_str()), atoi(sp.at(4).c_str()), atoi(sp.at(5).c_str()));
+                            ACQ_SCHEDULE.push_back(r);
+
+                         }
+
+                    }
+
+                }
+
+                fitsHeader.loadKeywordsFromConfigFile(cfgFile);
+
+                runContinuousAcquisition();
 
 		}
 
@@ -186,6 +228,46 @@ bool Device::prepareDevice(CamType type, string cfgFile){
 	}
 
 	return true;
+}
+
+void Device::runContinuousAcquisition(){
+
+    /// List Gige Camera to check the ID.
+    cam->listGigeCameras();
+
+    /// Create camera according to its ID.
+    if(!cam->createDevice(CAMERA_ID))
+        throw "Fail to create device.";
+
+    /// Set camera format.
+    if(!cam->setPixelFormat(ACQ_BIT_DEPTH))
+        throw "Fail to set Format.";
+
+    /// Set camera exposure time.
+    if(!cam->setExposureTime(ACQ_EXPOSURE))
+        throw "Fail to set Exposure.";
+
+    /// Set camera gain.
+    if(!cam->setGain(ACQ_GAIN))
+        throw "Fail to set Gain.";
+
+    /// Set camera fps.
+    if(!cam->setFPS(ACQ_FPS))
+        throw "Fail to set Fps.";
+
+    /// Prepare grabbing.
+    if(!cam->grabStart())
+        throw "Fail to start grab.";
+
+    /// Start acquisition.
+    cam->acqStart();
+
+}
+
+bool Device::loadDataset(){
+
+    return cam->loadData();
+
 }
 
 bool Device::grabTest(){
@@ -206,8 +288,16 @@ bool Device::getDeviceStopStatus(){
 	return cam->getStopStatus();
 }
 
+bool Device::getDatasetStatus(){
+	return cam->getDataStatus();
+}
+
 void Device::acqStop(){
 	cam->acqStop();
+}
+
+void Device::acqRestart(){
+	runContinuousAcquisition();
 }
 
 bool Device::grabImage(Frame& newFrame){

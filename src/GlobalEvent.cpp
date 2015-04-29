@@ -278,7 +278,7 @@ bool GlobalEvent::ratioFramesDist(){
 
     int n = geLastFrameNum - geFirstFrameNum;
 
-    if(d > (n /2)) return true;
+    if(d > (n *0.333)) return true;
     else return false;
 
 

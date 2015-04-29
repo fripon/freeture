@@ -41,8 +41,10 @@
     #define BOOST_LOG_DYN_LINK 1
 #endif
 
-
-
+#include "ECamBitDepth.h"
+#include "AcqRegular.h"
+#include "DetThread.h"
+#include "StackThread.h"
 #include "Device.h"
 
 using namespace cv;
@@ -112,6 +114,13 @@ class AcqThread{
 
 		bool threadTerminated;
 
+		DetThread	*detectionProcess;
+        StackThread	*stackProcess;
+
+        vector<string> schedule;
+
+        string completeDataPath;
+
 	public:
 
         AcqThread(	CamType									camType,
@@ -125,7 +134,9 @@ class AcqThread{
 					boost::condition_variable               *sSignal_c,
 					bool                                    *dSignal,
 					boost::mutex                            *dSignal_m,
-					boost::condition_variable               *dSignal_c);
+					boost::condition_variable               *dSignal_c,
+					DetThread	                            *detection,
+                    StackThread	                            *stack);
 
 		~AcqThread(void);
 
@@ -142,6 +153,12 @@ class AcqThread{
 		bool	startThread();
 
 		bool	getThreadTerminatedStatus();
+
+    private :
+
+        bool runScheduledAcquisition(AcqRegular task);
+
+        bool buildRegularAcquisitionDirectory(string YYYYMMDD);
 
 };
 

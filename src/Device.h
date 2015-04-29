@@ -63,6 +63,11 @@
 #include "CameraGigeSdkIc.h"
 #include "CameraVideo.h"
 #include "CameraFrames.h"
+#include "AcqRegular.h"
+#include "Fits.h"
+#include <vector>
+#include <algorithm>
+#include <string>
 
 #include <boost/filesystem.hpp>
 #include <iterator>
@@ -93,6 +98,18 @@ class Device{
 
         Camera *cam;
 
+        vector<AcqRegular>  ACQ_SCHEDULE;
+        bool                ACQ_SCHEDULE_ENABLED;
+        string              DATA_PATH;
+        string              STATION_NAME;
+        CamBitDepth         ACQ_BIT_DEPTH;
+        int                 ACQ_EXPOSURE;
+        int                 ACQ_GAIN;
+        int                 ACQ_FPS;
+        int                 CAMERA_ID;
+
+        Fits fitsHeader;
+
 	public:
 
         Device(CamType type);
@@ -107,7 +124,11 @@ class Device{
 
 		void    acqStop();
 
+		void    acqRestart();
+
 		bool	getDeviceStopStatus();
+
+		bool    getDatasetStatus();
 
 		bool    grabImage(Frame& newFrame);
 
@@ -136,5 +157,19 @@ class Device{
 		bool    setFPS(int fps);
 
 		bool	setPixelFormat(CamBitDepth depth);
+
+		bool    loadDataset();
+
+		vector<AcqRegular>    getSchedule()       {return ACQ_SCHEDULE;};
+
+		string  getDataPath()       {return DATA_PATH;};
+		string  getStationName()    {return STATION_NAME;};
+		int     getCameraId()       {return CAMERA_ID;};
+		Fits    getFitsHeader()     {return fitsHeader;};
+
+
+    private :
+
+        void    runContinuousAcquisition();
 
 };

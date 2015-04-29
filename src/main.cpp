@@ -218,7 +218,7 @@ int main(int argc, const char ** argv){
         string  fileName        = "snap";
         string  sendMail        = "";
 
-		std::cout << "Default configuration file location : " << string(CFG_PATH) << "configuration.cfg" <<endl;
+		std::cout << "Default configuration file : " << string(CFG_PATH) << "configuration.cfg" <<endl;
 
         po::store(po::parse_command_line(argc, argv, desc), vm);
 
@@ -418,80 +418,83 @@ int main(int argc, const char ** argv){
                             bool stackThreadCreationSuccess	= true;
                             bool detThreadCreationSuccess	= true;
 
-                            inputDevice = new AcqThread(	CAMERA_TYPE,
-                                                            &cfg_m,
+                            /// Create detection thread.
+                            if(DET_ENABLED){
+
+                                BOOST_LOG_SEV(slg, normal) << "Start to create detection Thread.";
+
+                                detection  = new DetThread(	&cfg_m,
                                                             configPath,
+                                                            DET_METHOD,
                                                             &frameBuffer,
                                                             &frameBuffer_m,
                                                             &frameBuffer_c,
-                                                            &signalStack,
-                                                            &signalStack_m,
-                                                            &signalStack_c,
                                                             &signalDet,
                                                             &signalDet_m,
                                                             &signalDet_c);
 
-                            if(inputDevice != NULL){
+                                if(!detection->startThread()){
 
-                                if(!inputDevice->startThread()){
+                                    cout << "Fail to start detection Thread." << endl;
+                                    BOOST_LOG_SEV(slg, fail) << "Fail to start detection Thread.";
+                                    detThreadCreationSuccess = false;
 
-                                    std::cout << "Fail to start acquisition Thread." << endl;
-                                    BOOST_LOG_SEV(slg, fail) << "Fail to start acquisition Thread.";
+                                }
 
-                                }else{
+                            }
 
-                                    BOOST_LOG_SEV(slg, normal) << "Success to start acquisition Thread.";
+                            /// Create stack thread.
+                            if(STACK_ENABLED && ((DET_ENABLED && detThreadCreationSuccess) || !DET_ENABLED)){
 
-                                    /// Create stack thread.
-                                    if(STACK_ENABLED){
+                                BOOST_LOG_SEV(slg, normal) << "Start to create stack Thread.";
 
-                                        BOOST_LOG_SEV(slg, normal) << "Start to create stack Thread.";
+                                stack = new StackThread(	&cfg_m,
+                                                            configPath,
+                                                            &signalStack,
+                                                            &signalStack_m,
+                                                            &signalStack_c,
+                                                            &frameBuffer,
+                                                            &frameBuffer_m,
+                                                            &frameBuffer_c);
 
-                                        stack = new StackThread(	&cfg_m,
-                                                                    configPath,
-                                                                    &signalStack,
-                                                                    &signalStack_m,
-                                                                    &signalStack_c,
-                                                                    &frameBuffer,
-                                                                    &frameBuffer_m,
-                                                                    &frameBuffer_c);
+                                if(!stack->startThread()){
 
-                                        if(!stack->startThread()){
+                                    cout << "Fail to start stack Thread." << endl;
+                                    BOOST_LOG_SEV(slg, fail) << "Fail to start stack Thread.";
+                                    stackThreadCreationSuccess = false;
 
-                                            cout << "Fail to start stack Thread." << endl;
-                                            BOOST_LOG_SEV(slg, fail) << "Fail to start stack Thread.";
-                                            stackThreadCreationSuccess = false;
+                                }
 
-                                        }
+                            }
 
-                                    }
+                            if(((DET_ENABLED && detThreadCreationSuccess) || !DET_ENABLED) &&           // Detection Thread enabled and succeed or not enabled
+                              (((STACK_ENABLED && stackThreadCreationSuccess) || !STACK_ENABLED))){     // Stack Thread enabled and succeed or not enabled
 
-                                    /// Create detection thread.
-                                    if(DET_ENABLED){
+                                inputDevice = new AcqThread(	CAMERA_TYPE,
+                                                                &cfg_m,
+                                                                configPath,
+                                                                &frameBuffer,
+                                                                &frameBuffer_m,
+                                                                &frameBuffer_c,
+                                                                &signalStack,
+                                                                &signalStack_m,
+                                                                &signalStack_c,
+                                                                &signalDet,
+                                                                &signalDet_m,
+                                                                &signalDet_c,
+                                                                detection,
+                                                                stack);
 
-                                        BOOST_LOG_SEV(slg, normal) << "Start to create detection Thread.";
+                                if(inputDevice != NULL){
 
-                                        detection  = new DetThread(	&cfg_m,
-                                                                    configPath,
-                                                                    DET_METHOD,
-                                                                    &frameBuffer,
-                                                                    &frameBuffer_m,
-                                                                    &frameBuffer_c,
-                                                                    &signalDet,
-                                                                    &signalDet_m,
-                                                                    &signalDet_c);
+                                    if(!inputDevice->startThread()){
 
-                                        if(!detection->startThread()){
+                                        std::cout << "Fail to start acquisition Thread." << endl;
+                                        BOOST_LOG_SEV(slg, fail) << "Fail to start acquisition Thread.";
 
-                                            cout << "Fail to start detection Thread." << endl;
-                                            BOOST_LOG_SEV(slg, fail) << "Fail to start detection Thread.";
-                                            detThreadCreationSuccess = false;
+                                    }else{
 
-                                        }
-
-                                    }
-
-                                    if(detThreadCreationSuccess && stackThreadCreationSuccess){
+                                        BOOST_LOG_SEV(slg, normal) << "Success to start acquisition Thread.";
 
                                         #ifdef WINDOWS
 
@@ -557,25 +560,29 @@ int main(int argc, const char ** argv){
                                         }
                                     }
 
-                                    if(detection != NULL){
-
-                                        if(detThreadCreationSuccess) detection->stopThread();
-                                        delete detection;
-
-                                    }
-
-                                    if(stack != NULL){
-
-                                        if(stackThreadCreationSuccess) stack->stopThread();
-                                        delete stack;
-
-                                    }
-
                                     inputDevice->stopThread();
+
+                                    delete inputDevice;
 
                                 }
 
-                                delete inputDevice;
+
+                            }
+
+                            if(detection != NULL){
+
+                                if(detThreadCreationSuccess)
+                                    detection->stopThread();
+                                delete detection;
+
+                            }
+
+                            if(stack != NULL){
+
+                                if(stackThreadCreationSuccess)
+                                    stack->stopThread();
+                                delete stack;
+
                             }
 
                         }catch(exception& e){
@@ -867,7 +874,7 @@ int main(int argc, const char ** argv){
                             if(sendMail != ""){
 
                                 cout << ">> Sending fits by mail to " << sendMail << "..." << endl;
-                                cout << "(This option in only available inside fripon network.)" << endl;
+                                cout << "(This option is only available inside fripon network.)" << endl;
 
                                 vector<string> mailAttachments;
                                 mailAttachments.push_back(savePath + fileName + "-" + Conversion::intToString(filenum) + ".fit");
@@ -935,25 +942,6 @@ int main(int argc, const char ** argv){
 
 					}
 
-                case 6 :
-
-					{
-
-
-					    /*EParser<CamType> cam_type;
-
-						Device *cam = new Device(cam_type.parseEnum("CAMERA_TYPE", "DMK_GIGE"));
-
-						if(!cam->grabTest()){
-							delete cam;
-							throw "> Failed to grab a single frame.";
-						}
-						delete cam;*/
-
-
-					}
-
-					break;
 
                 default :
 
