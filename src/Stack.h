@@ -112,6 +112,8 @@ class Stack{
 
 		bool saveStack(Fits fitsHeader, string path, StackMeth STACK_MTHD, string STATION_NAME, bool STACK_REDUCTION);
 
+        int getNbFramesStacked(){return curFrames;};
+        int getMaxFramesToStack(){return maxFrames;};
 
 	private :
 

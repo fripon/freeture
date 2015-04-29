@@ -362,7 +362,7 @@ Mat Stack::reductionByFactorDivision(float &bzero, float &bscale){
             {
 
                 newMat = Mat(stack.rows,stack.cols, CV_16SC1, Scalar(0));
-                float factor = (4095.0f * curFrames)/65535;
+                float factor = (4095.0f * curFrames)/4095.0f;
 
                 bscale = factor;
                 bzero  = 32768 * factor;

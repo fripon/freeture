@@ -104,6 +104,10 @@ class StackThread{
 
 		boost::mutex					*cfg_mutex;
 
+        bool interruptionStatus;
+        boost::mutex interruptionStatusMutex;
+
+
 	public:
 
         StackThread(	boost::mutex							*cfg_m,
@@ -125,11 +129,14 @@ class StackThread{
 
 		bool getRunStatus();
 
+		bool interruptThread();
+
 	private :
 
 		bool loadStackParameters();
 
 		bool buildStackDataDirectory(string date);
+
 
 		/* /* if(ft.CFG_FILECOPY_ENABLED){
 
