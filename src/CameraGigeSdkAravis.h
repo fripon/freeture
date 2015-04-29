@@ -106,6 +106,8 @@
 			guint64         nbCompletedBuffers;
 			guint64         nbFailures;
 			guint64         nbUnderruns;
+			int             fcpt;
+			vector<string>  schedule;
 
 		public:
 
@@ -153,6 +155,7 @@
 			bool	setGain(int gain);
 			bool    setFPS(int fps);
 			bool	setPixelFormat(CamBitDepth depth);
+			void    setSchedule(vector<string> s);
 
 			void    saveGenicamXml(string p);
 

@@ -78,6 +78,9 @@ class Camera{
 		virtual bool	setGain(int)						        {return false;};
 		virtual bool	setFPS(int)						            {return false;};
 		virtual	bool	setPixelFormat(CamBitDepth)					{return false;};
-		virtual bool    grabTest() {return false;};
+		virtual bool    grabTest()                                  {return false;};
+		virtual bool    getDataStatus()                             {return false;};
+		virtual bool    loadData()                                  {return true;};
+		virtual void    setSchedule(vector<string> s)               {};
 
 };

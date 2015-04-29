@@ -103,5 +103,6 @@ class CameraFrames: public Camera{
 
 		bool getStopStatus();
 
+
 };
 

@@ -127,6 +127,8 @@
 
 	bool CameraGigeSdkAravis::grabStart(){
 
+	    fcpt = 0;
+
 		int sensor_width, sensor_height;
 
 		arv_camera_get_sensor_size(camera, &sensor_width, &sensor_height);
@@ -267,6 +269,12 @@
 
 	}
 
+	void CameraGigeSdkAravis::setSchedule(vector<string> s){
+
+        schedule = s;
+
+	}
+
 	void CameraGigeSdkAravis::grabStop(){}
 
 	void CameraGigeSdkAravis::acqStart(){
@@ -295,9 +303,14 @@
 		BOOST_LOG_SEV(logger, notification) << "Underruns         = " << (unsigned long long) nbUnderruns;
 
         BOOST_LOG_SEV(logger, notification) << "Stop acquisition on camera";
+        cout << "Stop acquisition on camera" << endl;
 		arv_camera_stop_acquisition(camera);
+		cout << "Acquisition on camera stopped " << endl;
 
+        cout << "unref stream" << endl;
 		g_object_unref(stream);
+
+		cout << "unref camera" << endl;
 		g_object_unref(camera);
 
 	}
@@ -382,6 +395,9 @@
                     newFrame.setBitDepth(imgDepth);
                     //BOOST_LOG_SEV(logger, normal) << "Setting saturated value of frame ...";
                     newFrame.setSaturatedValue(saturateVal);
+
+                    newFrame.setNumFrame(fcpt);
+                    fcpt++;
 
                     //BOOST_LOG_SEV(logger, normal) << "Re-pushing arv buffer in stream ...";
                     arv_stream_push_buffer(stream, arv_buffer);
@@ -729,6 +745,8 @@
 
 	bool CameraGigeSdkAravis::grabSingleImage(Frame &frame, int camID){
 
+	    bool res = false;
+
         if(!createDevice(camID))
             return false;
 
@@ -814,38 +832,19 @@
 
             }
 
-            //for(int i = 0; i < 50; i++)
             arv_stream_push_buffer(stream, arv_buffer_new(payload, NULL));
 
             // Set acquisition mode to continuous.
-            //arv_camera_set_acquisition_mode(camera, ARV_ACQUISITION_MODE_CONTINUOUS);
             arv_camera_set_acquisition_mode(camera, ARV_ACQUISITION_MODE_SINGLE_FRAME);
 
-            // Configure camera to use software source as a trigger :
-            // - AcquisitionStart in TriggerSelector is set to off.
-            // - FrameStart in TriggerSelector is set to on.
-            // - TriggerActivation is set to RisingEdge.
-            // - TriggerSource is set to Software.
-            //arv_camera_set_trigger(camera, "Software");
-
-            //arv_device_set_integer_feature_value(arv_camera_get_device (camera), "TriggerDelay" , 0);
+            // Very usefull to avoid arv buffer timeout status
+            sleep(1);
 
             // Start acquisition.
             arv_camera_start_acquisition(camera);
 
-
-            //sleep(1);
-
-
-            // Send Trigger Command to capture image.
-            //arv_camera_software_trigger(camera);
-
-
-            //sleep(6);
-
-
             // Get image buffer.
-            ArvBuffer *arv_buffer = /*arv_stream_pop_buffer(stream);*/ arv_stream_timeout_pop_buffer(stream, frame.getExposure() + 1000000); //us
+            ArvBuffer *arv_buffer = arv_stream_timeout_pop_buffer(stream, frame.getExposure() + 1000000); //us
 
             char *buffer_data;
             size_t buffer_size;
@@ -853,7 +852,6 @@
             if (arv_buffer != NULL){
 
                 if(arv_buffer_get_status(arv_buffer) == ARV_BUFFER_STATUS_SUCCESS){
-
 
                     buffer_data = (char *) arv_buffer_get_data (arv_buffer, &buffer_size);
 
@@ -867,7 +865,6 @@
                     if(pixFormat == ARV_PIXEL_FORMAT_MONO_8){
 
                         image = Mat(height, width, CV_8UC1, buffer_data);
-
 
                     }else if(pixFormat == ARV_PIXEL_FORMAT_MONO_12){
 
@@ -886,6 +883,8 @@
                     frame = Frame(image, arv_camera_get_gain(camera), arv_camera_get_exposure_time(camera), acquisitionDate);
                     frame.setAcqDateMicro(acqDateInMicrosec);
                     frame.setFPS(arv_camera_get_frame_rate(camera));
+
+                    res = true;
 
                 }else{
 
@@ -942,14 +941,16 @@
 
                     }
 
+                    res = false;
+
                 }
 
                 arv_stream_push_buffer(stream, arv_buffer);
 
            }else{
 
-                cout << "Fail to pop buffer from stream." << endl;
                 BOOST_LOG_SEV(logger, fail) << "Fail to pop buffer from stream.";
+                res = false;
 
            }
 
@@ -959,22 +960,15 @@
             cout << "Failures          = " << (unsigned long long) nbFailures           << endl;
             cout << "Underruns         = " << (unsigned long long) nbUnderruns          << endl;
 
-
             // Stop acquisition.
             arv_camera_stop_acquisition(camera);
-
-            // TriggerMode off.
-            arv_device_set_string_feature_value(arv_camera_get_device (camera), "TriggerMode" , "Off");
 
             g_object_unref(stream);
             g_object_unref(camera);
 
-
-            return true;
-
 		}
 
-		return false;
+		return res;
 
 	}
 
