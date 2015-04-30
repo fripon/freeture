@@ -121,6 +121,14 @@ class AcqThread{
 
         string completeDataPath;
 
+        vector<AcqRegular> ACQ_SCHEDULE;
+
+        // Next acquisition to achieve.
+        AcqRegular nextTask;
+
+        // Index of the next acquisition to achieve in the schedule table.
+        int indexNextTask = 0;
+
 	public:
 
         AcqThread(	CamType									camType,
@@ -159,6 +167,11 @@ class AcqThread{
         bool runScheduledAcquisition(AcqRegular task);
 
         bool buildRegularAcquisitionDirectory(string YYYYMMDD);
+
+        void sortAcquisitionSchedule();
+
+        void selectNextAcquisitionSchedule();
+
 
 };
 

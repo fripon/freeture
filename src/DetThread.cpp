@@ -310,6 +310,7 @@ void DetThread::interruptThread(){
 
     interruptionStatusMutex.lock();
     interruptionStatus = true;
+    cout << "interruptionStatus in detection process : " << interruptionStatus << endl;
     interruptionStatusMutex.unlock();
 
 }
@@ -332,11 +333,12 @@ void DetThread::operator ()(){
             try{
 
                 /// Wait new frame from AcqThread.
-                BOOST_LOG_SEV(logger, normal) << "Wait new frame from AcqThread.";
+                BOOST_LOG_SEV(logger, normal) << "Waiting new frame from AcqThread.";
                 boost::mutex::scoped_lock lock(*detSignal_mutex);
                 while (!(*detSignal)) detSignal_condition->wait(lock);
                 *detSignal = false;
                 lock.unlock();
+                BOOST_LOG_SEV(logger, normal) << "End to wait new frame from AcqThread.";
 
                 // Check interruption signal from AcqThread.
                 bool forceToReset = false;
@@ -430,6 +432,7 @@ void DetThread::operator ()(){
 
                     interruptionStatusMutex.lock();
                     interruptionStatus = false;
+                    cout << "interruptionStatus in detection process : " << interruptionStatus << endl;
                     interruptionStatusMutex.unlock();
 
                 }

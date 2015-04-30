@@ -79,10 +79,6 @@ AcqThread::AcqThread(	CamType									camType,
 	detectionProcess                = detection;
 	stackProcess                    = stack;
 
-
-
-
-
 }
 
 AcqThread::~AcqThread(void){
@@ -153,12 +149,16 @@ void AcqThread::operator()(){
 	BOOST_LOG_SEV(logger,notification) << "========== Start acquisition thread ==========";
 	BOOST_LOG_SEV(logger,notification) << "==============================================";
 
-    vector<AcqRegular> ACQ_SCHEDULE = cam->getSchedule();
-    AcqRegular nextTask;
-    int indexNextTask = 0;
-    if(ACQ_SCHEDULE.size() != 0) nextTask = ACQ_SCHEDULE.at(indexNextTask);
+    // Get acquisition schedule.
+    ACQ_SCHEDULE = cam->getSchedule();
+    // Order schedule times.
+    sortAcquisitionSchedule();
+    // Search next acquisition according to the current time.
+    selectNextAcquisitionSchedule();
+
     bool scheduleTaskStatus = false;
     bool scheduleTaskActive = false;
+
     vector<string> frameDate;
     string accurateFrameDate;
 
@@ -230,15 +230,10 @@ void AcqThread::operator()(){
                         // Launch single acquisition
                         bool result = runScheduledAcquisition(nextTask);
 
-                        if(indexNextTask + 1 == ACQ_SCHEDULE.size())
-                            indexNextTask = 0;
-                        else
-                            indexNextTask += 1;
-
-
-                        nextTask = ACQ_SCHEDULE.at(indexNextTask);
-
                         sleep(1);
+
+                        // Update nextTask
+                        selectNextAcquisitionSchedule();
 
                     }
 
@@ -286,6 +281,121 @@ void AcqThread::operator()(){
 
 	std::cout << "Acquisition Thread terminated." << endl;
 	BOOST_LOG_SEV(logger,notification) << "Acquisition Thread TERMINATED";
+
+}
+
+void AcqThread::selectNextAcquisitionSchedule(){
+
+    if(ACQ_SCHEDULE.size() != 0){
+
+        /// Search next acquisition according to the current date
+        // Get current date.
+        string currentDate = TimeDate::localDateTime(microsec_clock::universal_time(),"%Y:%m:%d:%H:%M:%S");
+        cout << endl << "current date : " << currentDate << endl;
+        vector<string> currentDateSplit;
+
+        // Split date
+        typedef boost::tokenizer<boost::char_separator<char> > tokenizer;
+        boost::char_separator<char> sep(":");
+        tokenizer tokens(currentDate, sep);
+        for (tokenizer::iterator tok_iter = tokens.begin();tok_iter != tokens.end(); ++tok_iter){
+            currentDateSplit.push_back(*tok_iter);
+        }
+
+        // Get current Hour.
+        int currentH = atoi(currentDateSplit.at(3).c_str());
+
+        // Get current Minutes.
+        int currentM = atoi(currentDateSplit.at(4).c_str());
+
+        // Search next acquisition
+        for(int i = 0; i < ACQ_SCHEDULE.size(); i++){
+
+            if(currentH < ACQ_SCHEDULE.at(i).getH()){
+
+               indexNextTask = i;
+               break;
+
+            }else if(currentH == ACQ_SCHEDULE.at(i).getH()){
+
+                if(currentM < ACQ_SCHEDULE.at(i).getM()){
+
+                    indexNextTask = i;
+                    break;
+
+                }
+
+            }
+
+        }
+
+        nextTask = ACQ_SCHEDULE.at(indexNextTask);
+
+        cout << "nextTask : " << nextTask.getH() << "H " << nextTask.getM() << "M" << endl;
+
+    }
+
+}
+
+void AcqThread::sortAcquisitionSchedule(){
+
+    if(ACQ_SCHEDULE.size() != 0){
+
+        // Sort time in list.
+        vector<AcqRegular> tempSchedule;
+
+        do{
+
+            int minH; int minM; bool init = false;
+
+            vector<AcqRegular>::iterator it;
+            vector<AcqRegular>::iterator it_select;
+
+            for(it = ACQ_SCHEDULE.begin(); it != ACQ_SCHEDULE.end(); ++it){
+
+                if(!init){
+
+                    minH = (*it).getH();
+                    minM = (*it).getM();
+                    it_select = it;
+                    init = true;
+
+                }else{
+
+                    if((*it).getH() < minH){
+
+                        minH = (*it).getH();
+                        minM = (*it).getM();
+                        it_select = it;
+
+                    }else if((*it).getH() == minH){
+
+                        if((*it).getM() < minM){
+
+                            minH = (*it).getH();
+                            minM = (*it).getM();
+                            it_select = it;
+
+                        }
+
+                    }
+
+                }
+
+            }
+
+            if(init){
+
+                tempSchedule.push_back((*it_select));
+                cout << "-> " << (*it_select).getH() << "H " << (*it_select).getM() << "M " << endl;
+                ACQ_SCHEDULE.erase(it_select);
+
+            }
+
+        }while(ACQ_SCHEDULE.size() != 0);
+
+        ACQ_SCHEDULE = tempSchedule;
+    }
 
 }
 
@@ -415,11 +525,10 @@ bool AcqThread::runScheduledAcquisition(AcqRegular task){
 
         boost::mutex::scoped_lock lock(*stackSignal_mutex);
         *stackSignal = false;
-        cout << "*stackSignal to false : " << *stackSignal << endl;
         lock.unlock();
 
         // Force interruption.
-        cout << "Send interruption signal. " << endl;
+        cout << "Send interruption signal to stack " << endl;
         stackProcess->interruptThread();
 
 
@@ -431,7 +540,7 @@ bool AcqThread::runScheduledAcquisition(AcqRegular task){
         boost::mutex::scoped_lock lock(*detSignal_mutex);
         *detSignal = false;
         lock.unlock();
-
+        cout << "Send interruption signal to detection process " << endl;
         detectionProcess->interruptThread();
 
     }
