@@ -223,6 +223,7 @@ void AcqThread::operator()(){
                 // Check schedule.
                 if(ACQ_SCHEDULE.size() != 0 && frameDate.size() == 6){
 
+                    // Time for a long exposure time acquisition.
                     if(nextTask.getH() == atoi(frameDate.at(3).c_str()) && nextTask.getM() == atoi(frameDate.at(4).c_str()) && atoi(frameDate.at(5).c_str()) == 0){
 
                         nextTask.setAccurateDate(accurateFrameDate);
@@ -234,6 +235,23 @@ void AcqThread::operator()(){
 
                         // Update nextTask
                         selectNextAcquisitionSchedule();
+
+                    }else{
+
+                        // The current hour elapsed.
+                        if(atoi(frameDate.at(3).c_str()) > nextTask.getH()){
+
+                           selectNextAcquisitionSchedule();
+
+                        }else if(atoi(frameDate.at(3).c_str()) == nextTask.getH()){
+
+                            if(atoi(frameDate.at(4).c_str()) > nextTask.getM()){
+
+                                selectNextAcquisitionSchedule();
+
+                            }
+
+                        }
 
                     }
 
