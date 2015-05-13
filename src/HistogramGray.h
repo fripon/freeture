@@ -55,8 +55,11 @@ class HistogramGray : public Histogram{
 
         int calculate(Mat& image);
 
+
         void normalize(void);
 
         Mat render(void);
+
+        Mat renderHistogramOnImage(Mat image);
 
 };

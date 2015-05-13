@@ -150,6 +150,7 @@
 			int		getHeight();
 			int		getFPS();
 			string	getModelName();
+			int     getExposureTime();
 
 			bool	setExposureTime(int exp);
 			bool	setGain(int gain);

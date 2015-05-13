@@ -77,10 +77,20 @@ Mat HistogramGray::render(void){
     for( int i = 0; i < 256; i++ ) {
         start.x = end.x = i;
         end.y = cvRound( 100.f * bins.at< float >( i ) );
-        line( result, start, end, Scalar( 192 ) );
+        line( result, start, end, Scalar( 255 ) );
     }
 
     flip( result, result, 0 );
 
     return result;
+}
+
+Mat HistogramGray::renderHistogramOnImage(Mat image){
+
+    Mat h = render();
+
+    h.copyTo(image(Rect(0, image.rows - h.rows,h.cols,h.rows)));
+
+    return image;
+
 }

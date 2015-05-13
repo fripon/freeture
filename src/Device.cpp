@@ -149,18 +149,59 @@ bool Device::prepareDevice(CamType type, string cfgFile){
 
 			default :
 
+                // Get camera ID to use.
                 cfg.Get("CAMERA_ID", CAMERA_ID);
-                cfg.Get("DATA_PATH", DATA_PATH);
-                cfg.Get("STATION_NAME", STATION_NAME);
+                BOOST_LOG_SEV(logger, notification) << "CAMERA_ID : " << CAMERA_ID;
 
+                // Get data location.
+                cfg.Get("DATA_PATH", DATA_PATH);
+                BOOST_LOG_SEV(logger, notification) << "DATA_PATH : " << DATA_PATH;
+
+                // Get station name.
+                cfg.Get("STATION_NAME", STATION_NAME);
+                BOOST_LOG_SEV(logger, notification) << "STATION_NAME : " << STATION_NAME;
+
+                // Get acquisition format.
                 string acq_bit_depth; cfg.Get("ACQ_BIT_DEPTH", acq_bit_depth);
                 EParser<CamBitDepth> cam_bit_depth;
                 ACQ_BIT_DEPTH = cam_bit_depth.parseEnum("ACQ_BIT_DEPTH", acq_bit_depth);
+                BOOST_LOG_SEV(logger, notification) << "ACQ_BIT_DEPTH : " << acq_bit_depth;
 
-                cfg.Get("ACQ_EXPOSURE", ACQ_EXPOSURE);
-                cfg.Get("ACQ_GAIN", ACQ_GAIN);
+                // Get night exposure time.
+                cfg.Get("ACQ_NIGHT_EXPOSURE", ACQ_EXPOSURE);
+                BOOST_LOG_SEV(logger, notification) << "ACQ_NIGHT_EXPOSURE : " << ACQ_EXPOSURE;
+
+                // Get night gain.
+                cfg.Get("ACQ_NIGHT_GAIN", ACQ_GAIN);
+                BOOST_LOG_SEV(logger, notification) << "ACQ_NIGHT_GAIN : " << ACQ_GAIN;
+
+                // Get sunrise time.
+                string sunrise_time;
+                cfg.Get("SUNRISE_TIME", sunrise_time);
+                BOOST_LOG_SEV(logger, notification) << "SUNRISE_TIME : " << sunrise_time;
+
+                // Get acquisition FPS.
                 cfg.Get("ACQ_FPS", ACQ_FPS);
+                BOOST_LOG_SEV(logger, notification) << "ACQ_FPS : " << ACQ_FPS;
+
+                // Get exposure control save infos option.
+                cfg.Get("EXPOSURE_CONTROL_SAVE_INFOS", EXPOSURE_CONTROL_SAVE_INFOS);
+                BOOST_LOG_SEV(logger, notification) << "EXPOSURE_CONTROL_SAVE_INFOS : " << EXPOSURE_CONTROL_SAVE_INFOS;
+
+                // Get exposure control save image option.
+                cfg.Get("EXPOSURE_CONTROL_SAVE_IMAGE", EXPOSURE_CONTROL_SAVE_IMAGE);
+                BOOST_LOG_SEV(logger, notification) << "EXPOSURE_CONTROL_SAVE_IMAGE : " << EXPOSURE_CONTROL_SAVE_IMAGE;
+
+                // Get exposure control option.
+                cfg.Get("EXPOSURE_CONTROL_ENABLED", EXPOSURE_CONTROL_ENABLED);
+                BOOST_LOG_SEV(logger, notification) << "EXPOSURE_CONTROL_ENABLED : " << EXPOSURE_CONTROL_ENABLED;
+
+                cfg.Get("EXPOSURE_CONTROL_FREQUENCY", EXPOSURE_CONTROL_FREQUENCY);
+                BOOST_LOG_SEV(logger, notification) << "EXPOSURE_CONTROL_FREQUENCY : " << EXPOSURE_CONTROL_FREQUENCY;
+
+                // Get schedule option status.
                 cfg.Get("ACQ_SCHEDULE_ENABLED", ACQ_SCHEDULE_ENABLED);
+                BOOST_LOG_SEV(logger, notification) << "ACQ_SCHEDULE_ENABLED : " << ACQ_SCHEDULE_ENABLED;
 
                 if(ACQ_SCHEDULE_ENABLED){
 
@@ -174,12 +215,13 @@ bool Device::prepareDevice(CamType type, string cfgFile){
                     tokenizer tokens(sACQ_SCHEDULE, sep);
 
                     int n = 1;
-                    cout << "SCHEDULE : " << endl;
+                    BOOST_LOG_SEV(logger, notification) << "SCHEDULE : ";
                     for(tokenizer::iterator tok_iter = tokens.begin();tok_iter != tokens.end(); ++tok_iter){
                         string s = *tok_iter;
                         std::transform(s.begin(), s.end(),s.begin(), ::toupper);
                         sch1.push_back(s);
-                        cout << "- " << Conversion::intToString(n) << " - " << s << endl;
+                        cout << "-> " << Conversion::intToString(n) << " - " << s << endl;
+                        BOOST_LOG_SEV(logger, notification) << "-> " << Conversion::intToString(n) << " - " << s;
                         n++;
                     }
 
@@ -209,6 +251,28 @@ bool Device::prepareDevice(CamType type, string cfgFile){
 
                 }
 
+
+                // Get use mask option.
+                cfg.Get("ACQ_MASK_ENABLED", ACQ_MASK_ENABLED);
+                BOOST_LOG_SEV(logger, notification) << "ACQ_MASK_ENABLED : " << ACQ_MASK_ENABLED;
+
+                if(ACQ_MASK_ENABLED){
+
+                    cfg.Get("ACQ_MASK_PATH", ACQ_MASK_PATH);
+                    BOOST_LOG_SEV(logger, notification) << "ACQ_MASK_PATH : " << ACQ_MASK_PATH;
+
+                    ACQ_MASK = imread(ACQ_MASK_PATH, CV_LOAD_IMAGE_GRAYSCALE);
+
+                    if(!ACQ_MASK.data){
+
+                        BOOST_LOG_SEV(logger, fail) << " Can't load the mask from this location : " << ACQ_MASK_PATH;
+                        throw "Failed to load the mask";
+
+                    }
+
+                }
+
+                BOOST_LOG_SEV(logger, notification) << "Loading fits keywords...";
                 fitsHeader.loadKeywordsFromConfigFile(cfgFile);
 
                 runContinuousAcquisition();
@@ -230,36 +294,97 @@ bool Device::prepareDevice(CamType type, string cfgFile){
 	return true;
 }
 
+
+void Device::controlExposureTime(float msv){
+
+    /*int currExp = cam->getExposureTime();
+    cout << "currExp : " << currExp << endl;
+
+    int expMin = -1, expMax = -1;
+    cam->getExposureBounds(expMin,expMax);
+
+    if(expMin!=-1 && expMax!=-1){
+
+        if(msv > 2.4 && msv < 2.5){
+
+            cout << "msv is correct. No need to change exposure time" << endl;
+
+        }else if(msv < 2.4 && currExp == expMax){
+
+            cout << "msv is not correct but impossible to increase exposure time because the value is already the maximum"
+
+        }else if(msv > 2.5 && currExp == expMin){
+
+            cout << "msv is not correct but impossible to decrease exposure time because the value is already to the minimum"
+
+        }else if(msv < 2.4 && currExp != expMax){
+
+
+
+            cout << "msv is not correct but impossible to increase exposure time because the value is already the maximum"
+
+        }
+    }
+*/
+
+
+
+
+
+}
+
+
+
+
+
 void Device::runContinuousAcquisition(){
 
     /// List Gige Camera to check the ID.
+    BOOST_LOG_SEV(logger, notification) << "Printing Connected Gige Camera...";
     cam->listGigeCameras();
 
     /// Create camera according to its ID.
+    BOOST_LOG_SEV(logger, notification) << "Creating Device according ID " << CAMERA_ID << " ...";
     if(!cam->createDevice(CAMERA_ID))
         throw "Fail to create device.";
 
     /// Set camera format.
+    BOOST_LOG_SEV(logger, notification) << "Setting acquisition format...";
     if(!cam->setPixelFormat(ACQ_BIT_DEPTH))
         throw "Fail to set Format.";
 
     /// Set camera exposure time.
+    BOOST_LOG_SEV(logger, notification) << "Setting exposure time...";
     if(!cam->setExposureTime(ACQ_EXPOSURE))
         throw "Fail to set Exposure.";
 
     /// Set camera gain.
+    BOOST_LOG_SEV(logger, notification) << "Setting gain...";
     if(!cam->setGain(ACQ_GAIN))
         throw "Fail to set Gain.";
 
+    // Get exposure time bounds.
+    cam->getExposureBounds(minExposureTime, maxExposureTime);
+
+    cout << "maxExposureTime : " << maxExposureTime <<  endl;
+    cout << "minExposureTime : " << minExposureTime <<  endl;
+
+    // Get gain bounds.
+    cam->getGainBounds(minGain, maxGain);
+
+
     /// Set camera fps.
+    BOOST_LOG_SEV(logger, notification) << "Setting fps...";
     if(!cam->setFPS(ACQ_FPS))
         throw "Fail to set Fps.";
 
     /// Prepare grabbing.
+    BOOST_LOG_SEV(logger, notification) << "Preparing camera to continuous acquisition...";
     if(!cam->grabStart())
         throw "Fail to start grab.";
 
     /// Start acquisition.
+    BOOST_LOG_SEV(logger, notification) << "Starting acquisition...";
     cam->acqStart();
 
 }
@@ -338,6 +463,10 @@ string Device::getModelName(){
 
 bool Device::setExposureTime(int exp){
 	return cam->setExposureTime(exp);
+}
+
+int Device::getExposureTime(){
+	return cam->getExposureTime();
 }
 
 bool Device::setGain(int gain){

@@ -79,12 +79,15 @@ AcqThread::AcqThread(	CamType									camType,
 	detectionProcess                = detection;
 	stackProcess                    = stack;
 
+	autoExposure = NULL;
+
 }
 
 AcqThread::~AcqThread(void){
 
     if(cam != NULL) delete cam;
 	if(acquisitionThread != NULL) delete acquisitionThread;
+	if(autoExposure != NULL) delete autoExposure;
 
 }
 
@@ -162,11 +165,18 @@ void AcqThread::operator()(){
     vector<string> frameDate;
     string accurateFrameDate;
 
-    /*The static member function boost::thread::hardware_concurrency() returns the number of threads that can physically
-    be executed at the same time, based on the underlying number of CPUs or CPU cores. Calling this function on a dual-core
-    processor returns a value of 2. This function provides a simple method to identify the theoretical maximum number
-    of threads that should be used.*/
-    std::cout << "core : " << boost::thread::hardware_concurrency()<< '\n';
+    bool exposureControlStatus = false;
+    bool cleanStatus = false;
+
+    if(cam->getExposureControlEnabled()){
+
+        autoExposure = new ExposureControl(cam->getExposureControlFrequency(),
+                                           cam->getExposureControlSaveImage(),
+                                           cam->getExposureControlSaveInfos(),
+                                           cam->getDataPath(),
+                                           cam->getStationName());
+
+    }
 
 	try{
 
@@ -174,10 +184,9 @@ void AcqThread::operator()(){
 
 	        if(!cam->loadDataset()) break;
 
-	        //namedWindow("Display window", WINDOW_AUTOSIZE );
-
             // Acquisition
             do{
+                //namedWindow("Display window", WINDOW_AUTOSIZE );
 
                 Frame newFrame;
 
@@ -191,23 +200,75 @@ void AcqThread::operator()(){
                     // Get date.
                     frameDate = newFrame.getDateString();
                     accurateFrameDate = newFrame.getAcqDateMicro();
-                    cout << "Date : " << accurateFrameDate << endl;
 
-                    boost::mutex::scoped_lock lock(*frameBuffer_mutex);
-                    frameBuffer->push_back(newFrame);
-                    lock.unlock();
+                    // Check if exposure control is active.
+                    if(!exposureControlStatus){
 
-                    boost::mutex::scoped_lock lock2(*detSignal_mutex);
-                    *detSignal = true;
-                    detSignal_condition->notify_one();
-                    lock2.unlock();
+                        // Exposure control is not active, the new frame can be shared with others threads.
 
-                    boost::mutex::scoped_lock lock3(*stackSignal_mutex);
-                    *stackSignal = true;
-                    stackSignal_condition->notify_one();
-                    lock3.unlock();
+                        boost::mutex::scoped_lock lock(*frameBuffer_mutex);
+                        frameBuffer->push_back(newFrame);
+                        cout << "frameBuffer->size :  " << frameBuffer->size() << endl;
+                        lock.unlock();
 
-                    //imshow("Display window", newFrame.getImg());
+                        boost::mutex::scoped_lock lock2(*detSignal_mutex);
+                        *detSignal = true;
+                        detSignal_condition->notify_one();
+                        lock2.unlock();
+
+                        boost::mutex::scoped_lock lock3(*stackSignal_mutex);
+                        *stackSignal = true;
+                        stackSignal_condition->notify_one();
+                        lock3.unlock();
+
+                        cleanStatus = false;
+
+                    }else{
+
+                        // Exposure control is active, the new frame can't be shared with others threads.
+                        if(!cleanStatus){
+
+                            // If stack process exists.
+                            if(stackProcess != NULL){
+
+                                boost::mutex::scoped_lock lock(*stackSignal_mutex);
+                                *stackSignal = false;
+                                lock.unlock();
+
+                                // Force interruption.
+                                cout << "Send interruption signal to stack " << endl;
+                                stackProcess->interruptThread();
+
+
+                            }
+
+                            // If detection process exists
+                            if(detectionProcess != NULL){
+
+                                boost::mutex::scoped_lock lock(*detSignal_mutex);
+                                *detSignal = false;
+                                lock.unlock();
+                                cout << "Send interruption signal to detection process " << endl;
+                                detectionProcess->interruptThread();
+
+                            }
+
+                            // Reset framebuffer.
+                            cout << "Cleaning frameBuffer..." << endl;
+                            boost::mutex::scoped_lock lock(*frameBuffer_mutex);
+                            frameBuffer->clear();
+                            lock.unlock();
+
+                            cleanStatus = true;
+
+                        }
+                    }
+
+                    if(autoExposure != NULL){
+
+                        exposureControlStatus = autoExposure->controlExposureTime(cam, newFrame.getImg(), accurateFrameDate);
+
+                    }
 
                 }else{
 

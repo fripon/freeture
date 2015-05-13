@@ -46,6 +46,7 @@
 #include "DetThread.h"
 #include "StackThread.h"
 #include "Device.h"
+#include "ExposureControl.h"
 
 using namespace cv;
 using namespace std;
@@ -116,6 +117,8 @@ class AcqThread{
 
 		DetThread	*detectionProcess;
         StackThread	*stackProcess;
+
+        ExposureControl * autoExposure;
 
         vector<string> schedule;
 

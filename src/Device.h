@@ -107,6 +107,20 @@ class Device{
         int                 ACQ_GAIN;
         int                 ACQ_FPS;
         int                 CAMERA_ID;
+        Mat                 ACQ_MASK;
+        bool                ACQ_MASK_ENABLED;
+        string              ACQ_MASK_PATH;
+
+        bool                EXPOSURE_CONTROL_SAVE_IMAGE;
+        bool                EXPOSURE_CONTROL_SAVE_INFOS;
+        bool                EXPOSURE_CONTROL_ENABLED;
+        int                 EXPOSURE_CONTROL_FREQUENCY;
+
+        int minExposureTime;
+        int maxExposureTime;
+        int minGain;
+        int maxGain;
+
 
         Fits fitsHeader;
 
@@ -152,6 +166,8 @@ class Device{
 
 		bool	setExposureTime(int exp);
 
+		int     getExposureTime();
+
 		bool	setGain(int gain);
 
 		bool    setFPS(int fps);
@@ -166,7 +182,17 @@ class Device{
 		string  getStationName()    {return STATION_NAME;};
 		int     getCameraId()       {return CAMERA_ID;};
 		Fits    getFitsHeader()     {return fitsHeader;};
+		Mat     getMask()           {return ACQ_MASK;};
+		void    controlExposureTime(float msv);
+		int     getMaxGain()        {return maxGain;};
+		int     getMinGain()        {return minGain;};
+        int     getMinExposureTime()        {return minExposureTime;};
+        int     getMaxExposureTime()        {return maxExposureTime;};
 
+        bool    getExposureControlSaveImage()   {return EXPOSURE_CONTROL_SAVE_IMAGE;};
+        bool    getExposureControlSaveInfos()   {return EXPOSURE_CONTROL_SAVE_INFOS;};
+        bool    getExposureControlEnabled()     {return EXPOSURE_CONTROL_ENABLED;};
+        int     getExposureControlFrequency()   {return EXPOSURE_CONTROL_FREQUENCY;};
 
     private :
 

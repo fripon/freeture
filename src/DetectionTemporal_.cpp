@@ -772,7 +772,7 @@ bool DetectionTemporal_::run(Frame &c, Frame &p){
             // Check if there is white pixels.
             if(countNonZero(subdivision) > 0){
 
-                searchROI(subdivision, motionMap, eventMap, listLocalEvents, (*itR), 20);
+                searchROI(subdivision, motionMap, eventMap, listLocalEvents, (*itR), 10);
 
             }
 
@@ -780,7 +780,7 @@ bool DetectionTemporal_::run(Frame &c, Frame &p){
 
 		BOOST_LOG_SEV(logger, normal) << "LE number : " << listLocalEvents.size();
 
-		if(DET_DEBUG) SaveImg::saveBMP(eventMap, DET_DEBUG_PATH + "/evMp/evMp_"+Conversion::intToString(imgNum));
+		if(DET_DEBUG) SaveImg::saveBMP(eventMap, DET_DEBUG_PATH + "/evMp/evMp_" + Conversion::intToString(imgNum));
 
 		t2 = (((double)getTickCount() - t2)/getTickFrequency())*1000;
 		cout << "> Time 2) : " << t2 << endl << endl;
@@ -808,13 +808,11 @@ bool DetectionTemporal_::run(Frame &c, Frame &p){
 
 			(*itLE).setNumFrame(imgNum);
 
-			for(itGE = listGlobalEvents.begin(); itGE!=listGlobalEvents.end(); ++itGE){
+			for(itGE = listGlobalEvents.begin(); itGE != listGlobalEvents.end(); ++itGE){
 
 				Mat res = (*itLE).getMap() & (*itGE).getMapEvent();
 
 				if(countNonZero(res) > 0){
-
-
 
 					LELinked = true;
 
@@ -964,7 +962,6 @@ bool DetectionTemporal_::run(Frame &c, Frame &p){
                         itGE = listGlobalEvents.erase(itGE);
 
                     }
-
 
 				}else{
 

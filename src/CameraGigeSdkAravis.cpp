@@ -318,6 +318,7 @@
 	bool CameraGigeSdkAravis::grabImage(Frame &newFrame){
 
 		ArvBuffer *arv_buffer;
+		//exp = arv_camera_get_exposure_time(camera);
 
 		arv_buffer = arv_stream_timeout_pop_buffer(stream,2000000); //us
         char *buffer_data;
@@ -1001,6 +1002,12 @@
 
 		eMin = exposureMin;
 		eMax = exposureMax;
+
+	}
+
+	int CameraGigeSdkAravis::getExposureTime(){
+
+        return arv_camera_get_exposure_time(camera);
 
 	}
 

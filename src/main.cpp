@@ -324,6 +324,13 @@ int main(int argc, const char ** argv){
                         std::cout << "======= FREETURE - Meteor detection mode =======" << endl;
                         std::cout << "================================================" << endl << endl;
 
+                        /*The static member function boost::thread::hardware_concurrency() returns the number
+                        of threads that can physically be executed at the same time, based on the underlying
+                        number of CPUs or CPU cores. Calling this function on a dual-core processor returns a
+                        value of 2. This function provides a simple method to identify the theoretical maximum
+                        number of threads that should be used.*/
+                        std::cout << "Core detected : " << boost::thread::hardware_concurrency()<< endl;
+
 						/// ------------------------------------
                         /// ------ LOAD FREETURE PARAMETERS ----
 						/// ------------------------------------
