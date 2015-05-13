@@ -166,6 +166,7 @@ void AcqThread::operator()(){
     string accurateFrameDate;
 
     bool exposureControlStatus = false;
+    bool exposureControlActive = false;
     bool cleanStatus = false;
 
     if(cam->getExposureControlEnabled()){
@@ -177,6 +178,16 @@ void AcqThread::operator()(){
                                            cam->getStationName());
 
     }
+    cout << "here" << endl;
+    int timeStartSunrise = cam->getSunriseTime().at(0) * 3600 + cam->getSunriseTime().at(1) * 60;
+    int timeStopSunrise = timeStartSunrise + cam->getSunriseDuration() * 2;
+    int timeStartSunset = cam->getSunsetTime().at(0) * 3600 + cam->getSunsetTime().at(1) * 60;
+    int timeStopSunset = timeStartSunset + cam->getSunsetDuration() * 2;
+
+    cout << "timeStartSunrise : " << timeStartSunrise << endl;
+    cout << "timeStopSunrise : " << timeStopSunrise << endl;
+    cout << "timeStartSunset : " << timeStartSunset << endl;
+    cout << "timeStopSunset : " << timeStopSunset << endl;
 
 	try{
 
@@ -264,7 +275,7 @@ void AcqThread::operator()(){
                         }
                     }
 
-                    if(autoExposure != NULL){
+                    if(autoExposure != NULL && exposureControlActive){
 
                         exposureControlStatus = autoExposure->controlExposureTime(cam, newFrame.getImg(), accurateFrameDate);
 
@@ -317,6 +328,29 @@ void AcqThread::operator()(){
                     }
 
                 }
+
+                double tc = (double)getTickCount();
+
+                int currentTimeInSec = atoi(frameDate.at(3).c_str()) * 3600 + atoi(frameDate.at(4).c_str()) * 60 + atoi(frameDate.at(5).c_str());
+                cout << "currentTimeInSec : " << currentTimeInSec << endl;
+
+                // Check sunrise and sunset time.
+                if((currentTimeInSec > timeStartSunrise && currentTimeInSec < timeStopSunrise) || (currentTimeInSec > timeStartSunset && currentTimeInSec < timeStopSunset)){
+
+                    exposureControlActive = true;
+                    cout << "SUNSET or SUNRISE ! "<< endl;
+
+                }else{
+
+                    exposureControlActive = false;
+                    exposureControlStatus = false;
+
+                }
+
+
+                tc = (((double)getTickCount() - tc)/getTickFrequency())*1000;
+                std::cout << " [ TIME CHECK ] : " << tc << " ms" << endl;
+
 
                 mustStopMutex.lock();
                 stop = mustStop;

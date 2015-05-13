@@ -116,6 +116,12 @@ class Device{
         bool                EXPOSURE_CONTROL_ENABLED;
         int                 EXPOSURE_CONTROL_FREQUENCY;
 
+        vector<int>         SUNRISE_TIME;
+        vector<int>         SUNSET_TIME;
+
+        int SUNSET_DURATION;
+        int SUNRISE_DURATION;
+
         int minExposureTime;
         int maxExposureTime;
         int minGain;
@@ -176,23 +182,28 @@ class Device{
 
 		bool    loadDataset();
 
+		void    controlExposureTime(float msv);
+
 		vector<AcqRegular>    getSchedule()       {return ACQ_SCHEDULE;};
 
-		string  getDataPath()       {return DATA_PATH;};
-		string  getStationName()    {return STATION_NAME;};
-		int     getCameraId()       {return CAMERA_ID;};
-		Fits    getFitsHeader()     {return fitsHeader;};
-		Mat     getMask()           {return ACQ_MASK;};
-		void    controlExposureTime(float msv);
-		int     getMaxGain()        {return maxGain;};
-		int     getMinGain()        {return minGain;};
-        int     getMinExposureTime()        {return minExposureTime;};
-        int     getMaxExposureTime()        {return maxExposureTime;};
+		string      getDataPath()                   {return DATA_PATH;};
+		string      getStationName()                {return STATION_NAME;};
+		int         getCameraId()                   {return CAMERA_ID;};
+		Fits        getFitsHeader()                 {return fitsHeader;};
+		Mat         getMask()                       {return ACQ_MASK;};
+		int         getMaxGain()                    {return maxGain;};
+		int         getMinGain()                    {return minGain;};
+        int         getMinExposureTime()            {return minExposureTime;};
+        int         getMaxExposureTime()            {return maxExposureTime;};
+        bool        getExposureControlSaveImage()   {return EXPOSURE_CONTROL_SAVE_IMAGE;};
+        bool        getExposureControlSaveInfos()   {return EXPOSURE_CONTROL_SAVE_INFOS;};
+        bool        getExposureControlEnabled()     {return EXPOSURE_CONTROL_ENABLED;};
+        int         getExposureControlFrequency()   {return EXPOSURE_CONTROL_FREQUENCY;};
 
-        bool    getExposureControlSaveImage()   {return EXPOSURE_CONTROL_SAVE_IMAGE;};
-        bool    getExposureControlSaveInfos()   {return EXPOSURE_CONTROL_SAVE_INFOS;};
-        bool    getExposureControlEnabled()     {return EXPOSURE_CONTROL_ENABLED;};
-        int     getExposureControlFrequency()   {return EXPOSURE_CONTROL_FREQUENCY;};
+        vector<int> getSunriseTime()                {return SUNRISE_TIME;};
+        int         getSunriseDuration()            {return SUNRISE_DURATION;};
+        vector<int> getSunsetTime()                 {return SUNSET_TIME;};
+        int         getSunsetDuration()             {return SUNSET_DURATION;};
 
     private :
 

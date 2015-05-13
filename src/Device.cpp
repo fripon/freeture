@@ -180,6 +180,80 @@ bool Device::prepareDevice(CamType type, string cfgFile){
                 cfg.Get("SUNRISE_TIME", sunrise_time);
                 BOOST_LOG_SEV(logger, notification) << "SUNRISE_TIME : " << sunrise_time;
 
+                {
+
+                    typedef boost::tokenizer<boost::char_separator<char> > tokenizer;
+                    boost::char_separator<char> sep(":");
+                    tokenizer tokens(sunrise_time, sep);
+
+                    for(tokenizer::iterator tok_iter = tokens.begin();tok_iter != tokens.end(); ++tok_iter){
+
+                        SUNRISE_TIME.push_back(atoi((*tok_iter).c_str()));
+
+                    }
+                }
+
+                // Get sunrise duration.
+                cfg.Get("SUNRISE_DURATION", SUNRISE_DURATION);
+                BOOST_LOG_SEV(logger, notification) << "SUNRISE_DURATION : " << SUNRISE_DURATION;
+
+                {
+                    // Compute start time of exposure control for sunrise.
+
+                    float Hd_start = (SUNRISE_TIME.at(0) * 3600 + SUNRISE_TIME.at(1) * 60 - SUNRISE_DURATION)/3600.f;
+
+                    if(Hd_start < 0) Hd_start = Hd_start + 24;
+
+                    cout << "Hd_start : " << Hd_start<< endl;
+
+                    SUNRISE_TIME.clear();
+
+                    SUNRISE_TIME = TimeDate::HdecimalToHMS(Hd_start);
+
+                    cout <<  "SUNRISE_TIME_START : " << SUNRISE_TIME.at(0) << "H" <<  SUNRISE_TIME.at(1) << endl;
+
+
+                }
+
+                // Get sunset time.
+                string sunset_time;
+                cfg.Get("SUNSET_TIME", sunset_time);
+                BOOST_LOG_SEV(logger, notification) << "SUNSET_TIME : " << sunset_time;
+
+                {
+
+                    typedef boost::tokenizer<boost::char_separator<char> > tokenizer;
+                    boost::char_separator<char> sep(":");
+                    tokenizer tokens(sunset_time, sep);
+
+                    for(tokenizer::iterator tok_iter = tokens.begin();tok_iter != tokens.end(); ++tok_iter){
+
+                        SUNSET_TIME.push_back(atoi((*tok_iter).c_str()));
+
+                    }
+                }
+
+                 // Get sunset duration.
+                cfg.Get("SUNSET_DURATION", SUNSET_DURATION);
+                BOOST_LOG_SEV(logger, notification) << "SUNSET_DURATION : " << SUNSET_DURATION;
+
+                {
+                    // Compute start time of exposure control for sunset.
+
+                    float Hd_start = (SUNSET_TIME.at(0) * 3600 + SUNSET_TIME.at(1) * 60 - SUNSET_DURATION)/3600.f;
+
+                    if(Hd_start < 0) Hd_start = Hd_start + 24;
+
+                    cout << "Hd_start : " << Hd_start<< endl;
+
+                    SUNSET_TIME.clear();
+
+                    SUNSET_TIME = TimeDate::HdecimalToHMS(Hd_start);
+
+                    cout <<  "SUNSET_TIME_START : " << SUNSET_TIME.at(0) << "H" <<  SUNSET_TIME.at(1) << endl;
+
+                }
+
                 // Get acquisition FPS.
                 cfg.Get("ACQ_FPS", ACQ_FPS);
                 BOOST_LOG_SEV(logger, notification) << "ACQ_FPS : " << ACQ_FPS;
@@ -198,6 +272,7 @@ bool Device::prepareDevice(CamType type, string cfgFile){
 
                 cfg.Get("EXPOSURE_CONTROL_FREQUENCY", EXPOSURE_CONTROL_FREQUENCY);
                 BOOST_LOG_SEV(logger, notification) << "EXPOSURE_CONTROL_FREQUENCY : " << EXPOSURE_CONTROL_FREQUENCY;
+                EXPOSURE_CONTROL_FREQUENCY = EXPOSURE_CONTROL_FREQUENCY * ACQ_FPS;
 
                 // Get schedule option status.
                 cfg.Get("ACQ_SCHEDULE_ENABLED", ACQ_SCHEDULE_ENABLED);
