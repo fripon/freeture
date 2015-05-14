@@ -168,12 +168,20 @@ bool Device::prepareDevice(CamType type, string cfgFile){
                 BOOST_LOG_SEV(logger, notification) << "ACQ_BIT_DEPTH : " << acq_bit_depth;
 
                 // Get night exposure time.
-                cfg.Get("ACQ_NIGHT_EXPOSURE", ACQ_EXPOSURE);
-                BOOST_LOG_SEV(logger, notification) << "ACQ_NIGHT_EXPOSURE : " << ACQ_EXPOSURE;
+                cfg.Get("ACQ_NIGHT_EXPOSURE", ACQ_NIGHT_EXPOSURE);
+                BOOST_LOG_SEV(logger, notification) << "ACQ_NIGHT_EXPOSURE : " << ACQ_NIGHT_EXPOSURE;
 
                 // Get night gain.
-                cfg.Get("ACQ_NIGHT_GAIN", ACQ_GAIN);
-                BOOST_LOG_SEV(logger, notification) << "ACQ_NIGHT_GAIN : " << ACQ_GAIN;
+                cfg.Get("ACQ_NIGHT_GAIN", ACQ_NIGHT_GAIN);
+                BOOST_LOG_SEV(logger, notification) << "ACQ_NIGHT_GAIN : " << ACQ_NIGHT_GAIN;
+
+                // Get day exposure time.
+                cfg.Get("ACQ_DAY_EXPOSURE", ACQ_DAY_EXPOSURE);
+                BOOST_LOG_SEV(logger, notification) << "ACQ_DAY_EXPOSURE : " << ACQ_DAY_EXPOSURE;
+
+                // Get day gain.
+                cfg.Get("ACQ_DAY_GAIN", ACQ_DAY_GAIN);
+                BOOST_LOG_SEV(logger, notification) << "ACQ_DAY_GAIN : " << ACQ_DAY_GAIN;
 
                 // Get sunrise time.
                 string sunrise_time;
@@ -257,6 +265,7 @@ bool Device::prepareDevice(CamType type, string cfgFile){
                 // Get acquisition FPS.
                 cfg.Get("ACQ_FPS", ACQ_FPS);
                 BOOST_LOG_SEV(logger, notification) << "ACQ_FPS : " << ACQ_FPS;
+                if(ACQ_FPS <= 0) ACQ_FPS = 1;
 
                 // Get exposure control save infos option.
                 cfg.Get("EXPOSURE_CONTROL_SAVE_INFOS", EXPOSURE_CONTROL_SAVE_INFOS);
@@ -369,49 +378,6 @@ bool Device::prepareDevice(CamType type, string cfgFile){
 	return true;
 }
 
-
-void Device::controlExposureTime(float msv){
-
-    /*int currExp = cam->getExposureTime();
-    cout << "currExp : " << currExp << endl;
-
-    int expMin = -1, expMax = -1;
-    cam->getExposureBounds(expMin,expMax);
-
-    if(expMin!=-1 && expMax!=-1){
-
-        if(msv > 2.4 && msv < 2.5){
-
-            cout << "msv is correct. No need to change exposure time" << endl;
-
-        }else if(msv < 2.4 && currExp == expMax){
-
-            cout << "msv is not correct but impossible to increase exposure time because the value is already the maximum"
-
-        }else if(msv > 2.5 && currExp == expMin){
-
-            cout << "msv is not correct but impossible to decrease exposure time because the value is already to the minimum"
-
-        }else if(msv < 2.4 && currExp != expMax){
-
-
-
-            cout << "msv is not correct but impossible to increase exposure time because the value is already the maximum"
-
-        }
-    }
-*/
-
-
-
-
-
-}
-
-
-
-
-
 void Device::runContinuousAcquisition(){
 
     /// List Gige Camera to check the ID.
@@ -428,15 +394,59 @@ void Device::runContinuousAcquisition(){
     if(!cam->setPixelFormat(ACQ_BIT_DEPTH))
         throw "Fail to set Format.";
 
-    /// Set camera exposure time.
-    BOOST_LOG_SEV(logger, notification) << "Setting exposure time...";
-    if(!cam->setExposureTime(ACQ_EXPOSURE))
-        throw "Fail to set Exposure.";
+    boost::posix_time::ptime time = boost::posix_time::microsec_clock::universal_time();
+    string date = to_iso_extended_string(time);
+    cout << "date : " << date << endl;
+    vector<int> intDate = TimeDate::getIntVectorFromDateString(date);
 
-    /// Set camera gain.
-    BOOST_LOG_SEV(logger, notification) << "Setting gain...";
-    if(!cam->setGain(ACQ_GAIN))
-        throw "Fail to set Gain.";
+    cout << intDate.at(0)<< endl;
+    cout << intDate.at(1)<< endl;
+    cout << intDate.at(2)<< endl;
+    cout << intDate.at(3)<< endl;
+    cout << intDate.at(4)<< endl;
+    cout << intDate.at(5)<< endl;
+
+    int timeStartSunrise = SUNRISE_TIME.at(0) * 3600 + SUNRISE_TIME.at(1) * 60;
+    int timeStopSunrise = timeStartSunrise + SUNRISE_DURATION * 2;
+    int timeStartSunset = SUNSET_TIME.at(0) * 3600 + SUNSET_TIME.at(1) * 60;
+    int timeStopSunset = timeStartSunset + SUNSET_DURATION * 2;
+
+    cout << "timeStartSunrise : " << timeStartSunrise << endl;
+    cout << "timeStopSunrise : " << timeStopSunrise << endl;
+    cout << "timeStartSunset : " << timeStartSunset << endl;
+    cout << "timeStopSunset : " << timeStopSunset << endl;
+
+    int currentTimeInSec = intDate.at(3) * 3600 + intDate.at(4) * 60 + intDate.at(5);
+    cout << "currentTimeInSec : " << currentTimeInSec << endl;
+
+    // Check sunrise and sunset time.
+    if((currentTimeInSec > timeStopSunrise && currentTimeInSec < timeStartSunset)){
+
+        cout << "DAY ! "<< endl;
+        /// Set camera exposure time.
+        BOOST_LOG_SEV(logger, notification) << "Setting day exposure time to " << ACQ_DAY_EXPOSURE << "...";
+        if(!cam->setExposureTime(ACQ_DAY_EXPOSURE))
+            throw "Fail to set Night Exposure.";
+
+        /// Set camera gain.
+        BOOST_LOG_SEV(logger, notification) << "Setting day gain to " << ACQ_DAY_GAIN << "...";
+        if(!cam->setGain(ACQ_DAY_GAIN))
+            throw "Fail to set Night Gain.";
+
+    }else if((currentTimeInSec > timeStopSunset) || (currentTimeInSec < timeStartSunrise) ){
+
+        cout << "NIGHT ! "<< endl;
+        /// Set camera exposure time.
+        BOOST_LOG_SEV(logger, notification) << "Setting night exposure time to " << ACQ_NIGHT_EXPOSURE << "...";
+        if(!cam->setExposureTime(ACQ_NIGHT_EXPOSURE))
+            throw "Fail to set Day Exposure.";
+
+        /// Set camera gain.
+        BOOST_LOG_SEV(logger, notification) << "Setting night gain to " << ACQ_NIGHT_GAIN << "...";
+        if(!cam->setGain(ACQ_NIGHT_GAIN))
+            throw "Fail to set Day Gain.";
+
+    }
 
     // Get exposure time bounds.
     cam->getExposureBounds(minExposureTime, maxExposureTime);

@@ -776,26 +776,18 @@ bool DetThread::saveEventData(int firstEvPosInFB, int lastEvPosInFB){
 				cout << to_iso_string(time) << endl;
 
                 // Name of the fits file.
-
                 newFits.setFilename(fits2DName);
                 // Exposure time.
-
                 newFits.setOntime((*it).getExposure()/1000000.0);
                 // Gain.
-
                 newFits.setGaindb((*it).getGain());
                 // Saturation.
-
                 newFits.setSaturate((*it).getSaturatedValue());
                 // FPS.
-
                 newFits.setCd3_3((*it).getFPS());
                 // CRVAL1 : sideral time.
-
                 double  julianDate      = TimeDate::gregorianToJulian_2((*it).getDate());
-
                 double  julianCentury   = TimeDate::julianCentury(julianDate);
-
                 double  sideralT        = TimeDate::localSideralTime_2(julianCentury, (*it).getDate().at(3), (*it).getDate().at(4), (*it).getDateSeconds(), fitsHeader.getSitelong());
                 newFits.setCrval1(sideralT);
                 // Integration time : 1/fps * nb_frames (sec.)

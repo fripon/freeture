@@ -30,12 +30,16 @@
 * \author  Yoan Audureau -- FRIPON-GEOPS-UPSUD
 * \version 1.0
 * \date    03/06/2014
-* \brief   Create/Analyse histogram of a grey image.
+* \brief   Auto Exposure time adjustment.
 */
 
 #include "ExposureControl.h"
 
-ExposureControl::ExposureControl(int timeInterval, bool saveImage, bool saveInfos, string dataPath, string station){
+ExposureControl::ExposureControl(int timeInterval,
+                                 bool saveImage,
+                                 bool saveInfos,
+                                 string dataPath,
+                                 string station){
 
     bin_0 = 0;
     bin_1 = 0;
@@ -45,11 +49,11 @@ ExposureControl::ExposureControl(int timeInterval, bool saveImage, bool saveInfo
 
     // Frame timer.
     autoExposureFrameTimer = 0;
-    // Frame interval between two exposure time control.
+    // Frame interval between two exposure time adjustment.
     autoExposureTimeInterval = timeInterval;
-    // Exposure control not active.
+    // Exposure adjustment finished status.
     autoExposureFinished = false;
-    // Exposure control initialization status.
+    // Exposure adjustment initialization status.
     autoExposureInitialized = false;
 
     stationName = station;
@@ -196,30 +200,10 @@ bool ExposureControl::calculate(Mat& image, Mat &mask){
 }
 
 float ExposureControl::computeMSV(){
-/*
-    cout << "bin_0 : " << bin_0 << endl;
-    cout << "bin_1 : " << bin_1 << endl;
-    cout << "bin_2 : " << bin_2 << endl;
-    cout << "bin_3 : " << bin_3 << endl;
-    cout << "bin_4 : " << bin_4 << endl;
-*/
+
     return ((bin_0 + 2 * bin_1 + 3 * bin_2 + 4 * bin_3 + 5 * bin_4) / (bin_0 + bin_1 + bin_2 + bin_3 + bin_4));
 
 }
-
-/*
-Mat ExposureControl::renderHistogramOnImage(Mat image){
-
-    Mat h = render();
-
-    h.copyTo(image(Rect(0, image.rows - h.rows,h.cols,h.rows)));
-    cout << "msv : " << computeMSV() << endl;
-    putText(image, "msv : " + Conversion::floatToString(computeMSV()), cvPoint(20,20),FONT_HERSHEY_COMPLEX_SMALL, 0.8, cvScalar(255), 1, CV_AA);
-
-    return image;
-
-}
-*/
 
 bool ExposureControl::controlExposureTime(Device *camera, Mat image, string imageDate){
 
@@ -246,7 +230,7 @@ bool ExposureControl::controlExposureTime(Device *camera, Mat image, string imag
             cout << "EXP : " << exposureValue <<  "     MSV : " << msv << endl;
 
             // Skip "frameToSkip" 's value between two exposure time modification.
-            if(frameSkippedCounter < frameToSkip){
+            if(frameSkippedCounter <= frameToSkip){
 
                 frameSkippedCounter++;
 
@@ -254,8 +238,6 @@ bool ExposureControl::controlExposureTime(Device *camera, Mat image, string imag
 
                 // If method has not been initialized
                 if(!autoExposureInitialized){
-
-
 
                     if(autoExposureSaveImage){
 
@@ -282,6 +264,7 @@ bool ExposureControl::controlExposureTime(Device *camera, Mat image, string imag
                         maxCameraExposureValue = (int)((1.0/fps) * 1000000.0);
                     else
                         maxCameraExposureValue = 33333;
+
                     // Compute msv with the following exposure time
                     exposureValue = minCameraExposureValue;
                     // Set exposure time with the minimum value
@@ -291,12 +274,6 @@ bool ExposureControl::controlExposureTime(Device *camera, Mat image, string imag
                     autoExposureInitialized = true;
                     // Reset counter of skipped frames.
                     frameSkippedCounter = 0;
-
-
-
-
-
-
 
                 // If method has been initialized
                 }else{
@@ -327,7 +304,6 @@ bool ExposureControl::controlExposureTime(Device *camera, Mat image, string imag
                             cout << "Set Exposure Time to : " << exposureValue << endl;
 
                         }else{
-
 
                             if(msvArray_1.front() > 2.5){
 

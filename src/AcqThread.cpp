@@ -292,34 +292,39 @@ void AcqThread::operator()(){
                 std::cout << " [ TIME ACQ ] : " << tacq << " ms" << endl;
                 BOOST_LOG_SEV(logger, normal) << " [ TIME ACQ ] : " << tacq << " ms";
 
-                // Check schedule.
-                if(ACQ_SCHEDULE.size() != 0 && frameDate.size() == 6){
 
-                    // Time for a long exposure time acquisition.
-                    if(nextTask.getH() == atoi(frameDate.at(3).c_str()) && nextTask.getM() == atoi(frameDate.at(4).c_str()) && atoi(frameDate.at(5).c_str()) == 0){
+                if(frameDate.size() == 6){
 
-                        nextTask.setAccurateDate(accurateFrameDate);
+                    // Check schedule.
+                    if(ACQ_SCHEDULE.size() != 0){
 
-                        // Launch single acquisition
-                        bool result = runScheduledAcquisition(nextTask);
+                        // Time for a long exposure time acquisition.
+                        if(nextTask.getH() == atoi(frameDate.at(3).c_str()) && nextTask.getM() == atoi(frameDate.at(4).c_str()) && atoi(frameDate.at(5).c_str()) == 0){
 
-                        sleep(1);
+                            nextTask.setAccurateDate(accurateFrameDate);
 
-                        // Update nextTask
-                        selectNextAcquisitionSchedule();
+                            // Launch single acquisition
+                            bool result = runScheduledAcquisition(nextTask);
 
-                    }else{
+                            sleep(1);
 
-                        // The current hour elapsed.
-                        if(atoi(frameDate.at(3).c_str()) > nextTask.getH()){
+                            // Update nextTask
+                            selectNextAcquisitionSchedule();
 
-                           selectNextAcquisitionSchedule();
+                        }else{
 
-                        }else if(atoi(frameDate.at(3).c_str()) == nextTask.getH()){
+                            // The current hour elapsed.
+                            if(atoi(frameDate.at(3).c_str()) > nextTask.getH()){
 
-                            if(atoi(frameDate.at(4).c_str()) > nextTask.getM()){
+                               selectNextAcquisitionSchedule();
 
-                                selectNextAcquisitionSchedule();
+                            }else if(atoi(frameDate.at(3).c_str()) == nextTask.getH()){
+
+                                if(atoi(frameDate.at(4).c_str()) > nextTask.getM()){
+
+                                    selectNextAcquisitionSchedule();
+
+                                }
 
                             }
 
@@ -327,29 +332,46 @@ void AcqThread::operator()(){
 
                     }
 
+                    double tc = (double)getTickCount();
+
+                    int currentTimeInSec = atoi(frameDate.at(3).c_str()) * 3600 + atoi(frameDate.at(4).c_str()) * 60 + atoi(frameDate.at(5).c_str());
+                    cout << "currentTimeInSec : " << currentTimeInSec << endl;
+
+                    // Check sunrise and sunset time.
+                    if((currentTimeInSec > timeStartSunrise && currentTimeInSec < timeStopSunrise) || (currentTimeInSec > timeStartSunset && currentTimeInSec < timeStopSunset)){
+
+                        exposureControlActive = true;
+                        cout << "SUNSET or SUNRISE ! "<< endl;
+
+                    }else{
+
+                        if(exposureControlActive){
+
+                            if((currentTimeInSec > timeStopSunrise && currentTimeInSec < timeStartSunset)){
+
+                                cout << "DAY ! "<< endl;
+                                cam->setExposureTime(cam->getDayExposureTime());
+                                cam->setGain(cam->getDayGain());
+
+
+                            }else if((currentTimeInSec > timeStopSunset && currentTimeInSec < timeStartSunrise)){
+
+                                cout << "NIGHT ! "<< endl;
+                                cam->setExposureTime(cam->getNightExposureTime());
+                                cam->setGain(cam->getNightGain());
+                            }
+
+                        }
+
+                        exposureControlActive = false;
+                        exposureControlStatus = false;
+
+                    }
+
+
+                    tc = (((double)getTickCount() - tc)/getTickFrequency())*1000;
+                    std::cout << " [ TIME CHECK ] : " << tc << " ms" << endl;
                 }
-
-                double tc = (double)getTickCount();
-
-                int currentTimeInSec = atoi(frameDate.at(3).c_str()) * 3600 + atoi(frameDate.at(4).c_str()) * 60 + atoi(frameDate.at(5).c_str());
-                cout << "currentTimeInSec : " << currentTimeInSec << endl;
-
-                // Check sunrise and sunset time.
-                if((currentTimeInSec > timeStartSunrise && currentTimeInSec < timeStopSunrise) || (currentTimeInSec > timeStartSunset && currentTimeInSec < timeStopSunset)){
-
-                    exposureControlActive = true;
-                    cout << "SUNSET or SUNRISE ! "<< endl;
-
-                }else{
-
-                    exposureControlActive = false;
-                    exposureControlStatus = false;
-
-                }
-
-
-                tc = (((double)getTickCount() - tc)/getTickFrequency())*1000;
-                std::cout << " [ TIME CHECK ] : " << tc << " ms" << endl;
 
 
                 mustStopMutex.lock();

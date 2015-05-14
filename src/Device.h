@@ -103,8 +103,10 @@ class Device{
         string              DATA_PATH;
         string              STATION_NAME;
         CamBitDepth         ACQ_BIT_DEPTH;
-        int                 ACQ_EXPOSURE;
-        int                 ACQ_GAIN;
+        int                 ACQ_NIGHT_EXPOSURE;
+        int                 ACQ_NIGHT_GAIN;
+        int                 ACQ_DAY_EXPOSURE;
+        int                 ACQ_DAY_GAIN;
         int                 ACQ_FPS;
         int                 CAMERA_ID;
         Mat                 ACQ_MASK;
@@ -182,8 +184,6 @@ class Device{
 
 		bool    loadDataset();
 
-		void    controlExposureTime(float msv);
-
 		vector<AcqRegular>    getSchedule()       {return ACQ_SCHEDULE;};
 
 		string      getDataPath()                   {return DATA_PATH;};
@@ -204,6 +204,10 @@ class Device{
         int         getSunriseDuration()            {return SUNRISE_DURATION;};
         vector<int> getSunsetTime()                 {return SUNSET_TIME;};
         int         getSunsetDuration()             {return SUNSET_DURATION;};
+        int         getNightExposureTime()          {return ACQ_NIGHT_EXPOSURE;};
+        int         getDayExposureTime()            {return ACQ_DAY_EXPOSURE;};
+        int         getDayGain()                    {return ACQ_DAY_GAIN;};
+        int         getNightGain()                  {return ACQ_NIGHT_GAIN;};
 
     private :
 
