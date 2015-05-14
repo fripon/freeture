@@ -113,6 +113,7 @@ class Device{
         bool                ACQ_MASK_ENABLED;
         string              ACQ_MASK_PATH;
 
+        bool                EPHEMERIS_ENABLED;
         bool                EXPOSURE_CONTROL_SAVE_IMAGE;
         bool                EXPOSURE_CONTROL_SAVE_INFOS;
         bool                EXPOSURE_CONTROL_ENABLED;

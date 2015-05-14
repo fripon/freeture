@@ -183,6 +183,10 @@ bool Device::prepareDevice(CamType type, string cfgFile){
                 cfg.Get("ACQ_DAY_GAIN", ACQ_DAY_GAIN);
                 BOOST_LOG_SEV(logger, notification) << "ACQ_DAY_GAIN : " << ACQ_DAY_GAIN;
 
+                // Get ephemeris option.
+                cfg.Get("EPHEMERIS_ENABLED", EPHEMERIS_ENABLED);
+                BOOST_LOG_SEV(logger, notification) << "EPHEMERIS_ENABLED : " << EPHEMERIS_ENABLED;
+
                 // Get sunrise time.
                 string sunrise_time;
                 cfg.Get("SUNRISE_TIME", sunrise_time);
@@ -262,6 +266,16 @@ bool Device::prepareDevice(CamType type, string cfgFile){
 
                 }
 
+                int timeStartSunrise = SUNRISE_TIME.at(0) * 3600 + SUNRISE_TIME.at(1) * 60;
+                int timeStopSunrise = timeStartSunrise + SUNRISE_DURATION * 2;
+                int timeStartSunset = SUNSET_TIME.at(0) * 3600 + SUNSET_TIME.at(1) * 60;
+                int timeStopSunset = timeStartSunset + SUNSET_DURATION * 2;
+
+                cout << "timeStartSunrise : " << timeStartSunrise << endl;
+                cout << "timeStopSunrise : " << timeStopSunrise << endl;
+                cout << "timeStartSunset : " << timeStartSunset << endl;
+                cout << "timeStopSunset : " << timeStopSunset << endl;
+
                 // Get acquisition FPS.
                 cfg.Get("ACQ_FPS", ACQ_FPS);
                 BOOST_LOG_SEV(logger, notification) << "ACQ_FPS : " << ACQ_FPS;
@@ -312,31 +326,33 @@ bool Device::prepareDevice(CamType type, string cfgFile){
                     //23h25m00s10000000e400g12f1n
                     for(int i = 0; i < sch1.size(); i++){
 
-                         typedef boost::tokenizer<boost::char_separator<char> > tokenizer_;
-                         boost::char_separator<char> sep_("HMSEGFN");
-                         tokenizer tokens_(sch1.at(i), sep_);
+                        typedef boost::tokenizer<boost::char_separator<char> > tokenizer_;
+                        boost::char_separator<char> sep_("HMSEGFN");
+                        tokenizer tokens_(sch1.at(i), sep_);
 
-                         vector<string> sp;
+                        vector<string> sp;
 
-                         for(tokenizer::iterator tok_iter_ = tokens_.begin();tok_iter_ != tokens_.end(); ++tok_iter_){
+                        for(tokenizer::iterator tok_iter_ = tokens_.begin();tok_iter_ != tokens_.end(); ++tok_iter_){
 
-                            sp.push_back(*tok_iter_);
+                        sp.push_back(*tok_iter_);
 
-                         }
+                        }
 
-                         if(sp.size() == 7){
+                        if(sp.size() == 7){
 
                             AcqRegular r = AcqRegular(atoi(sp.at(0).c_str()), atoi(sp.at(1).c_str()), atoi(sp.at(2).c_str()), atoi(sp.at(3).c_str()), atoi(sp.at(4).c_str()), atoi(sp.at(5).c_str()), atoi(sp.at(6).c_str()));
 
+                            int scheduledTimeInSec = atoi(sp.at(0).c_str()) * 3600 + atoi(sp.at(1).c_str()) * 60 + atoi(sp.at(2).c_str());
 
-                            ACQ_SCHEDULE.push_back(r);
+                            // Only keep night time.
+                            if((scheduledTimeInSec > timeStopSunset) || (scheduledTimeInSec < timeStartSunrise)){
 
-                         }
+                                ACQ_SCHEDULE.push_back(r);
 
+                            }
+                        }
                     }
-
                 }
-
 
                 // Get use mask option.
                 cfg.Get("ACQ_MASK_ENABLED", ACQ_MASK_ENABLED);
