@@ -45,6 +45,7 @@ class AcqRegular{
 
 		int h;
 		int m;
+		int s;
 		int e;
 		int g;
 		int n;
@@ -53,7 +54,7 @@ class AcqRegular{
 
 	public:
 
-        AcqRegular(int H, int M, int E, int G, int F, int N);
+        AcqRegular(int H, int M, int S, int E, int G, int F, int N);
 
         AcqRegular();
 
@@ -62,6 +63,7 @@ class AcqRegular{
 
         int getH(){return h;};
         int getM(){return m;};
+        int getS(){return s;};
         int getE(){return e;};
         int getG(){return g;};
         int getF(){return f;};

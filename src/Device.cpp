@@ -309,11 +309,11 @@ bool Device::prepareDevice(CamType type, string cfgFile){
                         n++;
                     }
 
-                    //23h25m10000000e400g12f1n
+                    //23h25m00s10000000e400g12f1n
                     for(int i = 0; i < sch1.size(); i++){
 
                          typedef boost::tokenizer<boost::char_separator<char> > tokenizer_;
-                         boost::char_separator<char> sep_("HMEGFN");
+                         boost::char_separator<char> sep_("HMSEGFN");
                          tokenizer tokens_(sch1.at(i), sep_);
 
                          vector<string> sp;
@@ -324,9 +324,11 @@ bool Device::prepareDevice(CamType type, string cfgFile){
 
                          }
 
-                         if(sp.size() == 6){
+                         if(sp.size() == 7){
 
-                            AcqRegular r = AcqRegular(atoi(sp.at(0).c_str()), atoi(sp.at(1).c_str()), atoi(sp.at(2).c_str()), atoi(sp.at(3).c_str()), atoi(sp.at(4).c_str()), atoi(sp.at(5).c_str()));
+                            AcqRegular r = AcqRegular(atoi(sp.at(0).c_str()), atoi(sp.at(1).c_str()), atoi(sp.at(2).c_str()), atoi(sp.at(3).c_str()), atoi(sp.at(4).c_str()), atoi(sp.at(5).c_str()), atoi(sp.at(6).c_str()));
+
+
                             ACQ_SCHEDULE.push_back(r);
 
                          }

@@ -178,7 +178,7 @@ void AcqThread::operator()(){
                                            cam->getStationName());
 
     }
-    cout << "here" << endl;
+
     int timeStartSunrise = cam->getSunriseTime().at(0) * 3600 + cam->getSunriseTime().at(1) * 60;
     int timeStopSunrise = timeStartSunrise + cam->getSunriseDuration() * 2;
     int timeStartSunset = cam->getSunsetTime().at(0) * 3600 + cam->getSunsetTime().at(1) * 60;
@@ -299,7 +299,7 @@ void AcqThread::operator()(){
                     if(ACQ_SCHEDULE.size() != 0){
 
                         // Time for a long exposure time acquisition.
-                        if(nextTask.getH() == atoi(frameDate.at(3).c_str()) && nextTask.getM() == atoi(frameDate.at(4).c_str()) && atoi(frameDate.at(5).c_str()) == 0){
+                        if(nextTask.getH() == atoi(frameDate.at(3).c_str()) && nextTask.getM() == atoi(frameDate.at(4).c_str()) && atoi(frameDate.at(5).c_str()) == nextTask.getS()){
 
                             nextTask.setAccurateDate(accurateFrameDate);
 
@@ -313,7 +313,7 @@ void AcqThread::operator()(){
 
                         }else{
 
-                            // The current hour elapsed.
+                            // The current time elapsed.
                             if(atoi(frameDate.at(3).c_str()) > nextTask.getH()){
 
                                selectNextAcquisitionSchedule();
@@ -323,6 +323,14 @@ void AcqThread::operator()(){
                                 if(atoi(frameDate.at(4).c_str()) > nextTask.getM()){
 
                                     selectNextAcquisitionSchedule();
+
+                                }else if(atoi(frameDate.at(4).c_str()) == nextTask.getM()){
+
+                                    if(atoi(frameDate.at(5).c_str()) > nextTask.getS()){
+
+                                        selectNextAcquisitionSchedule();
+
+                                    }
 
                                 }
 
@@ -443,6 +451,9 @@ void AcqThread::selectNextAcquisitionSchedule(){
         // Get current Minutes.
         int currentM = atoi(currentDateSplit.at(4).c_str());
 
+        // Get current Seconds.
+        int currentS = atoi(currentDateSplit.at(5).c_str());
+
         // Search next acquisition
         for(int i = 0; i < ACQ_SCHEDULE.size(); i++){
 
@@ -458,6 +469,15 @@ void AcqThread::selectNextAcquisitionSchedule(){
                     indexNextTask = i;
                     break;
 
+                }else if(currentM == ACQ_SCHEDULE.at(i).getM()){
+
+                    if(currentS < ACQ_SCHEDULE.at(i).getS()){
+
+                        indexNextTask = i;
+                        break;
+
+                    }
+
                 }
 
             }
@@ -466,7 +486,7 @@ void AcqThread::selectNextAcquisitionSchedule(){
 
         nextTask = ACQ_SCHEDULE.at(indexNextTask);
 
-        cout << "nextTask : " << nextTask.getH() << "H " << nextTask.getM() << "M" << endl;
+        cout << "nextTask : " << nextTask.getH() << "H " << nextTask.getM() << "M" << nextTask.getS() << "S" << endl;
 
     }
 
@@ -481,7 +501,7 @@ void AcqThread::sortAcquisitionSchedule(){
 
         do{
 
-            int minH; int minM; bool init = false;
+            int minH; int minM; int minS; bool init = false;
 
             vector<AcqRegular>::iterator it;
             vector<AcqRegular>::iterator it_select;
@@ -492,6 +512,7 @@ void AcqThread::sortAcquisitionSchedule(){
 
                     minH = (*it).getH();
                     minM = (*it).getM();
+                    minS = (*it).getS();
                     it_select = it;
                     init = true;
 
@@ -501,6 +522,7 @@ void AcqThread::sortAcquisitionSchedule(){
 
                         minH = (*it).getH();
                         minM = (*it).getM();
+                        minS = (*it).getS();
                         it_select = it;
 
                     }else if((*it).getH() == minH){
@@ -509,7 +531,19 @@ void AcqThread::sortAcquisitionSchedule(){
 
                             minH = (*it).getH();
                             minM = (*it).getM();
+                            minS = (*it).getS();
                             it_select = it;
+
+                        }else if((*it).getM() == minM){
+
+                            if((*it).getS() < minS){
+
+                                minH = (*it).getH();
+                                minM = (*it).getM();
+                                minS = (*it).getS();
+                                it_select = it;
+
+                            }
 
                         }
 
@@ -522,7 +556,7 @@ void AcqThread::sortAcquisitionSchedule(){
             if(init){
 
                 tempSchedule.push_back((*it_select));
-                cout << "-> " << (*it_select).getH() << "H " << (*it_select).getM() << "M " << endl;
+                cout << "-> " << (*it_select).getH() << "H " << (*it_select).getM() << "M " << (*it_select).getS() << "S " << endl;
                 ACQ_SCHEDULE.erase(it_select);
 
             }
@@ -530,6 +564,7 @@ void AcqThread::sortAcquisitionSchedule(){
         }while(ACQ_SCHEDULE.size() != 0);
 
         ACQ_SCHEDULE = tempSchedule;
+
     }
 
 }

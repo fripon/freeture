@@ -34,17 +34,18 @@
 
 #include "AcqRegular.h"
 
-AcqRegular::AcqRegular(int H, int M, int E, int G, int F, int N){
+AcqRegular::AcqRegular(int H, int M, int S, int E, int G, int F, int N){
 
 
 	h = H;
 	m = M;
+	s = S;
 	e = E;
 	g = G;
 	n = N;
 	f = F;
 
-    cout << "-> " << h << "H " << m << "M " << e << "E " << g << "G " << f << "F " << n << "N " << endl;
+    cout << "-> " << h << "H " << m << "M " << s << "S " << e << "E " << g << "G " << f << "F " << n << "N " << endl;
 
 }
 
@@ -52,6 +53,7 @@ AcqRegular::AcqRegular(){
 
 	h = 0;
 	m = 0;
+	s = 0;
 	e = 0;
 	g = 0;
 	n = 0;
