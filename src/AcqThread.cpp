@@ -145,6 +145,8 @@ bool AcqThread::getThreadTerminatedStatus(){
 void AcqThread::operator()(){
 
 	bool stop = false;
+	vector<string> frameDate;   // Date in string vector : YYYY  MM  DD  hh  mm  ss
+    string accurateFrameDate;   // Date in string : YYYY-MM-DDTHH:MM:SS,fffffffff
 
 	BOOST_LOG_SCOPED_THREAD_TAG("LogName", "ACQ_THREAD");
 	BOOST_LOG_SEV(logger,notification) << "\n";
@@ -152,24 +154,25 @@ void AcqThread::operator()(){
 	BOOST_LOG_SEV(logger,notification) << "========== Start acquisition thread ==========";
 	BOOST_LOG_SEV(logger,notification) << "==============================================";
 
-    // Get acquisition schedule.
-    ACQ_SCHEDULE = cam->getSchedule();
-    // Order schedule times.
-    sortAcquisitionSchedule();
-    // Search next acquisition according to the current time.
-    selectNextAcquisitionSchedule();
-
+    /// Prepare scheduled long acquisition.
+    ACQ_SCHEDULE = cam->getSchedule();      // Get acquisition schedule.
+    sortAcquisitionSchedule();              // Order schedule times.
+    selectNextAcquisitionSchedule();        // Search next acquisition according to the current time.
     bool scheduleTaskStatus = false;
     bool scheduleTaskActive = false;
 
-    vector<string> frameDate;
-    string accurateFrameDate;
+    /// Prepare acquisition at regular time interval.
+    int regularAcqFrameInterval = 0;
+    int regularAcqFrameCounter = 0;
+    if(cam->getAcqRegularEnabled())
+        regularAcqFrameInterval = cam->getAcqRegularTimeInterval() * cam->getFPS();
 
+    /// Exposure adjustment variables.
     bool exposureControlStatus = false;
     bool exposureControlActive = false;
     bool cleanStatus = false;
 
-    if(cam->getExposureControlEnabled()){
+    if(cam->getAcqDayEnabled()){
 
         autoExposure = new ExposureControl(cam->getExposureControlFrequency(),
                                            cam->getExposureControlSaveImage(),
@@ -184,11 +187,6 @@ void AcqThread::operator()(){
     int timeStartSunset = cam->getSunsetTime().at(0) * 3600 + cam->getSunsetTime().at(1) * 60;
     int timeStopSunset = timeStartSunset + cam->getSunsetDuration() * 2;
 
-    cout << "timeStartSunrise : " << timeStartSunrise << endl;
-    cout << "timeStopSunrise : " << timeStopSunrise << endl;
-    cout << "timeStartSunset : " << timeStartSunset << endl;
-    cout << "timeStopSunset : " << timeStopSunset << endl;
-
 	try{
 
 	    do{
@@ -200,10 +198,13 @@ void AcqThread::operator()(){
                 //namedWindow("Display window", WINDOW_AUTOSIZE );
 
                 Frame newFrame;
+                bool grabStatus = false;
 
                 double tacq = (double)getTickCount();
 
                 if(cam->grabImage(newFrame)){
+
+                    grabStatus = true;
 
                     BOOST_LOG_SEV(logger, normal) << "============= FRAME " << newFrame.getNumFrame() << " ============= ";
                     cout << "============= FRAME " << newFrame.getNumFrame() << " ============= " << endl;
@@ -219,7 +220,6 @@ void AcqThread::operator()(){
 
                         boost::mutex::scoped_lock lock(*frameBuffer_mutex);
                         frameBuffer->push_back(newFrame);
-                        cout << "frameBuffer->size :  " << frameBuffer->size() << endl;
                         lock.unlock();
 
                         boost::mutex::scoped_lock lock2(*detSignal_mutex);
@@ -250,7 +250,6 @@ void AcqThread::operator()(){
                                 cout << "Send interruption signal to stack " << endl;
                                 stackProcess->interruptThread();
 
-
                             }
 
                             // If detection process exists
@@ -273,11 +272,9 @@ void AcqThread::operator()(){
                             cleanStatus = true;
 
                         }
-                    }
 
-                    if(autoExposure != NULL && exposureControlActive){
-
-                        exposureControlStatus = autoExposure->controlExposureTime(cam, newFrame.getImg(), accurateFrameDate);
+                        if(autoExposure != NULL)
+                            exposureControlStatus = autoExposure->controlExposureTime(cam, newFrame.getImg(), accurateFrameDate);
 
                     }
 
@@ -288,15 +285,27 @@ void AcqThread::operator()(){
 
                 }
 
-                tacq = (((double)getTickCount() - tacq)/getTickFrequency())*1000;
-                std::cout << " [ TIME ACQ ] : " << tacq << " ms" << endl;
-                BOOST_LOG_SEV(logger, normal) << " [ TIME ACQ ] : " << tacq << " ms";
+                if(grabStatus){
 
+                    if(cam->getAcqRegularEnabled()){
 
-                if(frameDate.size() == 6){
+                        if(regularAcqFrameCounter >= regularAcqFrameInterval){
 
-                    // Check schedule.
-                    if(ACQ_SCHEDULE.size() != 0){
+                            runRegularAcquisition(accurateFrameDate);
+                            sleep(1);
+                            regularAcqFrameCounter = 0;
+
+                        }else{
+
+                            cout << "Next regular acquisition in : " << regularAcqFrameInterval - regularAcqFrameCounter << " frames." << endl;
+                            regularAcqFrameCounter++;
+
+                        }
+
+                    }
+
+                    // Check schedule for long exposure time captures.
+                    if(ACQ_SCHEDULE.size() != 0 && cam->getAcqScheduleEnabled()){
 
                         // Time for a long exposure time acquisition.
                         if(nextTask.getH() == atoi(frameDate.at(3).c_str()) && nextTask.getM() == atoi(frameDate.at(4).c_str()) && atoi(frameDate.at(5).c_str()) == nextTask.getS()){
@@ -340,47 +349,49 @@ void AcqThread::operator()(){
 
                     }
 
-                    double tc = (double)getTickCount();
+                    // If day acquisition enabled, enable or disable exposure control if it's sunset or sunrise.
+                    if(cam->getAcqDayEnabled()){
 
-                    int currentTimeInSec = atoi(frameDate.at(3).c_str()) * 3600 + atoi(frameDate.at(4).c_str()) * 60 + atoi(frameDate.at(5).c_str());
-                    cout << "currentTimeInSec : " << currentTimeInSec << endl;
+                        int currentTimeInSec = atoi(frameDate.at(3).c_str()) * 3600 + atoi(frameDate.at(4).c_str()) * 60 + atoi(frameDate.at(5).c_str());
+                        cout << "currentTimeInSec : " << currentTimeInSec << endl;
 
-                    // Check sunrise and sunset time.
-                    if((currentTimeInSec > timeStartSunrise && currentTimeInSec < timeStopSunrise) || (currentTimeInSec > timeStartSunset && currentTimeInSec < timeStopSunset)){
+                        // Check sunrise and sunset time.
+                        if((currentTimeInSec > timeStartSunrise && currentTimeInSec < timeStopSunrise) || (currentTimeInSec > timeStartSunset && currentTimeInSec < timeStopSunset)){
 
-                        exposureControlActive = true;
-                        cout << "SUNSET or SUNRISE ! "<< endl;
+                            exposureControlActive = true;
+                            cout << "SUNSET or SUNRISE ! "<< endl;
 
-                    }else{
+                        }else{
 
-                        if(exposureControlActive){
+                            if(exposureControlActive){
 
-                            if((currentTimeInSec > timeStopSunrise && currentTimeInSec < timeStartSunset)){
+                                if((currentTimeInSec > timeStopSunrise && currentTimeInSec < timeStartSunset)){
 
-                                cout << "DAY ! "<< endl;
-                                cam->setExposureTime(cam->getDayExposureTime());
-                                cam->setGain(cam->getDayGain());
+                                    cout << "DAY ! "<< endl;
+                                    cam->setExposureTime(cam->getDayExposureTime());
+                                    cam->setGain(cam->getDayGain());
 
 
-                            }else if((currentTimeInSec > timeStopSunset && currentTimeInSec < timeStartSunrise)){
+                                }else if((currentTimeInSec > timeStopSunset && currentTimeInSec < timeStartSunrise)){
 
-                                cout << "NIGHT ! "<< endl;
-                                cam->setExposureTime(cam->getNightExposureTime());
-                                cam->setGain(cam->getNightGain());
+                                    cout << "NIGHT ! "<< endl;
+                                    cam->setExposureTime(cam->getNightExposureTime());
+                                    cam->setGain(cam->getNightGain());
+                                }
+
                             }
 
+                            exposureControlActive = false;
+                            exposureControlStatus = false;
+
                         }
-
-                        exposureControlActive = false;
-                        exposureControlStatus = false;
-
                     }
 
-
-                    tc = (((double)getTickCount() - tc)/getTickFrequency())*1000;
-                    std::cout << " [ TIME CHECK ] : " << tc << " ms" << endl;
                 }
 
+                tacq = (((double)getTickCount() - tacq)/getTickFrequency())*1000;
+                std::cout << " [ TIME ACQ ] : " << tacq << " ms" << endl;
+                BOOST_LOG_SEV(logger, normal) << " [ TIME ACQ ] : " << tacq << " ms";
 
                 mustStopMutex.lock();
                 stop = mustStop;
@@ -767,7 +778,10 @@ bool AcqThread::runScheduledAcquisition(AcqRegular task){
                     newFits.setCtype2("DEC--ARC");
                     newFits.setEquinox(2000.0);
 
-                    string HHMMSS = Conversion::numbering(2, task.getH()) + Conversion::intToString(task.getH()) + Conversion::numbering(2, task.getM()) + Conversion::intToString(task.getM()) + "00";
+                    string HHMMSS = Conversion::numbering(2, task.getH()) + Conversion::intToString(task.getH()) +
+                                    Conversion::numbering(2, task.getM()) + Conversion::intToString(task.getM()) +
+                                    Conversion::numbering(2, task.getS()) + Conversion::intToString(task.getS());
+
                     string fileName = "CAP_" + YYYYMMDD + "T" + HHMMSS + "_UT-" + Conversion::intToString(i);
 
                     switch(camFormat){
@@ -844,3 +858,168 @@ bool AcqThread::runScheduledAcquisition(AcqRegular task){
     cam->acqRestart();
 
 }
+
+bool AcqThread::runRegularAcquisition(string frameDate){
+
+    // Stop camera
+    cout << "Stopping camera..." << endl;
+    cam->acqStop();
+	cam->grabStop();
+
+    // If stack process exists.
+    if(stackProcess != NULL){
+
+        boost::mutex::scoped_lock lock(*stackSignal_mutex);
+        *stackSignal = false;
+        lock.unlock();
+
+        // Force interruption.
+        cout << "Send interruption signal to stack " << endl;
+        stackProcess->interruptThread();
+
+
+    }
+
+    // If detection process exists
+    if(detectionProcess != NULL){
+
+        boost::mutex::scoped_lock lock(*detSignal_mutex);
+        *detSignal = false;
+        lock.unlock();
+        cout << "Send interruption signal to detection process " << endl;
+        detectionProcess->interruptThread();
+
+    }
+
+    // Reset framebuffer.
+    cout << "Cleaning frameBuffer..." << endl;
+    boost::mutex::scoped_lock lock(*frameBuffer_mutex);
+    frameBuffer->clear();
+    lock.unlock();
+
+    for(int i = 0; i < cam->getAcqRegularRepetition(); i++){
+
+        // Configuration pour single capture
+        Frame frame;
+        cout << "Exposure : " << cam->getAcqRegularExposure() << endl;
+        frame.setExposure(cam->getAcqRegularExposure());
+        cout << "Gain : " << cam->getAcqRegularGain() << endl;
+        frame.setGain(cam->getAcqRegularGain());
+        cout << "Format : " << cam->getAcqRegularFormat() << endl;
+        frame.setBitDepth(cam->getAcqRegularFormat());
+
+        // Single capture.
+        if(cam->grabSingleImage(frame, cam->getCameraId())){
+
+            cout << endl << "Single capture succeed !" << endl;
+
+            /// ---------------------- Save grabbed frame --------------------------
+
+            // Save the frame in Fits 2D.
+            if(frame.getImg().data){
+
+                string	YYYYMMDD = TimeDate::get_YYYYMMDD_fromDateString(frameDate);
+                cout << "YYYYMMDD : " << YYYYMMDD << endl;
+                if(buildRegularAcquisitionDirectory(YYYYMMDD)){
+
+                    cout << "Saving fits file ..." << endl;
+
+                    cout << "completeDataPath : " << completeDataPath << endl;
+
+                    Fits2D newFits(completeDataPath, cam->getFitsHeader());
+                    newFits.setGaindb(cam->getAcqRegularGain());
+                    double exptime = cam->getAcqRegularExposure()/1000000.0;
+                    newFits.setOntime(exptime);
+                    newFits.setDateobs(frame.getAcqDateMicro());
+
+                    vector<int> firstDateInt = TimeDate::getIntVectorFromDateString(frameDate);
+                    double  debObsInSeconds = firstDateInt.at(3)*3600 + firstDateInt.at(4)*60 + firstDateInt.at(5);
+                    double  julianDate      = TimeDate::gregorianToJulian_2(firstDateInt);
+                    double  julianCentury   = TimeDate::julianCentury(julianDate);
+                    double  sideralT        = TimeDate::localSideralTime_2(julianCentury, firstDateInt.at(3), firstDateInt.at(4), firstDateInt.at(5), cam->getFitsHeader().getSitelong());
+                    newFits.setCrval1(sideralT);
+
+                    newFits.setCtype1("RA---ARC");
+                    newFits.setCtype2("DEC--ARC");
+                    newFits.setEquinox(2000.0);
+
+                    string HHMMSS = Conversion::numbering(2, firstDateInt.at(3)) + Conversion::intToString(firstDateInt.at(3)) +
+                                    Conversion::numbering(2, firstDateInt.at(4)) + Conversion::intToString(firstDateInt.at(4)) +
+                                    Conversion::numbering(2, firstDateInt.at(5)) + Conversion::intToString(firstDateInt.at(5));
+
+                    string fileName = "CAP_" + YYYYMMDD + "T" + HHMMSS + "_UT-" + Conversion::intToString(i);
+
+                    cout << "fileName : " << fileName << endl;
+
+                    switch(cam->getAcqRegularFormat()){
+
+                        case MONO_8 :
+
+                            {
+                                // Create FITS image with BITPIX = BYTE_IMG (8-bits unsigned integers), pixel with TBYTE (8-bit unsigned byte)
+
+                                if(newFits.writeFits(frame.getImg(), UC8, fileName))
+                                    cout << ">> Fits saved in : " << completeDataPath << fileName << endl;
+
+                            }
+
+                            break;
+
+                        case MONO_12 :
+
+                            {
+
+                                // Convert unsigned short type image in short type image.
+                                Mat newMat = Mat(frame.getImg().rows, frame.getImg().cols, CV_16SC1, Scalar(0));
+
+                                // Set bzero and bscale for print unsigned short value in soft visualization.
+                                double bscale = 1;
+                                double bzero  = 32768;
+                                newFits.setBzero(bzero);
+                                newFits.setBscale(bscale);
+
+                                unsigned short * ptr;
+                                short * ptr2;
+
+                                for(int i = 0; i < frame.getImg().rows; i++){
+
+                                    ptr = frame.getImg().ptr<unsigned short>(i);
+                                    ptr2 = newMat.ptr<short>(i);
+
+                                    for(int j = 0; j < frame.getImg().cols; j++){
+
+                                        if(ptr[j] - 32768 > 32767){
+
+                                            ptr2[j] = 32767;
+
+                                        }else{
+
+                                            ptr2[j] = ptr[j] - 32768;
+                                        }
+                                    }
+                                }
+
+
+                                // Create FITS image with BITPIX = SHORT_IMG (16-bits signed integers), pixel with TSHORT (signed short)
+                                if(newFits.writeFits(newMat, S16, fileName))
+                                    cout << ">> Fits saved in : " << completeDataPath << fileName << endl;
+
+
+                            }
+                    }
+                }
+            }
+
+        }else{
+
+            cout << endl << "Single capture failed !" << endl;
+
+        }
+    }
+
+    cout<< "Restarting camera in continuous mode..." << endl;
+    cam->acqRestart();
+
+}
+
+

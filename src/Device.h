@@ -112,18 +112,22 @@ class Device{
         Mat                 ACQ_MASK;
         bool                ACQ_MASK_ENABLED;
         string              ACQ_MASK_PATH;
-
+        bool                ACQ_DAY_ENABLED;
         bool                EPHEMERIS_ENABLED;
         bool                EXPOSURE_CONTROL_SAVE_IMAGE;
         bool                EXPOSURE_CONTROL_SAVE_INFOS;
-        bool                EXPOSURE_CONTROL_ENABLED;
         int                 EXPOSURE_CONTROL_FREQUENCY;
-
         vector<int>         SUNRISE_TIME;
         vector<int>         SUNSET_TIME;
+        int                 SUNSET_DURATION;
+        int                 SUNRISE_DURATION;
+        bool                ACQ_REGULAR_ENABLED;
+        int                 ACQ_REGULAR_INTERVAL;
+        int                 ACQ_REGULAR_EXPOSURE;
+        int                 ACQ_REGULAR_GAIN;
+        CamBitDepth         ACQ_REGULAR_FORMAT;
+        int                 ACQ_REGULAR_REPETITION;
 
-        int SUNSET_DURATION;
-        int SUNRISE_DURATION;
 
         int minExposureTime;
         int maxExposureTime;
@@ -198,9 +202,8 @@ class Device{
         int         getMaxExposureTime()            {return maxExposureTime;};
         bool        getExposureControlSaveImage()   {return EXPOSURE_CONTROL_SAVE_IMAGE;};
         bool        getExposureControlSaveInfos()   {return EXPOSURE_CONTROL_SAVE_INFOS;};
-        bool        getExposureControlEnabled()     {return EXPOSURE_CONTROL_ENABLED;};
         int         getExposureControlFrequency()   {return EXPOSURE_CONTROL_FREQUENCY;};
-
+        bool        getAcqDayEnabled()              {return ACQ_DAY_ENABLED;};
         vector<int> getSunriseTime()                {return SUNRISE_TIME;};
         int         getSunriseDuration()            {return SUNRISE_DURATION;};
         vector<int> getSunsetTime()                 {return SUNSET_TIME;};
@@ -209,6 +212,14 @@ class Device{
         int         getDayExposureTime()            {return ACQ_DAY_EXPOSURE;};
         int         getDayGain()                    {return ACQ_DAY_GAIN;};
         int         getNightGain()                  {return ACQ_NIGHT_GAIN;};
+        bool        getAcqRegularEnabled()          {return ACQ_REGULAR_ENABLED;};
+        int         getAcqRegularTimeInterval()     {return ACQ_REGULAR_INTERVAL;};
+        int         getAcqRegularExposure()         {return ACQ_REGULAR_EXPOSURE;};
+        int         getAcqRegularGain()             {return ACQ_REGULAR_GAIN;};
+        CamBitDepth getAcqRegularFormat()           {return ACQ_REGULAR_FORMAT;};
+        int         getAcqRegularRepetition()       {return ACQ_REGULAR_REPETITION;};
+        bool        getAcqScheduleEnabled()         {return ACQ_SCHEDULE_ENABLED;};
+
 
     private :
 

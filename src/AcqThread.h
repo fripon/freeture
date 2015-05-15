@@ -169,6 +169,8 @@ class AcqThread{
 
         bool runScheduledAcquisition(AcqRegular task);
 
+        bool runRegularAcquisition(string frameDate);
+
         bool buildRegularAcquisitionDirectory(string YYYYMMDD);
 
         void sortAcquisitionSchedule();

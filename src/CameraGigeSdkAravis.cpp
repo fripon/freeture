@@ -777,7 +777,7 @@
 
 		arv_camera_get_gain_bounds (camera, &gainMin, &gainMax);
 
-		arv_camera_set_frame_rate(camera, 3.75);
+		arv_camera_set_frame_rate(camera, 1);
 
 		fps = arv_camera_get_frame_rate(camera);
 
@@ -833,6 +833,7 @@
 
             }
 
+            // Push 50 buffer in the stream input buffer queue.
             arv_stream_push_buffer(stream, arv_buffer_new(payload, NULL));
 
             // Set acquisition mode to continuous.
@@ -845,7 +846,7 @@
             arv_camera_start_acquisition(camera);
 
             // Get image buffer.
-            ArvBuffer *arv_buffer = arv_stream_timeout_pop_buffer(stream, frame.getExposure() + 1000000); //us
+            ArvBuffer *arv_buffer = arv_stream_timeout_pop_buffer(stream, frame.getExposure() + 5000000); //us
 
             char *buffer_data;
             size_t buffer_size;

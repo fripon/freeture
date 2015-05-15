@@ -40,8 +40,28 @@ Device::_Init Device::_initializer;
 
 Device::Device(CamType type){
 
-    STATION_NAME = "STATION";
-    DATA_PATH = "./";
+    STATION_NAME                    = "STATION";
+    DATA_PATH                       = "./";
+    ACQ_SCHEDULE_ENABLED            = false;
+    ACQ_NIGHT_EXPOSURE              = 0;
+    ACQ_NIGHT_GAIN                  = 0;
+    ACQ_DAY_EXPOSURE                = 0;
+    ACQ_DAY_GAIN                    = 0;
+    ACQ_FPS                         = 1;
+    CAMERA_ID                       = 0;
+    ACQ_MASK_ENABLED                = false;
+    ACQ_MASK_PATH                   = "./";
+    ACQ_DAY_ENABLED                 = false;
+    EPHEMERIS_ENABLED               = true;
+    EXPOSURE_CONTROL_SAVE_IMAGE     = false;
+    EXPOSURE_CONTROL_SAVE_INFOS     = false;
+    EXPOSURE_CONTROL_FREQUENCY      = 300;
+    SUNSET_DURATION                 = 3600;
+    SUNRISE_DURATION                = 3600;
+    minExposureTime                 = 0;
+    maxExposureTime                 = 0;
+    minGain                         = 0;
+    maxGain                         = 0;
 
     switch(type){
 
@@ -175,6 +195,10 @@ bool Device::prepareDevice(CamType type, string cfgFile){
                 cfg.Get("ACQ_NIGHT_GAIN", ACQ_NIGHT_GAIN);
                 BOOST_LOG_SEV(logger, notification) << "ACQ_NIGHT_GAIN : " << ACQ_NIGHT_GAIN;
 
+                // Get day option.
+                cfg.Get("ACQ_DAY_ENABLED", ACQ_DAY_ENABLED);
+                BOOST_LOG_SEV(logger, notification) << "ACQ_DAY_ENABLED : " << ACQ_DAY_ENABLED;
+
                 // Get day exposure time.
                 cfg.Get("ACQ_DAY_EXPOSURE", ACQ_DAY_EXPOSURE);
                 BOOST_LOG_SEV(logger, notification) << "ACQ_DAY_EXPOSURE : " << ACQ_DAY_EXPOSURE;
@@ -186,6 +210,43 @@ bool Device::prepareDevice(CamType type, string cfgFile){
                 // Get ephemeris option.
                 cfg.Get("EPHEMERIS_ENABLED", EPHEMERIS_ENABLED);
                 BOOST_LOG_SEV(logger, notification) << "EPHEMERIS_ENABLED : " << EPHEMERIS_ENABLED;
+
+                // Get schedule option status.
+                cfg.Get("ACQ_SCHEDULE_ENABLED", ACQ_SCHEDULE_ENABLED);
+                BOOST_LOG_SEV(logger, notification) << "ACQ_SCHEDULE_ENABLED : " << ACQ_SCHEDULE_ENABLED;
+
+                 // Get regular acquisition option status.
+                cfg.Get("ACQ_REGULAR_ENABLED", ACQ_REGULAR_ENABLED);
+                BOOST_LOG_SEV(logger, notification) << "ACQ_REGULAR_ENABLED : " << ACQ_REGULAR_ENABLED;
+
+                if(ACQ_SCHEDULE_ENABLED && ACQ_REGULAR_ENABLED){
+
+                    throw "You have to enable only one between ACQ_SCHEDULE_ENABLED and ACQ_REGULAR_ENABLED.";
+
+                }
+
+                // Get regular acquisition time interval.
+                cfg.Get("ACQ_REGULAR_INTERVAL", ACQ_REGULAR_INTERVAL);
+                BOOST_LOG_SEV(logger, notification) << "ACQ_REGULAR_INTERVAL : " << ACQ_REGULAR_INTERVAL;
+
+                // Get regular acquisition exposure time.
+                cfg.Get("ACQ_REGULAR_EXPOSURE", ACQ_REGULAR_EXPOSURE);
+                BOOST_LOG_SEV(logger, notification) << "ACQ_REGULAR_EXPOSURE : " << ACQ_REGULAR_EXPOSURE;
+
+                // Get regular acquisition gain.
+                cfg.Get("ACQ_REGULAR_GAIN", ACQ_REGULAR_GAIN);
+                BOOST_LOG_SEV(logger, notification) << "ACQ_REGULAR_GAIN : " << ACQ_REGULAR_GAIN;
+
+
+                // Get regular acquisition repetition.
+                cfg.Get("ACQ_REGULAR_REPETITION", ACQ_REGULAR_REPETITION);
+                BOOST_LOG_SEV(logger, notification) << "ACQ_REGULAR_REPETITION : " << ACQ_REGULAR_REPETITION;
+
+                // Get regular acquisition format.
+                string acq_regular_format; cfg.Get("ACQ_REGULAR_FORMAT", acq_regular_format);
+                EParser<CamBitDepth> cam_regular_bit_depth;
+                ACQ_REGULAR_FORMAT = cam_regular_bit_depth.parseEnum("ACQ_REGULAR_FORMAT", acq_regular_format);
+                BOOST_LOG_SEV(logger, notification) << "ACQ_REGULAR_FORMAT : " << acq_regular_format;
 
                 // Get sunrise time.
                 string sunrise_time;
@@ -289,17 +350,9 @@ bool Device::prepareDevice(CamType type, string cfgFile){
                 cfg.Get("EXPOSURE_CONTROL_SAVE_IMAGE", EXPOSURE_CONTROL_SAVE_IMAGE);
                 BOOST_LOG_SEV(logger, notification) << "EXPOSURE_CONTROL_SAVE_IMAGE : " << EXPOSURE_CONTROL_SAVE_IMAGE;
 
-                // Get exposure control option.
-                cfg.Get("EXPOSURE_CONTROL_ENABLED", EXPOSURE_CONTROL_ENABLED);
-                BOOST_LOG_SEV(logger, notification) << "EXPOSURE_CONTROL_ENABLED : " << EXPOSURE_CONTROL_ENABLED;
-
                 cfg.Get("EXPOSURE_CONTROL_FREQUENCY", EXPOSURE_CONTROL_FREQUENCY);
                 BOOST_LOG_SEV(logger, notification) << "EXPOSURE_CONTROL_FREQUENCY : " << EXPOSURE_CONTROL_FREQUENCY;
                 EXPOSURE_CONTROL_FREQUENCY = EXPOSURE_CONTROL_FREQUENCY * ACQ_FPS;
-
-                // Get schedule option status.
-                cfg.Get("ACQ_SCHEDULE_ENABLED", ACQ_SCHEDULE_ENABLED);
-                BOOST_LOG_SEV(logger, notification) << "ACQ_SCHEDULE_ENABLED : " << ACQ_SCHEDULE_ENABLED;
 
                 if(ACQ_SCHEDULE_ENABLED){
 
@@ -466,15 +519,9 @@ void Device::runContinuousAcquisition(){
 
     }
 
-    // Get exposure time bounds.
     cam->getExposureBounds(minExposureTime, maxExposureTime);
 
-    cout << "maxExposureTime : " << maxExposureTime <<  endl;
-    cout << "minExposureTime : " << minExposureTime <<  endl;
-
-    // Get gain bounds.
     cam->getGainBounds(minGain, maxGain);
-
 
     /// Set camera fps.
     BOOST_LOG_SEV(logger, notification) << "Setting fps...";
