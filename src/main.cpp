@@ -567,6 +567,7 @@ int main(int argc, const char ** argv){
                                         }
                                     }
 
+
                                     inputDevice->stopThread();
 
                                     delete inputDevice;

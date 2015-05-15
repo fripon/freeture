@@ -120,6 +120,8 @@ class AcqThread{
 
         ExposureControl * autoExposure;
 
+        bool enableStackThread;
+
         vector<string> schedule;
 
         string completeDataPath;

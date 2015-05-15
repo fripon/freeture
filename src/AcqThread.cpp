@@ -81,12 +81,16 @@ AcqThread::AcqThread(	CamType									camType,
 
 	autoExposure = NULL;
 
+	enableStackThread = false;
+
 }
 
 AcqThread::~AcqThread(void){
 
     if(cam != NULL) delete cam;
+
 	if(acquisitionThread != NULL) delete acquisitionThread;
+
 	if(autoExposure != NULL) delete autoExposure;
 
 }
@@ -105,7 +109,7 @@ void AcqThread::stopThread(){
 	mustStopMutex.unlock();
 
 	// Wait for the thread to finish.
-
+    if(acquisitionThread != NULL)
 	while(acquisitionThread->timed_join(boost::posix_time::seconds(2)) == false){
 
         acquisitionThread->interrupt();
@@ -155,6 +159,7 @@ void AcqThread::operator()(){
 	BOOST_LOG_SEV(logger,notification) << "==============================================";
 
     /// Prepare scheduled long acquisition.
+
     ACQ_SCHEDULE = cam->getSchedule();      // Get acquisition schedule.
     sortAcquisitionSchedule();              // Order schedule times.
     selectNextAcquisitionSchedule();        // Search next acquisition according to the current time.
@@ -162,17 +167,21 @@ void AcqThread::operator()(){
     bool scheduleTaskActive = false;
 
     /// Prepare acquisition at regular time interval.
+
     int regularAcqFrameInterval = 0;
     int regularAcqFrameCounter = 0;
+
     if(cam->getAcqRegularEnabled())
+
         regularAcqFrameInterval = cam->getAcqRegularTimeInterval() * cam->getFPS();
 
     /// Exposure adjustment variables.
+
     bool exposureControlStatus = false;
     bool exposureControlActive = false;
     bool cleanStatus = false;
 
-    if(cam->getAcqDayEnabled()){
+    if(cam->getAcqDayEnabled())
 
         autoExposure = new ExposureControl(cam->getExposureControlFrequency(),
                                            cam->getExposureControlSaveImage(),
@@ -180,12 +189,21 @@ void AcqThread::operator()(){
                                            cam->getDataPath(),
                                            cam->getStationName());
 
-    }
-
     int timeStartSunrise = cam->getSunriseTime().at(0) * 3600 + cam->getSunriseTime().at(1) * 60;
     int timeStopSunrise = timeStartSunrise + cam->getSunriseDuration() * 2;
     int timeStartSunset = cam->getSunsetTime().at(0) * 3600 + cam->getSunsetTime().at(1) * 60;
     int timeStopSunset = timeStartSunset + cam->getSunsetDuration() * 2;
+
+    /// Enable or disable stack thread in daytime.
+
+    if(stackProcess != NULL)
+        enableStackThread = true;
+    else
+        enableStackThread = false;
+
+    cout << "enableStackThread = " << enableStackThread << endl;
+
+    /// Acquisition process.
 
 	try{
 
@@ -193,7 +211,6 @@ void AcqThread::operator()(){
 
 	        if(!cam->loadDataset()) break;
 
-            // Acquisition
             do{
                 //namedWindow("Display window", WINDOW_AUTOSIZE );
 
@@ -227,10 +244,14 @@ void AcqThread::operator()(){
                         detSignal_condition->notify_one();
                         lock2.unlock();
 
-                        boost::mutex::scoped_lock lock3(*stackSignal_mutex);
-                        *stackSignal = true;
-                        stackSignal_condition->notify_one();
-                        lock3.unlock();
+                        if(enableStackThread){
+
+                            boost::mutex::scoped_lock lock3(*stackSignal_mutex);
+                            *stackSignal = true;
+                            stackSignal_condition->notify_one();
+                            lock3.unlock();
+
+                        }
 
                         cleanStatus = false;
 
@@ -273,10 +294,10 @@ void AcqThread::operator()(){
 
                         }
 
-                        if(autoExposure != NULL)
-                            exposureControlStatus = autoExposure->controlExposureTime(cam, newFrame.getImg(), accurateFrameDate);
-
                     }
+
+                    if(autoExposure != NULL && exposureControlActive)
+                        exposureControlStatus = autoExposure->controlExposureTime(cam, newFrame.getImg(), accurateFrameDate);
 
                 }else{
 
@@ -287,18 +308,35 @@ void AcqThread::operator()(){
 
                 if(grabStatus){
 
+                    int currentTimeInSec = atoi(frameDate.at(3).c_str()) * 3600 + atoi(frameDate.at(4).c_str()) * 60 + atoi(frameDate.at(5).c_str());
+                    cout << " TimeInSec : " << currentTimeInSec << endl;
+                    cout << " StartSunrise : " << timeStartSunrise << endl;
+                    cout << " StopSunrise  : " << timeStopSunrise << endl;
+                    cout << " StartSunset  : " << timeStartSunset << endl;
+                    cout << " StopSunset   : " << timeStopSunset << endl;
+
+                    // If acquisition at regular time interval is enabled.
                     if(cam->getAcqRegularEnabled()){
 
-                        if(regularAcqFrameCounter >= regularAcqFrameInterval){
+                        if((currentTimeInSec > timeStopSunset) || (currentTimeInSec < timeStartSunrise)){
 
-                            runRegularAcquisition(accurateFrameDate);
-                            sleep(1);
-                            regularAcqFrameCounter = 0;
+                            if(regularAcqFrameCounter >= regularAcqFrameInterval){
+
+                                BOOST_LOG_SEV(logger, notification) << "Run regular acquisition.";
+                                runRegularAcquisition(accurateFrameDate);
+                                sleep(1);
+                                regularAcqFrameCounter = 0;
+
+                            }else{
+
+                                cout << "Next regular acquisition in : " << regularAcqFrameInterval - regularAcqFrameCounter << " frames." << endl;
+                                regularAcqFrameCounter++;
+
+                            }
 
                         }else{
 
-                            cout << "Next regular acquisition in : " << regularAcqFrameInterval - regularAcqFrameCounter << " frames." << endl;
-                            regularAcqFrameCounter++;
+                            regularAcqFrameCounter = 0;
 
                         }
 
@@ -352,8 +390,7 @@ void AcqThread::operator()(){
                     // If day acquisition enabled, enable or disable exposure control if it's sunset or sunrise.
                     if(cam->getAcqDayEnabled()){
 
-                        int currentTimeInSec = atoi(frameDate.at(3).c_str()) * 3600 + atoi(frameDate.at(4).c_str()) * 60 + atoi(frameDate.at(5).c_str());
-                        cout << "currentTimeInSec : " << currentTimeInSec << endl;
+                        cout << "exposureControlActive : " << exposureControlActive << endl;
 
                         // Check sunrise and sunset time.
                         if((currentTimeInSec > timeStartSunrise && currentTimeInSec < timeStopSunrise) || (currentTimeInSec > timeStartSunset && currentTimeInSec < timeStopSunset)){
@@ -365,17 +402,23 @@ void AcqThread::operator()(){
 
                             if(exposureControlActive){
 
-                                if((currentTimeInSec > timeStopSunrise && currentTimeInSec < timeStartSunset)){
+                                if((currentTimeInSec >= timeStopSunrise && currentTimeInSec < timeStartSunset)){
 
-                                    cout << "DAY ! "<< endl;
+                                    cout << "DAYTIME ! "<< endl;
+                                    BOOST_LOG_SEV(logger, notification) << "Apply day exposure time.";
+                                    cout << cam->getDayExposureTime()<< endl;
                                     cam->setExposureTime(cam->getDayExposureTime());
+                                    cout << cam->getDayGain()<< endl;
                                     cam->setGain(cam->getDayGain());
 
 
-                                }else if((currentTimeInSec > timeStopSunset && currentTimeInSec < timeStartSunrise)){
+                                }else if((currentTimeInSec >= timeStopSunset) || (currentTimeInSec < timeStartSunrise)){
 
                                     cout << "NIGHT ! "<< endl;
+                                    BOOST_LOG_SEV(logger, notification) << "Apply night exposure time.";
+                                    cout << cam->getNightExposureTime()<< endl;
                                     cam->setExposureTime(cam->getNightExposureTime());
+                                    cout << cam->getNightGain()<< endl;
                                     cam->setGain(cam->getNightGain());
                                 }
 
@@ -385,6 +428,36 @@ void AcqThread::operator()(){
                             exposureControlStatus = false;
 
                         }
+                    }
+
+                    // Asleep or wake up stack process
+                    if(stackProcess != NULL){
+
+                        if((currentTimeInSec > timeStopSunset) || (currentTimeInSec < timeStartSunrise)){
+
+                            enableStackThread = true;
+                            cout << "enableStackThread night = " << enableStackThread << endl;
+
+                        }else{
+
+                            if(enableStackThread){
+
+                                boost::mutex::scoped_lock lock(*stackSignal_mutex);
+                                *stackSignal = false;
+                                lock.unlock();
+
+                                // Force interruption.
+                                cout << "Send interruption signal to stack " << endl;
+                                stackProcess->interruptThread();
+
+                            }
+
+                            enableStackThread = false;
+
+                            cout << "enableStackThread day = " << enableStackThread << endl;
+
+                        }
+
                     }
 
                 }
@@ -702,7 +775,7 @@ bool AcqThread::runScheduledAcquisition(AcqRegular task){
 	cam->grabStop();
 
     // If stack process exists.
-    if(stackProcess != NULL){
+    if(stackProcess != NULL && enableStackThread){
 
         boost::mutex::scoped_lock lock(*stackSignal_mutex);
         *stackSignal = false;
@@ -867,7 +940,7 @@ bool AcqThread::runRegularAcquisition(string frameDate){
 	cam->grabStop();
 
     // If stack process exists.
-    if(stackProcess != NULL){
+    if(stackProcess != NULL && enableStackThread){
 
         boost::mutex::scoped_lock lock(*stackSignal_mutex);
         *stackSignal = false;

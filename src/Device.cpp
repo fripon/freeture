@@ -109,6 +109,7 @@ Device::Device(CamType type){
 Device::~Device(){
 
     if(cam != NULL) delete cam;
+
 }
 
 bool Device::prepareDevice(CamType type, string cfgFile){
@@ -221,7 +222,7 @@ bool Device::prepareDevice(CamType type, string cfgFile){
 
                 if(ACQ_SCHEDULE_ENABLED && ACQ_REGULAR_ENABLED){
 
-                    throw "You have to enable only one between ACQ_SCHEDULE_ENABLED and ACQ_REGULAR_ENABLED.";
+                    throw "\nCheck configuration file : \n \"You can enable ACQ_SCHEDULE_ENABLED or ACQ_REGULAR_ENABLED (not both)\"\n";
 
                 }
 
@@ -465,17 +466,15 @@ void Device::runContinuousAcquisition(){
     if(!cam->setPixelFormat(ACQ_BIT_DEPTH))
         throw "Fail to set Format.";
 
+
+    cam->getExposureBounds(minExposureTime, maxExposureTime);
+
+    cam->getGainBounds(minGain, maxGain);
+
     boost::posix_time::ptime time = boost::posix_time::microsec_clock::universal_time();
     string date = to_iso_extended_string(time);
     cout << "date : " << date << endl;
     vector<int> intDate = TimeDate::getIntVectorFromDateString(date);
-
-    cout << intDate.at(0)<< endl;
-    cout << intDate.at(1)<< endl;
-    cout << intDate.at(2)<< endl;
-    cout << intDate.at(3)<< endl;
-    cout << intDate.at(4)<< endl;
-    cout << intDate.at(5)<< endl;
 
     int timeStartSunrise = SUNRISE_TIME.at(0) * 3600 + SUNRISE_TIME.at(1) * 60;
     int timeStopSunrise = timeStartSunrise + SUNRISE_DURATION * 2;
@@ -517,11 +516,17 @@ void Device::runContinuousAcquisition(){
         if(!cam->setGain(ACQ_NIGHT_GAIN))
             throw "Fail to set Day Gain.";
 
+    }else{
+
+        if(!cam->setExposureTime(minExposureTime))
+            throw "Fail to set Day Exposure.";
+
+        /// Set camera gain.
+        BOOST_LOG_SEV(logger, notification) << "Setting night gain to " << minGain << "...";
+        if(!cam->setGain(minGain))
+            throw "Fail to set Day Gain.";
+
     }
-
-    cam->getExposureBounds(minExposureTime, maxExposureTime);
-
-    cam->getGainBounds(minGain, maxGain);
 
     /// Set camera fps.
     BOOST_LOG_SEV(logger, notification) << "Setting fps...";
