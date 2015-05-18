@@ -53,6 +53,8 @@ bool Configuration::Load(const string& file){
         return false;
     }
 
+    string prevKey = "";
+
     while (inFile.good() && ! inFile.eof()){
 
         string line;
@@ -70,11 +72,14 @@ bool Configuration::Load(const string& file){
             }
         }
 
+
+
         // split line into key and value
         if (!line.empty()){
 
             int pos = line.find('=');
 
+            // "=" not found.
             if (pos != string::npos){
 
                 string key     = Trim(line.substr(0, pos));
@@ -82,9 +87,15 @@ bool Configuration::Load(const string& file){
 
                 if (!key.empty() && !value.empty()){
 
+                    prevKey   = key;
                     data[key] = value;
 
                 }
+
+            }else if(line.size() > 1 && !prevKey.empty()){
+
+                data[prevKey] += Trim(line);
+
             }
         }
     }
