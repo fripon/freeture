@@ -77,7 +77,7 @@ class CameraFrames: public Camera{
         } _initializer;
 
 		//! Frame's location.
-		string framesDir;
+		vector<string> framesDir;
 
         //! Separator in the frame's file name.
         int numPosInName;
@@ -87,13 +87,16 @@ class CameraFrames: public Camera{
 
 		bool endReadDataStatus;
 
-		int nbFramesRead;
 
-		int nn;
+		int framesetID;
+
+        bool extractFrameNumbers(string location);
+
+        string currentFramesFir;
 
 	public:
 
-		CameraFrames(string	dir, int nbPos);
+		CameraFrames(vector<string>	dir, int nbPos);
 
 		~CameraFrames();
 
@@ -102,6 +105,10 @@ class CameraFrames: public Camera{
 		bool grabImage(Frame &img);
 
 		bool getStopStatus();
+
+		bool loadData();
+
+		bool getDataStatus();
 
 
 };

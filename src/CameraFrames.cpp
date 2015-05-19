@@ -38,29 +38,58 @@
 boost::log::sources::severity_logger< LogSeverityLevel >  CameraFrames::logger;
 CameraFrames::_Init CameraFrames::_initializer;
 
-CameraFrames::CameraFrames(string dir, int nbPos){
+CameraFrames::CameraFrames(vector<string> dir, int nbPos){
 
 	framesDir			= dir;
     numPosInName		= nbPos;
 	endReadDataStatus	= false;
-	nbFramesRead		= 0;
-	endReadDataStatus	= false;
-
-	nn = 0;
+	framesetID = 0;
+    currentFramesFir = dir.front();
 
 }
 
 CameraFrames::~CameraFrames(void){}
 
+bool CameraFrames::loadData(){
+
+    if(framesetID !=0 ){
+
+        currentFramesFir = framesDir.at(framesetID);
+        endReadDataStatus = false;
+        if(!extractFrameNumbers(currentFramesFir))
+            return false;
+
+    }
+
+    return true;
+
+}
+
 bool CameraFrames::grabStart(){
 
-	namespace fs = boost::filesystem;
+	return extractFrameNumbers(currentFramesFir);
 
-    path p(framesDir);
+}
+
+bool CameraFrames::getDataStatus(){
+
+    framesetID++;
+
+    if(framesetID == framesDir.size())
+        return false;
+    else
+        return true;
+}
+
+bool CameraFrames::extractFrameNumbers(string location){
+
+    namespace fs = boost::filesystem;
+
+    path p(location);
 
     if(fs::exists(p)){
 
-		BOOST_LOG_SEV(logger, normal) << "Frame's directory exists : " << framesDir;
+		BOOST_LOG_SEV(logger, normal) << "Frame's directory exists : " << location;
 
         int firstFrame = -1, lastFrame = 0;
         string filename = "";
@@ -149,9 +178,11 @@ bool CameraFrames::grabStart(){
 	}else{
 
 		BOOST_LOG_SEV(logger, fail) << "Frame's directory not found.";
+		cout << "Frame's directory not found." << endl;
 		return false;
 
 	}
+
 }
 
 bool CameraFrames::getStopStatus(){
@@ -164,7 +195,7 @@ bool CameraFrames::grabImage(Frame &img){
 
     string filename = "";
 
-	path p(framesDir);
+	path p(currentFramesFir);
 
     /// Search a frame in the directory.
     for(directory_iterator file(p);file!= directory_iterator(); ++file){
@@ -258,82 +289,6 @@ bool CameraFrames::grabImage(Frame &img){
 				break;
 
 		}
-
-		///
-		////////////////////////////////////////////////////////////////
-
-		/*Fits2D nnewFits("/home/fripon/data2/true_detections/meteore_20141229/URANOSCOPE_20141229_004450_UT-0/frames/");
-
-		string DATE = "" ; bool r = newFits.readStringKeyword(filename, "DATE", DATE);
-		cout <<"print"<< endl;
-		cout <<DATE<< endl;
-		nnewFits.setDate(DATE);
-
-		cout <<DATE<< endl;
-
-		string OBS_MODE; newFits.readStringKeyword(filename, "OBS_MODE", OBS_MODE);
-		nnewFits.setObsmode(OBS_MODE);
-
-		string TELESCOP; newFits.readStringKeyword(filename, "TELESCOP", TELESCOP);
-		nnewFits.setTelescop(TELESCOP);
-
-		string OBSERVER; newFits.readStringKeyword(filename, "OBSERVER", OBSERVER);
-		nnewFits.setObserver(OBSERVER);
-
-		string INSTRUME; newFits.readStringKeyword(filename, "INSTRUME", INSTRUME);
-		nnewFits.setInstrument(INSTRUME);
-
-		string CAMERA; newFits.readStringKeyword(filename, "CAMERA", CAMERA);
-		nnewFits.setCamera(CAMERA);
-
-		double FOCAL; newFits.readDoubleKeyword(filename, "FOCAL", FOCAL);
-		nnewFits.setFocal(FOCAL);
-
-		double APERTURE; newFits.readDoubleKeyword(filename, "APERTURE", APERTURE);
-		nnewFits.setAperture(APERTURE);
-
-		double SITELONG; newFits.readDoubleKeyword(filename, "SITELONG", SITELONG);
-		nnewFits.setSitelong(SITELONG);
-
-		double SITELAT; newFits.readDoubleKeyword(filename, "SITELAT", SITELAT);
-		nnewFits.setSitelat(SITELAT);
-
-
-		double XPIXEL; newFits.readDoubleKeyword(filename, "XPIXEL", XPIXEL);
-		nnewFits.setXpixel(XPIXEL);
-
-		double YPIXEL; newFits.readDoubleKeyword(filename, "YPIXEL", YPIXEL);
-		nnewFits.setYpixel(YPIXEL);
-
-
-		double CD1_2; newFits.readDoubleKeyword(filename, "CD1_2", CD1_2);
-		nnewFits.setCd1_2(CD1_2);
-
-		double CD2_1; newFits.readDoubleKeyword(filename, "CD2_1", CD2_1);
-		nnewFits.setCd2_1(CD2_1);
-
-		int CRPIX1; newFits.readIntKeyword(filename, "CRPIX1", CRPIX1);
-		nnewFits.setCrpix1(CRPIX1);
-
-		int CRPIX2; newFits.readIntKeyword(filename, "CRPIX2", CRPIX2);
-		nnewFits.setCrpix2(CRPIX2);
-
-		double CRVAL2; newFits.readDoubleKeyword(filename, "CRVAL2", CRVAL2);
-		nnewFits.setCrval2(CRVAL2);
-
-cout << "save"<<endl;
-		nnewFits.writeFits(resMat, S16, "frame_" + Conversion::intToString(nn));
-cout << "end save"<<endl;
-		nn++;
-**/
-
-
-		////////////////////////////////////////////////////////////////
-		///
-
-
-
-
 
 		string acquisitionDate = TimeDate::localDateTime(microsec_clock::universal_time(),"%Y:%m:%d:%H:%M:%S");
 		boost::posix_time::ptime time = boost::posix_time::microsec_clock::universal_time();

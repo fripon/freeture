@@ -62,6 +62,8 @@ Device::Device(CamType type){
     maxExposureTime                 = 0;
     minGain                         = 0;
     maxGain                         = 0;
+    DISPLAY_INPUT                   = false;
+    VIDEO_FRAMES_INPUT              = false;
 
     switch(type){
 
@@ -119,6 +121,9 @@ bool Device::prepareDevice(CamType type, string cfgFile){
         Configuration cfg;
 		cfg.Load(cfgFile);
 
+		// Get detection option status.
+        cfg.Get("DETECTION_ENABLED", DETECTION_ENABLED);
+
 		switch(type){
 
 			case FRAMES :
@@ -133,9 +138,26 @@ bool Device::prepareDevice(CamType type, string cfgFile){
 					int FRAMES_SEPARATOR_POSITION; cfg.Get("FRAMES_SEPARATOR_POSITION", FRAMES_SEPARATOR_POSITION);
 					BOOST_LOG_SEV(logger, normal) << "Read FRAMES_SEPARATOR_POSITION from configuration file : " << FRAMES_SEPARATOR_POSITION;
 
+					VIDEO_FRAMES_INPUT = true;
+
+					vector<string> framesLocationList;
+
+                    typedef boost::tokenizer<boost::char_separator<char> > tokenizer;
+                    boost::char_separator<char> sep(",");
+                    tokenizer tokens(INPUT_FRAMES_DIRECTORY_PATH, sep);
+
+                    int n = 1;
+
+                    for(tokenizer::iterator tok_iter = tokens.begin();tok_iter != tokens.end(); ++tok_iter){
+                        framesLocationList.push_back(*tok_iter);
+                        cout << "LOCATION 1 : " << Conversion::intToString(n) << " : " << *tok_iter << endl;
+                        n++;
+                    }
+
                     // Create camera using pre-recorded fits2D in input.
-					cam = new CameraFrames(INPUT_FRAMES_DIRECTORY_PATH, FRAMES_SEPARATOR_POSITION);
-					cam->grabStart();
+					cam = new CameraFrames(framesLocationList, FRAMES_SEPARATOR_POSITION);
+					if(!cam->grabStart())
+                        throw "Fail to prepare acquisition on the first frames directory.";
 
 				}
 
@@ -146,6 +168,11 @@ bool Device::prepareDevice(CamType type, string cfgFile){
 				{
 				    // Get frames locations.
 					string	INPUT_VIDEO_PATH; cfg.Get("INPUT_VIDEO_PATH", INPUT_VIDEO_PATH);
+
+					// Get display input option.
+					cfg.Get("INPUT_VIDEO_DISPLAY", DISPLAY_INPUT);
+
+					VIDEO_FRAMES_INPUT = true;
 
 					vector<string> videoList;
 

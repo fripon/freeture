@@ -180,6 +180,8 @@ class DetectionTemporal_ : public Detection{
 
         Mat mask;
 
+        bool createMask;
+
 	public:
 
 		DetectionTemporal_();

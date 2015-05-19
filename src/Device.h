@@ -127,6 +127,9 @@ class Device{
         int                 ACQ_REGULAR_GAIN;
         CamBitDepth         ACQ_REGULAR_FORMAT;
         int                 ACQ_REGULAR_REPETITION;
+        bool                DISPLAY_INPUT;
+        bool                VIDEO_FRAMES_INPUT;
+        bool                DETECTION_ENABLED;
 
 
         int minExposureTime;
@@ -219,6 +222,9 @@ class Device{
         CamBitDepth getAcqRegularFormat()           {return ACQ_REGULAR_FORMAT;};
         int         getAcqRegularRepetition()       {return ACQ_REGULAR_REPETITION;};
         bool        getAcqScheduleEnabled()         {return ACQ_SCHEDULE_ENABLED;};
+        bool        getDisplayInput()               {return DISPLAY_INPUT;};
+        bool        getVideoFramesInput()           {return VIDEO_FRAMES_INPUT;};
+        bool        getDetectionEnabled()           {return DETECTION_ENABLED;};
 
 
     private :

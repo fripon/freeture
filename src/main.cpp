@@ -329,7 +329,7 @@ int main(int argc, const char ** argv){
                         number of CPUs or CPU cores. Calling this function on a dual-core processor returns a
                         value of 2. This function provides a simple method to identify the theoretical maximum
                         number of threads that should be used.*/
-                        std::cout << "Core detected : " << boost::thread::hardware_concurrency()<< endl;
+                        std::cout << "CORE DETECTED : " << boost::thread::hardware_concurrency()<< endl << endl;
 
 						/// ------------------------------------
                         /// ------ LOAD FREETURE PARAMETERS ----
@@ -358,6 +358,9 @@ int main(int argc, const char ** argv){
 
 						// Stack enabled or not.
 						bool STACK_ENABLED; cfg.Get("STACK_ENABLED", STACK_ENABLED);
+						// Disable stack if CAMERA_TYPE = FRAMES or VIDEO
+						if((CAMERA_TYPE == FRAMES) || (CAMERA_TYPE == VIDEO))
+                            STACK_ENABLED = false;
 
 						// Get log path.
 						string LOG_PATH; cfg.Get("LOG_PATH", LOG_PATH);
@@ -937,16 +940,20 @@ int main(int argc, const char ** argv){
 					{
 
 
-					    /*EParser<CamType> cam_type;
+					    Configuration cfg;
+                        cfg.Load("/home/fripon/FreeTure-v0.6/freeture/share/configuration.cfg");
 
-						Device *cam = new Device(cam_type.parseEnum("CAMERA_TYPE", "DMK_GIGE"));
+                        string ACQ_SCHEDULE ;
+                        cfg.Get("ACQ_SCHEDULE", ACQ_SCHEDULE );
+                        cout << endl<< "ACQ_SCHEDULE  : " << ACQ_SCHEDULE  << endl;
 
-						if(!cam->grabTest()){
-							delete cam;
-							throw "> Failed to grab a single frame.";
-						}
-						delete cam;*/
+                        string INPUT_FRAMES_DIRECTORY_PATH ;
+                        cfg.Get("INPUT_FRAMES_DIRECTORY_PATH", INPUT_FRAMES_DIRECTORY_PATH );
+                        cout << endl<< "INPUT_FRAMES_DIRECTORY_PATH  : " << INPUT_FRAMES_DIRECTORY_PATH  << endl;
 
+                        string INPUT_VIDEO_PATH ;
+                        cfg.Get("INPUT_VIDEO_PATH", INPUT_VIDEO_PATH );
+                        cout << endl<< "INPUT_VIDEO_PATH  : " << INPUT_VIDEO_PATH  << endl;
 
 					}
 

@@ -466,7 +466,7 @@ void DetThread::operator ()(){
 
     isRunning = false;
 
-	cout << "Detection Thread terminated." << endl;
+	cout << "Detection Thread finished." << endl;
 	BOOST_LOG_SEV(logger,notification) << "Detection Thread terminated.";
 
 }

@@ -189,10 +189,19 @@ void AcqThread::operator()(){
                                            cam->getDataPath(),
                                            cam->getStationName());
 
-    int timeStartSunrise = cam->getSunriseTime().at(0) * 3600 + cam->getSunriseTime().at(1) * 60;
-    int timeStopSunrise = timeStartSunrise + cam->getSunriseDuration() * 2;
-    int timeStartSunset = cam->getSunsetTime().at(0) * 3600 + cam->getSunsetTime().at(1) * 60;
-    int timeStopSunset = timeStartSunset + cam->getSunsetDuration() * 2;
+    int timeStartSunrise    = 0;
+    int timeStopSunrise     = 0;
+    int timeStartSunset     = 0;
+    int timeStopSunset      = 0;
+
+    if(cam->getSunriseTime().size() != 0 && cam->getSunsetTime().size() != 0){
+
+        timeStartSunrise    = cam->getSunriseTime().at(0) * 3600 + cam->getSunriseTime().at(1) * 60;
+        timeStopSunrise     = timeStartSunrise + cam->getSunriseDuration() * 2;
+        timeStartSunset     = cam->getSunsetTime().at(0) * 3600 + cam->getSunsetTime().at(1) * 60;
+        timeStopSunset      = timeStartSunset + cam->getSunsetDuration() * 2;
+
+    }
 
     /// Enable or disable stack thread in daytime.
 
@@ -209,10 +218,13 @@ void AcqThread::operator()(){
 
 	    do{
 
+            // Load videos file or frames directory if input type is : FRAMES or VIDEO
 	        if(!cam->loadDataset()) break;
 
             do{
-                //namedWindow("Display window", WINDOW_AUTOSIZE );
+
+                if(cam->getDisplayInput())
+                    namedWindow("Display window", WINDOW_NORMAL );
 
                 Frame newFrame;
                 bool grabStatus = false;
@@ -231,7 +243,7 @@ void AcqThread::operator()(){
                     accurateFrameDate = newFrame.getAcqDateMicro();
 
                     // Check if exposure control is active.
-                    if(!exposureControlStatus){
+                    if(!exposureControlStatus /*|| cam->getVideoFramesInput()*/){
 
                         // Exposure control is not active, the new frame can be shared with others threads.
 
@@ -279,7 +291,7 @@ void AcqThread::operator()(){
                                 boost::mutex::scoped_lock lock(*detSignal_mutex);
                                 *detSignal = false;
                                 lock.unlock();
-                                cout << "Send interruption signal to detection process " << endl;
+                                cout << "Sending interruption signal to detection process... " << endl;
                                 detectionProcess->interruptThread();
 
                             }
@@ -299,6 +311,9 @@ void AcqThread::operator()(){
                     if(autoExposure != NULL && exposureControlActive)
                         exposureControlStatus = autoExposure->controlExposureTime(cam, newFrame.getImg(), accurateFrameDate);
 
+                    if(cam->getDisplayInput())
+                        imshow("Display window", newFrame.getImg());
+
                 }else{
 
                     BOOST_LOG_SEV(logger, notification) << "> Fail to grab frame";
@@ -306,14 +321,14 @@ void AcqThread::operator()(){
 
                 }
 
-                if(grabStatus){
+                if(grabStatus && !cam->getVideoFramesInput()){
 
                     int currentTimeInSec = atoi(frameDate.at(3).c_str()) * 3600 + atoi(frameDate.at(4).c_str()) * 60 + atoi(frameDate.at(5).c_str());
-                    cout << " TimeInSec : " << currentTimeInSec << endl;
+                    /*cout << " TimeInSec : " << currentTimeInSec << endl;
                     cout << " StartSunrise : " << timeStartSunrise << endl;
                     cout << " StopSunrise  : " << timeStopSunrise << endl;
                     cout << " StartSunset  : " << timeStartSunset << endl;
-                    cout << " StopSunset   : " << timeStopSunset << endl;
+                    cout << " StopSunset   : " << timeStopSunset << endl;*/
 
                     // If acquisition at regular time interval is enabled.
                     if(cam->getAcqRegularEnabled()){
@@ -472,20 +487,26 @@ void AcqThread::operator()(){
 
             }while(stop == false && !cam->getDeviceStopStatus());
 
-            cout << "Clear detection method." << endl;
-            if( detectionProcess != NULL){
+            waitKey(1000);
+
+            //cout << "Clear detection method." << endl;
+            if(detectionProcess != NULL){
+
                 detectionProcess->getDetMethod()->resetDetection();
                 detectionProcess->getDetMethod()->resetMask();
 
+                if(!detectionProcess->getRunStatus())
+                    break;
+
             }
-            else { cout << "detectionProcess is null" << endl; break; }
 
             cout << "Clear framebuffer" << endl;
             boost::mutex::scoped_lock lock(*frameBuffer_mutex);
             frameBuffer->clear();
             lock.unlock();
 
-            waitKey(5000);
+            cout << "Waiting for 5 seconds ..." << endl;
+            waitKey(2000);
 
 	    }while(cam->getDatasetStatus());
 
@@ -794,7 +815,7 @@ bool AcqThread::runScheduledAcquisition(AcqRegular task){
         boost::mutex::scoped_lock lock(*detSignal_mutex);
         *detSignal = false;
         lock.unlock();
-        cout << "Send interruption signal to detection process " << endl;
+        cout << "Sending interruption signal to detection process " << endl;
         detectionProcess->interruptThread();
 
     }

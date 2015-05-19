@@ -45,6 +45,8 @@ DetectionTemporal_::DetectionTemporal_(){
 	DET_DEBUG_VIDEO = false;
 	STATIC_MASK_OPTION = false;
 
+	createMask = false;
+
 	listColors.push_back(Scalar(0,0,139));      // DarkRed
 	listColors.push_back(Scalar(0,0,255));      // Red
 	listColors.push_back(Scalar(60,20,220));    // Crimson
@@ -150,6 +152,10 @@ bool DetectionTemporal_::initMethod(string cfg_path){
 
 			frameMask.copyTo(mask);
 
+		}else{
+
+            createMask = true;
+
 		}
 
 		// Create local mask to eliminate single white pixels.
@@ -216,21 +222,29 @@ DetectionTemporal_::~DetectionTemporal_(){
 void DetectionTemporal_::resetDetection(){
 
     BOOST_LOG_SEV(logger, notification) << "Start clear listGlobalEvents";
-    cout << "Start clear listGlobalEvents" << endl;
+    //cout << "Start clear listGlobalEvents" << endl;
 	listGlobalEvents.clear();
 	BOOST_LOG_SEV(logger, notification) << "Clear finished" << DET_DEBUG;
-	cout << "Clear finished" << endl;
+	//cout << "Clear finished" << endl;
 
 	initStatus = false;
 	prevThreshMap.release();
+	cout << "release prevImg" << endl;
+
 	prevImg.release();
+
+    if(prevImg.data)
+        cout << "prevImg.data" << endl;
+    else
+        cout << "!prevImg.data" << endl;
+
 
 }
 
 void DetectionTemporal_::resetMask(){
 
-	frameMask.release();
-	mask.release();
+	createMask = true;
+
 
 }
 
@@ -307,6 +321,7 @@ void DetectionTemporal_::saveDetectionInfos(string p){
 			infFile << "    (" << (*GEToSave).mainPts.at(i).x << ";"<<  (*GEToSave).mainPts.at(i).y << ")\n";
 
 		}
+
 
 		infFile << "\n * MainPoints details : \n";
 
@@ -452,6 +467,7 @@ void DetectionTemporal_::subdivideFrame(vector<Point> &sub, int n, int imgH, int
                  // 3 down
                  // 4 left
 
+
     for(int i = 1; i < n * n; i++){
 
         if(dep == 1){
@@ -503,8 +519,15 @@ bool DetectionTemporal_::run(Frame &c, Frame &p){
 
 	if(!initStatus){
 
-		if(DET_DOWNSAMPLE_ENABLED) subdivideFrame(subdivisionPos, 8, c.getImg().rows/2, c.getImg().cols/2);
-		else subdivideFrame(subdivisionPos, 8, c.getImg().rows, c.getImg().cols);
+        subdivisionPos.clear();
+
+		if(DET_DOWNSAMPLE_ENABLED)
+            subdivideFrame(subdivisionPos, 8, c.getImg().rows/2, c.getImg().cols/2);
+		else
+            subdivideFrame(subdivisionPos, 8, c.getImg().rows, c.getImg().cols);
+
+        for(int i = 0; i< subdivisionPos.size(); i++)
+            cout << subdivisionPos.at(i) << endl;
 
 		initStatus = true;
 
@@ -529,7 +552,7 @@ bool DetectionTemporal_::run(Frame &c, Frame &p){
         if(DET_DEBUG && prevImg.data) SaveImg::saveBMP(prevImg, DET_DEBUG_PATH + "/prev/prev"+Conversion::intToString(imgNum));
 
         // Not use mask.
-        if(!frameMask.data && !mask.data){
+        if(createMask && !ACQ_MASK_ENABLED){
 
             if(DET_DOWNSAMPLE_ENABLED){
 
@@ -541,8 +564,9 @@ bool DetectionTemporal_::run(Frame &c, Frame &p){
                 frameMask = Mat(imgH,imgW, CV_8UC1,Scalar(255));
                 mask = Mat(imgH,imgW, CV_8UC1,Scalar(255));
 
-
             }
+
+            createMask = false;
 
         }
 
@@ -620,7 +644,11 @@ bool DetectionTemporal_::run(Frame &c, Frame &p){
 
         }
 
-        cc.copyTo(currImg, mask);
+
+        if(cc.rows == mask.rows && cc.cols == mask.cols)
+            cc.copyTo(currImg, mask);
+        else
+            throw "ERROR : Mask size is not correct according to the frame size.";
 
         /// If previous image has no data.
         /// The current image become the previous and we do not continue the detection process for the current image.
@@ -637,7 +665,9 @@ bool DetectionTemporal_::run(Frame &c, Frame &p){
         BOOST_LOG_SEV(logger, normal) << "Computing absolute difference ... ";
 
 		Mat diffImg;
+
 		absdiff(currImg, prevImg, diffImg);
+
 		Conversion::convertTo8UC1(diffImg).copyTo(diffImg);
 
 		t1_difference = (((double)getTickCount() - t1_difference)/getTickFrequency())*1000;
@@ -771,6 +801,8 @@ bool DetectionTemporal_::run(Frame &c, Frame &p){
 
             // Check if there is white pixels.
             if(countNonZero(subdivision) > 0){
+
+                cout << (*itR)<< endl;
 
                 searchROI(subdivision, motionMap, eventMap, listLocalEvents, (*itR), 10);
 
