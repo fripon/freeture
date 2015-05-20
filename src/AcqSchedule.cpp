@@ -1,5 +1,5 @@
 /*
-								AcqRegular.h
+                             AcqSchedule.cpp
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 *
@@ -25,52 +25,24 @@
 *%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%*/
 
 /**
-* \file    AcqRegular.h
+* \file     AcqSchedule.cpp
 * \author  Yoan Audureau -- FRIPON-GEOPS-UPSUD
 * \version 1.0
 * \date    19/06/2014
 * \brief
 */
 
-#pragma once
+#include "AcqSchedule.h"
 
-#include <stdio.h>
-#include <iostream>
+AcqSchedule::AcqSchedule(int H, int M, int S, int E, int G, int F, int N):
+    mH(H), mM(M), mS(S), mE(E), mG(G), mN(N), mF(F) {
 
-using namespace std;
+}
 
-class AcqRegular{
+AcqSchedule::AcqSchedule():
+    mH(0), mM(0), mS(0), mE(0), mG(0), mN(0), mF(0) {
 
-	private:
+}
 
-		int h;
-		int m;
-		int s;
-		int e;
-		int g;
-		int n;
-        int f;
-        string accurateDate;
+AcqSchedule::~AcqSchedule() {};
 
-	public:
-
-        AcqRegular(int H, int M, int S, int E, int G, int F, int N);
-
-        AcqRegular();
-
-
-        ~AcqRegular(void){};
-
-        int getH(){return h;};
-        int getM(){return m;};
-        int getS(){return s;};
-        int getE(){return e;};
-        int getG(){return g;};
-        int getF(){return f;};
-        int getN(){return n;};
-
-        void setAccurateDate(string date){accurateDate = date;};
-
-        string getAccurateDate(){return accurateDate;};
-
-};

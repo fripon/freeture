@@ -363,7 +363,7 @@ void AcqThread::operator()(){
                         // Time for a long exposure time acquisition.
                         if(nextTask.getH() == atoi(frameDate.at(3).c_str()) && nextTask.getM() == atoi(frameDate.at(4).c_str()) && atoi(frameDate.at(5).c_str()) == nextTask.getS()){
 
-                            nextTask.setAccurateDate(accurateFrameDate);
+                            nextTask.setDate(accurateFrameDate);
 
                             // Launch single acquisition
                             bool result = runScheduledAcquisition(nextTask);
@@ -602,14 +602,14 @@ void AcqThread::sortAcquisitionSchedule(){
     if(ACQ_SCHEDULE.size() != 0){
 
         // Sort time in list.
-        vector<AcqRegular> tempSchedule;
+        vector<AcqSchedule> tempSchedule;
 
         do{
 
             int minH; int minM; int minS; bool init = false;
 
-            vector<AcqRegular>::iterator it;
-            vector<AcqRegular>::iterator it_select;
+            vector<AcqSchedule>::iterator it;
+            vector<AcqSchedule>::iterator it_select;
 
             for(it = ACQ_SCHEDULE.begin(); it != ACQ_SCHEDULE.end(); ++it){
 
@@ -788,7 +788,7 @@ bool AcqThread::buildRegularAcquisitionDirectory(string YYYYMMDD){
     }
 }
 
-bool AcqThread::runScheduledAcquisition(AcqRegular task){
+bool AcqThread::runScheduledAcquisition(AcqSchedule task){
 
     // Stop camera
     cout << "Stopping camera..." << endl;
@@ -849,7 +849,7 @@ bool AcqThread::runScheduledAcquisition(AcqRegular task){
             // Save the frame in Fits 2D.
             if(frame.getImg().data){
 
-                string	YYYYMMDD = TimeDate::get_YYYYMMDD_fromDateString(task.getAccurateDate());
+                string	YYYYMMDD = TimeDate::get_YYYYMMDD_fromDateString(task.getDate());
                 cout << "YYYYMMDD : " << YYYYMMDD << endl;
                 if(buildRegularAcquisitionDirectory(YYYYMMDD)){
 
@@ -861,7 +861,7 @@ bool AcqThread::runScheduledAcquisition(AcqRegular task){
                     newFits.setOntime(exptime);
                     newFits.setDateobs(frame.getAcqDateMicro());
 
-                    vector<int> firstDateInt = TimeDate::getIntVectorFromDateString(task.getAccurateDate());
+                    vector<int> firstDateInt = TimeDate::getIntVectorFromDateString(task.getDate());
                     double  debObsInSeconds = firstDateInt.at(3)*3600 + firstDateInt.at(4)*60 + firstDateInt.at(5);
                     double  julianDate      = TimeDate::gregorianToJulian_2(firstDateInt);
                     double  julianCentury   = TimeDate::julianCentury(julianDate);

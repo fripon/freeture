@@ -42,7 +42,7 @@
 #endif
 
 #include "ECamBitDepth.h"
-#include "AcqRegular.h"
+#include "AcqSchedule.h"
 #include "DetThread.h"
 #include "StackThread.h"
 #include "Device.h"
@@ -126,10 +126,10 @@ class AcqThread{
 
         string completeDataPath;
 
-        vector<AcqRegular> ACQ_SCHEDULE;
+        vector<AcqSchedule> ACQ_SCHEDULE;
 
         // Next acquisition to achieve.
-        AcqRegular nextTask;
+        AcqSchedule nextTask;
 
         // Index of the next acquisition to achieve in the schedule table.
         int indexNextTask = 0;
@@ -169,7 +169,7 @@ class AcqThread{
 
     private :
 
-        bool runScheduledAcquisition(AcqRegular task);
+        bool runScheduledAcquisition(AcqSchedule task);
 
         bool runRegularAcquisition(string frameDate);
 

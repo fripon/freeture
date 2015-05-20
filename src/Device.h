@@ -63,7 +63,7 @@
 #include "CameraGigeSdkIc.h"
 #include "CameraVideo.h"
 #include "CameraFrames.h"
-#include "AcqRegular.h"
+#include "AcqSchedule.h"
 #include "Fits.h"
 #include <vector>
 #include <algorithm>
@@ -98,7 +98,7 @@ class Device{
 
         Camera *cam;
 
-        vector<AcqRegular>  ACQ_SCHEDULE;
+        vector<AcqSchedule>  ACQ_SCHEDULE;
         bool                ACQ_SCHEDULE_ENABLED;
         string              DATA_PATH;
         string              STATION_NAME;
@@ -190,7 +190,7 @@ class Device{
 
 		bool    loadDataset();
 
-		vector<AcqRegular>    getSchedule()       {return ACQ_SCHEDULE;};
+		vector<AcqSchedule>    getSchedule()       {return ACQ_SCHEDULE;};
 
 		string      getDataPath()                   {return DATA_PATH;};
 		string      getStationName()                {return STATION_NAME;};

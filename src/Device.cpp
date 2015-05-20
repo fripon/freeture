@@ -421,7 +421,7 @@ bool Device::prepareDevice(CamType type, string cfgFile){
 
                         if(sp.size() == 7){
 
-                            AcqRegular r = AcqRegular(atoi(sp.at(0).c_str()), atoi(sp.at(1).c_str()), atoi(sp.at(2).c_str()), atoi(sp.at(3).c_str()), atoi(sp.at(4).c_str()), atoi(sp.at(5).c_str()), atoi(sp.at(6).c_str()));
+                            AcqSchedule r = AcqSchedule(atoi(sp.at(0).c_str()), atoi(sp.at(1).c_str()), atoi(sp.at(2).c_str()), atoi(sp.at(3).c_str()), atoi(sp.at(4).c_str()), atoi(sp.at(5).c_str()), atoi(sp.at(6).c_str()));
 
                             int scheduledTimeInSec = atoi(sp.at(0).c_str()) * 3600 + atoi(sp.at(1).c_str()) * 60 + atoi(sp.at(2).c_str());
 

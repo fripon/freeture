@@ -41,7 +41,7 @@ freeture_SOURCES	= EImgBitDepth.h ECamType.h EParser.h EParser.cpp \
 			CameraFrames.cpp SMTPClient.cpp HistogramGray.h HistogramGray.cpp \
 			CameraVideo.cpp Configuration.cpp Conversion.cpp \
 			DetThread.cpp Fits.cpp Fits2D.cpp Fits3D.cpp \
-			Frame.cpp GlobalEvent.cpp Histogram.cpp AcqRegular.h AcqRegular.cpp \
+			Frame.cpp GlobalEvent.cpp Histogram.cpp AcqSchedule.h AcqSchedule.cpp \
 			LocalEvent.cpp main.cpp HistogramRGB.h HistogramRGB.cpp \
 			TimeDate.cpp ExposureControl.cpp ExposureControl.h \
 			SaveImg.cpp ELogSeverityLevel.h

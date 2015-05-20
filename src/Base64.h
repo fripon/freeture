@@ -43,14 +43,26 @@
 
 using namespace std;
 
-class Base64{
+class Base64 {
 
     public:
 
-        Base64(){};
-        ~Base64(){};
+        /**
+         * Constructor.
+         */
+        Base64() {};
 
-        //! Encode string data with base64.
+        /**
+         * Destructor.
+         */
+        ~Base64() {};
+
+        /**
+         * Encode string data with base64.
+         *
+         * @param data String to encode.
+         * @return Encoded string.
+         */
         static string encodeBase64(string data);
 
 };

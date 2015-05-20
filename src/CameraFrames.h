@@ -1,5 +1,5 @@
 /*
-				CameraFrames.h
+                            CameraFrames.h
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 *
@@ -62,11 +62,11 @@ using namespace std;
 
 class CameraFrames: public Camera {
 
-	private:
+    private:
 
-		static boost::log::sources::severity_logger< LogSeverityLevel > logger;
+        static boost::log::sources::severity_logger< LogSeverityLevel > logger;
 
-		static class Init {
+        static class Init {
 
             public:
 
@@ -80,15 +80,15 @@ class CameraFrames: public Camera {
 
         bool searchMinMaxFramesNumber(string location);
 
-		vector<string> mFramesDir;  // List of frames directories to process.
+        vector<string> mFramesDir;  // List of frames directories to process.
         int mNumFramePos;           // Position of the frame number in its filename.
-		int mFirstFrameNum;         // First frame number in a directory.
-		int mLastFrameNum;          // Last frame number in a directory.
-		bool mReadDataStatus;       // Signal the end of reading data in a directory.
-		int mCurrDirId;             // Id of the directory to use.
+        int mFirstFrameNum;         // First frame number in a directory.
+        int mLastFrameNum;          // Last frame number in a directory.
+        bool mReadDataStatus;       // Signal the end of reading data in a directory.
+        int mCurrDirId;             // Id of the directory to use.
         string mCurrDir;            // Path of the directory to use.
 
-	public:
+    public:
 
         /**
          * Constructor.
@@ -96,19 +96,19 @@ class CameraFrames: public Camera {
          * @param locationList Directories which contain set of frames in fits format.
          * @param numPos Position of the frame's number in its filename.
          */
-		CameraFrames(vector<string>	locationList, int numPos);
+        CameraFrames(vector<string>	locationList, int numPos);
 
         /**
          * Destructor.
          */
-		~CameraFrames();
+        ~CameraFrames();
 
         /**
         * Prepare acquisition on the first directory of fits frames.
         *
         * @return Success status to prepare acquisition.
         */
-		bool grabInitialization();
+        bool grabInitialization();
 
         /**
         * Read the next fits frame in the current directory.
@@ -116,28 +116,28 @@ class CameraFrames: public Camera {
         * @param newFrame New frame's container object.
         * @return Success status to get a frame.
         */
-		bool grabImage(Frame &img);
+        bool grabImage(Frame &img);
 
         /**
         * Get status : End to read fits frames in the current directory.
         *
         * @return Reading end status.
         */
-		bool getStopStatus();
+        bool getStopStatus();
 
         /**
         * Load next directory of fits frames if there is.
         *
         * @return Success status to load next data set.
         */
-		bool loadNextDataSet();
+        bool loadNextDataSet();
 
         /**
         * Get data status : Is there another directory to use in input ?
         *
         * @return If there is still a directory to load in input.
         */
-		bool getDataStatus();
+        bool getDataStatus();
 
 
 };
