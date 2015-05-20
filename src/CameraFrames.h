@@ -30,14 +30,13 @@
 * \author  Yoan Audureau -- FRIPON-GEOPS-UPSUD
 * \version 1.0
 * \date    02/09/2014
-* \brief   Acquisition thread with fits individual frames in input.
+* \brief   Fits frames in input of acquisition thread.
 */
 
 #pragma once
 #include "config.h"
 #include "opencv2/highgui/highgui.hpp"
 #include <opencv2/imgproc/imgproc.hpp>
-
 
 #ifdef LINUX
 #define BOOST_LOG_DYN_LINK 1
@@ -61,53 +60,83 @@ using namespace boost::posix_time;
 using namespace cv;
 using namespace std;
 
-class CameraFrames: public Camera{
+class CameraFrames: public Camera {
 
 	private:
 
 		static boost::log::sources::severity_logger< LogSeverityLevel > logger;
 
-		static class _Init{
+		static class Init {
 
             public:
-                _Init()
-                {
+
+                Init() {
+
                     logger.add_attribute("ClassName", boost::log::attributes::constant<std::string>("CameraFrames"));
+
                 }
-        } _initializer;
 
-		//! Frame's location.
-		vector<string> framesDir;
+        } initializer;
 
-        //! Separator in the frame's file name.
-        int numPosInName;
+        bool searchMinMaxFramesNumber(string location);
 
-		int firstNumFrame;
-		int lastNumFrame;
-
-		bool endReadDataStatus;
-
-
-		int framesetID;
-
-        bool extractFrameNumbers(string location);
-
-        string currentFramesFir;
+		vector<string> mFramesDir;  // List of frames directories to process.
+        int mNumFramePos;           // Position of the frame number in its filename.
+		int mFirstFrameNum;         // First frame number in a directory.
+		int mLastFrameNum;          // Last frame number in a directory.
+		bool mReadDataStatus;       // Signal the end of reading data in a directory.
+		int mCurrDirId;             // Id of the directory to use.
+        string mCurrDir;            // Path of the directory to use.
 
 	public:
 
-		CameraFrames(vector<string>	dir, int nbPos);
+        /**
+         * Constructor.
+         *
+         * @param locationList Directories which contain set of frames in fits format.
+         * @param numPos Position of the frame's number in its filename.
+         */
+		CameraFrames(vector<string>	locationList, int numPos);
 
+        /**
+         * Destructor.
+         */
 		~CameraFrames();
 
-		bool grabStart();
+        /**
+        * Prepare acquisition on the first directory of fits frames.
+        *
+        * @return Success status to prepare acquisition.
+        */
+		bool grabInitialization();
 
+        /**
+        * Read the next fits frame in the current directory.
+        *
+        * @param newFrame New frame's container object.
+        * @return Success status to get a frame.
+        */
 		bool grabImage(Frame &img);
 
+        /**
+        * Get status : End to read fits frames in the current directory.
+        *
+        * @return Reading end status.
+        */
 		bool getStopStatus();
 
-		bool loadData();
+        /**
+        * Load next directory of fits frames if there is.
+        *
+        * @return Success status to load next data set.
+        */
+		bool loadNextDataSet();
 
+        /**
+        * Get data status : Is there another directory to use in input ?
+        *
+        * @return If there is still a directory to load in input.
+        */
 		bool getDataStatus();
 
 

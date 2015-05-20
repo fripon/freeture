@@ -222,7 +222,7 @@ bool CameraGigeSdkPylon::getDeviceNameById(int id, string &device){
 
 }
 
-bool CameraGigeSdkPylon::grabStart(){
+bool CameraGigeSdkPylon::grabInitialization(){
 
 	cout << " Starting basler's grab initialization... " << endl;
 
@@ -343,7 +343,7 @@ bool CameraGigeSdkPylon::grabStart(){
 
 }
 
-void CameraGigeSdkPylon::grabStop(){
+void CameraGigeSdkPylon::grabCleanse(){
 
 	if(pCamera){
 
@@ -699,7 +699,7 @@ bool CameraGigeSdkPylon::getPixelFormat(CamBitDepth &format){
 
 }
 
-int CameraGigeSdkPylon::getWidth(){
+int CameraGigeSdkPylon::getFrameWidth(){
 
 	int imgW = 0;
 

@@ -107,7 +107,7 @@
 			guint64         nbFailures;
 			guint64         nbUnderruns;
 			int             fcpt;
-			vector<string>  schedule;
+
 
 		public:
 
@@ -121,8 +121,8 @@
 			bool	createDevice(int id);
 			//bool    getDeviceNameById(int id, string &device);
 
-			bool	grabStart();
-			void	grabStop();
+			bool	grabInitialization();
+			void	grabCleanse();
 			void    acqStart();
 			void    acqStop();
 
@@ -146,8 +146,8 @@
 			void	getExposureBounds(int &eMin, int &eMax);
 			void	getGainBounds(int &gMin, int &gMax);
 			bool	getPixelFormat(CamBitDepth &format);
-			int		getWidth();
-			int		getHeight();
+			int		getFrameWidth();
+			int		getFrameHeight();
 			int		getFPS();
 			string	getModelName();
 			int     getExposureTime();
@@ -156,11 +156,9 @@
 			bool	setGain(int gain);
 			bool    setFPS(int fps);
 			bool	setPixelFormat(CamBitDepth depth);
-			void    setSchedule(vector<string> s);
 
 			void    saveGenicamXml(string p);
 
-			bool    grabTest();
 
 	};
 

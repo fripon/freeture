@@ -156,7 +156,7 @@ bool Device::prepareDevice(CamType type, string cfgFile){
 
                     // Create camera using pre-recorded fits2D in input.
 					cam = new CameraFrames(framesLocationList, FRAMES_SEPARATOR_POSITION);
-					if(!cam->grabStart())
+					if(!cam->grabInitialization())
                         throw "Fail to prepare acquisition on the first frames directory.";
 
 				}
@@ -190,7 +190,7 @@ bool Device::prepareDevice(CamType type, string cfgFile){
 
                     // Create camera using pre-recorded video in input.
 					cam = new CameraVideo(videoList);
-					cam->grabStart();
+					cam->grabInitialization();
 				}
 
 				break;
@@ -562,7 +562,7 @@ void Device::runContinuousAcquisition(){
 
     /// Prepare grabbing.
     BOOST_LOG_SEV(logger, notification) << "Preparing camera to continuous acquisition...";
-    if(!cam->grabStart())
+    if(!cam->grabInitialization())
         throw "Fail to start grab.";
 
     /// Start acquisition.
@@ -573,13 +573,7 @@ void Device::runContinuousAcquisition(){
 
 bool Device::loadDataset(){
 
-    return cam->loadData();
-
-}
-
-bool Device::grabTest(){
-
-    cam->grabTest();
+    return cam->loadNextDataSet();
 
 }
 
@@ -588,7 +582,7 @@ void Device::listGigeCameras(){
 }
 
 void Device::grabStop(){
-	cam->grabStop();
+	cam->grabCleanse();
 }
 
 bool Device::getDeviceStopStatus(){
@@ -596,7 +590,7 @@ bool Device::getDeviceStopStatus(){
 }
 
 bool Device::getDatasetStatus(){
-	return cam->getDataStatus();
+	return cam->getDataSetStatus();
 }
 
 void Device::acqStop(){
@@ -628,11 +622,11 @@ bool Device::getPixelFormat(CamBitDepth &format){
 }
 
 int Device::getWidth(){
-	return cam->getWidth();
+	return cam->getFrameWidth();
 }
 
 int Device::getHeight(){
-	return cam->getHeight();
+	return cam->getFrameHeight();
 }
 
 int Device::getFPS(){

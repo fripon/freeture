@@ -30,33 +30,36 @@
 * \author  Yoan Audureau -- FRIPON-GEOPS-UPSUD
 * \version 1.0
 * \date    02/09/2014
-* \brief   Acquisition thread with fits individual frames in input.
+* \brief   Fits frames in input of acquisition thread.
 */
 
 #include "CameraFrames.h"
 
-boost::log::sources::severity_logger< LogSeverityLevel >  CameraFrames::logger;
-CameraFrames::_Init CameraFrames::_initializer;
 
-CameraFrames::CameraFrames(vector<string> dir, int nbPos){
+boost::log::sources::severity_logger< LogSeverityLevel > CameraFrames::logger;
 
-	framesDir			= dir;
-    numPosInName		= nbPos;
-	endReadDataStatus	= false;
-	framesetID = 0;
-    currentFramesFir = dir.front();
+
+CameraFrames::Init CameraFrames::initializer;
+
+
+CameraFrames::CameraFrames(vector<string> locationList, int numPos):
+    mFramesDir(locationList), mNumFramePos(numPos), mReadDataStatus(false), mCurrDirId(0) {
 
 }
 
-CameraFrames::~CameraFrames(void){}
 
-bool CameraFrames::loadData(){
+CameraFrames::~CameraFrames(void) {
 
-    if(framesetID !=0 ){
+}
 
-        currentFramesFir = framesDir.at(framesetID);
-        endReadDataStatus = false;
-        if(!extractFrameNumbers(currentFramesFir))
+
+bool CameraFrames::loadNextDataSet() {
+
+    if(mCurrDirId !=0 ) {
+
+        mReadDataStatus = false;
+
+        if(!searchMinMaxFramesNumber(mFramesDir.at(mCurrDirId)))
             return false;
 
     }
@@ -65,23 +68,26 @@ bool CameraFrames::loadData(){
 
 }
 
-bool CameraFrames::grabStart(){
 
-	return extractFrameNumbers(currentFramesFir);
+bool CameraFrames::grabInitialization() {
+
+	return searchMinMaxFramesNumber(mFramesDir.at(mCurrDirId));
 
 }
 
-bool CameraFrames::getDataStatus(){
 
-    framesetID++;
+bool CameraFrames::getDataStatus() {
 
-    if(framesetID == framesDir.size())
+    mCurrDirId++;
+
+    if(mCurrDirId == mFramesDir.size())
         return false;
     else
         return true;
 }
 
-bool CameraFrames::extractFrameNumbers(string location){
+
+bool CameraFrames::searchMinMaxFramesNumber(string location) {
 
     namespace fs = boost::filesystem;
 
@@ -94,13 +100,12 @@ bool CameraFrames::extractFrameNumbers(string location){
         int firstFrame = -1, lastFrame = 0;
         string filename = "";
 
-        /// Search first and last frames numbers in the directory.
-        for(directory_iterator file(p);file!= directory_iterator(); ++file){
+        // Search first and last frames numbers in the directory.
+        for(directory_iterator file(p);file!= directory_iterator(); ++file) {
 
             path curr(file->path());
-            //cout << file->path() << endl;
 
-            if(is_regular_file(curr)){
+            if(is_regular_file(curr)) {
 
 				// Get file name.
 				string fname = curr.filename().string();
@@ -110,7 +115,8 @@ bool CameraFrames::extractFrameNumbers(string location){
 				typedef boost::tokenizer<boost::char_separator<char> > tokenizer;
 				boost::char_separator<char> sep("_");
 				tokenizer tokens(fname, sep);
-				for (tokenizer::iterator tok_iter = tokens.begin();tok_iter != tokens.end(); ++tok_iter){
+
+				for (tokenizer::iterator tok_iter = tokens.begin();tok_iter != tokens.end(); ++tok_iter) {
 					output.push_back(*tok_iter);
 				}
 
@@ -118,22 +124,23 @@ bool CameraFrames::extractFrameNumbers(string location){
 
                 int i = 0, number = 0;
 
-                for(int j = 0; j < output.size(); j++){
+                for(int j = 0; j < output.size(); j++) {
 
-                    if(j == numPosInName && j != output.size() - 1){
+                    if(j == mNumFramePos && j != output.size() - 1) {
 
                         number = atoi(output.at(j).c_str());
 						break;
                     }
 
 					// If the frame number is at the end (before the file extension).
-                    if(j == numPosInName && j == output.size() - 1){
+                    if(j == mNumFramePos && j == output.size() - 1) {
 
 						vector<string> output2;
 						typedef boost::tokenizer<boost::char_separator<char> > tokenizer;
 						boost::char_separator<char> sep2(".");
 						tokenizer tokens2(output.back(), sep2);
-						for (tokenizer::iterator tok_iter = tokens2.begin();tok_iter != tokens2.end(); ++tok_iter){
+
+						for (tokenizer::iterator tok_iter = tokens2.begin();tok_iter != tokens2.end(); ++tok_iter) {
 							output2.push_back(*tok_iter);
 						}
 
@@ -146,17 +153,17 @@ bool CameraFrames::extractFrameNumbers(string location){
 
                 }
 
-                if(firstFrame == -1){
+                if(firstFrame == -1) {
 
                     firstFrame = number;
 
-                }else if(number < firstFrame){
+                }else if(number < firstFrame) {
 
                     firstFrame = number;
 
                 }
 
-                if(number > lastFrame){
+                if(number > lastFrame) {
 
                     lastFrame = number;
 
@@ -169,9 +176,8 @@ bool CameraFrames::extractFrameNumbers(string location){
 		BOOST_LOG_SEV(logger, normal) << "First frame number in frame's directory : " << firstFrame;
 		BOOST_LOG_SEV(logger, normal) << "Last frame number in frame's directory : " << lastFrame;
 
-
-		lastNumFrame = lastFrame;
-		firstNumFrame = firstFrame;
+		mLastFrameNum = lastFrame;
+		mFirstFrameNum = firstFrame;
 
 		return true;
 
@@ -185,17 +191,21 @@ bool CameraFrames::extractFrameNumbers(string location){
 
 }
 
-bool CameraFrames::getStopStatus(){
-	return endReadDataStatus;
+
+bool CameraFrames::getStopStatus() {
+
+	return mReadDataStatus;
+
 }
 
-bool CameraFrames::grabImage(Frame &img){
+
+bool CameraFrames::grabImage(Frame &img) {
 
     bool fileFound = false;
 
     string filename = "";
 
-	path p(currentFramesFir);
+	path p(mFramesDir.at(mCurrDirId));
 
     /// Search a frame in the directory.
     for(directory_iterator file(p);file!= directory_iterator(); ++file){
@@ -213,7 +223,7 @@ bool CameraFrames::grabImage(Frame &img){
 
             for(; lit != lend; ++lit){
 
-                if(i == numPosInName && i != ch.size() - 1){
+                if(i == mNumFramePos && i != ch.size() - 1){
 
                     number = atoi((*lit).c_str()); break;
                 }
@@ -231,9 +241,9 @@ bool CameraFrames::grabImage(Frame &img){
 
             }
 
-            if(number == firstNumFrame){
+            if(number == mFirstFrameNum){
 
-                firstNumFrame++;
+                mFirstFrameNum++;
                 fileFound = true;
 
                 cout << "FILE:" << file->path().string() << endl;
@@ -248,9 +258,9 @@ bool CameraFrames::grabImage(Frame &img){
     }
 
 
-    if(firstNumFrame > lastNumFrame || !fileFound){
+    if(mFirstFrameNum > mLastFrameNum || !fileFound){
 
-		endReadDataStatus = true;
+		mReadDataStatus = true;
 		BOOST_LOG_SEV(logger, normal) <<  "End read frames.";
 		return false;
 
@@ -275,12 +285,14 @@ bool CameraFrames::grabImage(Frame &img){
 		switch(bitpix){
 
 			case 8 :
+
 				frameFormat = MONO_8;
 				newFits.readFits8UC(resMat, filename);
 
 				break;
 
 			case 16 :
+
 				frameFormat = MONO_12;
 
 				//newFits.readFits16S(resMat, filename);
@@ -299,13 +311,13 @@ bool CameraFrames::grabImage(Frame &img){
 		img = f;
 
 		img.setAcqDateMicro(acqDateInMicrosec);
-        cout << "set num frame: " << firstNumFrame-1<<  endl;
-		img.setNumFrame(firstNumFrame -1 );
-		img.setFrameRemaining(lastNumFrame - firstNumFrame-1);
+        cout << "set num frame: " << mFirstFrameNum-1<<  endl;
+		img.setNumFrame(mFirstFrameNum -1 );
+		img.setFrameRemaining(mLastFrameNum - mFirstFrameNum-1);
 		img.setFPS(1);
 		img.setBitDepth(frameFormat);
 
-		waitKey(300);
+		waitKey(150);
 
 		return true;
 

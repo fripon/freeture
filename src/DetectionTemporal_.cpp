@@ -526,9 +526,6 @@ bool DetectionTemporal_::run(Frame &c, Frame &p){
 		else
             subdivideFrame(subdivisionPos, 8, c.getImg().rows, c.getImg().cols);
 
-        for(int i = 0; i< subdivisionPos.size(); i++)
-            cout << subdivisionPos.at(i) << endl;
-
 		initStatus = true;
 
 	}else{

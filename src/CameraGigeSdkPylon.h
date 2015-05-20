@@ -127,8 +127,8 @@
 			bool	createDevice(int id);
 			bool    getDeviceNameById(int id, string &device);
 
-			bool	grabStart();
-			void	grabStop();
+			bool	grabInitialization();
+			void	grabCleanse();
 			void    acqStart();
 			void    acqStop();
 
@@ -138,8 +138,8 @@
 			void	getExposureBounds(int &gMin, int &gMax);
 			void	getGainBounds(int &eMin, int &eMax);
 			bool	getPixelFormat(CamBitDepth &format);
-			int		getWidth();
-			int		getHeight();
+			int		getFrameWidth();
+			int		getFrameHeight();
 			int		getFPS();
 			string	getModelName();
 

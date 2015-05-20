@@ -164,8 +164,6 @@ class Device{
 
 		bool	grabSingleImage(Frame &frame, int camID);
 
-		bool    grabTest();
-
 		void	getExposureBounds(int &gMin, int &gMax);
 
 		void	getGainBounds(int &eMin, int &eMax);

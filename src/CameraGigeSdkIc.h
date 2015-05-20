@@ -42,11 +42,11 @@
 	#include <opencv2/imgproc/imgproc.hpp>
 
 	#include <iostream>
-	#include <string> 
+	#include <string>
 	#include "Frame.h"
 	#include "TimeDate.h"
 	#include "Camera.h"
-	
+
 	#include "ECamBitDepth.h"
 	#include <boost/log/common.hpp>
 	#include <boost/log/expressions.hpp>
@@ -60,7 +60,7 @@
 	#include <boost/log/core.hpp>
 	#include "ELogSeverityLevel.h"
 
-	#include "tisudshl.h" 
+	#include "tisudshl.h"
 	#include <algorithm>
 
 	using namespace cv;
@@ -79,7 +79,7 @@
 					{
 						logger.add_attribute("ClassName", boost::log::attributes::constant<std::string>("CameraGigeSdkIc"));
 					}
-			} _initializer;		
+			} _initializer;
 
 			DShowLib::tIVCDRangePropertyPtr	getPropertyRangeInterface(_DSHOWLIB_NAMESPACE::tIVCDPropertyItemsPtr& pItems, const GUID& id);
 			bool propertyIsAvailable(const GUID& id, _DSHOWLIB_NAMESPACE::tIVCDPropertyItemsPtr m_pItemContainer);
@@ -107,8 +107,8 @@
 			bool	createDevice(int id, string name){};
 			/*bool    getDeviceNameById(int id, string &device);
 
-			bool	grabStart();
-			void	grabStop();
+			bool	grabInitialization();
+			void	grabCleanse();
 			void    acqStart();
 			void    acqStop();
 
@@ -118,8 +118,8 @@
 			void	getExposureBounds(int &eMin, int &eMax);
 			void	getGainBounds(int &gMin, int &gMax);
 			bool	getPixelFormat(CamBitDepth &format);
-			int		getWidth();
-			int		getHeight();
+			int		getFrameWidth();
+			int		getFrameHeight();
 			int		getFPS();
 			string	getModelName();
 

@@ -106,12 +106,12 @@ class CameraVideo : public Camera{
 
 		bool grabImage(Frame &img);
 
-		bool grabStart();
+		bool grabInitialization();
 
 		bool getStopStatus();
 
 		bool getDataStatus();
 
-		bool loadData();
+		bool loadNextDataSet();
 };
 

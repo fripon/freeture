@@ -58,7 +58,7 @@ CameraVideo::CameraVideo(vector<string> video_list){
 
 CameraVideo::~CameraVideo(void){}
 
-bool CameraVideo::grabStart(){
+bool CameraVideo::grabInitialization(){
 
 	//if not success, exit program
     if ( !cap.isOpened() ){
@@ -83,7 +83,7 @@ bool CameraVideo::getDataStatus(){
         return true;
 }
 
-bool CameraVideo::loadData(){
+bool CameraVideo::loadNextDataSet(){
 
     if(videoID!=0){
 
