@@ -1,5 +1,5 @@
 /*
-						DetectionDayTime.cpp
+                            DetectionTemplate.h
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 *
@@ -20,20 +20,44 @@
 *	You should have received a copy of the GNU General Public License
 *	along with FreeTure. If not, see <http://www.gnu.org/licenses/>.
 *
-*	Last modified:		20/10/2014
+*	Last modified:		03/03/2015
 *
 *%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%*/
 
 /**
-* \file    DetectionDayTime.cpp
+* \file    DetectionTemplate.h
 * \author  Yoan Audureau -- FRIPON-GEOPS-UPSUD
 * \version 1.0
-* \date    03/06/2014
-* \brief   Daytime detection method.
+* \date    03/03/2015
+* \brief   Detection method by streak.
 */
 
-#include "DetectionDayTime.h"
+#pragma once
 
-boost::log::sources::severity_logger< LogSeverityLevel >  DetectionDayTime::logger;
-DetectionDayTime::_Init DetectionDayTime::_initializer;
+#include "opencv2/highgui/highgui.hpp"
+#include <opencv2/imgproc/imgproc.hpp>
+#include "Detection.h"
+
+using namespace std;
+using namespace cv;
+
+class DetectionTemplate : public Detection {
+
+    private :
+
+    public :
+
+        /**
+        * Constructor.
+        *
+        */
+        DetectionTemplate();
+
+        /**
+        * Destructor.
+        *
+        */
+        ~DetectionTemplate();
+
+};
 

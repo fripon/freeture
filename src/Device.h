@@ -1,5 +1,5 @@
 /*
-							Device.h
+                                Device.h
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 *
@@ -33,6 +33,7 @@
 */
 
 #pragma once
+
 #include "config.h"
 
 #ifdef LINUX
@@ -41,7 +42,6 @@
 
 #include "opencv2/highgui/highgui.hpp"
 #include <opencv2/imgproc/imgproc.hpp>
-
 #include <boost/log/common.hpp>
 #include <boost/log/expressions.hpp>
 #include <boost/log/utility/setup/file.hpp>
@@ -68,165 +68,149 @@
 #include <vector>
 #include <algorithm>
 #include <string>
-
 #include <boost/filesystem.hpp>
 #include <iterator>
 #include <algorithm>
 #include <boost/tokenizer.hpp>
-
 #include <boost/circular_buffer.hpp>
 
 using namespace boost::filesystem;
-
 using namespace cv;
 using namespace std;
 
 class Device{
 
-	private:
+    private:
 
-		static boost::log::sources::severity_logger< LogSeverityLevel > logger;
+        static boost::log::sources::severity_logger< LogSeverityLevel > logger;
 
-		static class _Init{
+        static class Init {
 
-			public:
-				_Init()
-				{
-					logger.add_attribute("ClassName", boost::log::attributes::constant<std::string>("Device"));
-				}
-		} _initializer;
+            public:
 
-        Camera *cam;
+                Init() {
 
-        vector<AcqSchedule>  ACQ_SCHEDULE;
-        bool                ACQ_SCHEDULE_ENABLED;
-        string              DATA_PATH;
-        string              STATION_NAME;
-        CamBitDepth         ACQ_BIT_DEPTH;
-        int                 ACQ_NIGHT_EXPOSURE;
-        int                 ACQ_NIGHT_GAIN;
-        int                 ACQ_DAY_EXPOSURE;
-        int                 ACQ_DAY_GAIN;
-        int                 ACQ_FPS;
-        int                 CAMERA_ID;
-        Mat                 ACQ_MASK;
-        bool                ACQ_MASK_ENABLED;
-        string              ACQ_MASK_PATH;
-        bool                ACQ_DAY_ENABLED;
-        bool                EPHEMERIS_ENABLED;
-        bool                EXPOSURE_CONTROL_SAVE_IMAGE;
-        bool                EXPOSURE_CONTROL_SAVE_INFOS;
-        int                 EXPOSURE_CONTROL_FREQUENCY;
-        vector<int>         SUNRISE_TIME;
-        vector<int>         SUNSET_TIME;
-        int                 SUNSET_DURATION;
-        int                 SUNRISE_DURATION;
-        bool                ACQ_REGULAR_ENABLED;
-        int                 ACQ_REGULAR_INTERVAL;
-        int                 ACQ_REGULAR_EXPOSURE;
-        int                 ACQ_REGULAR_GAIN;
-        CamBitDepth         ACQ_REGULAR_FORMAT;
-        int                 ACQ_REGULAR_REPETITION;
-        bool                DISPLAY_INPUT;
-        bool                VIDEO_FRAMES_INPUT;
-        bool                DETECTION_ENABLED;
+                    logger.add_attribute("ClassName", boost::log::attributes::constant<std::string>("Device"));
 
+                }
 
-        int minExposureTime;
-        int maxExposureTime;
-        int minGain;
-        int maxGain;
+        } initializer;
 
+        Camera              *cam;
+        vector<AcqSchedule> mSchedule;
+        bool                mScheduleEnabled;
+        string              mDataPath;
+        string              mStationName;
+        CamBitDepth         mBitDepth;
+        int                 mNightExposure;
+        int                 mNightGain;
+        int                 mDayExposure;
+        int                 mDayGain;
+        int                 mFPS;
+        int                 mCamID;
+        Mat                 mMask;
+        bool                mMaskEnabled;
+        string              mMaskPath;
+        bool                mDayAcqEnabled;
+        bool                mEphemerisEnabled;
+        bool                mExpCtrlSaveImg;
+        bool                mExpCtrlSaveInfos;
+        int                 mExpCtrlFrequency;
+        vector<int>         mSunriseTime;
+        vector<int>         mSunsetTime;
+        int                 mSunsetDuration;
+        int                 mSunriseDuration;
+        bool                mRegularAcqEnabled;
+        int                 mRegularInterval;
+        int                 mRegularExposure;
+        int                 mRegularGain;
+        CamBitDepth         mRegularFormat;
+        int                 mRegularRepetition;
+        bool                mDisplayVideoInInput;
+        bool                mVideoFramesInInput;
+        bool                mDetectionEnabled;
+        int                 mMinExposureTime;
+        int                 mMaxExposureTime;
+        int                 mMinGain;
+        int                 mMaxGain;
+        Fits                mFitsHeader;
+        CamType             mType;
+        string              mCfgPath;
 
-        Fits fitsHeader;
+    public :
 
-	public:
-
+        /**
+        * Constructor.
+        *
+        * @param type Type of camera in input.
+        */
         Device(CamType type);
 
-		~Device();
+        /**
+        * Constructor.
+        *
+        * @param type Type of camera in input.
+        * @param cfgPath Path of the configuration file.
+        */
+        Device(CamType type, string cfgPath);
 
-		bool	prepareDevice(CamType type, string cfgFile);
+        /**
+        * Destructor.
+        *
+        */
+        ~Device();
 
-		void	listGigeCameras();
+        /**
+        * Load camera's parameters.
+        *
+        */
+        bool prepareDevice();
 
-		void	grabStop();
+        /**
+        * Configure camera in order to run continuous acquisition.
+        *
+        */
+        void runContinuousAcquisition();
 
-		void    acqStop();
-
-		void    acqRestart();
-
-		bool	getDeviceStopStatus();
-
-		bool    getDatasetStatus();
-
-		bool    grabImage(Frame& newFrame);
-
-		bool	grabSingleImage(Frame &frame, int camID);
-
-		void	getExposureBounds(int &gMin, int &gMax);
-
-		void	getGainBounds(int &eMin, int &eMax);
-
-		bool	getPixelFormat(CamBitDepth &format);
-
-		int		getWidth();
-
-		int		getHeight();
-
-		int		getFPS();
-
-		string	getModelName();
-
-		bool	setExposureTime(int exp);
-
-		int     getExposureTime();
-
-		bool	setGain(int gain);
-
-		bool    setFPS(int fps);
-
-		bool	setPixelFormat(CamBitDepth depth);
-
-		bool    loadDataset();
-
-		vector<AcqSchedule>    getSchedule()       {return ACQ_SCHEDULE;};
-
-		string      getDataPath()                   {return DATA_PATH;};
-		string      getStationName()                {return STATION_NAME;};
-		int         getCameraId()                   {return CAMERA_ID;};
-		Fits        getFitsHeader()                 {return fitsHeader;};
-		Mat         getMask()                       {return ACQ_MASK;};
-		int         getMaxGain()                    {return maxGain;};
-		int         getMinGain()                    {return minGain;};
-        int         getMinExposureTime()            {return minExposureTime;};
-        int         getMaxExposureTime()            {return maxExposureTime;};
-        bool        getExposureControlSaveImage()   {return EXPOSURE_CONTROL_SAVE_IMAGE;};
-        bool        getExposureControlSaveInfos()   {return EXPOSURE_CONTROL_SAVE_INFOS;};
-        int         getExposureControlFrequency()   {return EXPOSURE_CONTROL_FREQUENCY;};
-        bool        getAcqDayEnabled()              {return ACQ_DAY_ENABLED;};
-        vector<int> getSunriseTime()                {return SUNRISE_TIME;};
-        int         getSunriseDuration()            {return SUNRISE_DURATION;};
-        vector<int> getSunsetTime()                 {return SUNSET_TIME;};
-        int         getSunsetDuration()             {return SUNSET_DURATION;};
-        int         getNightExposureTime()          {return ACQ_NIGHT_EXPOSURE;};
-        int         getDayExposureTime()            {return ACQ_DAY_EXPOSURE;};
-        int         getDayGain()                    {return ACQ_DAY_GAIN;};
-        int         getNightGain()                  {return ACQ_NIGHT_GAIN;};
-        bool        getAcqRegularEnabled()          {return ACQ_REGULAR_ENABLED;};
-        int         getAcqRegularTimeInterval()     {return ACQ_REGULAR_INTERVAL;};
-        int         getAcqRegularExposure()         {return ACQ_REGULAR_EXPOSURE;};
-        int         getAcqRegularGain()             {return ACQ_REGULAR_GAIN;};
-        CamBitDepth getAcqRegularFormat()           {return ACQ_REGULAR_FORMAT;};
-        int         getAcqRegularRepetition()       {return ACQ_REGULAR_REPETITION;};
-        bool        getAcqScheduleEnabled()         {return ACQ_SCHEDULE_ENABLED;};
-        bool        getDisplayInput()               {return DISPLAY_INPUT;};
-        bool        getVideoFramesInput()           {return VIDEO_FRAMES_INPUT;};
-        bool        getDetectionEnabled()           {return DETECTION_ENABLED;};
-
+        Camera              *getCam() const                 {return cam;}
+        vector<AcqSchedule> getSchedule()                   {return mSchedule;};
+        string              getDataPath()                   {return mDataPath;};
+        string              getStationName()                {return mStationName;};
+        int                 getCameraId()                   {return mCamID;};
+        Fits                getFitsHeader()                 {return mFitsHeader;};
+        Mat                 getMask()                       {return mMask;};
+        int                 getMaxGain()                    {return mMaxGain;};
+        int                 getMinGain()                    {return mMinGain;};
+        int                 getMinExposureTime()            {return mMinExposureTime;};
+        int                 getMaxExposureTime()            {return mMaxExposureTime;};
+        bool                getExposureControlSaveImage()   {return mExpCtrlSaveImg;};
+        bool                getExposureControlSaveInfos()   {return mExpCtrlSaveInfos;};
+        int                 getExposureControlFrequency()   {return mExpCtrlFrequency;};
+        bool                getAcqDayEnabled()              {return mDayAcqEnabled;};
+        vector<int>         getSunriseTime()                {return mSunriseTime;};
+        int                 getSunriseDuration()            {return mSunriseDuration;};
+        vector<int>         getSunsetTime()                 {return mSunsetTime;};
+        int                 getSunsetDuration()             {return mSunsetDuration;};
+        int                 getNightExposureTime()          {return mNightExposure;};
+        int                 getDayExposureTime()            {return mDayExposure;};
+        int                 getDayGain()                    {return mDayGain;};
+        int                 getNightGain()                  {return mNightGain;};
+        bool                getAcqRegularEnabled()          {return mRegularAcqEnabled;};
+        int                 getAcqRegularTimeInterval()     {return mRegularInterval;};
+        int                 getAcqRegularExposure()         {return mRegularExposure;};
+        int                 getAcqRegularGain()             {return mRegularGain;};
+        CamBitDepth         getAcqRegularFormat()           {return mRegularFormat;};
+        int                 getAcqRegularRepetition()       {return mRegularRepetition;};
+        bool                getAcqScheduleEnabled()         {return mScheduleEnabled;};
+        bool                getDisplayInput()               {return mDisplayVideoInInput;};
+        bool                getVideoFramesInput()           {return mVideoFramesInInput;};
+        bool                getDetectionEnabled()           {return mDetectionEnabled;};
 
     private :
 
-        void    runContinuousAcquisition();
-
+        /**
+        * Initialize device and select correct SDK.
+        *
+        */
+        void initialization();
 };

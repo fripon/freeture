@@ -1,5 +1,5 @@
 /*
-								Stack.h
+                                Stack.h
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 *
@@ -43,7 +43,6 @@
 #include "opencv2/highgui/highgui.hpp"
 #include <opencv2/imgproc/imgproc.hpp>
 #include <boost/tokenizer.hpp>
-
 #include <boost/log/common.hpp>
 #include <boost/log/expressions.hpp>
 #include <boost/log/utility/setup/file.hpp>
@@ -55,13 +54,11 @@
 #include <boost/log/sources/logger.hpp>
 #include <boost/log/core.hpp>
 #include "ELogSeverityLevel.h"
-
 #include "TimeDate.h"
 #include "Fits2D.h"
 #include "Fits.h"
 #include "Frame.h"
 #include "EStackMeth.h"
-
 #include <boost/filesystem.hpp>
 
 using namespace boost::filesystem;
@@ -69,54 +66,105 @@ using namespace boost::filesystem;
 using namespace std;
 using namespace cv;
 
-class Stack{
+class Stack {
 
-	private:
+    private :
 
-		static boost::log::sources::severity_logger< LogSeverityLevel > logger;
+        static boost::log::sources::severity_logger< LogSeverityLevel > logger;
 
-		static class _Init{
+        static class Init {
 
-			public:
-				_Init()
-				{
-					logger.add_attribute("ClassName", boost::log::attributes::constant<std::string>("Stack"));
-				}
-		} _initializer;
+            public :
 
+                Init() {
 
-		//boost::log::sources::severity_logger< LogSeverityLevel > log;
+                    logger.add_attribute("ClassName", boost::log::attributes::constant<std::string>("Stack"));
 
-		Mat			stack;
-		int			maxFrames;
-		int			curFrames;			// nb frames stacked
-		int			gainFirstFrame;
-		int			expFirstFrame;
-		string		dateFirstFrame;
-		string		dateLastFrame;
-		int			fps;
-		bool		fullStatus;
-		CamBitDepth	bitdepth;
+                }
 
-	public:
+        }initializer;
 
+        Mat             stack;
+        int             maxFrames;
+        int             curFrames;
+        int             gainFirstFrame;
+        int             expFirstFrame;
+        string          dateFirstFrame;
+        string          dateLastFrame;
+        int             fps;
+        bool            fullStatus;
+        CamBitDepth     bitdepth;
+
+    public :
+
+        /**
+        * Constructor.
+        *
+        */
         Stack(int nbFrameToSum);
 
+        /**
+        * Destructor.
+        *
+        */
         ~Stack(void);
 
-		void addFrame(Frame &i);
+        /**
+        * Add a frame to the stack.
+        *
+        * @param i Frame to add.
+        */
+        void addFrame(Frame &i);
 
-		bool getFullStatus(){return fullStatus;};
+        /**
+        * Get full status of the stack.
+        *
+        * @return Stack is full or not.
+        */
+        bool getFullStatus(){return fullStatus;};
 
-		string getDateFirstFrame(){return dateFirstFrame;};
+        /**
+        * Get Date of the first frame of the stack.
+        *
+        * @return Date.
+        */
+        string getDateFirstFrame(){return dateFirstFrame;};
 
-		bool saveStack(Fits fitsHeader, string path, StackMeth STACK_MTHD, string STATION_NAME, bool STACK_REDUCTION);
+        /**
+        * Save stack.
+        *
+        * @param fitsHeader fits keywords.
+        * @param path Location where to save the stack.
+        * @param stackMthd Method to use to create stack.
+        * @param stationName Name of the station.
+        * @param stackReduction Enable stack reduction.
+        * @return Success status.
+        */
+        bool saveStack(Fits fitsHeader, string path, StackMeth stackMthd, string stationName, bool stackReduction);
 
+        /**
+        * Get number of frames in the stack.
+        *
+        * @return Number of frames.
+        */
         int getNbFramesStacked(){return curFrames;};
+
+        /**
+        * Get number of maximum to stack.
+        *
+        * @return Number of frames.
+        */
         int getMaxFramesToStack(){return maxFrames;};
 
-	private :
+    private :
 
-		Mat reductionByFactorDivision(float &bzero, float &bscale);
+        /**
+        * Reduce stack in float 32 bits to 8 or 16 bits.
+        *
+        * @param bzero (Physical_value = image_value * bscale + bzero)
+        * @param bscale
+        * @return Reduced image.
+        */
+        Mat reductionByFactorDivision(float &bzero, float &bscale);
 
 };

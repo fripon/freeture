@@ -1,5 +1,5 @@
 /*
-				Histogram.h
+                            Histogram.h
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 *
@@ -42,20 +42,45 @@
 using namespace std;
 using namespace cv;
 
+class Histogram {
 
-class Histogram{
+    protected :
 
-    protected:
+        cv::Mat bins;
 
-        cv::Mat	bins;
+    public :
 
-    public:
-
+        /**
+        * Constructor.
+        *
+        */
         Histogram() {};
+
+        /**
+        * Destructor.
+        *
+        */
         ~Histogram() {};
 
+        /**
+        * Calculate number of pixels in each bins.
+        *
+        * @param image Opencv mat image to analysis.
+        * @return Success status.
+        */
         virtual int calculate(cv::Mat &image) = 0;
+
+        /**
+        * Normalize bins.
+        *
+        */
         virtual void normalize(void) = 0;
+
+        /**
+        * Build histogram image.
+        *
+        * @return Histogram.
+        */
         virtual cv::Mat render(void) = 0;
 
 };

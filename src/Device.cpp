@@ -1,5 +1,5 @@
 /*
-								Device.cpp
+                                Device.cpp
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 *
@@ -36,36 +36,56 @@
 #include "Device.h"
 
 boost::log::sources::severity_logger< LogSeverityLevel >  Device::logger;
-Device::_Init Device::_initializer;
 
-Device::Device(CamType type){
+Device::Init Device::initializer;
 
-    STATION_NAME                    = "STATION";
-    DATA_PATH                       = "./";
-    ACQ_SCHEDULE_ENABLED            = false;
-    ACQ_NIGHT_EXPOSURE              = 0;
-    ACQ_NIGHT_GAIN                  = 0;
-    ACQ_DAY_EXPOSURE                = 0;
-    ACQ_DAY_GAIN                    = 0;
-    ACQ_FPS                         = 1;
-    CAMERA_ID                       = 0;
-    ACQ_MASK_ENABLED                = false;
-    ACQ_MASK_PATH                   = "./";
-    ACQ_DAY_ENABLED                 = false;
-    EPHEMERIS_ENABLED               = true;
-    EXPOSURE_CONTROL_SAVE_IMAGE     = false;
-    EXPOSURE_CONTROL_SAVE_INFOS     = false;
-    EXPOSURE_CONTROL_FREQUENCY      = 300;
-    SUNSET_DURATION                 = 3600;
-    SUNRISE_DURATION                = 3600;
-    minExposureTime                 = 0;
-    maxExposureTime                 = 0;
-    minGain                         = 0;
-    maxGain                         = 0;
-    DISPLAY_INPUT                   = false;
-    VIDEO_FRAMES_INPUT              = false;
+Device::Device(CamType type, string cfgPath):
+    mType(type), mCfgPath(cfgPath) {
 
-    switch(type){
+    initialization();
+}
+
+Device::Device(CamType type):
+    mType(type) {
+
+    initialization();
+
+}
+
+Device::~Device(){
+
+    if(cam != NULL) delete cam;
+
+}
+
+void Device::initialization() {
+
+    mStationName            = "STATION";
+    mDataPath               = "./";
+    mScheduleEnabled        = false;
+    mNightExposure          = 0;
+    mNightGain              = 0;
+    mDayExposure            = 0;
+    mDayGain                = 0;
+    mFPS                    = 1;
+    mCamID                  = 0;
+    mMaskEnabled            = false;
+    mMaskPath               = "./";
+    mDayAcqEnabled          = false;
+    mEphemerisEnabled       = true;
+    mExpCtrlSaveImg         = false;
+    mExpCtrlSaveInfos       = false;
+    mExpCtrlFrequency       = 300;
+    mSunsetDuration         = 3600;
+    mSunriseDuration        = 3600;
+    mMinExposureTime        = 0;
+    mMaxExposureTime        = 0;
+    mMinGain                = 0;
+    mMaxGain                = 0;
+    mDisplayVideoInInput    = false;
+    mVideoFramesInInput     = false;
+
+    switch(mType){
 
         case BASLER_GIGE :
 
@@ -106,41 +126,36 @@ Device::Device(CamType type){
             cam = NULL;
 
     }
-}
-
-Device::~Device(){
-
-    if(cam != NULL) delete cam;
 
 }
 
-bool Device::prepareDevice(CamType type, string cfgFile){
+bool Device::prepareDevice() {
 
-	try{
+    try {
 
         Configuration cfg;
-		cfg.Load(cfgFile);
+        cfg.Load(mCfgPath);
 
-		// Get detection option status.
-        cfg.Get("DETECTION_ENABLED", DETECTION_ENABLED);
+        // Get detection option status.
+        cfg.Get("DETECTION_ENABLED", mDetectionEnabled);
 
-		switch(type){
+        switch(mType){
 
-			case FRAMES :
+            case FRAMES :
 
-				{
+                {
 
                     // Get frames location.
-					string INPUT_FRAMES_DIRECTORY_PATH; cfg.Get("INPUT_FRAMES_DIRECTORY_PATH", INPUT_FRAMES_DIRECTORY_PATH);
-					BOOST_LOG_SEV(logger, normal) << "Read INPUT_FRAMES_DIRECTORY_PATH from configuration file : " << INPUT_FRAMES_DIRECTORY_PATH;
+                    string INPUT_FRAMES_DIRECTORY_PATH; cfg.Get("INPUT_FRAMES_DIRECTORY_PATH", INPUT_FRAMES_DIRECTORY_PATH);
+                    BOOST_LOG_SEV(logger, normal) << "Read INPUT_FRAMES_DIRECTORY_PATH from configuration file : " << INPUT_FRAMES_DIRECTORY_PATH;
 
-					// Get separator position in frame's name.
-					int FRAMES_SEPARATOR_POSITION; cfg.Get("FRAMES_SEPARATOR_POSITION", FRAMES_SEPARATOR_POSITION);
-					BOOST_LOG_SEV(logger, normal) << "Read FRAMES_SEPARATOR_POSITION from configuration file : " << FRAMES_SEPARATOR_POSITION;
+                    // Get separator position in frame's name.
+                    int FRAMES_SEPARATOR_POSITION; cfg.Get("FRAMES_SEPARATOR_POSITION", FRAMES_SEPARATOR_POSITION);
+                    BOOST_LOG_SEV(logger, normal) << "Read FRAMES_SEPARATOR_POSITION from configuration file : " << FRAMES_SEPARATOR_POSITION;
 
-					VIDEO_FRAMES_INPUT = true;
+                    mVideoFramesInInput = true;
 
-					vector<string> framesLocationList;
+                    vector<string> framesLocationList;
 
                     typedef boost::tokenizer<boost::char_separator<char> > tokenizer;
                     boost::char_separator<char> sep(",");
@@ -155,26 +170,26 @@ bool Device::prepareDevice(CamType type, string cfgFile){
                     }
 
                     // Create camera using pre-recorded fits2D in input.
-					cam = new CameraFrames(framesLocationList, FRAMES_SEPARATOR_POSITION);
-					if(!cam->grabInitialization())
+                    cam = new CameraFrames(framesLocationList, FRAMES_SEPARATOR_POSITION);
+                    if(!cam->grabInitialization())
                         throw "Fail to prepare acquisition on the first frames directory.";
 
-				}
+                }
 
-				break;
+                break;
 
-			case VIDEO:
+            case VIDEO:
 
-				{
-				    // Get frames locations.
-					string	INPUT_VIDEO_PATH; cfg.Get("INPUT_VIDEO_PATH", INPUT_VIDEO_PATH);
+                {
+                    // Get frames locations.
+                    string INPUT_VIDEO_PATH; cfg.Get("INPUT_VIDEO_PATH", INPUT_VIDEO_PATH);
 
-					// Get display input option.
-					cfg.Get("INPUT_VIDEO_DISPLAY", DISPLAY_INPUT);
+                    // Get display input option.
+                    cfg.Get("INPUT_VIDEO_DISPLAY", mDisplayVideoInInput);
 
-					VIDEO_FRAMES_INPUT = true;
+                    mVideoFramesInInput = true;
 
-					vector<string> videoList;
+                    vector<string> videoList;
 
                     typedef boost::tokenizer<boost::char_separator<char> > tokenizer;
                     boost::char_separator<char> sep(",");
@@ -189,91 +204,91 @@ bool Device::prepareDevice(CamType type, string cfgFile){
                     }
 
                     // Create camera using pre-recorded video in input.
-					cam = new CameraVideo(videoList);
-					cam->grabInitialization();
-				}
+                    cam = new CameraVideo(videoList);
+                    cam->grabInitialization();
+                }
 
-				break;
+                break;
 
-			default :
+            default :
 
                 // Get camera ID to use.
-                cfg.Get("CAMERA_ID", CAMERA_ID);
-                BOOST_LOG_SEV(logger, notification) << "CAMERA_ID : " << CAMERA_ID;
+                cfg.Get("CAMERA_ID", mCamID);
+                BOOST_LOG_SEV(logger, notification) << "CAMERA_ID : " << mCamID;
 
                 // Get data location.
-                cfg.Get("DATA_PATH", DATA_PATH);
-                BOOST_LOG_SEV(logger, notification) << "DATA_PATH : " << DATA_PATH;
+                cfg.Get("DATA_PATH", mDataPath);
+                BOOST_LOG_SEV(logger, notification) << "DATA_PATH : " << mDataPath;
 
                 // Get station name.
-                cfg.Get("STATION_NAME", STATION_NAME);
-                BOOST_LOG_SEV(logger, notification) << "STATION_NAME : " << STATION_NAME;
+                cfg.Get("STATION_NAME", mStationName);
+                BOOST_LOG_SEV(logger, notification) << "STATION_NAME : " << mStationName;
 
                 // Get acquisition format.
                 string acq_bit_depth; cfg.Get("ACQ_BIT_DEPTH", acq_bit_depth);
                 EParser<CamBitDepth> cam_bit_depth;
-                ACQ_BIT_DEPTH = cam_bit_depth.parseEnum("ACQ_BIT_DEPTH", acq_bit_depth);
+                mBitDepth = cam_bit_depth.parseEnum("ACQ_BIT_DEPTH", acq_bit_depth);
                 BOOST_LOG_SEV(logger, notification) << "ACQ_BIT_DEPTH : " << acq_bit_depth;
 
                 // Get night exposure time.
-                cfg.Get("ACQ_NIGHT_EXPOSURE", ACQ_NIGHT_EXPOSURE);
-                BOOST_LOG_SEV(logger, notification) << "ACQ_NIGHT_EXPOSURE : " << ACQ_NIGHT_EXPOSURE;
+                cfg.Get("ACQ_NIGHT_EXPOSURE", mNightExposure);
+                BOOST_LOG_SEV(logger, notification) << "ACQ_NIGHT_EXPOSURE : " << mNightExposure;
 
                 // Get night gain.
-                cfg.Get("ACQ_NIGHT_GAIN", ACQ_NIGHT_GAIN);
-                BOOST_LOG_SEV(logger, notification) << "ACQ_NIGHT_GAIN : " << ACQ_NIGHT_GAIN;
+                cfg.Get("ACQ_NIGHT_GAIN", mNightGain);
+                BOOST_LOG_SEV(logger, notification) << "ACQ_NIGHT_GAIN : " << mNightGain;
 
                 // Get day option.
-                cfg.Get("ACQ_DAY_ENABLED", ACQ_DAY_ENABLED);
-                BOOST_LOG_SEV(logger, notification) << "ACQ_DAY_ENABLED : " << ACQ_DAY_ENABLED;
+                cfg.Get("ACQ_DAY_ENABLED", mDayAcqEnabled);
+                BOOST_LOG_SEV(logger, notification) << "ACQ_DAY_ENABLED : " << mDayAcqEnabled;
 
                 // Get day exposure time.
-                cfg.Get("ACQ_DAY_EXPOSURE", ACQ_DAY_EXPOSURE);
-                BOOST_LOG_SEV(logger, notification) << "ACQ_DAY_EXPOSURE : " << ACQ_DAY_EXPOSURE;
+                cfg.Get("ACQ_DAY_EXPOSURE", mDayExposure);
+                BOOST_LOG_SEV(logger, notification) << "ACQ_DAY_EXPOSURE : " << mDayExposure;
 
                 // Get day gain.
-                cfg.Get("ACQ_DAY_GAIN", ACQ_DAY_GAIN);
-                BOOST_LOG_SEV(logger, notification) << "ACQ_DAY_GAIN : " << ACQ_DAY_GAIN;
+                cfg.Get("ACQ_DAY_GAIN", mDayGain);
+                BOOST_LOG_SEV(logger, notification) << "ACQ_DAY_GAIN : " << mDayGain;
 
                 // Get ephemeris option.
-                cfg.Get("EPHEMERIS_ENABLED", EPHEMERIS_ENABLED);
-                BOOST_LOG_SEV(logger, notification) << "EPHEMERIS_ENABLED : " << EPHEMERIS_ENABLED;
+                cfg.Get("EPHEMERIS_ENABLED", mEphemerisEnabled);
+                BOOST_LOG_SEV(logger, notification) << "EPHEMERIS_ENABLED : " << mEphemerisEnabled;
 
                 // Get schedule option status.
-                cfg.Get("ACQ_SCHEDULE_ENABLED", ACQ_SCHEDULE_ENABLED);
-                BOOST_LOG_SEV(logger, notification) << "ACQ_SCHEDULE_ENABLED : " << ACQ_SCHEDULE_ENABLED;
+                cfg.Get("ACQ_SCHEDULE_ENABLED", mScheduleEnabled);
+                BOOST_LOG_SEV(logger, notification) << "ACQ_SCHEDULE_ENABLED : " << mScheduleEnabled;
 
                  // Get regular acquisition option status.
-                cfg.Get("ACQ_REGULAR_ENABLED", ACQ_REGULAR_ENABLED);
-                BOOST_LOG_SEV(logger, notification) << "ACQ_REGULAR_ENABLED : " << ACQ_REGULAR_ENABLED;
+                cfg.Get("ACQ_REGULAR_ENABLED", mRegularAcqEnabled);
+                BOOST_LOG_SEV(logger, notification) << "ACQ_REGULAR_ENABLED : " << mRegularAcqEnabled;
 
-                if(ACQ_SCHEDULE_ENABLED && ACQ_REGULAR_ENABLED){
+                if(mScheduleEnabled && mRegularAcqEnabled){
 
                     throw "\nCheck configuration file : \n \"You can enable ACQ_SCHEDULE_ENABLED or ACQ_REGULAR_ENABLED (not both)\"\n";
 
                 }
 
                 // Get regular acquisition time interval.
-                cfg.Get("ACQ_REGULAR_INTERVAL", ACQ_REGULAR_INTERVAL);
-                BOOST_LOG_SEV(logger, notification) << "ACQ_REGULAR_INTERVAL : " << ACQ_REGULAR_INTERVAL;
+                cfg.Get("ACQ_REGULAR_INTERVAL", mRegularInterval);
+                BOOST_LOG_SEV(logger, notification) << "ACQ_REGULAR_INTERVAL : " << mRegularInterval;
 
                 // Get regular acquisition exposure time.
-                cfg.Get("ACQ_REGULAR_EXPOSURE", ACQ_REGULAR_EXPOSURE);
-                BOOST_LOG_SEV(logger, notification) << "ACQ_REGULAR_EXPOSURE : " << ACQ_REGULAR_EXPOSURE;
+                cfg.Get("ACQ_REGULAR_EXPOSURE", mRegularExposure);
+                BOOST_LOG_SEV(logger, notification) << "ACQ_REGULAR_EXPOSURE : " << mRegularExposure;
 
                 // Get regular acquisition gain.
-                cfg.Get("ACQ_REGULAR_GAIN", ACQ_REGULAR_GAIN);
-                BOOST_LOG_SEV(logger, notification) << "ACQ_REGULAR_GAIN : " << ACQ_REGULAR_GAIN;
+                cfg.Get("ACQ_REGULAR_GAIN", mRegularGain);
+                BOOST_LOG_SEV(logger, notification) << "ACQ_REGULAR_GAIN : " << mRegularGain;
 
 
                 // Get regular acquisition repetition.
-                cfg.Get("ACQ_REGULAR_REPETITION", ACQ_REGULAR_REPETITION);
-                BOOST_LOG_SEV(logger, notification) << "ACQ_REGULAR_REPETITION : " << ACQ_REGULAR_REPETITION;
+                cfg.Get("ACQ_REGULAR_REPETITION", mRegularRepetition);
+                BOOST_LOG_SEV(logger, notification) << "ACQ_REGULAR_REPETITION : " << mRegularRepetition;
 
                 // Get regular acquisition format.
                 string acq_regular_format; cfg.Get("ACQ_REGULAR_FORMAT", acq_regular_format);
                 EParser<CamBitDepth> cam_regular_bit_depth;
-                ACQ_REGULAR_FORMAT = cam_regular_bit_depth.parseEnum("ACQ_REGULAR_FORMAT", acq_regular_format);
+                mRegularFormat = cam_regular_bit_depth.parseEnum("ACQ_REGULAR_FORMAT", acq_regular_format);
                 BOOST_LOG_SEV(logger, notification) << "ACQ_REGULAR_FORMAT : " << acq_regular_format;
 
                 // Get sunrise time.
@@ -289,29 +304,29 @@ bool Device::prepareDevice(CamType type, string cfgFile){
 
                     for(tokenizer::iterator tok_iter = tokens.begin();tok_iter != tokens.end(); ++tok_iter){
 
-                        SUNRISE_TIME.push_back(atoi((*tok_iter).c_str()));
+                        mSunriseTime.push_back(atoi((*tok_iter).c_str()));
 
                     }
                 }
 
                 // Get sunrise duration.
-                cfg.Get("SUNRISE_DURATION", SUNRISE_DURATION);
-                BOOST_LOG_SEV(logger, notification) << "SUNRISE_DURATION : " << SUNRISE_DURATION;
+                cfg.Get("SUNRISE_DURATION", mSunriseDuration);
+                BOOST_LOG_SEV(logger, notification) << "SUNRISE_DURATION : " << mSunriseDuration;
 
                 {
                     // Compute start time of exposure control for sunrise.
 
-                    float Hd_start = (SUNRISE_TIME.at(0) * 3600 + SUNRISE_TIME.at(1) * 60 - SUNRISE_DURATION)/3600.f;
+                    float Hd_start = (mSunriseTime.at(0) * 3600 + mSunriseTime.at(1) * 60 - mSunriseDuration)/3600.f;
 
                     if(Hd_start < 0) Hd_start = Hd_start + 24;
 
                     cout << "Hd_start : " << Hd_start<< endl;
 
-                    SUNRISE_TIME.clear();
+                    mSunriseTime.clear();
 
-                    SUNRISE_TIME = TimeDate::HdecimalToHMS(Hd_start);
+                    mSunriseTime = TimeDate::HdecimalToHMS(Hd_start);
 
-                    cout <<  "SUNRISE_TIME_START : " << SUNRISE_TIME.at(0) << "H" <<  SUNRISE_TIME.at(1) << endl;
+                    cout <<  "SUNRISE_TIME_START : " << mSunriseTime.at(0) << "H" <<  mSunriseTime.at(1) << endl;
 
 
                 }
@@ -329,36 +344,36 @@ bool Device::prepareDevice(CamType type, string cfgFile){
 
                     for(tokenizer::iterator tok_iter = tokens.begin();tok_iter != tokens.end(); ++tok_iter){
 
-                        SUNSET_TIME.push_back(atoi((*tok_iter).c_str()));
+                        mSunsetTime.push_back(atoi((*tok_iter).c_str()));
 
                     }
                 }
 
                  // Get sunset duration.
-                cfg.Get("SUNSET_DURATION", SUNSET_DURATION);
-                BOOST_LOG_SEV(logger, notification) << "SUNSET_DURATION : " << SUNSET_DURATION;
+                cfg.Get("SUNSET_DURATION", mSunsetDuration);
+                BOOST_LOG_SEV(logger, notification) << "SUNSET_DURATION : " << mSunsetDuration;
 
                 {
                     // Compute start time of exposure control for sunset.
 
-                    float Hd_start = (SUNSET_TIME.at(0) * 3600 + SUNSET_TIME.at(1) * 60 - SUNSET_DURATION)/3600.f;
+                    float Hd_start = (mSunsetTime.at(0) * 3600 + mSunsetTime.at(1) * 60 - mSunsetDuration)/3600.f;
 
                     if(Hd_start < 0) Hd_start = Hd_start + 24;
 
                     cout << "Hd_start : " << Hd_start<< endl;
 
-                    SUNSET_TIME.clear();
+                    mSunsetTime.clear();
 
-                    SUNSET_TIME = TimeDate::HdecimalToHMS(Hd_start);
+                    mSunsetTime = TimeDate::HdecimalToHMS(Hd_start);
 
-                    cout <<  "SUNSET_TIME_START : " << SUNSET_TIME.at(0) << "H" <<  SUNSET_TIME.at(1) << endl;
+                    cout <<  "SUNSET_TIME_START : " << mSunsetTime.at(0) << "H" <<  mSunsetTime.at(1) << endl;
 
                 }
 
-                int timeStartSunrise = SUNRISE_TIME.at(0) * 3600 + SUNRISE_TIME.at(1) * 60;
-                int timeStopSunrise = timeStartSunrise + SUNRISE_DURATION * 2;
-                int timeStartSunset = SUNSET_TIME.at(0) * 3600 + SUNSET_TIME.at(1) * 60;
-                int timeStopSunset = timeStartSunset + SUNSET_DURATION * 2;
+                int timeStartSunrise = mSunriseTime.at(0) * 3600 + mSunriseTime.at(1) * 60;
+                int timeStopSunrise = timeStartSunrise + mSunriseDuration * 2;
+                int timeStartSunset = mSunsetTime.at(0) * 3600 + mSunsetTime.at(1) * 60;
+                int timeStopSunset = timeStartSunset + mSunsetDuration * 2;
 
                 cout << "timeStartSunrise : " << timeStartSunrise << endl;
                 cout << "timeStopSunrise : " << timeStopSunrise << endl;
@@ -366,25 +381,25 @@ bool Device::prepareDevice(CamType type, string cfgFile){
                 cout << "timeStopSunset : " << timeStopSunset << endl;
 
                 // Get acquisition FPS.
-                cfg.Get("ACQ_FPS", ACQ_FPS);
-                BOOST_LOG_SEV(logger, notification) << "ACQ_FPS : " << ACQ_FPS;
-                if(ACQ_FPS <= 0) ACQ_FPS = 1;
+                cfg.Get("ACQ_FPS", mFPS);
+                BOOST_LOG_SEV(logger, notification) << "ACQ_FPS : " << mFPS;
+                if(mFPS <= 0) mFPS = 1;
 
                 // Get exposure control save infos option.
-                cfg.Get("EXPOSURE_CONTROL_SAVE_INFOS", EXPOSURE_CONTROL_SAVE_INFOS);
-                BOOST_LOG_SEV(logger, notification) << "EXPOSURE_CONTROL_SAVE_INFOS : " << EXPOSURE_CONTROL_SAVE_INFOS;
+                cfg.Get("EXPOSURE_CONTROL_SAVE_INFOS", mExpCtrlSaveInfos);
+                BOOST_LOG_SEV(logger, notification) << "EXPOSURE_CONTROL_SAVE_INFOS : " << mExpCtrlSaveInfos;
 
                 // Get exposure control save image option.
-                cfg.Get("EXPOSURE_CONTROL_SAVE_IMAGE", EXPOSURE_CONTROL_SAVE_IMAGE);
-                BOOST_LOG_SEV(logger, notification) << "EXPOSURE_CONTROL_SAVE_IMAGE : " << EXPOSURE_CONTROL_SAVE_IMAGE;
+                cfg.Get("EXPOSURE_CONTROL_SAVE_IMAGE", mExpCtrlSaveImg);
+                BOOST_LOG_SEV(logger, notification) << "EXPOSURE_CONTROL_SAVE_IMAGE : " << mExpCtrlSaveImg;
 
-                cfg.Get("EXPOSURE_CONTROL_FREQUENCY", EXPOSURE_CONTROL_FREQUENCY);
-                BOOST_LOG_SEV(logger, notification) << "EXPOSURE_CONTROL_FREQUENCY : " << EXPOSURE_CONTROL_FREQUENCY;
-                EXPOSURE_CONTROL_FREQUENCY = EXPOSURE_CONTROL_FREQUENCY * ACQ_FPS;
+                cfg.Get("EXPOSURE_CONTROL_FREQUENCY", mExpCtrlFrequency);
+                BOOST_LOG_SEV(logger, notification) << "EXPOSURE_CONTROL_FREQUENCY : " << mExpCtrlFrequency;
+                mExpCtrlFrequency = mExpCtrlFrequency * mFPS;
 
-                if(ACQ_SCHEDULE_ENABLED){
+                if(mScheduleEnabled){
 
-                    string	sACQ_SCHEDULE;
+                    string sACQ_SCHEDULE;
                     cfg.Get("ACQ_SCHEDULE", sACQ_SCHEDULE);
 
                     vector<string> sch1;
@@ -428,7 +443,7 @@ bool Device::prepareDevice(CamType type, string cfgFile){
                             // Only keep night time.
                             if((scheduledTimeInSec > timeStopSunset) || (scheduledTimeInSec < timeStartSunrise)){
 
-                                ACQ_SCHEDULE.push_back(r);
+                                mSchedule.push_back(r);
 
                             }
                         }
@@ -436,19 +451,19 @@ bool Device::prepareDevice(CamType type, string cfgFile){
                 }
 
                 // Get use mask option.
-                cfg.Get("ACQ_MASK_ENABLED", ACQ_MASK_ENABLED);
-                BOOST_LOG_SEV(logger, notification) << "ACQ_MASK_ENABLED : " << ACQ_MASK_ENABLED;
+                cfg.Get("ACQ_MASK_ENABLED", mMaskEnabled);
+                BOOST_LOG_SEV(logger, notification) << "ACQ_MASK_ENABLED : " << mMaskEnabled;
 
-                if(ACQ_MASK_ENABLED){
+                if(mMaskEnabled){
 
-                    cfg.Get("ACQ_MASK_PATH", ACQ_MASK_PATH);
-                    BOOST_LOG_SEV(logger, notification) << "ACQ_MASK_PATH : " << ACQ_MASK_PATH;
+                    cfg.Get("ACQ_MASK_PATH", mMaskPath);
+                    BOOST_LOG_SEV(logger, notification) << "ACQ_MASK_PATH : " << mMaskPath;
 
-                    ACQ_MASK = imread(ACQ_MASK_PATH, CV_LOAD_IMAGE_GRAYSCALE);
+                    mMask = imread(mMaskPath, CV_LOAD_IMAGE_GRAYSCALE);
 
-                    if(!ACQ_MASK.data){
+                    if(!mMask.data){
 
-                        BOOST_LOG_SEV(logger, fail) << " Can't load the mask from this location : " << ACQ_MASK_PATH;
+                        BOOST_LOG_SEV(logger, fail) << " Can't load the mask from this location : " << mMaskPath;
                         throw "Failed to load the mask";
 
                     }
@@ -456,25 +471,25 @@ bool Device::prepareDevice(CamType type, string cfgFile){
                 }
 
                 BOOST_LOG_SEV(logger, notification) << "Loading fits keywords...";
-                fitsHeader.loadKeywordsFromConfigFile(cfgFile);
+                mFitsHeader.loadKeywordsFromConfigFile(mCfgPath);
 
                 runContinuousAcquisition();
 
-		}
+        }
 
-	}catch(exception& e){
+    }catch(exception& e){
 
-		cout << e.what() << endl;
-		return false;
+        cout << e.what() << endl;
+        return false;
 
-	}catch(const char * msg){
+    }catch(const char * msg){
 
-		cout << msg << endl;
-		return false;
+        cout << msg << endl;
+        return false;
 
-	}
+    }
 
-	return true;
+    return true;
 }
 
 void Device::runContinuousAcquisition(){
@@ -484,29 +499,29 @@ void Device::runContinuousAcquisition(){
     cam->listGigeCameras();
 
     /// Create camera according to its ID.
-    BOOST_LOG_SEV(logger, notification) << "Creating Device according ID " << CAMERA_ID << " ...";
-    if(!cam->createDevice(CAMERA_ID))
+    BOOST_LOG_SEV(logger, notification) << "Creating Device according ID " << mCamID << " ...";
+    if(!cam->createDevice(mCamID))
         throw "Fail to create device.";
 
     /// Set camera format.
     BOOST_LOG_SEV(logger, notification) << "Setting acquisition format...";
-    if(!cam->setPixelFormat(ACQ_BIT_DEPTH))
+    if(!cam->setPixelFormat(mBitDepth))
         throw "Fail to set Format.";
 
 
-    cam->getExposureBounds(minExposureTime, maxExposureTime);
+    cam->getExposureBounds(mMinExposureTime, mMaxExposureTime);
 
-    cam->getGainBounds(minGain, maxGain);
+    cam->getGainBounds(mMinGain, mMaxGain);
 
     boost::posix_time::ptime time = boost::posix_time::microsec_clock::universal_time();
     string date = to_iso_extended_string(time);
     cout << "date : " << date << endl;
     vector<int> intDate = TimeDate::getIntVectorFromDateString(date);
 
-    int timeStartSunrise = SUNRISE_TIME.at(0) * 3600 + SUNRISE_TIME.at(1) * 60;
-    int timeStopSunrise = timeStartSunrise + SUNRISE_DURATION * 2;
-    int timeStartSunset = SUNSET_TIME.at(0) * 3600 + SUNSET_TIME.at(1) * 60;
-    int timeStopSunset = timeStartSunset + SUNSET_DURATION * 2;
+    int timeStartSunrise = mSunriseTime.at(0) * 3600 + mSunriseTime.at(1) * 60;
+    int timeStopSunrise = timeStartSunrise + mSunriseDuration * 2;
+    int timeStartSunset = mSunsetTime.at(0) * 3600 + mSunsetTime.at(1) * 60;
+    int timeStopSunset = timeStartSunset + mSunsetDuration * 2;
 
     cout << "timeStartSunrise : " << timeStartSunrise << endl;
     cout << "timeStopSunrise : " << timeStopSunrise << endl;
@@ -521,43 +536,43 @@ void Device::runContinuousAcquisition(){
 
         cout << "DAY ! "<< endl;
         /// Set camera exposure time.
-        BOOST_LOG_SEV(logger, notification) << "Setting day exposure time to " << ACQ_DAY_EXPOSURE << "...";
-        if(!cam->setExposureTime(ACQ_DAY_EXPOSURE))
+        BOOST_LOG_SEV(logger, notification) << "Setting day exposure time to " << mDayExposure << "...";
+        if(!cam->setExposureTime(mDayExposure))
             throw "Fail to set Night Exposure.";
 
         /// Set camera gain.
-        BOOST_LOG_SEV(logger, notification) << "Setting day gain to " << ACQ_DAY_GAIN << "...";
-        if(!cam->setGain(ACQ_DAY_GAIN))
+        BOOST_LOG_SEV(logger, notification) << "Setting day gain to " << mDayGain << "...";
+        if(!cam->setGain(mDayGain))
             throw "Fail to set Night Gain.";
 
     }else if((currentTimeInSec > timeStopSunset) || (currentTimeInSec < timeStartSunrise) ){
 
         cout << "NIGHT ! "<< endl;
         /// Set camera exposure time.
-        BOOST_LOG_SEV(logger, notification) << "Setting night exposure time to " << ACQ_NIGHT_EXPOSURE << "...";
-        if(!cam->setExposureTime(ACQ_NIGHT_EXPOSURE))
+        BOOST_LOG_SEV(logger, notification) << "Setting night exposure time to " << mNightExposure << "...";
+        if(!cam->setExposureTime(mNightExposure))
             throw "Fail to set Day Exposure.";
 
         /// Set camera gain.
-        BOOST_LOG_SEV(logger, notification) << "Setting night gain to " << ACQ_NIGHT_GAIN << "...";
-        if(!cam->setGain(ACQ_NIGHT_GAIN))
+        BOOST_LOG_SEV(logger, notification) << "Setting night gain to " << mNightGain << "...";
+        if(!cam->setGain(mNightGain))
             throw "Fail to set Day Gain.";
 
     }else{
 
-        if(!cam->setExposureTime(minExposureTime))
+        if(!cam->setExposureTime(mMinExposureTime))
             throw "Fail to set Day Exposure.";
 
         /// Set camera gain.
-        BOOST_LOG_SEV(logger, notification) << "Setting night gain to " << minGain << "...";
-        if(!cam->setGain(minGain))
+        BOOST_LOG_SEV(logger, notification) << "Setting night gain to " << mMinGain << "...";
+        if(!cam->setGain(mMinGain))
             throw "Fail to set Day Gain.";
 
     }
 
     /// Set camera fps.
     BOOST_LOG_SEV(logger, notification) << "Setting fps...";
-    if(!cam->setFPS(ACQ_FPS))
+    if(!cam->setFPS(mFPS))
         throw "Fail to set Fps.";
 
     /// Prepare grabbing.
@@ -571,88 +586,3 @@ void Device::runContinuousAcquisition(){
 
 }
 
-bool Device::loadDataset(){
-
-    return cam->loadNextDataSet();
-
-}
-
-void Device::listGigeCameras(){
-	cam->listGigeCameras();
-}
-
-void Device::grabStop(){
-	cam->grabCleanse();
-}
-
-bool Device::getDeviceStopStatus(){
-	return cam->getStopStatus();
-}
-
-bool Device::getDatasetStatus(){
-	return cam->getDataSetStatus();
-}
-
-void Device::acqStop(){
-	cam->acqStop();
-}
-
-void Device::acqRestart(){
-	runContinuousAcquisition();
-}
-
-bool Device::grabImage(Frame& newFrame){
-	return cam->grabImage(newFrame);
-}
-
-bool Device::grabSingleImage(Frame &frame, int camID){
-	return cam->grabSingleImage(frame, camID);
-}
-
-void Device::getExposureBounds(int &gMin, int &gMax){
-	cam->getExposureBounds(gMin, gMax);
-}
-
-void Device::getGainBounds(int &eMin, int &eMax){
-	cam->getGainBounds(eMin, eMax);
-}
-
-bool Device::getPixelFormat(CamBitDepth &format){
-	return cam->getPixelFormat(format);
-}
-
-int Device::getWidth(){
-	return cam->getFrameWidth();
-}
-
-int Device::getHeight(){
-	return cam->getFrameHeight();
-}
-
-int Device::getFPS(){
-    return cam->getFPS();
-}
-
-string Device::getModelName(){
-	return cam->getModelName();
-}
-
-bool Device::setExposureTime(int exp){
-	return cam->setExposureTime(exp);
-}
-
-int Device::getExposureTime(){
-	return cam->getExposureTime();
-}
-
-bool Device::setGain(int gain){
-	return cam->setGain(gain);
-}
-
-bool Device::setFPS(int fps){
-	return cam->setFPS(fps);
-}
-
-bool Device::setPixelFormat(CamBitDepth depth){
-	return cam->setPixelFormat(depth);
-}

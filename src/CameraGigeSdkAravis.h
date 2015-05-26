@@ -1,4 +1,4 @@
-/*								CameraGigeSdkAravis.h
+/*                      CameraGigeSdkAravis.h
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 *
@@ -38,24 +38,22 @@
 
 #ifdef LINUX
 
-	#include "opencv2/highgui/highgui.hpp"
-	#include <opencv2/imgproc/imgproc.hpp>
+    #include "opencv2/highgui/highgui.hpp"
+    #include <opencv2/imgproc/imgproc.hpp>
 
-	#include <iostream>
-	#include <string>
-	#include "Frame.h"
-	#include "TimeDate.h"
-	#include "Camera.h"
-	#include "arv.h"
-	#include "arvinterface.h"
+    #include <iostream>
+    #include <string>
+    #include "Frame.h"
+    #include "TimeDate.h"
+    #include "Camera.h"
+    #include "arv.h"
+    #include "arvinterface.h"
     #include <time.h>
-
 
     #define BOOST_LOG_DYN_LINK 1
 
-
-	#include "ECamBitDepth.h"
-	#include <boost/log/common.hpp>
+    #include "ECamBitDepth.h"
+    #include <boost/log/common.hpp>
     #include <boost/log/expressions.hpp>
     #include <boost/log/utility/setup/file.hpp>
     #include <boost/log/utility/setup/console.hpp>
@@ -67,98 +65,229 @@
     #include <boost/log/core.hpp>
     #include "ELogSeverityLevel.h"
 
-	using namespace cv;
-	using namespace std;
+    using namespace cv;
+    using namespace std;
 
-	class CameraGigeSdkAravis: public Camera{
+    class CameraGigeSdkAravis: public Camera{
 
-		private:
+        private:
 
-			static boost::log::sources::severity_logger< LogSeverityLevel > logger;
+            static boost::log::sources::severity_logger< LogSeverityLevel > logger;
 
-			static class _Init{
+            static class Init{
 
-				public:
-					_Init()
-					{
-						logger.add_attribute("ClassName", boost::log::attributes::constant<std::string>("CameraGigeSdkAravis"));
-					}
-			} _initializer;
+                public:
 
-			ArvCamera       *camera;
-			ArvPixelFormat  pixFormat;
-			ArvStream       *stream;
+                    Init(){
 
-			int             width;
-			int             height;
-			double          fps;
-			double          gainMin,
-							gainMax;
-			unsigned int    payload;
-			const char      *pixel_format_string;
-			double          exposureMin,
-							exposureMax;
-			const char      *caps_string;
-			int             gain;
-			double          exp;
+                        logger.add_attribute("ClassName", boost::log::attributes::constant<std::string>("CameraGigeSdkAravis"));
 
-			bool			shiftImage;
-			guint64         nbCompletedBuffers;
-			guint64         nbFailures;
-			guint64         nbUnderruns;
-			int             fcpt;
+                    }
 
+            }initializer;
 
-		public:
+            ArvCamera       *camera;                // Camera to control.
+            ArvPixelFormat  pixFormat;              // Image format.
+            ArvStream       *stream;                // Object for video stream reception.
+            int             width;                  // Camera region's width.
+            int             height;                 // Camera region's height.
+            double          fps;                    // Camera acquisition frequency.
+            double          gainMin;                // Camera minimum gain.
+            double          gainMax;                // Camera maximum gain.
+            unsigned int    payload;                // Width x height.
+            double          exposureMin;            // Camera's minimum exposure time.
+            double          exposureMax;            // Camera's maximum exposure time.
+            const char      *capsString;
+            int             gain;                   // Camera's gain.
+            double          exp;                    // Camera's exposure time.
+            bool            shiftBitsImage;         // For example : bits are shifted for dmk's frames.
+            guint64         nbCompletedBuffers;     // Number of frames successfully received.
+            guint64         nbFailures;             // Number of frames failed to be received.
+            guint64         nbUnderruns;
+            int             frameCounter;           // Counter of success received frames.
 
-			CameraGigeSdkAravis(bool shift);
-
-			CameraGigeSdkAravis();
-
-			~CameraGigeSdkAravis();
-
-			void	listGigeCameras();
-			bool	createDevice(int id);
-			//bool    getDeviceNameById(int id, string &device);
-
-			bool	grabInitialization();
-			void	grabCleanse();
-			void    acqStart();
-			void    acqStop();
-
-			bool    grabImage(Frame& newFrame);
+        public:
 
             /**
-             * This function configure the correct camera to use, prepare the grabbing of a single frame.
-             * With the Aravis library, it uses software trigger to capture a frame. When the camera receives
-             * this trigger pulse, the exposure begins. Once the image readout has finished, the camera is able
-             * to accept a new software trigger pulse.
+             * Constructor.
              *
-             * @param frame It contains the single frame grabbed by a camera in case of success.
-             * @param camID ID of the camera to use.
-             * @return The success status of grabbing a single frame.
+             * @param shift Indicates if frame's pixel bits have to be shifted.
              */
-			bool	grabSingleImage(Frame &frame, int camID);
+            CameraGigeSdkAravis(bool shift);
 
+            /**
+             * Constructor.
+             *
+             */
+            CameraGigeSdkAravis();
 
-			bool    getDeviceById(int id, string &device);
+            /**
+             * Destructor.
+             *
+             */
+            ~CameraGigeSdkAravis();
 
-			void	getExposureBounds(int &eMin, int &eMax);
-			void	getGainBounds(int &gMin, int &gMax);
-			bool	getPixelFormat(CamBitDepth &format);
-			int		getFrameWidth();
-			int		getFrameHeight();
-			int		getFPS();
-			string	getModelName();
-			int     getExposureTime();
+            /**
+            * List connected GigE devices.
+            *
+            */
+            void listGigeCameras();
 
-			bool	setExposureTime(int exp);
-			bool	setGain(int gain);
-			bool    setFPS(int fps);
-			bool	setPixelFormat(CamBitDepth depth);
+            /**
+            * Open/create a device.
+            *
+            * @param id Identification number of the device to create.
+            */
+            bool createDevice(int id);
 
-			void    saveGenicamXml(string p);
+            /**
+            * Prepare device to grab frames.
+            *
+            * @return Success status to prepare camera.
+            */
+            bool grabInitialization();
 
+            /**
+            * Close a device and clean resources.
+            *
+            */
+            void grabCleanse();
+
+            /**
+            * Run acquisition.
+            *
+            */
+            void acqStart();
+
+            /**
+            * Stop acquisition.
+            *
+            */
+            void acqStop();
+
+            /**
+            * Get a frame from continuous acquisition.
+            *
+            * @param newFrame New frame's container object.
+            * @return Success status to grab a frame.
+            */
+            bool grabImage(Frame& newFrame);
+
+            /**
+            * Configure the correct camera to use and grab a frame by single acquisition.
+            *
+            * @param frame It contains the single frame grabbed by a camera in case of success.
+            * @param camID ID of the camera to use.
+            * @return The success status of grabbing a single frame.
+            */
+            bool grabSingleImage(Frame &frame, int camID);
+
+            /**
+            * Get camera name from its ID.
+            *
+            * @param id Identification number of the camera from which the name is required.
+            * @param device The camera's name found.
+            * @return Success status to find camera's name.
+            */
+            bool getDeviceNameById(int id, string &device);
+
+            /**
+            * Get device's exposure time bounds.
+            *
+            * @param eMin Return minimum exposure time value.
+            * @param eMax Return maximum exposure time value.
+            */
+            void getExposureBounds(int &eMin, int &eMax);
+
+            /**
+            * Get device's gain bounds.
+            *
+            * @param gMin Return minimum gain value.
+            * @param gMax Return maximum gain value.
+            */
+            void getGainBounds(int &gMin, int &gMax);
+
+            /**
+            * Get device's image format.
+            *
+            * @param format Return image format.
+            * @return Success status to get format.
+            */
+            bool getPixelFormat(CamBitDepth &format);
+
+            /**
+            * Get device's frame width.
+            *
+            * @return Frame's width.
+            */
+            int getFrameWidth();
+
+            /**
+            * Get device's frame height.
+            *
+            * @return Frame's height.
+            */
+            int getFrameHeight();
+
+            /**
+            * Get device's acquisition frequency.
+            *
+            * @return Device's fps.
+            */
+            int getFPS();
+
+            /**
+            * Get device's model name.
+            *
+            * @return Device's model name.
+            */
+            string getModelName();
+
+            /**
+            * Get device's exposure time value.
+            *
+            * @return Device's exposure time.
+            */
+            int getExposureTime();
+
+            /**
+            * Set device's exposure time value.
+            *
+            * @param value New exposure time value (us).
+            * @return Success status to set new exposure time.
+            */
+            bool setExposureTime(int exp);
+
+            /**
+            * Get device's gain value.
+            *
+            * @return Device's gain.
+            */
+            bool setGain(int gain);
+
+            /**
+            * Set device's acquisition frequency.
+            *
+            * @param value New fps value.
+            * @return Success status to set fps.
+            */
+            bool setFPS(int fps);
+
+            /**
+            * Set device's format.
+            *
+            * @param format New format.
+            * @return Success status to set format.
+            */
+            bool setPixelFormat(CamBitDepth depth);
+
+            /**
+            * Save genicam file from camera.
+            *
+            * @param format New format.
+            * @return Success status to set format.
+            */
+            void saveGenicamXml(string p);
 
 	};
 

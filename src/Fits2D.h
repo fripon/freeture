@@ -1,5 +1,5 @@
 /*
-				Fits2D.h
+                                Fits2D.h
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 *
@@ -34,17 +34,16 @@
 */
 
 #pragma once
+
 #include "config.h"
-#include "opencv2/highgui/highgui.hpp"
-#include <opencv2/imgproc/imgproc.hpp>
 
 #ifdef LINUX
-#define BOOST_LOG_DYN_LINK 1
+    #define BOOST_LOG_DYN_LINK 1
 #endif
 
+#include "opencv2/highgui/highgui.hpp"
+#include <opencv2/imgproc/imgproc.hpp>
 #include "fitsio.h"
-
-
 #include <boost/log/common.hpp>
 #include <boost/log/expressions.hpp>
 #include <boost/log/utility/setup/file.hpp>
@@ -64,53 +63,71 @@
 using namespace std;
 using namespace boost::posix_time;
 
-class Fits2D : public Fits{
+class Fits2D : public Fits {
 
-	private :
+    private :
 
-		string fitsPath;
+        string fitsPath;
 
-		static boost::log::sources::severity_logger< LogSeverityLevel > logger;
+        static boost::log::sources::severity_logger< LogSeverityLevel > logger;
 
-		static class _Init{
+        static class Init {
 
-            public:
-                _Init()
-                {
+            public :
+
+                Init() {
+
                     logger.add_attribute("ClassName", boost::log::attributes::constant<std::string>("Fits2D"));
+
                 }
-        } _initializer;
 
-	public:
+        }initializer;
+
+    public :
+
+        /**
+        * Constructor.
+        *
+        */
+        Fits2D(string recPath, Fits fits);
+
+        /**
+        * Constructor.
+        *
+        */
+        Fits2D(string recPath);
+
+        /**
+        * Constructor.
+        *
+        */
+        Fits2D();
+
+        /**
+        * Destructor.
+        *
+        */
+        ~Fits2D(void);
 
 
+        bool    writeFits       (Mat img, ImgBitDepth imgType, string fileName);
 
-                Fits2D          (string recPath, Fits fits);
+        bool    readFits32F     (Mat &img, string filePath);
+        bool    readFits16US    (Mat &img, string filePath);
+        bool    readFits16S     (Mat &img, string filePath);
+        bool    readFits8UC     (Mat &img, string filePath);
+        bool    readFits8C      (Mat &img, string filePath);
 
-                Fits2D          (string recPath);
-
-                Fits2D          ();
-
-                ~Fits2D         (void);
-
-		bool    writeFits       (Mat img, ImgBitDepth imgType, string fileName);
-
-		bool    readFits32F     (Mat &img, string filePath);
-		bool    readFits16US    (Mat &img, string filePath);
-		bool    readFits16S     (Mat &img, string filePath);
-		bool    readFits8UC     (Mat &img, string filePath);
-		bool    readFits8C      (Mat &img, string filePath);
-
-		bool    readIntKeyword  (string filePath, string keyword, int &value);
-		bool    readStringKeyword(string filePath, string keyword, string &value);
-		bool    readDoubleKeyword(string filePath, string keyword, double &value);
+        bool readIntKeyword  (string filePath, string keyword, int &value);
+        bool readStringKeyword(string filePath, string keyword, string &value);
+        bool readDoubleKeyword(string filePath, string keyword, double &value);
 
     private:
 
         bool    printerror      (int status, string errorMsg);
-		bool    printerror      (string errorMsg);
-		void    printerror      (int status);
-		bool    writeKeywords   (fitsfile *fptr);
+        bool    printerror      (string errorMsg);
+        void    printerror      (int status);
+        bool    writeKeywords   (fitsfile *fptr);
 
 };
 

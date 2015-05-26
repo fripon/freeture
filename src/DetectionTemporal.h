@@ -1,5 +1,5 @@
 /*
-						DetectionTemporal.h
+                            DetectionTemporal.h
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 *
@@ -33,7 +33,6 @@
 */
 
 #pragma once
-
 
 #include "config.h"
 
@@ -71,93 +70,190 @@
 #include <utility>
 #include <iterator>
 #include <algorithm>
-
 #include <boost/filesystem.hpp>
 
 using namespace boost::filesystem;
-
-namespace logging	= boost::log;
-namespace sinks		= boost::log::sinks;
-namespace attrs		= boost::log::attributes;
-namespace src		= boost::log::sources;
-namespace expr		= boost::log::expressions;
-namespace keywords	= boost::log::keywords;
-
+namespace logging = boost::log;
+namespace sinks = boost::log::sinks;
+namespace attrs = boost::log::attributes;
+namespace src = boost::log::sources;
+namespace expr = boost::log::expressions;
+namespace keywords = boost::log::keywords;
 using namespace std;
 using namespace cv;
 
-class DetectionTemporal : public Detection{
-
-	private :
-
-		static boost::log::sources::severity_logger< LogSeverityLevel > logger;
-
-		static class _Init{
-
-			public:
-				_Init()
-				{
-					logger.add_attribute("ClassName", boost::log::attributes::constant<std::string>("DetectionTemporal"));
-				}
-		} _initializer;
-
-        vector<GlobalEvent>	listGlobalEvents;
-
-		vector<Point>		subdivisionPos;
-
-		vector<Scalar>		listColors; // B, G, R
-
-		Mat localMask;
-
-		bool initStatus;
-
-		Mat prevThreshMap;
-
-		vector<GlobalEvent>::iterator GEToSave;
-
-		bool DET_DOWNSAMPLE_ENABLED;
-
-		CamBitDepth ACQ_BIT_DEPTH;
-
-		bool DET_SAVE_GEMAP;
-
-		bool DET_SAVE_POS;
-
-		bool DEBUG;
-
-		string DEBUG_PATH;
-
-        bool detStatus ;
-
-	public:
-
-		DetectionTemporal();
-
-		~DetectionTemporal();
-
-        bool initMethod(string cfg_path);
-
-		bool run(Frame &c, Frame &p);
-
-		void saveDetectionInfos(string p);
-
-		void resetDetection();
-
-		int getNumFirstEventFrame() {return (*GEToSave).getNumFirstFrame();};
-
-		string getDateEvent()       {return (*GEToSave).getDate();};
-
-		int getNumLastEventFrame()  {return (*GEToSave).getNumLastFrame();};
+class DetectionTemporal : public Detection {
 
     private :
 
-		void initDebug();
+        static boost::log::sources::severity_logger< LogSeverityLevel > logger;
 
-		void generatePixelGrill(int w, int h, int s, Mat mask, int f);
+        static class Init {
 
-		int defineThreshold(Mat i);
+            public :
 
-		void subdivideFrame(vector<Point> &sub, int n, int imgH, int imgW);
+                Init() {
+
+                    logger.add_attribute("ClassName", boost::log::attributes::constant<std::string>("DetectionTemporal"));
+
+                }
+
+        }initializer;
+
+        vector<GlobalEvent>             mListGlobalEvents;      // List of global events (Events spread on several frames).
+        vector<Point>                   mSubdivisionPos;        // Position (origin in top left) of 64 subdivisions.
+        vector<Scalar>                  mListColors;            // Each color (B,G,R) is an attribute of a local event.
+        Mat                             mLocalMask;             // Mask used to remove single white pixels.
+        bool                            mSubdivisionStatus;     // It subdivisions positions have been computed.
+        Mat                             mPrevThresholdedMap;
+        vector<GlobalEvent>::iterator   mGeToSave;              // Global event to save.
+        bool                            mDownsampleEnabled;     // Use downsampling or not      (parameter from configuration file).
+        bool                            mSaveGeMap;             // Save GE map                  (parameter from configuration file).
+        bool                            mSavePos;               // Save GE positions            (parameter from configuration file).
+        bool                            mDebugEnabled;          // Enable or disable debugging  (parameter from configuration file).
+        bool                            mSaveDirMap;            // Save GE direction map        (parameter from configuration file).
+        bool                            mSaveGeInfos;           // Save GE informations         (parameter from configuration file).
+        string                          mDebugPath;             // Debug location data          (parameter from configuration file).
+        bool                            mDebugVideo;            // Create a video for debugging (parameter from configuration file).
+        string                          mMaskPath;              // Location of the mask to use  (parameter from configuration file).
+        bool                            mMaskEnabled;
+        bool                            mStaticMaskEnabled;
+        int                             mStaticMaskInterval;
+        VideoWriter                     mVideoDebug;            // Video debug container.
+        int                             mRoiSize[2];
+        int                             mImgNum;                // Current frame number.
+        Mat                             mPrevFrame;             // Previous frame.
+        Mat                             mStaticMask;
+        Mat                             mOriginalMask;
+        Mat                             mHighIntensityMap;      // Map of pixel with high intensity.
+        Mat                             mMask;                  // Mask applied to frames.
+        bool                            mMaskToCreate;          // Mask must be created.
+
+    public :
+
+        /**
+        * Constructor.
+        *
+        */
+        DetectionTemporal();
+
+        /**
+        * Destructor.
+        *
+        */
+        ~DetectionTemporal();
+
+        /**
+        * Initialize detection method.
+        *
+        * @param cfgPath Configuration file path.
+        * @return Success to initialize.
+        */
+        bool initMethod(string cfgPath);
+
+        /**
+        * Run meteor detection.
+        *
+        * @param c Current frame.
+        * @return Success to analysis.
+        */
+        bool run(Frame &c);
+
+        /**
+        * Save infos on the detected event.
+        *
+        */
+        void saveDetectionInfos(string p);
+
+        /**
+        * Reset detection method.
+        *
+        */
+        void resetDetection();
+
+        /**
+        * Reset mask.
+        *
+        */
+        void resetMask();
+
+        /**
+        * Get frame's number (in frame buffer) of the first frame which belongs to the detected event.
+        *
+        * @return Frame number.
+        */
+        int getNumFirstEventFrame() {return (*mGeToSave).getNumFirstFrame();};
+
+        /**
+        * Get date of the detected event.
+        *
+        * @return Date of the event : YYYY-MM-DDTHH:MM:SS,fffffffff
+        */
+        string getDateEvent() {return (*mGeToSave).getDate();};
+
+        /**
+        * Get frame's number (in frame buffer) of the last frame which belongs to the detected event.
+        *
+        * @return Frame number.
+        */
+        int getNumLastEventFrame() {return (*mGeToSave).getNumLastFrame();};
+
+    private :
+
+        /**
+        * Initialize debug.
+        *
+        */
+        void initDebug();
+
+        /**
+        * Select a threshold.
+        *
+        * @param i Opencv mat image.
+        * @return Threshold.
+        */
+        int selectThreshold(Mat i);
+
+        /**
+        * Compute subdivisions position in a frame.
+        *
+        * @param sub Subdivisions positions container.
+        * @param n Number of expected subdivisions.
+        * @param imgH Frame's height.
+        * @param imgW Frame's width.
+        */
+        void subdivideFrame(vector<Point> &sub, int n, int imgH, int imgW);
+
+        /**
+        * Extract color at given position.
+        *
+        * @param eventMap Image source where to extract color.
+        * @param roiCenter Position where to read color.
+        * @return Extracted BGR color.
+        */
+        vector<Scalar> getColorInEventMap(Mat &eventMap, Point roiCenter);
+
+        /**
+        * Color an image region in black.
+        *
+        * @param p Center of the black region.
+        * @param h Height of the black region.
+        * @param w Width of the black region.
+        * @param region Black region's destination.
+        */
+        void colorRoiInBlack(Point p, int h, int w, Mat &region);
+
+        /**
+        * Create regions of interest.
+        *
+        * @param region Subdivision where to search.
+        * @param frame Thresholded frame.
+        * @param eventMap Map of local events.
+        * @param listLE List of local events.
+        * @param regionPosInFrame Subdivision position in frame.
+        * @param maxNbLE Maximum number of local event.
+        */
+        void searchROI(Mat &region, Mat &frame, Mat &eventMap, vector<LocalEvent> &listLE, Point regionPosInFrame, int maxNbLE);
 
 };
 

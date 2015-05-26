@@ -39,7 +39,6 @@
 #include "opencv2/highgui/highgui.hpp"
 #include <opencv2/imgproc/imgproc.hpp>
 
-//#define BOOST_LOG_DYN_LINK 1
 #ifdef LINUX
 #define BOOST_LOG_DYN_LINK 1
 #endif
@@ -66,52 +65,84 @@
 #include <boost/circular_buffer.hpp>
 
 using namespace boost::filesystem;
-
 using namespace cv;
 using namespace std;
 
 class CameraVideo : public Camera{
 
-	private:
+    private:
 
-		static boost::log::sources::severity_logger< LogSeverityLevel > logger;
+        static boost::log::sources::severity_logger< LogSeverityLevel > logger;
 
-		static class _Init{
+        static class Init{
 
-			public:
-				_Init()
-				{
-					logger.add_attribute("ClassName", boost::log::attributes::constant<std::string>("CameraVideo"));
-				}
-		} _initializer;
+            public:
 
-		int frameWidth;
-		int frameHeight;
+                Init(){
 
-		VideoCapture cap;
+                    logger.add_attribute("ClassName", boost::log::attributes::constant<std::string>("CameraVideo"));
 
-		bool endReadDataStatus;
+                }
 
-		int videoID;
+        }initializer;
 
-		vector<string> videoList;
+        int                 mFrameWidth;
+        int                 mFrameHeight;
+        VideoCapture        mCap;
+        bool                mReadDataStatus;
+        int                 mVideoID;
+        vector<string>      mVideoList;
+
+    public:
+
+        /**
+        * Constructor.
+        *
+        *
+        */
+        CameraVideo(vector<string> videoList);
+
+        /**
+         * Destructor.
+         *
+         */
+        ~CameraVideo(void);
+
+        /**
+        * Read the next frame in the current video.
+        *
+        * @param img New frame's container object.
+        * @return Success status to get a frame.
+        */
+        bool grabImage(Frame &img);
 
 
-	public:
+        /**
+        * Prepare acquisition on the first video.
+        *
+        * @return Success status to prepare acquisition.
+        */
+        bool grabInitialization();
 
-		CameraVideo(vector<string> video_list);
+        /**
+        * Get status : End to read a video.
+        *
+        * @return Reading end status.
+        */
+        bool getStopStatus();
 
-        //! Destructor.
-		~CameraVideo(void);
+        /**
+        * Get data status : Is there another video to use in input ?
+        *
+        * @return If there is still a video to load in input.
+        */
+        bool getDataStatus();
 
-		bool grabImage(Frame &img);
-
-		bool grabInitialization();
-
-		bool getStopStatus();
-
-		bool getDataStatus();
-
-		bool loadNextDataSet();
+        /**
+        * Load next video if there is.
+        *
+        * @return Success status to load next data set.
+        */
+        bool loadNextDataSet();
 };
 

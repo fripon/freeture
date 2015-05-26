@@ -1,5 +1,5 @@
 /*
-				SaveImg.h
+                                    SaveImg.h
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 *
@@ -34,16 +34,6 @@
 
 #pragma once
 
-//#include "Serialize.h"
-//#include "includes.h"
-
-//#include <boost/filesystem.hpp>
-/*
-#include <boost/archive/binary_oarchive.hpp>
-#include <boost/archive/binary_iarchive.hpp>
-#include <boost/iostreams/filtering_streambuf.hpp>
-#include <boost/iostreams/filter/zlib.hpp>*/
-
 #include "opencv2/highgui/highgui.hpp"
 #include <opencv2/imgproc/imgproc.hpp>
 
@@ -54,17 +44,34 @@ class SaveImg{
 
     public:
 
-        SaveImg(){};
-        ~SaveImg(){};
 
+        /**
+        * Save JPEG.
+        *
+        * @param img Opencv mat image to save.
+        * @param name Path and name of the file to save.
+        * @return Success status to save image.
+        */
         static bool saveJPEG(Mat img, string name);
 
+
+        /**
+        * Save BMP.
+        *
+        * @param img Opencv mat image to save.
+        * @param name Path and name of the file to save.
+        * @return Success status to save image.
+        */
         static bool saveBMP(Mat img, string name);
 
+
+        /**
+        * Save PNG.
+        *
+        * @param img Opencv mat image to save.
+        * @param name Path and name of the file to save.
+        * @return Success status to save image.
+        */
         static bool savePNG(Mat img, string name);
-
-       /* static void saveMat(Mat& m, string filename);
-
-        static void loadMat(Mat& m, string filename);*/
 
 };

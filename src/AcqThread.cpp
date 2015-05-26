@@ -35,84 +35,60 @@
 #include "AcqThread.h"
 
 boost::log::sources::severity_logger< LogSeverityLevel >  AcqThread::logger;
-AcqThread::_Init AcqThread::_initializer;
 
-AcqThread::AcqThread(	CamType									camType,
-						boost::mutex							*cfg_m,
-						string									cfg_p,
-					    boost::circular_buffer<Frame>           *fb,
-						boost::mutex                            *fb_m,
-						boost::condition_variable               *fb_c,
-						bool									*sSignal,
-						boost::mutex                            *sSignal_m,
-						boost::condition_variable               *sSignal_c,
-						bool                                    *dSignal,
-						boost::mutex                            *dSignal_m,
-						boost::condition_variable               *dSignal_c,
-						DetThread	                            *detection,
-                        StackThread	                            *stack){
+AcqThread::Init AcqThread::initializer;
 
-    acquisitionThread			    = NULL;
-    mustStop				        = false;
-	cam								= NULL;
-    cfg_mutex						= cfg_m;
-	cfg_path						= cfg_p;
-	srcType							= camType;
-    frameBuffer                     = fb;
-    frameBuffer_mutex               = fb_m;
-    frameBuffer_condition           = fb_c;
+AcqThread::AcqThread(   CamType                             camType,
+                        string                              cfg,
+                        boost::circular_buffer<Frame>       *fb,
+                        boost::mutex                        *fb_m,
+                        boost::condition_variable           *fb_c,
+                        bool                                *sSignal,
+                        boost::mutex                        *sSignal_m,
+                        boost::condition_variable           *sSignal_c,
+                        bool                                *dSignal,
+                        boost::mutex                        *dSignal_m,
+                        boost::condition_variable           *dSignal_c,
+                        DetThread	                        *detection,
+                        StackThread	                        *stack):
 
-    stackSignal						= sSignal;
-    stackSignal_mutex				= sSignal_m;
-    stackSignal_condition			= sSignal_c;
-
-    detSignal						= dSignal;
-    detSignal_mutex                 = dSignal_m;
-    detSignal_condition             = dSignal_c;
-
-    frameCpt                        = 0;
-    nbFailGrabbedFrames             = 0;
-    nbSuccessGrabbedFrames          = 0;
-
-	threadTerminated				= false;
-
-	detectionProcess                = detection;
-	stackProcess                    = stack;
-
-	autoExposure = NULL;
-
-	enableStackThread = false;
+                        mCameraType(camType), mCfgPath(cfg), frameBuffer(fb), frameBuffer_mutex(fb_m),
+                        frameBuffer_condition(fb_c), stackSignal(sSignal), stackSignal_mutex(sSignal_m),
+                        stackSignal_condition(sSignal_c), detSignal(dSignal), detSignal_mutex(dSignal_m),
+                        detSignal_condition(dSignal_c), pDetection(detection), pStack(stack), mThread(NULL),
+                        mMustStop(false), mDevice(NULL), mNbGrabFail(0), mNbGrabSuccess(0), mThreadEndStatus(false),
+                        mNextAcqIndex(0), pExpCtrl(NULL), mStackThreadStatus(false){
 
 }
 
 AcqThread::~AcqThread(void){
 
-    if(cam != NULL) delete cam;
+    if(mDevice != NULL)
+        delete mDevice;
 
-	if(acquisitionThread != NULL) delete acquisitionThread;
+    if(mThread != NULL)
+        delete mThread;
 
-	if(autoExposure != NULL) delete autoExposure;
-
-}
-
-void AcqThread::join(){
-
-	acquisitionThread->join();
+    if(pExpCtrl != NULL)
+        delete pExpCtrl;
 
 }
 
 void AcqThread::stopThread(){
 
-	// Signal the thread to stop (thread-safe)
-	mustStopMutex.lock();
-	mustStop = true;
-	mustStopMutex.unlock();
+    // Signal the thread to stop (thread-safe)
+    mMustStopMutex.lock();
+    mMustStop = true;
+    mMustStopMutex.unlock();
 
-	// Wait for the thread to finish.
-    if(acquisitionThread != NULL)
-	while(acquisitionThread->timed_join(boost::posix_time::seconds(2)) == false){
+    // Wait for the thread to finish.
+    if(mThread != NULL){
 
-        acquisitionThread->interrupt();
+        while(mThread->timed_join(boost::posix_time::seconds(2)) == false){
+
+            mThread->interrupt();
+
+        }
 
     }
 
@@ -120,49 +96,48 @@ void AcqThread::stopThread(){
 
 bool AcqThread::startThread(){
 
-	BOOST_LOG_SEV(logger,normal) << "Create new Device.";
+    mDevice = new Device(mCameraType, mCfgPath);
 
-	cam = new Device(srcType);
+    if(!mDevice->prepareDevice()){
 
-	BOOST_LOG_SEV(logger,normal) << "Prepare device.";
-	boost::mutex::scoped_lock lock_(*cfg_mutex);
-	if(!cam->prepareDevice(srcType, cfg_path)){
-		lock_.unlock();
-		BOOST_LOG_SEV(logger,fail) << "Fail to prepare device.";
-		return false;
-	}
-	lock_.unlock();
-	BOOST_LOG_SEV(logger,normal) << "Sucess to prepare device.";
-	BOOST_LOG_SEV(logger,normal) << "Create acquisition thread.";
+        BOOST_LOG_SEV(logger,fail) << "Fail to prepare device.";
+        return false;
 
-    acquisitionThread = new boost::thread(boost::ref(*this));
-	return true;
+    }
+
+    BOOST_LOG_SEV(logger,normal) << "Sucess to prepare device.";
+    BOOST_LOG_SEV(logger,normal) << "Create acquisition thread.";
+
+    mThread = new boost::thread(boost::ref(*this));
+
+    return true;
 
 }
 
-bool AcqThread::getThreadTerminatedStatus(){
+bool AcqThread::getThreadEndStatus(){
 
-	return threadTerminated;
+    return mThreadEndStatus;
 
 }
 
 void AcqThread::operator()(){
 
-	bool stop = false;
-	vector<string> frameDate;   // Date in string vector : YYYY  MM  DD  hh  mm  ss
+    bool stop = false;
+    vector<string> frameDate;   // Date in string vector : YYYY  MM  DD  hh  mm  ss
     string accurateFrameDate;   // Date in string : YYYY-MM-DDTHH:MM:SS,fffffffff
 
-	BOOST_LOG_SCOPED_THREAD_TAG("LogName", "ACQ_THREAD");
-	BOOST_LOG_SEV(logger,notification) << "\n";
-	BOOST_LOG_SEV(logger,notification) << "==============================================";
-	BOOST_LOG_SEV(logger,notification) << "========== Start acquisition thread ==========";
-	BOOST_LOG_SEV(logger,notification) << "==============================================";
+    BOOST_LOG_SCOPED_THREAD_TAG("LogName", "ACQ_THREAD");
+    BOOST_LOG_SEV(logger,notification) << "\n";
+    BOOST_LOG_SEV(logger,notification) << "==============================================";
+    BOOST_LOG_SEV(logger,notification) << "========== Start acquisition thread ==========";
+    BOOST_LOG_SEV(logger,notification) << "==============================================";
 
     /// Prepare scheduled long acquisition.
 
-    ACQ_SCHEDULE = cam->getSchedule();      // Get acquisition schedule.
+    mAcqScheduledList = mDevice->getSchedule();      // Get acquisition schedule.
     sortAcquisitionSchedule();              // Order schedule times.
     selectNextAcquisitionSchedule();        // Search next acquisition according to the current time.
+
     bool scheduleTaskStatus = false;
     bool scheduleTaskActive = false;
 
@@ -171,9 +146,9 @@ void AcqThread::operator()(){
     int regularAcqFrameInterval = 0;
     int regularAcqFrameCounter = 0;
 
-    if(cam->getAcqRegularEnabled())
+    if(mDevice->getAcqRegularEnabled())
 
-        regularAcqFrameInterval = cam->getAcqRegularTimeInterval() * cam->getFPS();
+        regularAcqFrameInterval = mDevice->getAcqRegularTimeInterval() * mDevice->getCam()->getFPS();
 
     /// Exposure adjustment variables.
 
@@ -181,49 +156,47 @@ void AcqThread::operator()(){
     bool exposureControlActive = false;
     bool cleanStatus = false;
 
-    if(cam->getAcqDayEnabled())
+    if(mDevice->getAcqDayEnabled())
 
-        autoExposure = new ExposureControl(cam->getExposureControlFrequency(),
-                                           cam->getExposureControlSaveImage(),
-                                           cam->getExposureControlSaveInfos(),
-                                           cam->getDataPath(),
-                                           cam->getStationName());
+        pExpCtrl = new ExposureControl( mDevice->getExposureControlFrequency(),
+                                        mDevice->getExposureControlSaveImage(),
+                                        mDevice->getExposureControlSaveInfos(),
+                                        mDevice->getDataPath(),
+                                        mDevice->getStationName());
 
     int timeStartSunrise    = 0;
     int timeStopSunrise     = 0;
     int timeStartSunset     = 0;
     int timeStopSunset      = 0;
 
-    if(cam->getSunriseTime().size() != 0 && cam->getSunsetTime().size() != 0){
+    if(mDevice->getSunriseTime().size() != 0 && mDevice->getSunsetTime().size() != 0){
 
-        timeStartSunrise    = cam->getSunriseTime().at(0) * 3600 + cam->getSunriseTime().at(1) * 60;
-        timeStopSunrise     = timeStartSunrise + cam->getSunriseDuration() * 2;
-        timeStartSunset     = cam->getSunsetTime().at(0) * 3600 + cam->getSunsetTime().at(1) * 60;
-        timeStopSunset      = timeStartSunset + cam->getSunsetDuration() * 2;
+        timeStartSunrise    = mDevice->getSunriseTime().at(0) * 3600 + mDevice->getSunriseTime().at(1) * 60;
+        timeStopSunrise     = timeStartSunrise + mDevice->getSunriseDuration() * 2;
+        timeStartSunset     = mDevice->getSunsetTime().at(0) * 3600 + mDevice->getSunsetTime().at(1) * 60;
+        timeStopSunset      = timeStartSunset + mDevice->getSunsetDuration() * 2;
 
     }
 
     /// Enable or disable stack thread in daytime.
 
-    if(stackProcess != NULL)
-        enableStackThread = true;
+    if(pStack != NULL)
+        mStackThreadStatus = true;
     else
-        enableStackThread = false;
-
-    cout << "enableStackThread = " << enableStackThread << endl;
+        mStackThreadStatus = false;
 
     /// Acquisition process.
 
-	try{
+    try{
 
-	    do{
+        do{
 
             // Load videos file or frames directory if input type is : FRAMES or VIDEO
-	        if(!cam->loadDataset()) break;
+            if(!mDevice->getCam()->loadNextDataSet()) break;
 
             do{
 
-                if(cam->getDisplayInput())
+                if(mDevice->getDisplayInput())
                     namedWindow("Display window", WINDOW_NORMAL );
 
                 Frame newFrame;
@@ -231,7 +204,7 @@ void AcqThread::operator()(){
 
                 double tacq = (double)getTickCount();
 
-                if(cam->grabImage(newFrame)){
+                if(mDevice->getCam()->grabImage(newFrame)){
 
                     grabStatus = true;
 
@@ -243,7 +216,7 @@ void AcqThread::operator()(){
                     accurateFrameDate = newFrame.getAcqDateMicro();
 
                     // Check if exposure control is active.
-                    if(!exposureControlStatus /*|| cam->getVideoFramesInput()*/){
+                    if(!exposureControlStatus){
 
                         // Exposure control is not active, the new frame can be shared with others threads.
 
@@ -256,7 +229,7 @@ void AcqThread::operator()(){
                         detSignal_condition->notify_one();
                         lock2.unlock();
 
-                        if(enableStackThread){
+                        if(mStackThreadStatus){
 
                             boost::mutex::scoped_lock lock3(*stackSignal_mutex);
                             *stackSignal = true;
@@ -273,7 +246,7 @@ void AcqThread::operator()(){
                         if(!cleanStatus){
 
                             // If stack process exists.
-                            if(stackProcess != NULL){
+                            if(pStack != NULL){
 
                                 boost::mutex::scoped_lock lock(*stackSignal_mutex);
                                 *stackSignal = false;
@@ -281,18 +254,18 @@ void AcqThread::operator()(){
 
                                 // Force interruption.
                                 cout << "Send interruption signal to stack " << endl;
-                                stackProcess->interruptThread();
+                                pStack->interruptThread();
 
                             }
 
                             // If detection process exists
-                            if(detectionProcess != NULL){
+                            if(pDetection != NULL){
 
                                 boost::mutex::scoped_lock lock(*detSignal_mutex);
                                 *detSignal = false;
                                 lock.unlock();
                                 cout << "Sending interruption signal to detection process... " << endl;
-                                detectionProcess->interruptThread();
+                                pDetection->interruptThread();
 
                             }
 
@@ -308,30 +281,25 @@ void AcqThread::operator()(){
 
                     }
 
-                    if(autoExposure != NULL && exposureControlActive)
-                        exposureControlStatus = autoExposure->controlExposureTime(cam, newFrame.getImg(), accurateFrameDate);
+                    if(pExpCtrl != NULL && exposureControlActive)
+                        exposureControlStatus = pExpCtrl->controlExposureTime(mDevice, newFrame.getImg(), accurateFrameDate);
 
-                    if(cam->getDisplayInput())
+                    if(mDevice->getDisplayInput())
                         imshow("Display window", newFrame.getImg());
 
                 }else{
 
                     BOOST_LOG_SEV(logger, notification) << "> Fail to grab frame";
-                    nbFailGrabbedFrames++;
+                    mNbGrabFail++;
 
                 }
 
-                if(grabStatus && !cam->getVideoFramesInput()){
+                if(grabStatus && !mDevice->getVideoFramesInput()){
 
                     int currentTimeInSec = atoi(frameDate.at(3).c_str()) * 3600 + atoi(frameDate.at(4).c_str()) * 60 + atoi(frameDate.at(5).c_str());
-                    /*cout << " TimeInSec : " << currentTimeInSec << endl;
-                    cout << " StartSunrise : " << timeStartSunrise << endl;
-                    cout << " StopSunrise  : " << timeStopSunrise << endl;
-                    cout << " StartSunset  : " << timeStartSunset << endl;
-                    cout << " StopSunset   : " << timeStopSunset << endl;*/
 
                     // If acquisition at regular time interval is enabled.
-                    if(cam->getAcqRegularEnabled()){
+                    if(mDevice->getAcqRegularEnabled()){
 
                         if((currentTimeInSec > timeStopSunset) || (currentTimeInSec < timeStartSunrise)){
 
@@ -358,37 +326,37 @@ void AcqThread::operator()(){
                     }
 
                     // Check schedule for long exposure time captures.
-                    if(ACQ_SCHEDULE.size() != 0 && cam->getAcqScheduleEnabled()){
+                    if(mAcqScheduledList.size() != 0 && mDevice->getAcqScheduleEnabled()){
 
                         // Time for a long exposure time acquisition.
-                        if(nextTask.getH() == atoi(frameDate.at(3).c_str()) && nextTask.getM() == atoi(frameDate.at(4).c_str()) && atoi(frameDate.at(5).c_str()) == nextTask.getS()){
+                        if(mNextAcq.getH() == atoi(frameDate.at(3).c_str()) && mNextAcq.getM() == atoi(frameDate.at(4).c_str()) && atoi(frameDate.at(5).c_str()) == mNextAcq.getS()){
 
-                            nextTask.setDate(accurateFrameDate);
+                            mNextAcq.setDate(accurateFrameDate);
 
                             // Launch single acquisition
-                            bool result = runScheduledAcquisition(nextTask);
+                            bool result = runScheduledAcquisition(mNextAcq);
 
                             sleep(1);
 
-                            // Update nextTask
+                            // Update mNextAcq
                             selectNextAcquisitionSchedule();
 
                         }else{
 
                             // The current time elapsed.
-                            if(atoi(frameDate.at(3).c_str()) > nextTask.getH()){
+                            if(atoi(frameDate.at(3).c_str()) > mNextAcq.getH()){
 
                                selectNextAcquisitionSchedule();
 
-                            }else if(atoi(frameDate.at(3).c_str()) == nextTask.getH()){
+                            }else if(atoi(frameDate.at(3).c_str()) == mNextAcq.getH()){
 
-                                if(atoi(frameDate.at(4).c_str()) > nextTask.getM()){
+                                if(atoi(frameDate.at(4).c_str()) > mNextAcq.getM()){
 
                                     selectNextAcquisitionSchedule();
 
-                                }else if(atoi(frameDate.at(4).c_str()) == nextTask.getM()){
+                                }else if(atoi(frameDate.at(4).c_str()) == mNextAcq.getM()){
 
-                                    if(atoi(frameDate.at(5).c_str()) > nextTask.getS()){
+                                    if(atoi(frameDate.at(5).c_str()) > mNextAcq.getS()){
 
                                         selectNextAcquisitionSchedule();
 
@@ -403,7 +371,7 @@ void AcqThread::operator()(){
                     }
 
                     // If day acquisition enabled, enable or disable exposure control if it's sunset or sunrise.
-                    if(cam->getAcqDayEnabled()){
+                    if(mDevice->getAcqDayEnabled()){
 
                         cout << "exposureControlActive : " << exposureControlActive << endl;
 
@@ -421,20 +389,20 @@ void AcqThread::operator()(){
 
                                     cout << "DAYTIME ! "<< endl;
                                     BOOST_LOG_SEV(logger, notification) << "Apply day exposure time.";
-                                    cout << cam->getDayExposureTime()<< endl;
-                                    cam->setExposureTime(cam->getDayExposureTime());
-                                    cout << cam->getDayGain()<< endl;
-                                    cam->setGain(cam->getDayGain());
+                                    cout << mDevice->getDayExposureTime()<< endl;
+                                    mDevice->getCam()->setExposureTime(mDevice->getDayExposureTime());
+                                    cout << mDevice->getDayGain()<< endl;
+                                    mDevice->getCam()->setGain(mDevice->getDayGain());
 
 
                                 }else if((currentTimeInSec >= timeStopSunset) || (currentTimeInSec < timeStartSunrise)){
 
                                     cout << "NIGHT ! "<< endl;
                                     BOOST_LOG_SEV(logger, notification) << "Apply night exposure time.";
-                                    cout << cam->getNightExposureTime()<< endl;
-                                    cam->setExposureTime(cam->getNightExposureTime());
-                                    cout << cam->getNightGain()<< endl;
-                                    cam->setGain(cam->getNightGain());
+                                    cout << mDevice->getNightExposureTime()<< endl;
+                                    mDevice->getCam()->setExposureTime(mDevice->getNightExposureTime());
+                                    cout << mDevice->getNightGain()<< endl;
+                                    mDevice->getCam()->setGain(mDevice->getNightGain());
                                 }
 
                             }
@@ -446,16 +414,16 @@ void AcqThread::operator()(){
                     }
 
                     // Asleep or wake up stack process
-                    if(stackProcess != NULL){
+                    if(pStack != NULL){
 
                         if((currentTimeInSec > timeStopSunset) || (currentTimeInSec < timeStartSunrise)){
 
-                            enableStackThread = true;
-                            cout << "enableStackThread night = " << enableStackThread << endl;
+                            mStackThreadStatus = true;
+                            cout << "mStackThreadStatus night = " << mStackThreadStatus << endl;
 
                         }else{
 
-                            if(enableStackThread){
+                            if(mStackThreadStatus){
 
                                 boost::mutex::scoped_lock lock(*stackSignal_mutex);
                                 *stackSignal = false;
@@ -463,13 +431,13 @@ void AcqThread::operator()(){
 
                                 // Force interruption.
                                 cout << "Send interruption signal to stack " << endl;
-                                stackProcess->interruptThread();
+                                pStack->interruptThread();
 
                             }
 
-                            enableStackThread = false;
+                            mStackThreadStatus = false;
 
-                            cout << "enableStackThread day = " << enableStackThread << endl;
+                            cout << "mStackThreadStatus day = " << mStackThreadStatus << endl;
 
                         }
 
@@ -481,21 +449,21 @@ void AcqThread::operator()(){
                 std::cout << " [ TIME ACQ ] : " << tacq << " ms" << endl;
                 BOOST_LOG_SEV(logger, normal) << " [ TIME ACQ ] : " << tacq << " ms";
 
-                mustStopMutex.lock();
-                stop = mustStop;
-                mustStopMutex.unlock();
+                mMustStopMutex.lock();
+                stop = mMustStop;
+                mMustStopMutex.unlock();
 
-            }while(stop == false && !cam->getDeviceStopStatus());
+            }while(stop == false && !mDevice->getCam()->getStopStatus());
 
             waitKey(1000);
 
             //cout << "Clear detection method." << endl;
-            if(detectionProcess != NULL){
+            if(pDetection != NULL){
 
-                detectionProcess->getDetMethod()->resetDetection();
-                detectionProcess->getDetMethod()->resetMask();
+                pDetection->getDetMethod()->resetDetection();
+                pDetection->getDetMethod()->resetMask();
 
-                if(!detectionProcess->getRunStatus())
+                if(!pDetection->getRunStatus())
                     break;
 
             }
@@ -508,11 +476,11 @@ void AcqThread::operator()(){
             cout << "Waiting for 5 seconds ..." << endl;
             waitKey(2000);
 
-	    }while(cam->getDatasetStatus());
+        }while(mDevice->getCam()->getDataSetStatus());
 
-	}catch(const boost::thread_interrupted&){
+    }catch(const boost::thread_interrupted&){
 
-			BOOST_LOG_SEV(logger,notification) << "Acquisition Thread INTERRUPTED";
+            BOOST_LOG_SEV(logger,notification) << "Acquisition Thread INTERRUPTED";
             cout << "Acquisition Thread INTERRUPTED" <<endl;
 
     }catch(exception& e){
@@ -522,19 +490,19 @@ void AcqThread::operator()(){
 
     }
 
-    cam->acqStop();
-	cam->grabStop();
+    mDevice->getCam()->acqStop();
+    mDevice->getCam()->grabCleanse();
 
-	threadTerminated = true;
+    mThreadEndStatus = true;
 
-	std::cout << "Acquisition Thread terminated." << endl;
-	BOOST_LOG_SEV(logger,notification) << "Acquisition Thread TERMINATED";
+    std::cout << "Acquisition Thread terminated." << endl;
+    BOOST_LOG_SEV(logger,notification) << "Acquisition Thread TERMINATED";
 
 }
 
 void AcqThread::selectNextAcquisitionSchedule(){
 
-    if(ACQ_SCHEDULE.size() != 0){
+    if(mAcqScheduledList.size() != 0){
 
         /// Search next acquisition according to the current date
         // Get current date.
@@ -560,25 +528,25 @@ void AcqThread::selectNextAcquisitionSchedule(){
         int currentS = atoi(currentDateSplit.at(5).c_str());
 
         // Search next acquisition
-        for(int i = 0; i < ACQ_SCHEDULE.size(); i++){
+        for(int i = 0; i < mAcqScheduledList.size(); i++){
 
-            if(currentH < ACQ_SCHEDULE.at(i).getH()){
+            if(currentH < mAcqScheduledList.at(i).getH()){
 
-               indexNextTask = i;
+               mNextAcqIndex = i;
                break;
 
-            }else if(currentH == ACQ_SCHEDULE.at(i).getH()){
+            }else if(currentH == mAcqScheduledList.at(i).getH()){
 
-                if(currentM < ACQ_SCHEDULE.at(i).getM()){
+                if(currentM < mAcqScheduledList.at(i).getM()){
 
-                    indexNextTask = i;
+                    mNextAcqIndex = i;
                     break;
 
-                }else if(currentM == ACQ_SCHEDULE.at(i).getM()){
+                }else if(currentM == mAcqScheduledList.at(i).getM()){
 
-                    if(currentS < ACQ_SCHEDULE.at(i).getS()){
+                    if(currentS < mAcqScheduledList.at(i).getS()){
 
-                        indexNextTask = i;
+                        mNextAcqIndex = i;
                         break;
 
                     }
@@ -589,9 +557,7 @@ void AcqThread::selectNextAcquisitionSchedule(){
 
         }
 
-        nextTask = ACQ_SCHEDULE.at(indexNextTask);
-
-        cout << "nextTask : " << nextTask.getH() << "H " << nextTask.getM() << "M" << nextTask.getS() << "S" << endl;
+        mNextAcq = mAcqScheduledList.at(mNextAcqIndex);
 
     }
 
@@ -599,7 +565,7 @@ void AcqThread::selectNextAcquisitionSchedule(){
 
 void AcqThread::sortAcquisitionSchedule(){
 
-    if(ACQ_SCHEDULE.size() != 0){
+    if(mAcqScheduledList.size() != 0){
 
         // Sort time in list.
         vector<AcqSchedule> tempSchedule;
@@ -611,7 +577,7 @@ void AcqThread::sortAcquisitionSchedule(){
             vector<AcqSchedule>::iterator it;
             vector<AcqSchedule>::iterator it_select;
 
-            for(it = ACQ_SCHEDULE.begin(); it != ACQ_SCHEDULE.end(); ++it){
+            for(it = mAcqScheduledList.begin(); it != mAcqScheduledList.end(); ++it){
 
                 if(!init){
 
@@ -662,39 +628,37 @@ void AcqThread::sortAcquisitionSchedule(){
 
                 tempSchedule.push_back((*it_select));
                 cout << "-> " << (*it_select).getH() << "H " << (*it_select).getM() << "M " << (*it_select).getS() << "S " << endl;
-                ACQ_SCHEDULE.erase(it_select);
+                mAcqScheduledList.erase(it_select);
 
             }
 
-        }while(ACQ_SCHEDULE.size() != 0);
+        }while(mAcqScheduledList.size() != 0);
 
-        ACQ_SCHEDULE = tempSchedule;
+        mAcqScheduledList = tempSchedule;
 
     }
 
 }
 
-bool AcqThread::buildRegularAcquisitionDirectory(string YYYYMMDD){
+bool AcqThread::buildAcquisitionDirectory(string YYYYMMDD){
 
-	namespace fs = boost::filesystem;
-	string	root		= cam->getDataPath() + cam->getStationName() + "_" + YYYYMMDD +"/";
+    namespace fs = boost::filesystem;
+    string root = mDevice->getDataPath() + mDevice->getStationName() + "_" + YYYYMMDD +"/";
 
-	cout << "root : " << root<< endl;
+    string subDir = "captures/";
+    string finalPath = root + subDir;
 
-    string	subDir		= "captures/";
-    string	finalPath	= root + subDir;
+    mDataLocation	= finalPath;
+    BOOST_LOG_SEV(logger,notification) << "CompleteDataPath : " << mDataLocation;
 
-	completeDataPath	= finalPath;
-	BOOST_LOG_SEV(logger,notification) << "CompleteDataPath : " << completeDataPath;
-
-    path p(cam->getDataPath());
+    path p(mDevice->getDataPath());
     path p1(root);
     path p2(root + subDir);
 
     // If DATA_PATH exists
     if(fs::exists(p)){
 
-        // If DATA_PATH/STATION_YYYYMMDD/ exists
+        // If DATA_PATH/STATI ON_YYYYMMDD/ exists
         if(fs::exists(p1)){
 
             // If DATA_PATH/STATION_YYYYMMDD/astro/ doesn't exists
@@ -722,7 +686,7 @@ bool AcqThread::buildRegularAcquisitionDirectory(string YYYYMMDD){
             if(!fs::create_directory(p1)){
 
                 BOOST_LOG_SEV(logger,fail) << "Unable to create STATION_YYYYMMDD directory : " << p1.string();
-				return false;
+                return false;
 
             // If success to create DATA_PATH/STATION_YYYYMMDD/
             }else{
@@ -733,13 +697,13 @@ bool AcqThread::buildRegularAcquisitionDirectory(string YYYYMMDD){
                 if(!fs::create_directory(p2)){
 
                     BOOST_LOG_SEV(logger,critical) << "Unable to create astro directory : " << p2.string();
-					return false;
+                    return false;
 
                 // If success to create DATA_PATH/STATION_YYYYMMDD/astro/
                 }else{
 
                     BOOST_LOG_SEV(logger,notification) << "Success to create astro directory : " << p2.string();
-					return true;
+                    return true;
 
                 }
             }
@@ -752,7 +716,7 @@ bool AcqThread::buildRegularAcquisitionDirectory(string YYYYMMDD){
         if(!fs::create_directory(p)){
 
             BOOST_LOG_SEV(logger,fail) << "Unable to create DATA_PATH directory : " << p.string();
-			return false;
+            return false;
 
         // If success to create DATA_PATH
         }else{
@@ -763,7 +727,7 @@ bool AcqThread::buildRegularAcquisitionDirectory(string YYYYMMDD){
             if(!fs::create_directory(p1)){
 
                 BOOST_LOG_SEV(logger,fail) << "Unable to create STATION_YYYYMMDD directory : " << p1.string();
-				return false;
+                return false;
 
             // If success to create DATA_PATH/STATION_YYYYMMDD/
             }else{
@@ -774,13 +738,13 @@ bool AcqThread::buildRegularAcquisitionDirectory(string YYYYMMDD){
                 if(!fs::create_directory(p2)){
 
                     BOOST_LOG_SEV(logger,critical) << "Unable to create astro directory : " << p2.string();
-					return false;
+                    return false;
 
                 // If success to create DATA_PATH/STATION_YYYYMMDD/astro/
                 }else{
 
                     BOOST_LOG_SEV(logger,notification) << "Success to create astro directory : " << p2.string();
-					return true;
+                    return true;
 
                 }
             }
@@ -792,11 +756,11 @@ bool AcqThread::runScheduledAcquisition(AcqSchedule task){
 
     // Stop camera
     cout << "Stopping camera..." << endl;
-    cam->acqStop();
-	cam->grabStop();
+    mDevice->getCam()->acqStop();
+    mDevice->getCam()->grabCleanse();
 
     // If stack process exists.
-    if(stackProcess != NULL && enableStackThread){
+    if(pStack != NULL && mStackThreadStatus){
 
         boost::mutex::scoped_lock lock(*stackSignal_mutex);
         *stackSignal = false;
@@ -804,19 +768,19 @@ bool AcqThread::runScheduledAcquisition(AcqSchedule task){
 
         // Force interruption.
         cout << "Send interruption signal to stack " << endl;
-        stackProcess->interruptThread();
+        pStack->interruptThread();
 
 
     }
 
     // If detection process exists
-    if(detectionProcess != NULL){
+    if(pDetection != NULL){
 
         boost::mutex::scoped_lock lock(*detSignal_mutex);
         *detSignal = false;
         lock.unlock();
         cout << "Sending interruption signal to detection process " << endl;
-        detectionProcess->interruptThread();
+        pDetection->interruptThread();
 
     }
 
@@ -836,11 +800,11 @@ bool AcqThread::runScheduledAcquisition(AcqSchedule task){
         frame.setGain(task.getG());
         CamBitDepth camFormat;
         cout << "Format : " << task.getF() << endl;
-        Conversion::intBitDepth_To_CamBitDepth(task.getF(), camFormat);
+        Conversion::intBitDepthToCamBitDepthEnum(task.getF(), camFormat);
         frame.setBitDepth(camFormat);
 
         // Single capture.
-        if(cam->grabSingleImage(frame, cam->getCameraId())){
+        if(mDevice->getCam()->grabSingleImage(frame, mDevice->getCameraId())){
 
             cout << endl << "Single capture succeed !" << endl;
 
@@ -851,11 +815,11 @@ bool AcqThread::runScheduledAcquisition(AcqSchedule task){
 
                 string	YYYYMMDD = TimeDate::get_YYYYMMDD_fromDateString(task.getDate());
                 cout << "YYYYMMDD : " << YYYYMMDD << endl;
-                if(buildRegularAcquisitionDirectory(YYYYMMDD)){
+                if(buildAcquisitionDirectory(YYYYMMDD)){
 
                     cout << "Saving fits file ..." << endl;
 
-                    Fits2D newFits(completeDataPath, cam->getFitsHeader());
+                    Fits2D newFits(mDataLocation, mDevice->getFitsHeader());
                     newFits.setGaindb(task.getG());
                     double exptime = task.getE()/1000000.0;
                     newFits.setOntime(exptime);
@@ -865,7 +829,7 @@ bool AcqThread::runScheduledAcquisition(AcqSchedule task){
                     double  debObsInSeconds = firstDateInt.at(3)*3600 + firstDateInt.at(4)*60 + firstDateInt.at(5);
                     double  julianDate      = TimeDate::gregorianToJulian_2(firstDateInt);
                     double  julianCentury   = TimeDate::julianCentury(julianDate);
-                    double  sideralT        = TimeDate::localSideralTime_2(julianCentury, firstDateInt.at(3), firstDateInt.at(4), firstDateInt.at(5), cam->getFitsHeader().getSitelong());
+                    double  sideralT        = TimeDate::localSideralTime_2(julianCentury, firstDateInt.at(3), firstDateInt.at(4), firstDateInt.at(5), mDevice->getFitsHeader().getSitelong());
                     newFits.setCrval1(sideralT);
 
                     newFits.setCtype1("RA---ARC");
@@ -886,7 +850,7 @@ bool AcqThread::runScheduledAcquisition(AcqSchedule task){
                                 // Create FITS image with BITPIX = BYTE_IMG (8-bits unsigned integers), pixel with TBYTE (8-bit unsigned byte)
 
                                 if(newFits.writeFits(frame.getImg(), UC8, fileName))
-                                    cout << ">> Fits saved in : " << completeDataPath << fileName << endl;
+                                    cout << ">> Fits saved in : " << mDataLocation << fileName << endl;
 
                             }
 
@@ -929,7 +893,7 @@ bool AcqThread::runScheduledAcquisition(AcqSchedule task){
 
                                 // Create FITS image with BITPIX = SHORT_IMG (16-bits signed integers), pixel with TSHORT (signed short)
                                 if(newFits.writeFits(newMat, S16, fileName))
-                                    cout << ">> Fits saved in : " << completeDataPath << fileName << endl;
+                                    cout << ">> Fits saved in : " << mDataLocation << fileName << endl;
 
                             }
                     }
@@ -949,7 +913,7 @@ bool AcqThread::runScheduledAcquisition(AcqSchedule task){
     }
 
     cout<< "Restarting camera in continuous mode..." << endl;
-    cam->acqRestart();
+    mDevice->runContinuousAcquisition();
 
 }
 
@@ -957,11 +921,11 @@ bool AcqThread::runRegularAcquisition(string frameDate){
 
     // Stop camera
     cout << "Stopping camera..." << endl;
-    cam->acqStop();
-	cam->grabStop();
+    mDevice->getCam()->acqStop();
+    mDevice->getCam()->grabCleanse();
 
     // If stack process exists.
-    if(stackProcess != NULL && enableStackThread){
+    if(pStack != NULL && mStackThreadStatus){
 
         boost::mutex::scoped_lock lock(*stackSignal_mutex);
         *stackSignal = false;
@@ -969,19 +933,19 @@ bool AcqThread::runRegularAcquisition(string frameDate){
 
         // Force interruption.
         cout << "Send interruption signal to stack " << endl;
-        stackProcess->interruptThread();
+        pStack->interruptThread();
 
 
     }
 
     // If detection process exists
-    if(detectionProcess != NULL){
+    if(pDetection != NULL){
 
         boost::mutex::scoped_lock lock(*detSignal_mutex);
         *detSignal = false;
         lock.unlock();
         cout << "Send interruption signal to detection process " << endl;
-        detectionProcess->interruptThread();
+        pDetection->interruptThread();
 
     }
 
@@ -991,19 +955,19 @@ bool AcqThread::runRegularAcquisition(string frameDate){
     frameBuffer->clear();
     lock.unlock();
 
-    for(int i = 0; i < cam->getAcqRegularRepetition(); i++){
+    for(int i = 0; i < mDevice->getAcqRegularRepetition(); i++){
 
         // Configuration pour single capture
         Frame frame;
-        cout << "Exposure : " << cam->getAcqRegularExposure() << endl;
-        frame.setExposure(cam->getAcqRegularExposure());
-        cout << "Gain : " << cam->getAcqRegularGain() << endl;
-        frame.setGain(cam->getAcqRegularGain());
-        cout << "Format : " << cam->getAcqRegularFormat() << endl;
-        frame.setBitDepth(cam->getAcqRegularFormat());
+        cout << "Exposure : " << mDevice->getAcqRegularExposure() << endl;
+        frame.setExposure(mDevice->getAcqRegularExposure());
+        cout << "Gain : " << mDevice->getAcqRegularGain() << endl;
+        frame.setGain(mDevice->getAcqRegularGain());
+        cout << "Format : " << mDevice->getAcqRegularFormat() << endl;
+        frame.setBitDepth(mDevice->getAcqRegularFormat());
 
         // Single capture.
-        if(cam->grabSingleImage(frame, cam->getCameraId())){
+        if(mDevice->getCam()->grabSingleImage(frame, mDevice->getCameraId())){
 
             cout << endl << "Single capture succeed !" << endl;
 
@@ -1014,15 +978,15 @@ bool AcqThread::runRegularAcquisition(string frameDate){
 
                 string	YYYYMMDD = TimeDate::get_YYYYMMDD_fromDateString(frameDate);
                 cout << "YYYYMMDD : " << YYYYMMDD << endl;
-                if(buildRegularAcquisitionDirectory(YYYYMMDD)){
+                if(buildAcquisitionDirectory(YYYYMMDD)){
 
                     cout << "Saving fits file ..." << endl;
 
-                    cout << "completeDataPath : " << completeDataPath << endl;
+                    cout << "mDataLocation : " << mDataLocation << endl;
 
-                    Fits2D newFits(completeDataPath, cam->getFitsHeader());
-                    newFits.setGaindb(cam->getAcqRegularGain());
-                    double exptime = cam->getAcqRegularExposure()/1000000.0;
+                    Fits2D newFits(mDataLocation, mDevice->getFitsHeader());
+                    newFits.setGaindb(mDevice->getAcqRegularGain());
+                    double exptime = mDevice->getAcqRegularExposure()/1000000.0;
                     newFits.setOntime(exptime);
                     newFits.setDateobs(frame.getAcqDateMicro());
 
@@ -1030,7 +994,7 @@ bool AcqThread::runRegularAcquisition(string frameDate){
                     double  debObsInSeconds = firstDateInt.at(3)*3600 + firstDateInt.at(4)*60 + firstDateInt.at(5);
                     double  julianDate      = TimeDate::gregorianToJulian_2(firstDateInt);
                     double  julianCentury   = TimeDate::julianCentury(julianDate);
-                    double  sideralT        = TimeDate::localSideralTime_2(julianCentury, firstDateInt.at(3), firstDateInt.at(4), firstDateInt.at(5), cam->getFitsHeader().getSitelong());
+                    double  sideralT        = TimeDate::localSideralTime_2(julianCentury, firstDateInt.at(3), firstDateInt.at(4), firstDateInt.at(5), mDevice->getFitsHeader().getSitelong());
                     newFits.setCrval1(sideralT);
 
                     newFits.setCtype1("RA---ARC");
@@ -1045,7 +1009,7 @@ bool AcqThread::runRegularAcquisition(string frameDate){
 
                     cout << "fileName : " << fileName << endl;
 
-                    switch(cam->getAcqRegularFormat()){
+                    switch(mDevice->getAcqRegularFormat()){
 
                         case MONO_8 :
 
@@ -1053,7 +1017,7 @@ bool AcqThread::runRegularAcquisition(string frameDate){
                                 // Create FITS image with BITPIX = BYTE_IMG (8-bits unsigned integers), pixel with TBYTE (8-bit unsigned byte)
 
                                 if(newFits.writeFits(frame.getImg(), UC8, fileName))
-                                    cout << ">> Fits saved in : " << completeDataPath << fileName << endl;
+                                    cout << ">> Fits saved in : " << mDataLocation << fileName << endl;
 
                             }
 
@@ -1096,7 +1060,7 @@ bool AcqThread::runRegularAcquisition(string frameDate){
 
                                 // Create FITS image with BITPIX = SHORT_IMG (16-bits signed integers), pixel with TSHORT (signed short)
                                 if(newFits.writeFits(newMat, S16, fileName))
-                                    cout << ">> Fits saved in : " << completeDataPath << fileName << endl;
+                                    cout << ">> Fits saved in : " << mDataLocation << fileName << endl;
 
 
                             }
@@ -1112,7 +1076,7 @@ bool AcqThread::runRegularAcquisition(string frameDate){
     }
 
     cout<< "Restarting camera in continuous mode..." << endl;
-    cam->acqRestart();
+    mDevice->runContinuousAcquisition();
 
 }
 

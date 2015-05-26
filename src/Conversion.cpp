@@ -1,5 +1,5 @@
 /*
-								Conversion.cpp
+                            Conversion.cpp
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 *
@@ -35,43 +35,39 @@
 
 #include "Conversion.h"
 
-Conversion::Conversion(){
-    //ctor
-}
-
 string Conversion::matTypeToString(int type) {
 
-  string r;
+    string r;
 
-  uchar depth = type & CV_MAT_DEPTH_MASK;
-  uchar chans = 1 + (type >> CV_CN_SHIFT);
+    uchar depth = type & CV_MAT_DEPTH_MASK;
+    uchar chans = 1 + (type >> CV_CN_SHIFT);
 
-  switch ( depth ) {
+    switch ( depth ) {
 
-    case CV_8U:  r = "8U"; break;
-    case CV_8S:  r = "8S"; break;
-    case CV_16U: r = "16U"; break;
-    case CV_16S: r = "16S"; break;
-    case CV_32S: r = "32S"; break;
-    case CV_32F: r = "32F"; break;
-    case CV_64F: r = "64F"; break;
-    default:     r = "User"; break;
+        case CV_8U:  r = "8U"; break;
+        case CV_8S:  r = "8S"; break;
+        case CV_16U: r = "16U"; break;
+        case CV_16S: r = "16S"; break;
+        case CV_32S: r = "32S"; break;
+        case CV_32F: r = "32F"; break;
+        case CV_64F: r = "64F"; break;
+        default:     r = "User"; break;
 
-  }
+    }
 
-  r += "C";
-  r += (chans+'0');
+    r += "C";
+    r += (chans+'0');
 
-  return r;
+    return r;
 
 }
 
 string Conversion::intToString(int nb){
 
-	ostringstream oss;
-	oss << nb;
-	string result = oss.str();
-	return result;
+    ostringstream oss;
+    oss << nb;
+    string result = oss.str();
+    return result;
 
 }
 
@@ -84,14 +80,6 @@ string Conversion::floatToString(float nb){
 
 }
 
-double Conversion::roundToNearest(double num){
-
-    return (num > 0.0) ? floor(num + 0.5) : ceil(num - 0.5);
-
-}
-
-
-//string with delimiters -> list of string
 void Conversion::stringTok(list<string> &container, string const &in, const char * const delimiters  = "_"){
 
     const string::size_type len = in.length();
@@ -124,7 +112,7 @@ void Conversion::stringTok(list<string> &container, string const &in, const char
     }
 }
 
-Mat Conversion::convertTo8UC1(Mat &img){
+Mat Conversion::convertTo8UC1(Mat &img) {
 
     Mat tmp;
     img.copyTo(tmp);
@@ -150,7 +138,7 @@ int Conversion::countNumberDigit(int n){
     return nbDigit;
 }
 
-int Conversion::roundToUpperRange(int n){
+int Conversion::roundToUpperRange(int n) {
 
     int nbDigit = 0;
     int last = 0;
@@ -171,7 +159,7 @@ int Conversion::roundToUpperRange(int n){
     return (last+1) * f;
 }
 
-string Conversion::numbering(int totalDigit, int n){
+string Conversion::numbering(int totalDigit, int n) {
 
     int cpt = 0;
 
@@ -211,7 +199,7 @@ string Conversion::numbering(int totalDigit, int n){
     return ch;
 }
 
-void Conversion::intBitDepth_To_CamBitDepth(int acqFormat, CamBitDepth &camFormat){
+void Conversion::intBitDepthToCamBitDepthEnum(int acqFormat, CamBitDepth &camFormat){
 
     switch(acqFormat){
 

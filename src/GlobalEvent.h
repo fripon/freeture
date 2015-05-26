@@ -1,5 +1,5 @@
 /*
-				GlobalEvent.h
+                                GlobalEvent.h
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 *
@@ -39,10 +39,8 @@
 #include <vector>
 #include <iterator>
 #include <algorithm>
-
 #include "opencv2/highgui/highgui.hpp"
 #include <opencv2/imgproc/imgproc.hpp>
-
 #include "Frame.h"
 #include "LocalEvent.h"
 #include "SaveImg.h"
@@ -50,9 +48,9 @@
 using namespace cv;
 using namespace std;
 
-class GlobalEvent{
+class GlobalEvent {
 
-    private:
+    private :
 
         int     geAge;
         int     geAgeLastLE;
@@ -69,7 +67,7 @@ class GlobalEvent{
         Scalar  geColor;
         Mat     geMapColor;
 
-    public:
+    public :
 
         vector<LocalEvent>  LEList;
         vector<bool>        ptsValidity;
@@ -92,31 +90,31 @@ class GlobalEvent{
 
         ~GlobalEvent();
 
-        Mat     getMapEvent             ()          {return geMap;};
-        Mat     getDirMap               ()          {return geDirMap;};
-        int     getAge                  ()          {return geAge;};
-        int     getAgeLastElem          ()          {return geAgeLastLE;};
-        string  getDate                 ()          {return geDate;};
-        bool    getLinearStatus         ()          {return geLinear;};
-        float   getVelocity             ()          {return geShifting;};
-        bool    getNewLEStatus          ()          {return newLeAdded;};
-        int     getBadPos               ()          {return geBadPoint;};
-        int     getGoodPos              ()          {return geGoodPoint;};
-        int     getNumFirstFrame        ()          {return geFirstFrameNum;};
-        int     getNumLastFrame         ()          {return geLastFrameNum;};
-        Mat     getGeMapColor           ()          {return geMapColor;};
+        Mat getMapEvent() {return geMap;};
+        Mat getDirMap() {return geDirMap;};
+        int getAge() {return geAge;};
+        int getAgeLastElem() {return geAgeLastLE;};
+        string getDate() {return geDate;};
+        bool getLinearStatus() {return geLinear;};
+        float getVelocity() {return geShifting;};
+        bool getNewLEStatus() {return newLeAdded;};
+        int getBadPos() {return geBadPoint;};
+        int getGoodPos() {return geGoodPoint;};
+        int getNumFirstFrame() {return geFirstFrameNum;};
+        int getNumLastFrame() {return geLastFrameNum;};
+        Mat getGeMapColor() {return geMapColor;};
 
-        void    setAge                  (int a)     {geAge = a;};
-        void    setAgeLastElem          (int a)     {geAgeLastLE = a;};
-        void    setMapEvent             (Mat m)     {m.copyTo(geMap);};
-        void    setNewLEStatus          (bool s)    {newLeAdded = s;};
-        void    setNumFirstFrame        (int n)     {geFirstFrameNum = n;};
-        void    setNumLastFrame         (int n)     {geLastFrameNum = n;};
+        void setAge(int a) {geAge = a;};
+        void setAgeLastElem(int a) {geAgeLastLE = a;};
+        void setMapEvent(Mat m) {m.copyTo(geMap);};
+        void setNewLEStatus(bool s) {newLeAdded = s;};
+        void setNumFirstFrame(int n) {geFirstFrameNum = n;};
+        void setNumLastFrame(int n) {geLastFrameNum = n;};
 
-        bool    ratioFramesDist();
+        bool ratioFramesDist();
 
-        bool    addLE(LocalEvent le);
-        bool    continuousGoodPos(int n);
-        bool    continuousBadPos(int n);
+        bool addLE(LocalEvent le);
+        bool continuousGoodPos(int n);
+        bool continuousBadPos(int n);
 
 };

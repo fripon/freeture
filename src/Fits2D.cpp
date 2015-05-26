@@ -1,5 +1,5 @@
 /*
-								Fits2D.cpp
+                                Fits2D.cpp
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 *
@@ -36,13 +36,14 @@
 #include "Fits2D.h"
 
 boost::log::sources::severity_logger< LogSeverityLevel >  Fits2D::logger;
-Fits2D::_Init Fits2D::_initializer;
 
-Fits2D::Fits2D(){
+Fits2D::Init Fits2D::initializer;
+
+Fits2D::Fits2D() {
 
     kPROGRAM    = "FreeTure";
     kCREATOR    = "FRIPON";
-    fitsPath = "";
+    fitsPath    = "";
 
 }
 

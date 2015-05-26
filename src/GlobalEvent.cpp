@@ -189,7 +189,7 @@ bool GlobalEvent::addLE(LocalEvent le){
         // Update colored ge map.
         vector<Point>::iterator it;
         int roiH = 10, roiW = 10;
-        for(it = le.leRoiList.begin(); it != le.leRoiList.end(); ++it){
+        for(it = le.mLeRoiList.begin(); it != le.mLeRoiList.end(); ++it){
 
             Mat roi(roiH,roiW,CV_8UC3,geColor);
             roi.copyTo(geMapColor(Rect((*it).x-roiW/2,(*it).y-roiH/2,roiW,roiH)));

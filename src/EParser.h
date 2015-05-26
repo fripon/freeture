@@ -1,5 +1,5 @@
 /*
-				EParser.h
+                                EParser.h
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 *
@@ -39,7 +39,6 @@
 #include <iostream>
 #include <map>
 #include <stdexcept>
-
 #include "ECamType.h"
 #include "ECamBitDepth.h"
 #include "EDetMeth.h"
@@ -50,15 +49,28 @@ using namespace std;
 
 //http://stackoverflow.com/questions/726664/string-to-enum-in-c
 
-template<typename T> class EParser{
+template<typename T> class EParser {
 
-	public:
+    public :
 
-	    map<string, T> enumMap;
+        map<string, T> enumMap;     // String value with its enumeration value.
 
-		EParser();
+    public :
 
-		T parseEnum(string paramName, const string & value){
+        /**
+        * Constructor.
+        *
+        */
+        EParser();
+
+        /**
+        * Get enumeration value from its string version.
+        *
+        * @param paramName Name of the parameter which have an enumeration value.
+        * @param value Enumeration value in string.
+        * @return Enumeration value.
+        */
+        T parseEnum(string paramName, const string & value){
 
             typename map<string, T>::const_iterator iValue = enumMap.find(value);
 
@@ -80,16 +92,22 @@ template<typename T> class EParser{
 
             return iValue->second;
 
-		}
+        }
 
-		string getStringEnum(T type){
+        /**
+        * Get string value of enumeration.
+        *
+        * @param type Enumeration value.
+        * @return String of enumeration.
+        */
+        string getStringEnum(T type){
 
-		    typename map<string, T>::const_iterator it;
+            typename map<string, T>::const_iterator it;
 
             for(it = enumMap.begin(); it != enumMap.end(); ++it){
                 if(type == it->second)
                     return it->first;
             }
-		}
+        }
 
-};
+    };

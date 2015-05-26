@@ -672,11 +672,11 @@ bool CameraGigeSdkPylon::grabSingleImage(Frame &frame, int camID){
     }
 }
 
-void CameraGigeSdkPylon::getExposureBounds(int &gMin, int &gMax){
+void CameraGigeSdkPylon::getExposureBounds(int &eMin, int &eMax){
 
 }
 
-void CameraGigeSdkPylon::getGainBounds(int &eMin, int &eMax){
+void CameraGigeSdkPylon::getGainBounds(int &gMin, int &gMax){
 
 }
 
@@ -827,7 +827,7 @@ bool CameraGigeSdkPylon::setFPS(int fps){
 	return false;
 }
 
-bool CameraGigeSdkPylon::setPixelFormat(CamBitDepth depth){
+bool CameraGigeSdkPylon::setPixelFormat(CamBitDepth format){
 
     Basler_GigECamera::PixelFormatEnums fpix;
 

@@ -1,5 +1,5 @@
 /*
-								CameraVideo.cpp
+                                CameraVideo.cpp
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 *
@@ -36,48 +36,43 @@
 #include "CameraVideo.h"
 
 boost::log::sources::severity_logger< LogSeverityLevel >  CameraVideo::logger;
-CameraVideo::_Init CameraVideo::_initializer;
 
-CameraVideo::CameraVideo(vector<string> video_list){
+CameraVideo::Init CameraVideo::initializer;
 
-    videoList = video_list;
+CameraVideo::CameraVideo(vector<string> videoList):mVideoID(0), mFrameWidth(0), mFrameHeight(0), mReadDataStatus(false){
 
-    string source = video_list.front();
+    mVideoList = videoList;
 
-	//open the video file for reading
-    cap = VideoCapture(source);
-
-    videoID = 0;
-
-	frameWidth = 0;
-	frameHeight = 0;
-
-	endReadDataStatus = false;
+    // Open the video file for reading.
+    mCap = VideoCapture(videoList.front());
 
 }
 
-CameraVideo::~CameraVideo(void){}
+CameraVideo::~CameraVideo(void){
+
+}
 
 bool CameraVideo::grabInitialization(){
 
-	//if not success, exit program
-    if ( !cap.isOpened() ){
+    if ( !mCap.isOpened() ){
 
-		 cout << "Cannot open the video file" << endl;
-		 return false;
+         cout << "Cannot open the video file" << endl;
+         return false;
     }
 
-	return true;
+    return true;
 
 }
 
 bool CameraVideo::getStopStatus(){
-	return endReadDataStatus;
+
+    return mReadDataStatus;
+
 }
 
 bool CameraVideo::getDataStatus(){
 
-    if(videoID == videoList.size())
+    if(mVideoID == mVideoList.size())
         return false;
     else
         return true;
@@ -85,16 +80,13 @@ bool CameraVideo::getDataStatus(){
 
 bool CameraVideo::loadNextDataSet(){
 
-    if(videoID!=0){
+    if(mVideoID != 0){
 
-        cout << "change video ! " << videoID << endl;
-        string source = videoList.at(videoID);
-        cout << "source : " << source << endl;
-        //open the video file for reading
-        cap = VideoCapture(source);
+        cout << "Change video : " << mVideoID << " - Path : " << mVideoList.at(mVideoID) << endl;
 
-        //if not success, exit program
-        if ( !cap.isOpened() ){
+        mCap = VideoCapture(mVideoList.at(mVideoID));
+
+        if(!mCap.isOpened()){
 
              cout << "Cannot open the video file" << endl;
              return false;
@@ -105,17 +97,11 @@ bool CameraVideo::loadNextDataSet(){
 
         }
 
-        frameHeight = cap.get(CV_CAP_PROP_FRAME_HEIGHT);
-        cout << "Reading frame height : " << frameHeight << endl;
+        mFrameHeight = mCap.get(CV_CAP_PROP_FRAME_HEIGHT);
 
-        frameWidth = cap.get(CV_CAP_PROP_FRAME_WIDTH);
-        cout << "Reading frame width : " << frameWidth << endl;
+        mFrameWidth = mCap.get(CV_CAP_PROP_FRAME_WIDTH);
 
-        cout << "cap.get(CV_CAP_PROP_POS_FRAMES) :  " << cap.get(CV_CAP_PROP_POS_FRAMES) << endl;
-
-        cout << "cap.get(CV_CAP_PROP_FRAME_COUNT) :  " << cap.get(CV_CAP_PROP_FRAME_COUNT) << endl;
-
-        endReadDataStatus = false;
+        mReadDataStatus = false;
 
     }
 
@@ -125,46 +111,38 @@ bool CameraVideo::loadNextDataSet(){
 
 bool CameraVideo::grabImage(Frame &img){
 
-		Mat frame, copyframe;
+    Mat frame;
 
-		if(cap.read(frame)){
+    if(mCap.read(frame)){
 
-            //BGR (3 channels) to G (1 channel)
-            cvtColor(frame, frame, CV_BGR2GRAY);
+        //BGR (3 channels) to G (1 channel)
+        cvtColor(frame, frame, CV_BGR2GRAY);
 
-            cout << "FORMAT : " << Conversion::matTypeToString(frame.type())<<endl;
+        boost::posix_time::ptime time = boost::posix_time::microsec_clock::universal_time();
 
-            string acquisitionDate = TimeDate::localDateTime(microsec_clock::universal_time(),"%Y:%m:%d:%H:%M:%S");
-            boost::posix_time::ptime time = boost::posix_time::microsec_clock::universal_time();
-            string acqDateInMicrosec = to_iso_extended_string(time);
+        Frame f = Frame(frame, 0, 0, TimeDate::localDateTime(microsec_clock::universal_time(),"%Y:%m:%d:%H:%M:%S"));
 
-            Frame f = Frame(frame, 0, 0, acquisitionDate);
+        img = f;
 
-            img = f;
+        img.setNumFrame(mCap.get(CV_CAP_PROP_POS_FRAMES));
 
-            img.setNumFrame(cap.get(CV_CAP_PROP_POS_FRAMES));
+        img.setFrameRemaining(mCap.get(CV_CAP_PROP_FRAME_COUNT) - mCap .get(CV_CAP_PROP_POS_FRAMES));
 
-            img.setFrameRemaining(cap.get(CV_CAP_PROP_FRAME_COUNT) - cap.get(CV_CAP_PROP_POS_FRAMES));
+        img.setAcqDateMicro(to_iso_extended_string(time));
 
-            img.setAcqDateMicro(acqDateInMicrosec);
+        img.setFPS(1);
 
-            img.setFPS(1);
+        img.setBitDepth(MONO_8);
 
-            img.setBitDepth(MONO_8);
+    }else{
 
-            waitKey(150);
+        mVideoID++;
 
-			return true;
+        mReadDataStatus = true;
 
-        }else{
+    }
 
-            waitKey(150);
-
-            videoID++;
-
-            endReadDataStatus = true;
-			return false;
-
-        }
+    waitKey(150);
+    return true;
 }
 

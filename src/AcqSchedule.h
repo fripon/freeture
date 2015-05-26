@@ -43,14 +43,14 @@ class AcqSchedule{
 
     private:
 
-        int mH;  // Hours
-        int mM;  // Minutes
-        int mS;  // Seconds
-        int mE;  // Exposure time
-        int mG;  // Gain
-        int mN;  // Repetition number
-        int mF;  // Format
-        string mDate;
+        int     mH;     // Hours
+        int     mM;     // Minutes
+        int     mS;     // Seconds
+        int     mE;     // Exposure time
+        int     mG;     // Gain
+        int     mN;     // Repetition number
+        int     mF;     // Format
+        string  mDate;
 
     public:
 

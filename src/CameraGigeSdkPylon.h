@@ -1,5 +1,5 @@
 /*
-							CameraGigeSdkPylon.h
+                            CameraGigeSdkPylon.h
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 *
@@ -32,122 +32,230 @@
  * \date    03/07/2014
  * \brief   Use Pylon library to pilot GigE Cameras.
  */
+
 #pragma once
 
 #include "config.h"
 
 #ifdef USE_PYLON
 
+    #include "Frame.h"
+    #include "TimeDate.h"
+    #include "Conversion.h"
+    #include "SaveImg.h"
+    #include "Camera.h"
+    #include <boost/log/common.hpp>
+    #include <boost/log/attributes.hpp>
+    #include <boost/log/sources/logger.hpp>
+    #include <boost/log/core.hpp>
+    #include "ELogSeverityLevel.h"
 
+    #include <pylon/PylonIncludes.h>
+    #include <pylon/gige/BaslerGigEInstantCamera.h>
+    #include <pylon/gige/BaslerGigECamera.h>
 
-#ifdef LINUX
-    #define BOOST_LOG_DYN_LINK 1
-#endif
+    using namespace Pylon;
+    using namespace GenApi;
+    using namespace cv;
+    using namespace std;
+    using namespace Basler_GigECameraParams;
 
-	#include "Frame.h"
-	#include "TimeDate.h"
-	#include "Conversion.h"
-	#include "SaveImg.h"
-	#include "Camera.h"
-	#include <boost/log/common.hpp>
-//#include <boost/log/expressions.hpp>
-//#include <boost/log/utility/setup/file.hpp>
-//#include <boost/log/utility/setup/console.hpp>
-//#include <boost/log/utility/setup/common_attributes.hpp>
-//#include <boost/log/attributes/named_scope.hpp>
-#include <boost/log/attributes.hpp>
-//#include <boost/log/sinks.hpp>
-#include <boost/log/sources/logger.hpp>
-#include <boost/log/core.hpp>
-#include "ELogSeverityLevel.h"
-	// pylon api
-	#include <pylon/PylonIncludes.h>
-	#include <pylon/gige/BaslerGigEInstantCamera.h>
-	#include <pylon/gige/BaslerGigECamera.h>
+    static const uint32_t nbBuffers = 20; // Buffer's number used for grabbing
 
-	using namespace Pylon;
-	using namespace GenApi;
-	using namespace cv;
-	using namespace std;
-	using namespace Basler_GigECameraParams;
+    class CameraGigeSdkPylon : public Camera {
 
-	// Buffer's number used for grabbing
-	static const uint32_t nbBuffers = 20;
+        private :
 
-	class CameraGigeSdkPylon : public Camera{
+            static boost::log::sources::severity_logger< LogSeverityLevel > logger;
 
-		private:
+            static class Init {
 
-			static boost::log::sources::severity_logger< LogSeverityLevel > logger;
+                public :
 
-			static class _Init{
+                    Init() {
 
-				public:
-					_Init()
-					{
-						logger.add_attribute("ClassName", boost::log::attributes::constant<std::string>("CameraGigeSdkPylon"));
-					}
-			} _initializer;
+                        logger.add_attribute("ClassName", boost::log::attributes::constant<std::string>("CameraGigeSdkPylon"));
 
-			Pylon::PylonAutoInitTerm autoInitTerm;
+                    }
 
-			//! Buffer for the grabbed images in 8 bits format
-			uint8_t* ppBuffersUC[nbBuffers];
+            } initializer;
 
-			//! Buffer for the grabbed images in 8 bits format
-			uint16_t* ppBuffersUS[nbBuffers];
+            Pylon::PylonAutoInitTerm                autoInitTerm;
+            uint8_t*                                ppBuffersUC[nbBuffers];         // Buffer for the grabbed images in 8 bits format.
+            uint16_t*                               ppBuffersUS[nbBuffers];         // Buffer for the grabbed images in 8 bits format.
+            StreamBufferHandle                      handles[nbBuffers];
+            CTlFactory                              *pTlFactory;                    // Pointer on the transport layer.
+            CBaslerGigECamera                       *pCamera;                       // Pointer on basler camera.
+            IPylonDevice                            *pDevice;                       // Pointer on device.
+            DeviceInfoList_t                        devices;
+            CBaslerGigECamera::EventGrabber_t       *pEventGrabber;
+            IEventAdapter                           *pEventAdapter;
+            CBaslerGigECamera::StreamGrabber_t      *pStreamGrabber;
+            int                                     nbEventBuffers;
+            GrabResult                              result;
+            bool                                    connectionStatus;
 
-			StreamBufferHandle handles[nbBuffers];
+        public:
 
-			//! Pointer on the transport layer
-			CTlFactory			*pTlFactory;
+            /**
+            * Constructor.
+            *
+            */
+            CameraGigeSdkPylon();
 
-			//! Pointer on basler camera
-			CBaslerGigECamera	*pCamera;
+            /**
+            * Destructor.
+            *
+            */
+            ~CameraGigeSdkPylon(void);
 
-			//! Pointer on device
-			IPylonDevice		*pDevice;
+            /**
+            * List connected GigE devices.
+            *
+            */
+            void listGigeCameras();
 
-			DeviceInfoList_t	 devices;
+            /**
+            * Open/create a device.
+            *
+            * @param id Identification number of the device to create.
+            */
+            bool createDevice(int id);
 
-			CBaslerGigECamera::EventGrabber_t	* pEventGrabber;
-			IEventAdapter						* pEventAdapter;
-			CBaslerGigECamera::StreamGrabber_t	* pStreamGrabber;
+            /**
+            * Get camera name from its ID.
+            *
+            * @param id Identification number of the camera from which the name is required.
+            * @param device The camera's name found.
+            * @return Success status to find camera's name.
+            */
+            bool getDeviceNameById(int id, string &device);
 
-			int nbEventBuffers;
-			GrabResult result;
-			bool connectionStatus;
+            /**
+            * Prepare device to grab frames.
+            *
+            * @return Success status to prepare camera.
+            */
+            bool grabInitialization();
 
-		public:
+            /**
+            * Close a device and clean resources.
+            *
+            */
+            void grabCleanse();
 
-			CameraGigeSdkPylon();
-			~CameraGigeSdkPylon(void);
+            /**
+            * Run acquisition.
+            *
+            */
+            void acqStart();
 
-			void	listGigeCameras();
-			bool	createDevice(int id);
-			bool    getDeviceNameById(int id, string &device);
+            /**
+            * Stop acquisition.
+            *
+            */
+            void acqStop();
 
-			bool	grabInitialization();
-			void	grabCleanse();
-			void    acqStart();
-			void    acqStop();
+            /**
+            * Get a frame from continuous acquisition.
+            *
+            * @param newFrame New frame's container object.
+            * @return Success status to grab a frame.
+            */
+            bool grabImage(Frame& newFrame);
 
-			bool    grabImage(Frame& newFrame);
-			bool	grabSingleImage(Frame &frame, int camID);
+            /**
+            * Configure the correct camera to use and grab a frame by single acquisition.
+            *
+            * @param frame It contains the single frame grabbed by a camera in case of success.
+            * @param camID ID of the camera to use.
+            * @return The success status of grabbing a single frame.
+            */
+            bool grabSingleImage(Frame &frame, int camID);
 
-			void	getExposureBounds(int &gMin, int &gMax);
-			void	getGainBounds(int &eMin, int &eMax);
-			bool	getPixelFormat(CamBitDepth &format);
-			int		getFrameWidth();
-			int		getFrameHeight();
-			int		getFPS();
-			string	getModelName();
+            /**
+            * Get device's exposure time bounds.
+            *
+            * @param eMin Return minimum exposure time value.
+            * @param eMax Return maximum exposure time value.
+            */
+            void getExposureBounds(int &eMin, int &eMax);
 
-			bool	setExposureTime(int exp);
-			bool	setGain(int gain);
-			bool    setFPS(int fps);
-			bool	setPixelFormat(CamBitDepth depth);
+            /**
+            * Get device's gain bounds.
+            *
+            * @param gMin Return minimum gain value.
+            * @param gMax Return maximum gain value.
+            */
+            void getGainBounds(int &gMin, int &gMax);
 
-	};
+            /**
+            * Get device's image format.
+            *
+            * @param format Return image format.
+            * @return Success status to get format.
+            */
+            bool getPixelFormat(CamBitDepth &format);
+
+            /**
+            * Get device's frame width.
+            *
+            * @return Frame's width.
+            */
+            int getFrameWidth();
+
+            /**
+            * Get device's frame height.
+            *
+            * @return Frame's height.
+            */
+            int getFrameHeight();
+
+            /**
+            * Get device's acquisition frequency.
+            *
+            * @return Device's fps.
+            */
+            int getFPS();
+
+            /**
+            * Get device's model name.
+            *
+            * @return Device's model name.
+            */
+            string getModelName();
+
+            /**
+            * Set device's exposure time value.
+            *
+            * @param value New exposure time value (us).
+            * @return Success status to set new exposure time.
+            */
+            bool setExposureTime(int exp);
+
+            /**
+            * Get device's gain value.
+            *
+            * @return Device's gain.
+            */
+            bool setGain(int gain);
+
+            /**
+            * Set device's acquisition frequency.
+            *
+            * @param fps New fps value.
+            * @return Success status to set fps.
+            */
+            bool setFPS(int fps);
+
+            /**
+            * Set device's format.
+            *
+            * @param format New format.
+            * @return Success status to set format.
+            */
+            bool setPixelFormat(CamBitDepth format);
+
+    };
 
 #endif

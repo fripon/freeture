@@ -1,5 +1,5 @@
 /*
-				SMTPClient.h
+                                SMTPClient.h
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 *
@@ -37,25 +37,23 @@
 
 #include "config.h"
 
+#ifdef WINDOWS
+    #define WIN32_LEAN_AND_MEAN
+    #include <boost/asio.hpp>
+    #include <windows.h>
+#else
+    #ifdef LINUX
+        #include <boost/asio.hpp>
+        #define BOOST_LOG_DYN_LINK 1
+    #endif
+#endif
+
 #include <stdio.h>
 #include <stdlib.h>
 #include <string>
 #include <iostream>
 #include <vector>
 #include <ostream>
-
-#ifdef WINDOWS
-	#define WIN32_LEAN_AND_MEAN
-	//#define _WIN32_WINNT = 0x0501
-	#include <boost/asio.hpp>
-	#include <windows.h>
-#else
-	#ifdef LINUX
-	#include <boost/asio.hpp>
-	#define BOOST_LOG_DYN_LINK 1
-	#endif
-#endif
-
 #include <fstream>
 #include <sstream>
 #include <boost/archive/iterators/ostream_iterator.hpp>
@@ -78,51 +76,109 @@
 
 using namespace std;
 
-class SMTPClient{
+class SMTPClient {
 
-	private:
+    private :
 
-		static boost::log::sources::severity_logger< LogSeverityLevel > logger;
+        static boost::log::sources::severity_logger< LogSeverityLevel > logger;
 
-		static class _Init{
+        static class Init {
 
-			public:
-				_Init()
-				{
-					logger.add_attribute("ClassName", boost::log::attributes::constant<std::string>("SMTPClient"));
-				}
-		} _initializer;	
+            public:
 
-		string mailServerHostname;
-		string mailSmtpServer;
-		string mailUserName;
-		string mailPassword;
-		string mailFrom;
-		vector<string> mailTo;
-		vector<string> mailAttachments;
-		string mailSubject;
-		string mailMessage;
-		unsigned int mailPort;
-		bool imageInline;
+                Init() {
 
-		boost::asio::io_service io_service;
-		boost::asio::ip::tcp::socket socket;
+                    logger.add_attribute("ClassName", boost::log::attributes::constant<std::string>("SMTPClient"));
 
-    public:
+                }
 
-        SMTPClient(string smtpServer, unsigned int port, string hostname ):mailSmtpServer(smtpServer), mailPort(port), mailServerHostname(hostname), socket(io_service){};
+        }initializer;
 
-		void getServerResponse(string request);
-		bool checkSMTPAnswer(const std::string & responseWaited, boost::asio::ip::tcp::socket & socket);
-		void write(string data, string expectedAnswer, bool checkAnswer, bool printCmd);
-		void smtpServerConnection();
-		string message();
+        string                          mMailServerHostname;
+        string                          mMailSmtpServer;
+        string                          mMailUserName;
+        string                          mMailPassword;
+        string                          mMailFrom;
+        vector<string>                  mMailTo;
+        vector<string>                  mMailAttachments;
+        string                          mMailSubject;
+        string                          mMailMessage;
+        unsigned int                    mMailPort;
+        bool                            mImageInline;
+        boost::asio::io_service         mIo_service;
+        boost::asio::ip::tcp::socket    mSocket;
+
+    public :
+
+        /**
+        * Constructor.
+        *
+        * @param smtpServer
+        * @param port
+        * @param hostname
+        */
+        SMTPClient(string smtpServer, unsigned int port, string hostname ):mMailSmtpServer(smtpServer), mMailPort(port), mMailServerHostname(hostname), mSocket(mIo_service){};
+
+        /**
+        * Get server response of a request.
+        *
+        * @param request
+        */
+        void getServerResponse(string request);
+
+        /**
+        * Check SMTP answer.
+        *
+        * @param responseWaited
+        * @param socket
+        * @return Answer is correct or not.
+        */
+        bool checkSMTPAnswer(const std::string & responseWaited, boost::asio::ip::tcp::socket & socket);
+
+        /**
+        * Send data to SMTP.
+        *
+        * @param data Data to send.
+        * @param expectedAnswer
+        * @param checkAnswer
+        * @param printCmd
+        */
+        void write(string data, string expectedAnswer, bool checkAnswer, bool printCmd);
+
+        /**
+        * Create message to send.
+        *
+        * @return Final composed message.
+        */
+        string message();
+
+        /**
+        * Create a SMTP connection.
+        *
+        */
+        void smtpServerConnection();
+
+        /**
+        * Send mail.
+        *
+        * @param from
+        * @param to Recipients.
+        * @param subject
+        * @param msg Message.
+        * @param pathAttachments
+        * @param imgInline
+        */
         void send(string from, vector<string> to, string subject, string msg, vector<string> pathAttachments,bool imgInline);
 
-	private:
+    private :
 
-		string get_file_contents(const char *filename);
-
+        /**
+        * Get file content.
+        *
+        * @param filename
+        * @return File's content.
+        */
+        string getFileContents(const char *filename);
 
 };
 

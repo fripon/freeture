@@ -34,8 +34,6 @@
 
 #include "TimeDate.h"
 
-TimeDate::TimeDate(){}
-
 //http://rhubbarb.wordpress.com/2009/10/17/boost-datetime-locales-and-facets/
 string TimeDate::localDateTime(::boost::posix_time::ptime pt, string format){
 

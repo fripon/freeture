@@ -39,7 +39,7 @@ Configuration::Configuration(void){}
 
 void Configuration::Clear(){
 
-    data.clear();
+    mData.clear();
 
 }
 
@@ -88,13 +88,13 @@ bool Configuration::Load(const string& file){
                 if (!key.empty() && !value.empty()){
 
                     prevKey   = key;
-                    data[key] = value;
+                    mData[key] = value;
 
                 }
 
             }else if(line.size() > 1 && !prevKey.empty()){
 
-                data[prevKey] += Trim(line);
+                mData[prevKey] += Trim(line);
 
             }
         }
@@ -105,14 +105,14 @@ bool Configuration::Load(const string& file){
 
 bool Configuration::Contains(const string& key) const{
 
-    return data.find(key) != data.end();
+    return mData.find(key) != mData.end();
 }
 
 bool Configuration::Get(const string& key, string& value) const{
 
-    map<string,string>::const_iterator iter = data.find(key);
+    map<string,string>::const_iterator iter = mData.find(key);
 
-    if(iter != data.end()){
+    if(iter != mData.end()){
 
         value = iter->second;
         return true;

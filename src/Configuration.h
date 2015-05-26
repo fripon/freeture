@@ -1,5 +1,5 @@
 /*
-				Configuration.h
+                                Configuration.h
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 *
@@ -34,6 +34,7 @@
 */
 
 #pragma once
+
 #include <fstream>
 #include <string>
 #include <iostream>
@@ -44,32 +45,94 @@ using namespace std;
 
 class Configuration{
 
-	public:
+    private :
 
-		// Clear all values.
-		void Clear();
+        map<string,string> mData; // Container.
 
-		// Load a configuration file.
-		bool Load(const string& File);
+    public :
 
-		// Check if value associated with given key exists.
-		bool Contains(const string& key) const;
-
-		// Get value associated with given key.
-		bool Get(const string& key, string& value) const;
-		bool Get(const string& key, int&    value) const;
-		bool Get(const string& key, long&   value) const;
-		bool Get(const string& key, double& value) const;
-		bool Get(const string& key, bool&   value) const;
-
+        /**
+         * Constructor.
+         *
+         */
         Configuration(void);
 
-	private:
+        /**
+         * Clear all values
+         *
+         */
+        void Clear();
 
-		// Container.
-		map<string,string> data;
+        /**
+         * Load parameters name and value from configuration file.
+         *
+         * @param file Path of the configuration file.
+         * @return Success status to load parameters.
+         */
+        bool Load(const string& file);
 
-		// Remove leading and trailing tabs and spaces.
-		static string Trim(const string& str);
+        /**
+         * Check if value associated with given key exists.
+         *
+         * @param key Freeture's parameter.
+         * @return Key has a value or not.
+         */
+        bool Contains(const string& key) const;
+
+        /**
+         * Get string value associated with given key
+         *
+         * @param key Freeture's parameter.
+         * @param value Key's value.
+         * @return Success to get value associated with given key.
+         */
+        bool Get(const string& key, string& value) const;
+
+        /**
+         * Get int value associated with given key
+         *
+         * @param key Freeture's parameter.
+         * @param value Key's value.
+         * @return Success to get value associated with given key.
+         */
+        bool Get(const string& key, int& value) const;
+
+        /**
+         * Get long value associated with given key
+         *
+         * @param key Freeture's parameter.
+         * @param value Key's value.
+         * @return Success to get value associated with given key.
+         */
+        bool Get(const string& key, long& value) const;
+
+        /**
+         * Get double value associated with given key
+         *
+         * @param key Freeture's parameter.
+         * @param value Key's value.
+         * @return Success to get value associated with given key.
+         */
+        bool Get(const string& key, double& value) const;
+
+        /**
+         * Get bool value associated with given key
+         *
+         * @param key Freeture's parameter.
+         * @param value Key's value.
+         * @return Success to get value associated with given key.
+         */
+        bool Get(const string& key, bool& value) const;
+
+    private :
+
+        /**
+         * Remove spaces in configuration file's lines.
+         *
+         * @param str Configuration file's line.
+         * @return String without space.
+         */
+        static string Trim(const string& str);
+
 };
 

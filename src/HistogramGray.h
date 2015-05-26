@@ -43,23 +43,53 @@
 using namespace std;
 using namespace cv;
 
-class HistogramGray : public Histogram{
+class HistogramGray : public Histogram {
 
-	void clear(){
-		bins.setTo(Scalar( 0.f ));
-	};
+    /**
+    * Clear bins.
+    *
+    */
+    void clear() {
 
-    public:
+        bins.setTo(Scalar( 0.f ));
 
+    };
+
+    public :
+
+        /**
+        * Constructor.
+        *
+        */
         HistogramGray();
 
+        /**
+        * Calculate number of pixels in each bins.
+        *
+        * @param image Opencv mat image to analysis.
+        * @return Success status.
+        */
         int calculate(Mat& image);
 
-
+        /**
+        * Normalize bins.
+        *
+        */
         void normalize(void);
 
+        /**
+        * Build histogram image.
+        *
+        * @return Histogram.
+        */
         Mat render(void);
 
+        /**
+        * Add histogram to an image.
+        *
+        * @param image Target.
+        * @return Final image with histogram.
+        */
         Mat renderHistogramOnImage(Mat image);
 
 };

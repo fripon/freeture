@@ -32,17 +32,17 @@
 */
 
 #include "config.h"
-//#include "SMTPClient.h"
+
 #ifdef WINDOWS
-	#define WIN32_LEAN_AND_MEAN
-	#include <windows.h>
-	#include <process.h>
+    #define WIN32_LEAN_AND_MEAN
+    #include <windows.h>
+    #include <process.h>
 #else
-	#ifdef LINUX
-		#include <signal.h>
-		#include <unistd.h>
-		#define BOOST_LOG_DYN_LINK 1
-	#endif
+    #ifdef LINUX
+        #include <signal.h>
+        #include <unistd.h>
+        #define BOOST_LOG_DYN_LINK 1
+    #endif
 #endif
 
 #include <boost/log/common.hpp>
@@ -59,18 +59,14 @@
 #include <boost/log/utility/record_ordering.hpp>
 #include <boost/log/core.hpp>
 #include <boost/smart_ptr/shared_ptr.hpp>
-
 #include <boost/circular_buffer.hpp>
 #include <boost/program_options.hpp>
-
 #include "opencv2/highgui/highgui.hpp"
 #include <opencv2/imgproc/imgproc.hpp>
-
 #include <string>
 #include <iostream>
 #include <stdio.h>
 #include <memory>
-
 #include "Frame.h"
 #include "Histogram.h"
 #include "HistogramGray.h"
@@ -112,11 +108,11 @@ struct sigaction act;
 
 void sigTermHandler(int signum, siginfo_t *info, void *ptr){
 
-	src::severity_logger< LogSeverityLevel > lg;
+        src::severity_logger< LogSeverityLevel > lg;
 
-	BOOST_LOG_SEV(lg, notification) << "Received signal : "<< signum << " from : "<< (unsigned long)info->si_pid;
+        BOOST_LOG_SEV(lg, notification) << "Received signal : "<< signum << " from : "<< (unsigned long)info->si_pid;
 
-	sigTermFlag = true;
+        sigTermFlag = true;
 
 }
 
@@ -145,7 +141,7 @@ std::ostream& operator<< (std::ostream& strm, LogSeverityLevel level){
 
 void init_log(string path, LogSeverityLevel sev){
 
-	// Create a text file sink
+    // Create a text file sink
     typedef sinks::synchronous_sink< sinks::text_multifile_backend > file_sink;
     boost::shared_ptr< file_sink > sink(new file_sink);
 
@@ -218,7 +214,7 @@ int main(int argc, const char ** argv){
         string  fileName        = "snap";
         string  sendMail        = "";
 
-		std::cout << "Default configuration file : " << string(CFG_PATH) << "configuration.cfg" <<endl;
+        std::cout << "Default configuration file : " << string(CFG_PATH) << "configuration.cfg" <<endl;
 
         po::store(po::parse_command_line(argc, argv, desc), vm);
 
@@ -260,8 +256,8 @@ int main(int argc, const char ** argv){
                         }
 
                         string log_severity = "normal";
-						EParser<LogSeverityLevel> log_sev;
-						LogSeverityLevel LOG_SEVERITY = log_sev.parseEnum("LOG_SEVERITY", log_severity);
+                        EParser<LogSeverityLevel> log_sev;
+                        LogSeverityLevel LOG_SEVERITY = log_sev.parseEnum("LOG_SEVERITY", log_severity);
 
                         init_log("./flog/", LOG_SEVERITY);
                         src::severity_logger< LogSeverityLevel > slg;
@@ -277,17 +273,17 @@ int main(int argc, const char ** argv){
                         std::cout << "========= FREETURE - Available cameras =========" << endl;
                         std::cout << "================================================" << endl << endl;
 
-						string  camtype;
+                        string  camtype;
                         if(vm.count("camtype"))	camtype = vm["camtype"].as<string>();
                         std::transform(camtype.begin(), camtype.end(),camtype.begin(), ::toupper);
 
-						std::cout << "Searching cameras..." << endl << endl;
+                        std::cout << "Searching cameras..." << endl << endl;
 
-						EParser<CamType> cam_type;
+                        EParser<CamType> cam_type;
 
-						Device *cam = new Device(cam_type.parseEnum("CAMERA_TYPE", camtype));
+                        Device *device = new Device(cam_type.parseEnum("CAMERA_TYPE", camtype));
 
-						cam->listGigeCameras();
+                        device->getCam()->listGigeCameras();
 
                     }
 
@@ -300,13 +296,13 @@ int main(int argc, const char ** argv){
                     ///%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
                     {
-						/*
+                        /*
                         FreeTure ft(configPath);
                         ft.loadParameters();
                         ft.printParameters();
-						*/
+                        */
 
-						cout << "Mode 2 not available in this version" << endl;
+                        cout << "Mode 2 not available in this version" << endl;
 
                     }
 
@@ -331,54 +327,54 @@ int main(int argc, const char ** argv){
                         number of threads that should be used.*/
                         std::cout << "CORE DETECTED : " << boost::thread::hardware_concurrency()<< endl << endl;
 
-						/// ------------------------------------
+                        /// ------------------------------------
                         /// ------ LOAD FREETURE PARAMETERS ----
-						/// ------------------------------------
+                        /// ------------------------------------
 
-						boost::filesystem::path pcfg(configPath);
-						if(!boost::filesystem::exists(pcfg))
-							throw "configuration.cfg not found.";
+                        boost::filesystem::path pcfg(configPath);
+                        if(!boost::filesystem::exists(pcfg))
+                            throw "configuration.cfg not found.";
 
-						Configuration cfg;
-						cfg.Load(configPath);
+                        Configuration cfg;
+                        cfg.Load(configPath);
 
-						// Get Camera type in input.
-						string camera_type; cfg.Get("CAMERA_TYPE", camera_type);
-						EParser<CamType> cam_type;
-						CamType CAMERA_TYPE = cam_type.parseEnum("CAMERA_TYPE", camera_type);
+                        // Get Camera type in input.
+                        string camera_type; cfg.Get("CAMERA_TYPE", camera_type);
+                        EParser<CamType> cam_type;
+                        CamType CAMERA_TYPE = cam_type.parseEnum("CAMERA_TYPE", camera_type);
 
-						// Get size of the frame buffer.
-						int ACQ_BUFFER_SIZE; cfg.Get("ACQ_BUFFER_SIZE", ACQ_BUFFER_SIZE);
+                        // Get size of the frame buffer.
+                        int ACQ_BUFFER_SIZE; cfg.Get("ACQ_BUFFER_SIZE", ACQ_BUFFER_SIZE);
 
-						// Get acquisition frequency.
-						int ACQ_FPS; cfg.Get("ACQ_FPS", ACQ_FPS);
+                        // Get acquisition frequency.
+                        int ACQ_FPS; cfg.Get("ACQ_FPS", ACQ_FPS);
 
-						// Detection enabled or not.
-						bool DET_ENABLED; cfg.Get("DET_ENABLED", DET_ENABLED);
+                        // Detection enabled or not.
+                        bool DET_ENABLED; cfg.Get("DET_ENABLED", DET_ENABLED);
 
-						// Stack enabled or not.
-						bool STACK_ENABLED; cfg.Get("STACK_ENABLED", STACK_ENABLED);
-						// Disable stack if CAMERA_TYPE = FRAMES or VIDEO
-						if((CAMERA_TYPE == FRAMES) || (CAMERA_TYPE == VIDEO))
+                        // Stack enabled or not.
+                        bool STACK_ENABLED; cfg.Get("STACK_ENABLED", STACK_ENABLED);
+                        // Disable stack if CAMERA_TYPE = FRAMES or VIDEO
+                        if((CAMERA_TYPE == FRAMES) || (CAMERA_TYPE == VIDEO))
                             STACK_ENABLED = false;
 
-						// Get log path.
-						string LOG_PATH; cfg.Get("LOG_PATH", LOG_PATH);
+                        // Get log path.
+                        string LOG_PATH; cfg.Get("LOG_PATH", LOG_PATH);
 
-						// Get log severity.
-						string log_severity; cfg.Get("LOG_SEVERITY", log_severity);
-						EParser<LogSeverityLevel> log_sev;
-						LogSeverityLevel LOG_SEVERITY = log_sev.parseEnum("LOG_SEVERITY", log_severity);
+                        // Get log severity.
+                        string log_severity; cfg.Get("LOG_SEVERITY", log_severity);
+                        EParser<LogSeverityLevel> log_sev;
+                        LogSeverityLevel LOG_SEVERITY = log_sev.parseEnum("LOG_SEVERITY", log_severity);
 
-						// Get det method.
-						string det_method;
-						cfg.Get("DET_METHOD", det_method);
-						EParser<DetMeth> det_mth;
-						DetMeth DET_METHOD = det_mth.parseEnum("DET_METHOD", det_method);
+                        // Get det method.
+                        string det_method;
+                        cfg.Get("DET_METHOD", det_method);
+                        EParser<DetMeth> det_mth;
+                        DetMeth DET_METHOD = det_mth.parseEnum("DET_METHOD", det_method);
 
-						/// ------------------------------------
+                        /// ------------------------------------
                         /// ------------ MANAGE LOG ------------
-						/// ------------------------------------
+                        /// ------------------------------------
 
                         path pLog(LOG_PATH);
 
@@ -433,8 +429,7 @@ int main(int argc, const char ** argv){
 
                                 BOOST_LOG_SEV(slg, normal) << "Start to create detection Thread.";
 
-                                detection  = new DetThread(	&cfg_m,
-                                                            configPath,
+                                detection  = new DetThread( configPath,
                                                             DET_METHOD,
                                                             &frameBuffer,
                                                             &frameBuffer_m,
@@ -458,8 +453,7 @@ int main(int argc, const char ** argv){
 
                                 BOOST_LOG_SEV(slg, normal) << "Start to create stack Thread.";
 
-                                stack = new StackThread(	&cfg_m,
-                                                            configPath,
+                                stack = new StackThread(    configPath,
                                                             &signalStack,
                                                             &signalStack_m,
                                                             &signalStack_c,
@@ -481,7 +475,6 @@ int main(int argc, const char ** argv){
                               (((STACK_ENABLED && stackThreadCreationSuccess) || !STACK_ENABLED))){     // Stack Thread enabled and succeed or not enabled
 
                                 inputDevice = new AcqThread(	CAMERA_TYPE,
-                                                                &cfg_m,
                                                                 configPath,
                                                                 &frameBuffer,
                                                                 &frameBuffer_m,
@@ -546,7 +539,7 @@ int main(int argc, const char ** argv){
 
                                             if(inputDevice != NULL){
 
-                                                if(inputDevice->getThreadTerminatedStatus()){
+                                                if(inputDevice->getThreadEndStatus()){
 
                                                     std::cout << "Break main loop" << endl;
                                                     break;
@@ -629,8 +622,8 @@ int main(int argc, const char ** argv){
                         }
 
                         string log_severity = "normal";
-						EParser<LogSeverityLevel> log_sev;
-						LogSeverityLevel LOG_SEVERITY = log_sev.parseEnum("LOG_SEVERITY", log_severity);
+                        EParser<LogSeverityLevel> log_sev;
+                        LogSeverityLevel LOG_SEVERITY = log_sev.parseEnum("LOG_SEVERITY", log_severity);
 
                         init_log("./flog/", LOG_SEVERITY);
                         src::severity_logger< LogSeverityLevel > slg;
@@ -653,9 +646,9 @@ int main(int argc, const char ** argv){
 
                         // Acquisition format.
                         if(vm.count("bitdepth")) acqFormat = vm["bitdepth"].as<int>();
-						CamBitDepth camFormat;
-						Conversion::intBitDepth_To_CamBitDepth(acqFormat, camFormat);
-						BOOST_LOG_SEV(slg,notification) << "bitdepth option : " << acqFormat;
+                        CamBitDepth camFormat;
+                        Conversion::intBitDepthToCamBitDepthEnum(acqFormat, camFormat);
+                        BOOST_LOG_SEV(slg,notification) << "bitdepth option : " << acqFormat;
 
                         // Cam id.
                         if(vm.count("id")) camID = vm["id"].as<int>();
@@ -670,7 +663,7 @@ int main(int argc, const char ** argv){
                         BOOST_LOG_SEV(slg,notification) << "fits option : " << saveFits2D;
 
                         // Type of camera in input.
-						string camtype;
+                        string camtype;
                         if(vm.count("camtype")) camtype = vm["camtype"].as<string>();
                         std::transform(camtype.begin(), camtype.end(),camtype.begin(), ::toupper);
                         BOOST_LOG_SEV(slg,notification) << "camtype option : " << camtype;
@@ -745,56 +738,56 @@ int main(int argc, const char ** argv){
 
                         /// -------------------- Capture a single frame -------------------------
 
-						Frame frame;
-						frame.setExposure(exp);
-						frame.setGain(gain);
-						frame.setBitDepth(camFormat);
+                        Frame frame;
+                        frame.setExposure(exp);
+                        frame.setGain(gain);
+                        frame.setBitDepth(camFormat);
 
-						EParser<CamType> cam_type;
+                        EParser<CamType> cam_type;
 
-						Device *cam = new Device(cam_type.parseEnum("CAMERA_TYPE", camtype));
+                        Device *device = new Device(cam_type.parseEnum("CAMERA_TYPE", camtype));
 
-						if(!cam->grabSingleImage(frame, camID)){
-							delete cam;
-							throw "> Failed to grab a single frame.";
-						}
-						delete cam;
+                        if(!device->getCam()->grabSingleImage(frame, camID)){
+                            delete device;
+                            throw "> Failed to grab a single frame.";
+                        }
+                        delete device;
 
-						cout << endl << ">> Single capture succeed !" << endl;
+                        cout << endl << ">> Single capture succeed !" << endl;
 
-						/// ---------------------- Save grabbed frame --------------------------
+                        /// ---------------------- Save grabbed frame --------------------------
 
-						// Save the frame in BMP.
-						if(saveBmp && frame.getImg().data){
+                        // Save the frame in BMP.
+                        if(saveBmp && frame.getImg().data){
 
                             cout << ">> Saving bmp file ..." << endl;
 
-							Mat temp, temp1;
-							frame.getImg().copyTo(temp1);
+                            Mat temp, temp1;
+                            frame.getImg().copyTo(temp1);
 
-							if(camFormat == MONO_12){
+                            if(camFormat == MONO_12){
 
-								temp = Conversion::convertTo8UC1(temp1);
+                                temp = Conversion::convertTo8UC1(temp1);
 
-							}else
+                            }else
 
-								frame.getImg().copyTo(temp);
+                                frame.getImg().copyTo(temp);
 
-							SaveImg::saveBMP(temp, savePath + fileName + "-" + Conversion::intToString(filenum));
+                            SaveImg::saveBMP(temp, savePath + fileName + "-" + Conversion::intToString(filenum));
 
-						}
+                        }
 
-						// Save the frame in Fits 2D.
-						if(saveFits2D && frame.getImg().data){
+                        // Save the frame in Fits 2D.
+                        if(saveFits2D && frame.getImg().data){
 
                             cout << ">> Saving fits file ..." << endl;
 
-							Fits fitsHeader;
+                            Fits fitsHeader;
 
-							// Load keywords from cfg file
-							bool useCfg = false;
+                            // Load keywords from cfg file
+                            bool useCfg = false;
 
-							path c(configPath);
+                            path c(configPath);
 
                             if(is_regular_file(c)){
 
@@ -804,10 +797,10 @@ int main(int argc, const char ** argv){
                             }else
                                 cout << ">> Can't load fits keywords from configuration file (not found or not exist). Try to use -c option or check your path." << endl;
 
-							Fits2D newFits(savePath, fitsHeader);
-							newFits.setGaindb((int)gain);
-							double exptime = exp/1000000.0;
-							newFits.setOntime(exptime);
+                            Fits2D newFits(savePath, fitsHeader);
+                            newFits.setGaindb((int)gain);
+                            double exptime = exp/1000000.0;
+                            newFits.setOntime(exptime);
                             newFits.setDateobs(frame.getAcqDateMicro());
 
                             if(useCfg){
@@ -825,7 +818,7 @@ int main(int argc, const char ** argv){
                             newFits.setCtype2("DEC--ARC");
                             newFits.setEquinox(2000.0);
 
-							switch(camFormat){
+                            switch(camFormat){
 
                                 case MONO_8 :
 
@@ -906,41 +899,41 @@ int main(int argc, const char ** argv){
                         }
 
 
-						/// -------------------- Display grabbed frame --------------------------
+                        /// -------------------- Display grabbed frame --------------------------
 
-						// Display the frame in an opencv window
-						if(display && frame.getImg().data){
+                        // Display the frame in an opencv window
+                        if(display && frame.getImg().data){
 
                             cout << ">> Display captured frame..." << endl;
 
-							Mat temp, temp1;
-							frame.getImg().copyTo(temp1);
+                            Mat temp, temp1;
+                            frame.getImg().copyTo(temp1);
 
-							if(camFormat == MONO_12){
+                            if(camFormat == MONO_12){
 
-								temp = Conversion::convertTo8UC1(temp1);
+                                temp = Conversion::convertTo8UC1(temp1);
 
-							}else{
+                            }else{
 
-								frame.getImg().copyTo(temp);
-							}
+                                frame.getImg().copyTo(temp);
+                            }
 
-							namedWindow( "Frame", WINDOW_AUTOSIZE );
-							imshow("Frame", temp);
-							waitKey(0);
+                            namedWindow( "Frame", WINDOW_AUTOSIZE );
+                            imshow("Frame", temp);
+                            waitKey(0);
 
-						}
+                        }
                     }
 
 
                     break;
 
-				case 5 :
+                case 5 :
 
-					{
+                    {
 
 
-					    Configuration cfg;
+                        Configuration cfg;
                         cfg.Load("/home/fripon/FreeTure-v0.6/freeture/share/configuration.cfg");
 
                         string ACQ_SCHEDULE ;
@@ -955,7 +948,7 @@ int main(int argc, const char ** argv){
                         cfg.Get("INPUT_VIDEO_PATH", INPUT_VIDEO_PATH );
                         cout << endl<< "INPUT_VIDEO_PATH  : " << INPUT_VIDEO_PATH  << endl;
 
-					}
+                    }
 
 
                 default :
@@ -991,6 +984,6 @@ int main(int argc, const char ** argv){
 
     po::notify(vm);
 
-	return 0 ;
+    return 0 ;
 
 }

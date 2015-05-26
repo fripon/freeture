@@ -1,5 +1,5 @@
 /*
-							EImgBitDepth.h
+                            EImgBitDepth.h
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 *
@@ -29,10 +29,10 @@
 
 enum ImgBitDepth{
 
-    UC8,
-    C8,
-    US16,
-    S16,
-    F32
+    UC8,    // 8 bits unsigned char.
+    C8,     // 8 bits signed char.
+    US16,   // 16 bits unsigned short.
+    S16,    // 16 bits signed short.
+    F32     // 32 bits float.
 
 };

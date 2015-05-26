@@ -1,5 +1,5 @@
 /*
-								DetThread.h
+                                DetThread.h
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 *
@@ -34,18 +34,14 @@
 
 #pragma once
 
-
-
 #include "config.h"
-#include "SMTPClient.h"
-#include <iterator>
-
-
 
 #ifdef LINUX
     #define BOOST_LOG_DYN_LINK 1
 #endif
 
+#include "SMTPClient.h"
+#include <iterator>
 #include "Fits.h"
 #include "Fits2D.h"
 #include "TimeDate.h"
@@ -53,12 +49,9 @@
 #include "Stack.h"
 #include "Detection.h"
 #include "DetectionTemporal.h"
-#include "DetectionTemporal_.h"
-#include "DetectionDayTime.h"
-
+#include "DetectionTemplate.h"
 #include "EStackMeth.h"
 #include "EDetMeth.h"
-
 #include <boost/circular_buffer.hpp>
 #include <boost/filesystem.hpp>
 
@@ -67,104 +60,143 @@ using namespace cv;
 using namespace std;
 using namespace boost::posix_time;
 
-class DetThread{
+class DetThread {
 
-	private:
+    private :
 
         static boost::log::sources::severity_logger< LogSeverityLevel > logger;
 
-		static class _Init{
+        static class Init{
 
-			public:
-				_Init()
-				{
-					logger.add_attribute("ClassName", boost::log::attributes::constant<std::string>("DetThread"));
-				}
-		} _initializer;
+            public :
 
-        boost::thread *m_thread;
-		Detection	*detTech;
+                Init() {
 
-        bool mustStop;
-        boost::mutex mustStopMutex;
+                    logger.add_attribute("ClassName", boost::log::attributes::constant<std::string>("DetThread"));
 
+                }
+
+        }initializer;
+
+        boost::thread                   *pThread;                   // Pointer on detection thread.
+        Detection                       *pDetMthd;                  // Pointer on detection method.
+        bool                            mMustStop;
+        boost::mutex                    mMustStopMutex;
+        bool                            mSaveAvi;                   // Save event as avi                (parameter from configuration file).
+        bool                            mSaveFits3D;                // Save event as fits 3D            (parameter from configuration file).
+        bool                            mSaveFits2D;                // Save event as fits 2D            (parameter from configuration file).
+        bool                            mSaveSum;                   // Save sum of the event            (parameter from configuration file).
+        double                          mTimeBeforeEvent;           // Time to keep before an event     (parameter from configuration file).
+        double                          mTimeAfterEvent;            // Time to keep after an event      (parameter from configuration file).
+        string                          mDataPath;                  // Where to save data               (parameter from configuration file).
+        string                          mStationName;               // Name of the station              (parameter from configuration file).
+        CamBitDepth                     mBitDepth;                  // Acquisition bit depth            (parameter from configuration file).
+        Fits                            mFitsHeader;
+        bool                            mMailAlertEnabled;          // Enable to send mail alert        (parameter from configuration file).
+        string                          mMailSmtpServer;            // SMTP server                      (parameter from configuration file).
+        string                          mMailSmtpHostname;          // SMTP hostname                    (parameter from configuration file).
+        vector<string>                  mMailRecipients;            // Mail recipients                  (parameter from configuration file).
+        bool                            mStackReduction;            // Reduce sum fits to 16 bits.      (parameter from configuration file).
+        StackMeth                       mStackMthd;                 // Reduction method                 (parameter from configuration file).
+        DetMeth                         mDetMthd;                   // Enumeration of the detection method used.
+        bool                            mIsRunning;                 // Detection thread running status.
+        bool                            mWaitFramesToCompleteEvent;
+        int                             mNbWaitFrames;
+        string                          mCfgPath;
+        string                          mEventPath;                 // Path of the last detected event.
+        string                          mEventDate;                 // Date of the last detected event.
+        int                             mNbDetection;               // Number of detection.
+        bool                            mInterruptionStatus;
+        boost::mutex                    mInterruptionStatusMutex;
         boost::circular_buffer<Frame>   *frameBuffer;
         boost::mutex                    *frameBuffer_mutex;
         boost::condition_variable       *frameBuffer_condition;
-
         bool                            *detSignal;
         boost::mutex                    *detSignal_mutex;
         boost::condition_variable       *detSignal_condition;
 
-        bool			DET_SAVE_AVI;
-        bool			DET_SAVE_FITS3D ;
-        bool			DET_SAVE_FITS2D;
-        bool			DET_SAVE_SUM;
-        double			DET_TIME_BEFORE;
-		double			DET_TIME_AFTER;
-		string			DATA_PATH;
-        string			STATION_NAME;
-		CamBitDepth		ACQ_BIT_DEPTH;
-		Fits			fitsHeader;
-		bool			MAIL_DETECTION_ENABLED;
-        string			MAIL_SMTP_SERVER;
-        string			MAIL_SMTP_HOSTNAME;
-        vector<string>	MAIL_RECIPIENT;
-		bool			CFG_FILECOPY_ENABLED;
-		bool			STACK_REDUCTION;
-		StackMeth		STACK_MTHD;
-		DetMeth			detmthd;
+    public :
 
-		bool isRunning;
+        /**
+        * Constructor.
+        *
+        */
+        DetThread(  string                          cfg_p,
+                    DetMeth                         m,
+                    boost::circular_buffer<Frame>   *fb,
+                    boost::mutex                    *fb_m,
+                    boost::condition_variable       *fb_c,
+                    bool                            *dSignal,
+                    boost::mutex                    *dSignal_m,
+                    boost::condition_variable       *dSignal_c);
 
-		bool waitFramesToCompleteEvent;
-		int nbWaitFrames;
+        /**
+        * Destructor.
+        *
+        */
+        ~DetThread();
 
-		string cfg_path;
-		boost::mutex *cfg_mutex;
+        /**
+        * Detection Thread loop.
+        *
+        */
+        void operator()();
 
-		bool firstFrameGrabbed;
-
-		string eventPath;
-		string eventDate;
-		int nbDetection;
-
-		bool interruptionStatus;
-        boost::mutex interruptionStatusMutex;
-
-	public:
-
-        DetThread(  boost::mutex					*cfg_m,
-					string							cfg_p,
-					DetMeth							m,
-					boost::circular_buffer<Frame>	*fb,
-					boost::mutex					*fb_m,
-					boost::condition_variable		*fb_c,
-					bool							*dSignal,
-					boost::mutex					*dSignal_m,
-					boost::condition_variable		*dSignal_c);
-
-		~DetThread();
-
-		void operator()();
-
+        /**
+        * Start thread.
+        *
+        * @return Success status to start thread.
+        */
         bool startThread();
 
-		void stopThread();
+        /**
+        * Stop thread.
+        *
+        */
+        void stopThread();
 
-		void join();
+        /**
+        * Build directory "events".
+        *
+        * @return Success to create directory.
+        */
+        bool buildEventDataDirectory();
 
-		bool buildEventDataDirectory(string eventDate);
+        /**
+        * Save an event in the directory "events".
+        *
+        * @param firstEvPosInFB First frame's number of the event.
+        * @param lastEvPosInFB Last frame's number of the event.
+        * @return Success to save an event.
+        */
+        bool saveEventData(int firstEvPosInFB, int lastEvPosInFB);
 
-		bool saveEventData(int firstEvPosInFB, int lastEvPosInFB);
+        /**
+        * Load detection thread parameters.
+        *
+        * @return Success to load parameters.
+        */
+        bool loadDetThreadParameters();
 
-		bool loadDetThreadParameters();
+        /**
+        * Run status of detection thread.
+        *
+        * @return Is running or not.
+        */
+        bool getRunStatus();
 
-		bool getRunStatus();
+        /**
+        * Get detection method used by detection thread.
+        *
+        * @return Detection method.
+        */
+        Detection* getDetMethod();
 
-		Detection* getDetMethod();
-
-		void interruptThread();
+        /**
+        * Interrupt detection thread.
+        *
+        */
+        void interruptThread();
 
 };
 

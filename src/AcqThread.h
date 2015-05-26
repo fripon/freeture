@@ -1,5 +1,5 @@
 /*
-								AcqThread.h
+                                AcqThread.h
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 *
@@ -51,134 +51,156 @@
 using namespace cv;
 using namespace std;
 
-class AcqThread{
+class AcqThread {
 
-	private:
+    private:
 
-		static boost::log::sources::severity_logger< LogSeverityLevel > logger;
+        static boost::log::sources::severity_logger< LogSeverityLevel > logger;
 
-		static class _Init{
+        static class Init {
 
             public:
-                _Init()
-                {
+
+                Init() {
+
                     logger.add_attribute("ClassName", boost::log::attributes::constant<std::string>("AcqThread"));
+
                 }
-        } _initializer;
 
-        bool mustStop;
+        }initializer;
 
-		boost::mutex mustStopMutex;
+        bool                mMustStop;              // Signal to stop thread.
+        boost::mutex        mMustStopMutex;
+        boost::thread       *mThread;               // Acquisition thread.
+        Device              *mDevice;               // Input device.
+        CamType             mCameraType;            // Type of camera in input -> CAMERA_TYPE in configuration file.
+        int                 mNbGrabFail;            // Fail number to grab frames.
+        int                 mNbGrabSuccess;         // Success number to grab frames.
+        bool                mThreadEndStatus;
+        AcqSchedule         mNextAcq;               // Next scheduled acquisition.
+        int                 mNextAcqIndex;
+        vector<AcqSchedule> mAcqScheduledList;      // List of scheduled acquisition.
+        DetThread           *pDetection;            // Pointer on detection thread.
+        StackThread         *pStack;                // Pointer on stack thread.
+        string              mDataLocation;          // Complete dynamic location where to save data.
+        ExposureControl     *pExpCtrl;              // Pointer on exposure time adjustment object.
+        bool                mStackThreadStatus;     // Enable (night) or disable (day) stackThread.
+        string              mCfgPath;               // Configuration file path.
 
-		boost::thread *acquisitionThread;
+        // Communication with the shared framebuffer.
+        boost::condition_variable *frameBuffer_condition;
+        boost::mutex *frameBuffer_mutex;
+        boost::circular_buffer<Frame> *frameBuffer;
 
-		Device *cam;
+        // Communication with DetThread.
+        bool *stackSignal;
+        boost::mutex *stackSignal_mutex;
+        boost::condition_variable *stackSignal_condition;
 
-		int srcExposure;
+        // Communication with StackThread.
+        bool *detSignal;
+        boost::mutex *detSignal_mutex;
+        boost::condition_variable *detSignal_condition;
 
-		int srcID;
+    public:
 
-        int srcGain;
+        /**
+         * Constructor.
+         *
+         * @param camType Camera type in input.
+         * @param cfg Configuration file.
+         * @param fb Pointer on framebuffer.
+         * @param fb_m Pointer on framebuffer's mutex.
+         * @param fb_c Pointer on framebuffer's condition.
+         * @param sSignal Pointer on stack's signal.
+         * @param sSignal_m Pointer on stack's signal mutex.
+         * @param sSignal_c Pointer on stack's signal condition.
+         * @param dSignal Pointer on detection's signal.
+         * @param dSignal_m Pointer on detection's signal mutex.
+         * @param dSignal_c Pointer on detection's signal condition.
+         * @param detection Pointer on detection thread.
+         * @param stack Pointer on stack thread.
+         */
+        AcqThread(  CamType                         camType,
+                    string                          cfg,
+                    boost::circular_buffer<Frame>   *fb,
+                    boost::mutex                    *fb_m,
+                    boost::condition_variable       *fb_c,
+                    bool                            *sSignal,
+                    boost::mutex                    *sSignal_m,
+                    boost::condition_variable       *sSignal_c,
+                    bool                            *dSignal,
+                    boost::mutex                    *dSignal_m,
+                    boost::condition_variable       *dSignal_c,
+                    DetThread                       *detection,
+                    StackThread                     *stack);
 
-        int srcFPS;
+        /**
+         * Destructor.
+         */
+        ~AcqThread(void);
 
-		string srcPath;
+        /**
+         * Acquisition thread loop.
+         */
+        void operator()();
 
-        CamBitDepth srcFormat;
+        /**
+         * Stop acquisition thread.
+         */
+        void stopThread();
 
-        CamType srcType;
+        /**
+         * Start acquisition thread.
+         *
+         * @return Success status to start thread.
+         */
+        bool startThread();
 
-		int frameCpt;
-
-		int nbFailGrabbedFrames;
-
-		int nbSuccessGrabbedFrames;
-
-		// Communication with the shared framebuffer.
-        boost::condition_variable		*frameBuffer_condition;
-        boost::mutex					*frameBuffer_mutex;
-        boost::circular_buffer<Frame>	*frameBuffer;
-
-		// Communication with DetThread.
-        bool						*stackSignal;
-        boost::mutex				*stackSignal_mutex;
-        boost::condition_variable	*stackSignal_condition;
-
-		// Communication with StackThread.
-        bool						*detSignal;
-        boost::mutex				*detSignal_mutex;
-        boost::condition_variable	*detSignal_condition;
-
-		// Mutex on configuration file.
-		boost::mutex *cfg_mutex;
-		string cfg_path;
-
-		bool threadTerminated;
-
-		DetThread	*detectionProcess;
-        StackThread	*stackProcess;
-
-        ExposureControl * autoExposure;
-
-        bool enableStackThread;
-
-        vector<string> schedule;
-
-        string completeDataPath;
-
-        vector<AcqSchedule> ACQ_SCHEDULE;
-
-        // Next acquisition to achieve.
-        AcqSchedule nextTask;
-
-        // Index of the next acquisition to achieve in the schedule table.
-        int indexNextTask = 0;
-
-	public:
-
-        AcqThread(	CamType									camType,
-					boost::mutex							*cfg_m,
-					string									cfg_p,
-					boost::circular_buffer<Frame>           *fb,
-					boost::mutex                            *fb_m,
-					boost::condition_variable               *fb_c,
-					bool									*sSignal,
-					boost::mutex                            *sSignal_m,
-					boost::condition_variable               *sSignal_c,
-					bool                                    *dSignal,
-					boost::mutex                            *dSignal_m,
-					boost::condition_variable               *dSignal_c,
-					DetThread	                            *detection,
-                    StackThread	                            *stack);
-
-		~AcqThread(void);
-
-		//! Wait the end of the acquisition thread.
-		void	join();
-
-        //! Acquisition thread main loop.
-		void	operator()();
-
-		//! Stop the acquisition thread.
-		void	stopThread();
-
-		//! Start the acquisition thread.
-		bool	startThread();
-
-		bool	getThreadTerminatedStatus();
+        /**
+         * Get thread status.
+         *
+         * @return Acquisition thread running status.
+         */
+        bool getThreadEndStatus();
 
     private :
 
+        /**
+         * Run scheduled acquisition.
+         *
+         * @param task Scheduled acquisition.
+         * @return Success to run single acquisition.
+         */
         bool runScheduledAcquisition(AcqSchedule task);
 
+        /**
+         * Run regular acquisition.
+         *
+         * @param frameDate Single acquisition date.
+         * @return Success to run single acquisition.
+         */
         bool runRegularAcquisition(string frameDate);
 
-        bool buildRegularAcquisitionDirectory(string YYYYMMDD);
+        /**
+         * Build single acquisition directory.
+         *
+         * @param YYYYMMDD Acquisition date.
+         * @return Success to create directory.
+         */
+        bool buildAcquisitionDirectory(string YYYYMMDD);
 
+        /**
+         * Sort schedule acquisition date.
+         *
+         */
         void sortAcquisitionSchedule();
 
+        /**
+         * Select next scheduled acquisition.
+         *
+         */
         void selectNextAcquisitionSchedule();
-
 
 };
 

@@ -1,5 +1,5 @@
 /*
-								LocalEvent.h
+                                LocalEvent.h
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 *
@@ -41,36 +41,84 @@
 using namespace cv;
 using namespace std;
 
-class LocalEvent{
+class LocalEvent {
 
-    private:
+    private :
 
-        Scalar  leColor;
-        Mat     leMap;
-        Point   leMassCenter;
-        int     leNumFrame;
+        Scalar  mLeColor;           // Color attribute of the local event.
+        Mat     mLeMap;             // ROI map.
+        Point   mLeMassCenter;      // Mass center.
+        int     mLeNumFrame;        // Associated frame.
 
-    public:
+    public :
 
-        // Contains position of region of interest which compose a local event.
-        vector<Point> leRoiList;
+        vector<Point> mLeRoiList;   // Contains position of region of interest which compose a local event.
 
-        vector<Mat> subdivision;
-
+        /**
+        * Constructor.
+        *
+        * @param color
+        * @param roiPos Position of the ROI.
+        * @param frameHeight
+        * @param frameWidth
+        * @param roiSize
+        */
         LocalEvent(Scalar color, Point roiPos, int frameHeight, int frameWidth, const int *roiSize);
 
-        LocalEvent(Scalar color, Point sPos, Mat s);
-
+        /**
+        * Destructor.
+        *
+        */
         ~LocalEvent();
 
+        /**
+        * Compute mass center of the local event.
+        *
+        */
         void computeMassCenter();
 
-        Scalar  getColor()          {return leColor;};
-        Mat     getMap()            {return leMap;};
-        Point   getMassCenter()     {return leMassCenter;};
-        int     getNumFrame()       {return leNumFrame;};
-        void    setNumFrame(int n)  {leNumFrame = n;};
+        /**
+        * Get local event's color.
+        *
+        * @return color.
+        */
+        Scalar getColor() {return mLeColor;};
 
-        void    setMap(Point p, int h, int w);
+        /**
+        * Get local event's color.
+        *
+        * @return color.
+        */
+        Mat getMap() {return mLeMap;};
+
+        /**
+        * Get local event's mass center.
+        *
+        * @return Center of mass.
+        */
+        Point getMassCenter() {return mLeMassCenter;};
+
+        /**
+        * Get local event's frame number.
+        *
+        * @return Frame number.
+        */
+        int getNumFrame() {return mLeNumFrame;};
+
+        /**
+        * Set local event's frame number.
+        *
+        * @param n Frame number.
+        */
+        void setNumFrame(int n) {mLeNumFrame = n;};
+
+        /**
+        * Update local event's roi map.
+        *
+        * @param p Position of the new ROI.
+        * @param h Height of the new ROI.
+        * @param w Width of the new ROI.
+        */
+        void setMap(Point p, int h, int w);
 
 };

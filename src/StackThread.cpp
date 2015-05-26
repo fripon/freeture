@@ -35,28 +35,27 @@
 #include "StackThread.h"
 
 boost::log::sources::severity_logger< LogSeverityLevel >  StackThread::logger;
-StackThread::_Init StackThread::_initializer;
 
-StackThread::StackThread(   boost::mutex							*cfg_m,
-							string									cfg_p,
-							bool									*sS,
-							boost::mutex							*sS_m,
-							boost::condition_variable				*sS_c,
-							boost::circular_buffer<Frame>		    *fb,
-							boost::mutex                            *fb_m,
-							boost::condition_variable               *fb_c){
+StackThread::Init StackThread::initializer;
 
-	cfg_mutex = cfg_m;
-	cfgPath = cfg_p;
-	thread = NULL;
-	mustStop = false;
+StackThread::StackThread(   string                          cfg_p,
+                            bool                            *sS,
+                            boost::mutex                    *sS_m,
+                            boost::condition_variable       *sS_c,
+                            boost::circular_buffer<Frame>   *fb,
+                            boost::mutex                    *fb_m,
+                            boost::condition_variable       *fb_c){
+
+    cfgPath = cfg_p;
+    thread = NULL;
+    mustStop = false;
     frameBuffer = fb;
     frameBuffer_mutex = fb_m;
     frameBuffer_condition = fb_c;
-	stackSignal = sS;
+    stackSignal = sS;
     stackSignal_mutex = sS_m;
     stackSignal_condition = sS_c;
-	completeDataPath = "";
+    completeDataPath = "";
     isRunning = false;
     interruptionStatus = false;
 
@@ -66,36 +65,32 @@ StackThread::~StackThread(void){
 
     BOOST_LOG_SEV(logger,notification) << "Cleaning ressources and deleting StackThread...";
 
-	if(thread!=NULL)
+    if(thread!=NULL)
         delete thread;
 
 }
 
 bool StackThread::startThread(){
 
-	boost::mutex::scoped_lock lock(*cfg_mutex);
+    BOOST_LOG_SEV(logger,notification) << "Loading StackThread parameters...";
 
-	BOOST_LOG_SEV(logger,notification) << "Loading StackThread parameters...";
+    if(!loadStackParameters()){
 
-	if(!loadStackParameters()){
-		lock.unlock();
-		BOOST_LOG_SEV(logger,fail) << "Fail to load StackThread parameters.";
-		return false;
-	}
-
-	lock.unlock();
+        BOOST_LOG_SEV(logger,fail) << "Fail to load StackThread parameters.";
+        return false;
+    }
 
     BOOST_LOG_SEV(logger,notification) << "Creating StackThread...";
     thread = new boost::thread(boost::ref(*this));
-	return true;
+    return true;
 }
 
 void StackThread::stopThread(){
 
-	// Signal the thread to stop (thread-safe)
-	mustStopMutex.lock();
-	mustStop = true;
-	mustStopMutex.unlock();
+    // Signal the thread to stop (thread-safe)
+    mustStopMutex.lock();
+    mustStop = true;
+    mustStopMutex.unlock();
 
     while(thread->timed_join(boost::posix_time::seconds(1)) == false){
 
@@ -118,75 +113,75 @@ bool StackThread::interruptThread(){
 
 bool StackThread::loadStackParameters(){
 
-	try{
+    try{
 
-		Configuration cfg;
-		cfg.Load(cfgPath);
+        Configuration cfg;
+        cfg.Load(cfgPath);
 
         // Get acquisition frequency.
-		int ACQ_FPS;
-		cfg.Get("ACQ_FPS", ACQ_FPS);
-		BOOST_LOG_SEV(logger,notification) << "Load ACQ_FPS : " << ACQ_FPS;
+        int ACQ_FPS;
+        cfg.Get("ACQ_FPS", ACQ_FPS);
+        BOOST_LOG_SEV(logger,notification) << "Load ACQ_FPS : " << ACQ_FPS;
 
         // Get camera format.
-		string acq_bit_depth; cfg.Get("ACQ_BIT_DEPTH", acq_bit_depth);
-		EParser<CamBitDepth> cam_bit_depth;
-		ACQ_BIT_DEPTH = cam_bit_depth.parseEnum("ACQ_BIT_DEPTH", acq_bit_depth);
-		BOOST_LOG_SEV(logger,notification) << "Load ACQ_BIT_DEPTH : " << acq_bit_depth;
+        string acq_bit_depth; cfg.Get("ACQ_BIT_DEPTH", acq_bit_depth);
+        EParser<CamBitDepth> cam_bit_depth;
+        ACQ_BIT_DEPTH = cam_bit_depth.parseEnum("ACQ_BIT_DEPTH", acq_bit_depth);
+        BOOST_LOG_SEV(logger,notification) << "Load ACQ_BIT_DEPTH : " << acq_bit_depth;
 
         // Get time of stacking frames.
-		cfg.Get("STACK_TIME", STACK_TIME);
-		BOOST_LOG_SEV(logger,notification) << "Load STACK_TIME : " << STACK_TIME;
-		STACK_TIME = STACK_TIME * ACQ_FPS;
+        cfg.Get("STACK_TIME", STACK_TIME);
+        BOOST_LOG_SEV(logger,notification) << "Load STACK_TIME : " << STACK_TIME;
+        STACK_TIME = STACK_TIME * ACQ_FPS;
 
         // Get time to wait before a new stack.
-		cfg.Get("STACK_INTERVAL", STACK_INTERVAL);
-		BOOST_LOG_SEV(logger,notification) << "Load STACK_INTERVAL : " << STACK_INTERVAL;
+        cfg.Get("STACK_INTERVAL", STACK_INTERVAL);
+        BOOST_LOG_SEV(logger,notification) << "Load STACK_INTERVAL : " << STACK_INTERVAL;
 
         // Get stack method to use.
-		string stack_method; cfg.Get("STACK_MTHD", stack_method);
-		EParser<StackMeth> stack_mth;
-		STACK_MTHD = stack_mth.parseEnum("STACK_MTHD", stack_method);
-		BOOST_LOG_SEV(logger,notification) << "Load STACK_MTHD : " << stack_method;
+        string stack_method; cfg.Get("STACK_MTHD", stack_method);
+        EParser<StackMeth> stack_mth;
+        STACK_MTHD = stack_mth.parseEnum("STACK_MTHD", stack_method);
+        BOOST_LOG_SEV(logger,notification) << "Load STACK_MTHD : " << stack_method;
 
         // Use reduction method or not.
         cfg.Get("STACK_REDUCTION", STACK_REDUCTION);
         BOOST_LOG_SEV(logger,notification) << "Load STACK_REDUCTION : " << STACK_REDUCTION;
 
         // Get station name.
-		cfg.Get("STATION_NAME", STATION_NAME);
-		BOOST_LOG_SEV(logger,notification) << "Load STATION_NAME : " << STATION_NAME;
+        cfg.Get("STATION_NAME", STATION_NAME);
+        BOOST_LOG_SEV(logger,notification) << "Load STATION_NAME : " << STATION_NAME;
 
         // Get location where to store data.
-		cfg.Get("DATA_PATH", DATA_PATH);
-		BOOST_LOG_SEV(logger,notification) << "Load DATA_PATH : " << DATA_PATH;
+        cfg.Get("DATA_PATH", DATA_PATH);
+        BOOST_LOG_SEV(logger,notification) << "Load DATA_PATH : " << DATA_PATH;
 
         // Get fits keywords.
-		fitsHeader.loadKeywordsFromConfigFile(cfgPath);
+        fitsHeader.loadKeywordsFromConfigFile(cfgPath);
 
-		return true;
+        return true;
 
-	}catch(exception& e){
+    }catch(exception& e){
 
-		cout << e.what() << endl;
-		BOOST_LOG_SEV(logger,critical) << "In function StackThread::loadStackParameters() : ";
-		BOOST_LOG_SEV(logger,critical) << e.what();
-		return false;
+        cout << e.what() << endl;
+        BOOST_LOG_SEV(logger,critical) << "In function StackThread::loadStackParameters() : ";
+        BOOST_LOG_SEV(logger,critical) << e.what();
+        return false;
 
-	}
+    }
 
 }
 
 bool StackThread::buildStackDataDirectory(string date){
 
-	namespace fs = boost::filesystem;
-	string	YYYYMMDD	= TimeDate::get_YYYYMMDD_fromDateString(date);
-	string	root		= DATA_PATH + STATION_NAME + "_" + YYYYMMDD +"/";
+    namespace fs = boost::filesystem;
+    string	YYYYMMDD	= TimeDate::get_YYYYMMDD_fromDateString(date);
+    string	root		= DATA_PATH + STATION_NAME + "_" + YYYYMMDD +"/";
     string	subDir		= "astro/";
     string	finalPath	= root + subDir;
 
-	completeDataPath	= finalPath;
-	BOOST_LOG_SEV(logger,notification) << "Stack data path : " << completeDataPath;
+    completeDataPath	= finalPath;
+    BOOST_LOG_SEV(logger,notification) << "Stack data path : " << completeDataPath;
 
     path p(DATA_PATH);
     path p1(root);
@@ -223,7 +218,7 @@ bool StackThread::buildStackDataDirectory(string date){
             if(!fs::create_directory(p1)){
 
                 BOOST_LOG_SEV(logger,fail) << "Unable to create STATION_YYYYMMDD directory : " << p1.string();
-				return false;
+                return false;
 
             // If success to create DATA_PATH/STATION_YYYYMMDD/
             }else{
@@ -234,13 +229,13 @@ bool StackThread::buildStackDataDirectory(string date){
                 if(!fs::create_directory(p2)){
 
                     BOOST_LOG_SEV(logger,critical) << "Unable to create astro directory : " << p2.string();
-					return false;
+                    return false;
 
                 // If success to create DATA_PATH/STATION_YYYYMMDD/astro/
                 }else{
 
                     BOOST_LOG_SEV(logger,notification) << "Success to create astro directory : " << p2.string();
-					return true;
+                    return true;
 
                 }
             }
@@ -253,7 +248,7 @@ bool StackThread::buildStackDataDirectory(string date){
         if(!fs::create_directory(p)){
 
             BOOST_LOG_SEV(logger,fail) << "Unable to create DATA_PATH directory : " << p.string();
-			return false;
+            return false;
 
         // If success to create DATA_PATH
         }else{
@@ -264,7 +259,7 @@ bool StackThread::buildStackDataDirectory(string date){
             if(!fs::create_directory(p1)){
 
                 BOOST_LOG_SEV(logger,fail) << "Unable to create STATION_YYYYMMDD directory : " << p1.string();
-				return false;
+                return false;
 
             // If success to create DATA_PATH/STATION_YYYYMMDD/
             }else{
@@ -275,13 +270,13 @@ bool StackThread::buildStackDataDirectory(string date){
                 if(!fs::create_directory(p2)){
 
                     BOOST_LOG_SEV(logger,critical) << "Unable to create astro directory : " << p2.string();
-					return false;
+                    return false;
 
                 // If success to create DATA_PATH/STATION_YYYYMMDD/astro/
                 }else{
 
                     BOOST_LOG_SEV(logger,notification) << "Success to create astro directory : " << p2.string();
-					return true;
+                    return true;
 
                 }
             }
@@ -301,10 +296,10 @@ void StackThread::operator()(){
     isRunning = true;
 
     BOOST_LOG_SCOPED_THREAD_TAG("LogName", "STACK_THREAD");
-	BOOST_LOG_SEV(logger,notification) << "\n";
-	BOOST_LOG_SEV(logger,notification) << "==============================================";
-	BOOST_LOG_SEV(logger,notification) << "============== Start stack thread ============";
-	BOOST_LOG_SEV(logger,notification) << "==============================================";
+    BOOST_LOG_SEV(logger,notification) << "\n";
+    BOOST_LOG_SEV(logger,notification) << "==============================================";
+    BOOST_LOG_SEV(logger,notification) << "============== Start stack thread ============";
+    BOOST_LOG_SEV(logger,notification) << "==============================================";
 
     try{
 
@@ -450,7 +445,7 @@ void StackThread::operator()(){
 
     isRunning = false;
 
-	BOOST_LOG_SEV(logger,notification) << "Stack thread TERMINATED";
+    BOOST_LOG_SEV(logger,notification) << "Stack thread TERMINATED";
 
 }
 

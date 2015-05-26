@@ -1,5 +1,5 @@
 /*
-							DetectionStreak.h
+                        DetectionTemplate.cpp
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 *
@@ -25,32 +25,19 @@
 *%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%*/
 
 /**
-* \file    DetectionStreak.h
+* \file    DetectionTemplate.cpp
 * \author  Yoan Audureau -- FRIPON-GEOPS-UPSUD
 * \version 1.0
 * \date    03/03/2015
 * \brief   Detection method by streak.
 */
 
-#pragma once
+#include "DetectionTemplate.h"
 
-#include "opencv2/highgui/highgui.hpp"
-#include <opencv2/imgproc/imgproc.hpp>
+DetectionTemplate::DetectionTemplate() {
 
-#include "Detection.h"
+}
 
-using namespace std;
-using namespace cv;
+DetectionTemplate::~DetectionTemplate() {
 
-class DetectionStreak : public Detection{
-
-	private :
-
-	public:
-
-		DetectionStreak(){};
-	
-		~DetectionStreak(){};
-
-};
-
+}

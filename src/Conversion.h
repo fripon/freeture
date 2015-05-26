@@ -1,5 +1,5 @@
 /*
-				Conversion.h
+                                    Conversion.h
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 *
@@ -38,46 +38,90 @@
 #include <iostream>
 #include <list>
 #include <string>
-
 #include "opencv2/highgui/highgui.hpp"
 #include <opencv2/imgproc/imgproc.hpp>
-
 #include "ECamBitDepth.h"
 
 using namespace std;
 using namespace cv;
 
-class Conversion{
+class Conversion {
 
-    public:
+    public :
 
-        Conversion();
-
+        /**
+        * Get type of opencv mat object.
+        *
+        * @param type mat.type()
+        * @return Type in string.
+        */
         static string matTypeToString(int type);
 
+        /**
+        * Convert an int value to string.
+        *
+        * @param nb Integer value.
+        * @return String value.
+        */
         static string intToString(int nb);
 
+        /**
+        * Convert a float value to string.
+        *
+        * @param nb Float value.
+        * @return String value.
+        */
         static string floatToString(float nb);
 
+        /**
+        * Extract data from a string according to a delimiter.
+        *
+        * @param container List of extracted data.
+        * @param in String to analyse.
+        * @param delimiters
+        */
         static void stringTok(list<string>  &container, string const &in, const char * const delimiters);
 
-        static double roundToNearest(double num);
-
+        /**
+        * Convert an opencv image to 8 bits.
+        *
+        * @param img Opencv image to convert.
+        * @return 8 bits opencv mat.
+        */
         static Mat convertTo8UC1(Mat &img);
 
+        /**
+        * Determine the number of "0" required.
+        *
+        * @param totalDigit Maximum number of digits.
+        * @param n Integer value.
+        * @return Number of 0 to add to reach maximum of available digits.
+        */
         static string numbering(int totalDigit, int n);
 
-		static void intBitDepth_To_CamBitDepth(int acqFormat, CamBitDepth &camFormat);
+        /**
+        * Convert an integer format to an enum format.
+        *
+        * @param acqFormat Integer format : 8, 12.
+        * @param camFormat Enum format : MONO_8, MONO_12.
+        */
+        static void intBitDepthToCamBitDepthEnum(int acqFormat, CamBitDepth &camFormat);
 
-		static int countNumberDigit(int n);
+        /**
+        * Count number of digit in a value.
+        *
+        * @param n Integer value.
+        * @return Number of digits.
+        */
+        static int countNumberDigit(int n);
 
-		// Examples :
-		// 153 -> 200
-		// 103 -> 200
-		// 1025 -> 2000
-		// 4095 -> 5000
-		// 64000 -> 70000
-		static int roundToUpperRange(int n);
+        /**
+        * Round an integer to upper range.
+        *
+        * @param n Integer value. Example : 103, 1025.
+        * @return Rounded value. Example : 200, 2000.
+        */
+        static int roundToUpperRange(int n);
 
 };
 

@@ -1,5 +1,5 @@
 /*
-				Fits3D.h
+                                Fits3D.h
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 *
@@ -37,10 +37,6 @@
 
 #include "config.h"
 
-
-#include "opencv2/highgui/highgui.hpp"
-#include <opencv2/imgproc/imgproc.hpp>
-
 #ifdef LINUX
 #define BOOST_LOG_DYN_LINK 1
 #endif
@@ -51,6 +47,8 @@
   #include "fitsio.h"
 #endif
 
+#include "opencv2/highgui/highgui.hpp"
+#include <opencv2/imgproc/imgproc.hpp>
 #include <boost/log/common.hpp>
 #include <boost/log/expressions.hpp>
 #include <boost/log/utility/setup/file.hpp>
@@ -62,7 +60,6 @@
 #include <boost/log/sources/logger.hpp>
 #include <boost/log/core.hpp>
 #include "ELogSeverityLevel.h"
-
 #include "Configuration.h"
 #include "TimeDate.h"
 #include "Fits.h"
@@ -71,20 +68,23 @@
 using namespace cv;
 using namespace std;
 
-class Fits3D : public Fits{
+class Fits3D : public Fits {
 
-    private:
+    private :
 
-		static boost::log::sources::severity_logger< LogSeverityLevel > logger;
+        static boost::log::sources::severity_logger< LogSeverityLevel > logger;
 
-		static class _Init{
+        static class Init {
 
-			public:
-				_Init()
-				{
-					logger.add_attribute("ClassName", boost::log::attributes::constant<std::string>("Fits3D"));
-				}
-		} _initializer;
+            public :
+
+                Init() {
+
+                    logger.add_attribute("ClassName", boost::log::attributes::constant<std::string>("Fits3D"));
+
+                }
+
+        }initializer;
 
         fitsfile        *fptr;
         const char      *filename;
@@ -99,19 +99,22 @@ class Fits3D : public Fits{
         unsigned char   *array3D_MONO_8;
         unsigned short  *array3D_MONO_12;
 
-        bool    printerror      (int status, string errorMsg);
-		bool    printerror      (string errorMsg);
-		void    printerror      (int status);
-		bool    writeKeywords   ();
+    public :
 
-    public:
+        Fits3D(CamBitDepth depth, int imgHeight, int imgWidth, int imgNum, Fits fits);
+        Fits3D(){};
+        ~Fits3D(){};
 
-        Fits3D  (){};
-        ~Fits3D (){};
-        Fits3D  (CamBitDepth depth, int imgHeight, int imgWidth, int imgNum, Fits fits);
+        void addImageToFits3D(Mat frame);
+        bool writeFits3D(string file);
 
-        void addImageToFits3D   (Mat frame);
-        bool writeFits3D        (string file);
+    private :
+
+        bool printerror(int status, string errorMsg);
+        bool printerror(string errorMsg);
+        void printerror(int status);
+        bool writeKeywords();
+
 
 };
 

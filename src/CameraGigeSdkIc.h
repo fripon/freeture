@@ -38,96 +38,93 @@
 
 #ifdef WINDOWS
 
-	#include "opencv2/highgui/highgui.hpp"
-	#include <opencv2/imgproc/imgproc.hpp>
+    #include "opencv2/highgui/highgui.hpp"
+    #include <opencv2/imgproc/imgproc.hpp>
+    #include <iostream>
+    #include <string>
+    #include "Frame.h"
+    #include "TimeDate.h"
+    #include "Camera.h"
+    #include "ECamBitDepth.h"
+    #include <boost/log/common.hpp>
+    #include <boost/log/expressions.hpp>
+    #include <boost/log/utility/setup/file.hpp>
+    #include <boost/log/utility/setup/console.hpp>
+    #include <boost/log/utility/setup/common_attributes.hpp>
+    #include <boost/log/attributes/named_scope.hpp>
+    #include <boost/log/attributes.hpp>
+    #include <boost/log/sinks.hpp>
+    #include <boost/log/sources/logger.hpp>
+    #include <boost/log/core.hpp>
+    #include "ELogSeverityLevel.h"
+    #include "tisudshl.h"
+    #include <algorithm>
 
-	#include <iostream>
-	#include <string>
-	#include "Frame.h"
-	#include "TimeDate.h"
-	#include "Camera.h"
+    using namespace cv;
+    using namespace std;
 
-	#include "ECamBitDepth.h"
-	#include <boost/log/common.hpp>
-	#include <boost/log/expressions.hpp>
-	#include <boost/log/utility/setup/file.hpp>
-	#include <boost/log/utility/setup/console.hpp>
-	#include <boost/log/utility/setup/common_attributes.hpp>
-	#include <boost/log/attributes/named_scope.hpp>
-	#include <boost/log/attributes.hpp>
-	#include <boost/log/sinks.hpp>
-	#include <boost/log/sources/logger.hpp>
-	#include <boost/log/core.hpp>
-	#include "ELogSeverityLevel.h"
+    class CameraGigeSdkIc: public Camera {
 
-	#include "tisudshl.h"
-	#include <algorithm>
+        private:
 
-	using namespace cv;
-	using namespace std;
+            static boost::log::sources::severity_logger< LogSeverityLevel > logger;
 
-	class CameraGigeSdkIc: public Camera{
+            static class Init {
 
-		private:
+                public:
 
-			static boost::log::sources::severity_logger< LogSeverityLevel > logger;
+                    Init() {
 
-			static class _Init{
+                        logger.add_attribute("ClassName", boost::log::attributes::constant<std::string>("CameraGigeSdkIc"));
 
-				public:
-					_Init()
-					{
-						logger.add_attribute("ClassName", boost::log::attributes::constant<std::string>("CameraGigeSdkIc"));
-					}
-			} _initializer;
+                    }
 
-			DShowLib::tIVCDRangePropertyPtr	getPropertyRangeInterface(_DSHOWLIB_NAMESPACE::tIVCDPropertyItemsPtr& pItems, const GUID& id);
-			bool propertyIsAvailable(const GUID& id, _DSHOWLIB_NAMESPACE::tIVCDPropertyItemsPtr m_pItemContainer);
-			long getPropertyValue(const GUID& id, _DSHOWLIB_NAMESPACE::tIVCDPropertyItemsPtr m_pItemContainer);
-			void setPropertyValue(const GUID& id, long val, _DSHOWLIB_NAMESPACE::tIVCDPropertyItemsPtr m_pItemContainer);
-			long getPropertyRangeMin(const GUID& id, _DSHOWLIB_NAMESPACE::tIVCDPropertyItemsPtr m_pItemContainer);
-			long getPropertyRangeMax(const GUID& id, _DSHOWLIB_NAMESPACE::tIVCDPropertyItemsPtr m_pItemContainer);
+            } initializer;
 
-		public:
+            DShowLib::tIVCDRangePropertyPtr getPropertyRangeInterface(_DSHOWLIB_NAMESPACE::tIVCDPropertyItemsPtr& pItems, const GUID& id);
+            bool propertyIsAvailable(const GUID& id, _DSHOWLIB_NAMESPACE::tIVCDPropertyItemsPtr m_pItemContainer);
+            long getPropertyValue(const GUID& id, _DSHOWLIB_NAMESPACE::tIVCDPropertyItemsPtr m_pItemContainer);
+            void setPropertyValue(const GUID& id, long val, _DSHOWLIB_NAMESPACE::tIVCDPropertyItemsPtr m_pItemContainer);
+            long getPropertyRangeMin(const GUID& id, _DSHOWLIB_NAMESPACE::tIVCDPropertyItemsPtr m_pItemContainer);
+            long getPropertyRangeMax(const GUID& id, _DSHOWLIB_NAMESPACE::tIVCDPropertyItemsPtr m_pItemContainer);
 
-			DShowLib::Grabber* m_pGrabber;
+        public :
 
-			CameraGigeSdkIc();
+            DShowLib::Grabber* m_pGrabber;
 
-			void test();
+        public:
 
-			~CameraGigeSdkIc();
+            /**
+            * Constructor.
+            *
+            */
+            CameraGigeSdkIc();
 
-			void listGigeCameras();
+            /**
+            * Destructor.
+            *
+            */
+            ~CameraGigeSdkIc();
 
-			bool grabSingleImage(Frame &frame, int camID);
+            /**
+            * List connected GigE devices.
+            *
+            */
+            void listGigeCameras();
 
-			bool getAvailableFormat();
+            /**
+            * Configure the correct camera to use and grab a frame by single acquisition.
+            *
+            * @param frame It contains the single frame grabbed by a camera in case of success.
+            * @param camID ID of the camera to use.
+            * @return The success status of grabbing a single frame.
+            */
+            bool grabSingleImage(Frame &frame, int camID);
 
-			bool	createDevice(int id, string name){};
-			/*bool    getDeviceNameById(int id, string &device);
+            bool getAvailableFormat();
 
-			bool	grabInitialization();
-			void	grabCleanse();
-			void    acqStart();
-			void    acqStop();
+            bool createDevice(int id, string name){};
 
-			bool    grabImage(Frame& newFrame);
-			bool	grabSingleImage(Frame &frame, int camID);
-
-			void	getExposureBounds(int &eMin, int &eMax);
-			void	getGainBounds(int &gMin, int &gMax);
-			bool	getPixelFormat(CamBitDepth &format);
-			int		getFrameWidth();
-			int		getFrameHeight();
-			int		getFPS();
-			string	getModelName();
-
-			bool	setExposureTime(int exp);
-			bool	setGain(int gain);
-			bool    setFPS(int fps);
-			bool	setPixelFormat(CamBitDepth depth);*/
-
-	};
+    };
 
 #endif

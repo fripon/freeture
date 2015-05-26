@@ -44,11 +44,11 @@ template<> EParser<CamBitDepth>::EParser(){
 
 template<> EParser<CamType>::EParser(){
 
-    enumMap["DMK_GIGE"]		= DMK_GIGE;
-    enumMap["BASLER_GIGE"]		= BASLER_GIGE;
-	enumMap["TYTEA_USB"]		= TYTEA_USB;
-    enumMap["VIDEO"]			= VIDEO;
-    enumMap["FRAMES"]			= FRAMES;
+    enumMap["DMK_GIGE"]     = DMK_GIGE;
+    enumMap["BASLER_GIGE"]  = BASLER_GIGE;
+    enumMap["TYTEA_USB"]    = TYTEA_USB;
+    enumMap["VIDEO"]        = VIDEO;
+    enumMap["FRAMES"]       = FRAMES;
 
 }
 
@@ -61,10 +61,8 @@ template<> EParser<StackMeth>::EParser(){
 
 template<> EParser<DetMeth>::EParser(){
 
-    enumMap["HOUGH_MTHD"]       = HOUGH_MTHD;
     enumMap["TEMPORAL_MTHD"]    = TEMPORAL_MTHD;
-    enumMap["TEMPORAL_MTHD_"]    = TEMPORAL_MTHD_;
-    enumMap["DAYTIME_MTHD"]     = DAYTIME_MTHD;
+    enumMap["TEMPLATE_MTHD"]    = TEMPORAL_MTHD;
 
 }
 

@@ -35,14 +35,14 @@
 #include "Stack.h"
 
 boost::log::sources::severity_logger< LogSeverityLevel >  Stack::logger;
-Stack::_Init Stack::_initializer;
+
+Stack::Init Stack::initializer;
 
 Stack::Stack(int nbFrameToSum){
 
-	fullStatus			= false;
-	curFrames			= 0;
-	maxFrames			= nbFrameToSum;
-
+    fullStatus			= false;
+    curFrames			= 0;
+    maxFrames			= nbFrameToSum;
 
 }
 
@@ -101,25 +101,25 @@ void Stack::addFrame(Frame &i){
 
 }
 
-bool Stack::saveStack(Fits fitsHeader, string path, StackMeth STACK_MTHD, string STATION_NAME, bool STACK_REDUCTION){
+bool Stack::saveStack(Fits fitsHeader, string path, StackMeth stackMthd, string stationName, bool stackReduction){
 
-	// Vector<int> : YYYY, MM, DD, hh,mm, ss
-	vector<int> firstDateInt = TimeDate::getIntVectorFromDateString(dateFirstFrame);
-	vector<int> lastDateInt  = TimeDate::getIntVectorFromDateString(dateLastFrame);
+    // Vector<int> : YYYY, MM, DD, hh,mm, ss
+    vector<int> firstDateInt = TimeDate::getIntVectorFromDateString(dateFirstFrame);
+    vector<int> lastDateInt  = TimeDate::getIntVectorFromDateString(dateLastFrame);
 
-	double  debObsInSeconds = firstDateInt.at(3)*3600 + firstDateInt.at(4)*60 + firstDateInt.at(5);
-	double  endObsInSeconds = lastDateInt.at(3)*3600 + lastDateInt.at(4)*60 + lastDateInt.at(5);
-	double  elapTime        = endObsInSeconds - debObsInSeconds;
-	double  julianDate      = TimeDate::gregorianToJulian_2(firstDateInt);
-	double  julianCentury   = TimeDate::julianCentury(julianDate);
-	double  sideralT        = TimeDate::localSideralTime_2(julianCentury, firstDateInt.at(3), firstDateInt.at(4), firstDateInt.at(5), fitsHeader.getSitelong());
+    double  debObsInSeconds = firstDateInt.at(3)*3600 + firstDateInt.at(4)*60 + firstDateInt.at(5);
+    double  endObsInSeconds = lastDateInt.at(3)*3600 + lastDateInt.at(4)*60 + lastDateInt.at(5);
+    double  elapTime        = endObsInSeconds - debObsInSeconds;
+    double  julianDate      = TimeDate::gregorianToJulian_2(firstDateInt);
+    double  julianCentury   = TimeDate::julianCentury(julianDate);
+    double  sideralT        = TimeDate::localSideralTime_2(julianCentury, firstDateInt.at(3), firstDateInt.at(4), firstDateInt.at(5), fitsHeader.getSitelong());
 
     BOOST_LOG_SEV(logger, notification) << "Start create fits2D to save the stack.";
 
-	// Fits creation.
+    // Fits creation.
     Fits2D newFits(path, fitsHeader);
     BOOST_LOG_SEV(logger, notification) << "Fits path : " << path;
-	// Creation date of the fits file : YYYY-MM-DDTHH:MM:SS
+    // Creation date of the fits file : YYYY-MM-DDTHH:MM:SS
     boost::posix_time::ptime time = boost::posix_time::microsec_clock::universal_time();
     BOOST_LOG_SEV(logger, notification) << "Setting Fits DATE (creation date) key : " << to_iso_extended_string(time);
     newFits.setDate(to_iso_extended_string(time));
@@ -154,7 +154,7 @@ bool Stack::saveStack(Fits fitsHeader, string path, StackMeth STACK_MTHD, string
     BOOST_LOG_SEV(logger, notification) << "Setting fits DATEOBS key : 2000.0";
     newFits.setEquinox(2000.0);
 
-    switch(STACK_MTHD){
+    switch(stackMthd){
 
         case MEAN :
 
@@ -164,7 +164,7 @@ bool Stack::saveStack(Fits fitsHeader, string path, StackMeth STACK_MTHD, string
 
                 // 'SINGLE' 'SUM' 'AVERAGE' ('MEDIAN')
                 newFits.setObsmode("AVERAGE");
-				stack = stack/curFrames;
+                stack = stack/curFrames;
 
                 switch(bitdepth){
 
@@ -267,9 +267,9 @@ bool Stack::saveStack(Fits fitsHeader, string path, StackMeth STACK_MTHD, string
                     newFits.setSaturate(4095 * curFrames);
                 }
 
-                if(STACK_REDUCTION){
+                if(stackReduction){
 
-                    BOOST_LOG_SEV(logger, notification) << "STACK_REDUCTION option enabled";
+                    BOOST_LOG_SEV(logger, notification) << "stackReduction option enabled";
 
                     Mat newMat ;
 
@@ -335,7 +335,7 @@ Mat Stack::reductionByFactorDivision(float &bzero, float &bscale){
             {
 
                 newMat = Mat(stack.rows,stack.cols, CV_8UC1, Scalar(0));
-				float factor = curFrames;
+                float factor = curFrames;
                 bscale = factor;
                 bzero  = 0;
 

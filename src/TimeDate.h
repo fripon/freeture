@@ -1,5 +1,5 @@
 /*
-								TimeDate.h
+                                TimeDate.h
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 *
@@ -45,11 +45,9 @@
 using namespace std;
 using namespace boost::posix_time;
 
-class TimeDate{
+class TimeDate {
 
-    public:
-
-        TimeDate();
+    public :
 
         static string localDateTime(::boost::posix_time::ptime pt, string format);
 
@@ -77,15 +75,15 @@ class TimeDate{
 
         static vector<int> splitStringToIntVector(string str);
 
-		// Date input format : YYYY-MM-DDTHH:MM:SS.fffffffff
-		static string get_YYYYMMDD_fromDateString(string date);
+        // Date input format : YYYY-MM-DDTHH:MM:SS.fffffffff
+        static string get_YYYYMMDD_fromDateString(string date);
 
-		// Date input format : YYYY-MM-DDTHH:MM:SS.fffffffff
-		static vector<int> getIntVectorFromDateString(string date);
+        // Date input format : YYYY-MM-DDTHH:MM:SS.fffffffff
+        static vector<int> getIntVectorFromDateString(string date);
 
-		// Date input format	: YYYYMMJJTHHMMSS.fffffffff
-		// Date output format	: YYYYMMJJTHHMMSS
-		static string get_YYYYMMDDThhmmss(string date);
+        // Date input format	: YYYYMMJJTHHMMSS.fffffffff
+        // Date output format	: YYYYMMJJTHHMMSS
+        static string get_YYYYMMDDThhmmss(string date);
 
 };
 

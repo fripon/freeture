@@ -38,14 +38,14 @@
 #ifdef LINUX
 
 	boost::log::sources::severity_logger< LogSeverityLevel >  CameraGigeSdkAravis::logger;
-	CameraGigeSdkAravis::_Init CameraGigeSdkAravis::_initializer;
+	CameraGigeSdkAravis::Init CameraGigeSdkAravis::initializer;
 
 	CameraGigeSdkAravis::CameraGigeSdkAravis(bool shift){
-	    shiftImage = shift;
+	    shiftBitsImage = shift;
     }
 
 	CameraGigeSdkAravis::CameraGigeSdkAravis(){
-	    shiftImage = false;
+	    shiftBitsImage = false;
     }
 
 	CameraGigeSdkAravis::~CameraGigeSdkAravis(){}
@@ -80,7 +80,7 @@
 
 	    string deviceName;
 
-	    if(!getDeviceById(id, deviceName))
+	    if(!getDeviceNameById(id, deviceName))
             return false;
 
         cout << "Device : " << deviceName << endl;
@@ -103,7 +103,7 @@
 		}
 	}
 
-	bool CameraGigeSdkAravis::getDeviceById(int id, string &device){
+	bool CameraGigeSdkAravis::getDeviceNameById(int id, string &device){
 
 		arv_update_device_list();
 
@@ -127,7 +127,7 @@
 
 	bool CameraGigeSdkAravis::grabInitialization(){
 
-	    fcpt = 0;
+	    frameCounter = 0;
 
 		int sensor_width, sensor_height;
 
@@ -157,8 +157,8 @@
 		fps = arv_camera_get_frame_rate(camera);
 		BOOST_LOG_SEV(logger, notification) << "Camera frame rate : " << fps;
 
-		caps_string = arv_pixel_format_to_gst_caps_string(pixFormat);
-		BOOST_LOG_SEV(logger, notification) << "Camera format : " << caps_string;
+		capsString = arv_pixel_format_to_gst_caps_string(pixFormat);
+		BOOST_LOG_SEV(logger, notification) << "Camera format : " << capsString;
 
 		gain = arv_camera_get_gain(camera);
 		BOOST_LOG_SEV(logger, notification) << "Camera gain : " << gain;
@@ -179,7 +179,7 @@
 		cout << "Gain Range      : [" << gainMin        << " - " << gainMax       << "]"  << endl;
 		cout << "Gain            : " << gain                                << endl;
 		cout << "Fps             : " << fps                                 << endl;
-		cout << "Type            : " << caps_string                         << endl;
+		cout << "Type            : " << capsString                         << endl;
 
 		cout << endl;
 
@@ -361,7 +361,7 @@
 
                         //double t3 = (double)getTickCount();
 
-                        if(shiftImage){
+                        if(shiftBitsImage){
 
                             //BOOST_LOG_SEV(logger, normal) << "Shifting bits ...";
 
@@ -392,8 +392,8 @@
                     //BOOST_LOG_SEV(logger, normal) << "Setting saturated value of frame ...";
                     newFrame.setSaturatedValue(saturateVal);
 
-                    newFrame.setNumFrame(fcpt);
-                    fcpt++;
+                    newFrame.setNumFrame(frameCounter);
+                    frameCounter++;
 
                     //BOOST_LOG_SEV(logger, normal) << "Re-pushing arv buffer in stream ...";
                     arv_stream_push_buffer(stream, arv_buffer);
@@ -483,7 +483,7 @@
 
 		fps = arv_camera_get_frame_rate(camera);
 
-		caps_string = arv_pixel_format_to_gst_caps_string(pixFormat);
+		capsString = arv_pixel_format_to_gst_caps_string(pixFormat);
 
 		gain    = arv_camera_get_gain(camera);
 		exp     = arv_camera_get_exposure_time(camera);
@@ -501,14 +501,14 @@
 		cout << "Gain Range      : [" << gainMin        << " - " << gainMax       << "]"  << endl;
 		cout << "Gain            : " << gain                                << endl;
 		cout << "Fps             : " << fps                                 << endl;
-		cout << "Type            : " << caps_string                         << endl;
+		cout << "Type            : " << capsString                         << endl;
 
 		cout << endl;
 
 		// Create a new stream object. Open stream on Camera.
 		stream = arv_camera_create_stream(camera, NULL, NULL);
 
-        cout << "shiftBits status : " << shiftImage << endl;
+        cout << "shiftBits status : " << shiftBitsImage << endl;
 
 		if(stream != NULL){
 
@@ -574,7 +574,7 @@
 
                         image = Mat(height, width, CV_16UC1, buffer_data);
 
-                        if(shiftImage){
+                        if(shiftBitsImage){
                             unsigned short * p;
                             for(int i = 0; i < image.rows; i++){
                                 p = image.ptr<unsigned short>(i);

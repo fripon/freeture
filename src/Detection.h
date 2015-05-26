@@ -1,5 +1,5 @@
 /*
-								Detection.h
+                                Detection.h
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 *
@@ -34,7 +34,6 @@
 
 #pragma once
 
-
 #include "config.h"
 
 #ifdef LINUX
@@ -64,59 +63,85 @@
 #include "Frame.h"
 #include "EStackMeth.h"
 #include "ECamBitDepth.h"
-
 #include <boost/filesystem.hpp>
 
 using namespace boost::filesystem;
-
 using namespace std;
 using namespace cv;
 
-class Detection{
+class Detection {
 
-	private :
+    private :
 
-		static boost::log::sources::severity_logger< LogSeverityLevel > logger;
+        static boost::log::sources::severity_logger< LogSeverityLevel > logger;
 
-		static class _Init{
+        static class Init {
 
-			public:
-				_Init()
-				{
-					logger.add_attribute("ClassName", boost::log::attributes::constant<std::string>("Detection"));
-				}
-		} _initializer;
+            public:
 
-	protected :
+                Init() {
 
-		Mat frameMask;
+                    logger.add_attribute("ClassName", boost::log::attributes::constant<std::string>("Detection"));
 
-		int frameHeight;
-		int frameWidth;
+                }
 
-	public:
+        }initializer;
 
-		 Detection(){};
+    public:
 
-		~Detection(){};
+        /**
+        * Run meteor detection method.
+        *
+        * @param c Current frame.
+        * @param p Previous frame.
+        * @return Success to perform analysis.
+        */
+        virtual bool run(Frame &c){return false;};
 
-		virtual bool run(Frame &c, Frame &p){return false;};
+        /**
+        * Get frame's number (in frame buffer) of the first frame which belongs to the detected event.
+        *
+        * @return Frame number.
+        */
+        virtual int getNumFirstEventFrame(){return 0;};
 
-		virtual int getNumFirstEventFrame(){return 0;};
+        /**
+        * Get date of the detected event.
+        *
+        * @return Date of the event : YYYY-MM-DDTHH:MM:SS,fffffffff
+        */
+        virtual string getDateEvent(){return "";};
 
-		virtual string getDateEvent(){return "";};
+        /**
+        * Reset detection method.
+        *
+        */
+        virtual void resetDetection(){};
 
-		virtual void resetDetection(){};
+        /**
+        * Reset mask.
+        *
+        */
+        virtual void resetMask(){};
 
-		virtual void resetMask(){};
+        /**
+        * Save infos on the detected event.
+        *
+        */
+        virtual void saveDetectionInfos(string p){};
 
-		virtual void test(){};
+        /**
+        * Initialize detection method.
+        *
+        */
+        virtual bool initMethod(string cfg_path){return false;};
 
-		virtual void saveDetectionInfos(string p){};
-
-		virtual bool initMethod(string cfg_path){return false;};
-
-		virtual int getNumLastEventFrame(){return 0;};
+        /**
+        * Get frame's number (in frame buffer) of the last frame which belongs to the detected event.
+        *
+        * @return Frame number.
+        */
+        virtual int getNumLastEventFrame(){return 0;};
 
 };
 

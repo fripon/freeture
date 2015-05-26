@@ -247,7 +247,7 @@ bool ExposureControl::controlExposureTime(Device *camera, Mat image, string imag
 
                         putText(saveFrame, "MSV : " + Conversion::floatToString(msv), cvPoint(20,20),FONT_HERSHEY_COMPLEX_SMALL, 0.8, cvScalar(255), 1, CV_AA);
 
-                        putText(saveFrame, "EXP : " + Conversion::intToString(camera->getExposureTime()), cvPoint(20,40),FONT_HERSHEY_COMPLEX_SMALL, 0.8, cvScalar(255), 1, CV_AA);
+                        putText(saveFrame, "EXP : " + Conversion::intToString(camera->getCam()->getExposureTime()), cvPoint(20,40),FONT_HERSHEY_COMPLEX_SMALL, 0.8, cvScalar(255), 1, CV_AA);
 
                         if(checkDataLocation(imageDate))
                             SaveImg::saveBMP(saveFrame, finalDataLocation + "expControl_" + TimeDate::get_YYYYMMDDThhmmss(imageDate));
@@ -258,7 +258,7 @@ bool ExposureControl::controlExposureTime(Device *camera, Mat image, string imag
                     // Get minimum exposure time.
                     minCameraExposureValue = camera->getMinExposureTime();
                     // Get acquisition frequency.
-                    int fps = camera->getFPS();
+                    int fps = camera->getCam()->getFPS();
                     // Set maximum exposure time (us) in respect of fps.
                     if(fps != 0)
                         maxCameraExposureValue = (int)((1.0/fps) * 1000000.0);
@@ -268,7 +268,7 @@ bool ExposureControl::controlExposureTime(Device *camera, Mat image, string imag
                     // Compute msv with the following exposure time
                     exposureValue = minCameraExposureValue;
                     // Set exposure time with the minimum value
-                    camera->setExposureTime(minCameraExposureValue);
+                    camera->getCam()->setExposureTime(minCameraExposureValue);
                     cout << "Set Exposure Time to : " << minCameraExposureValue << endl;
                     expArray_1.push_back(minCameraExposureValue);
                     autoExposureInitialized = true;
@@ -300,7 +300,7 @@ bool ExposureControl::controlExposureTime(Device *camera, Mat image, string imag
                             }
 
                             expArray_1.push_back(exposureValue);
-                            camera->setExposureTime(exposureValue);
+                            camera->getCam()->setExposureTime(exposureValue);
                             cout << "Set Exposure Time to : " << exposureValue << endl;
 
                         }else{
@@ -309,14 +309,14 @@ bool ExposureControl::controlExposureTime(Device *camera, Mat image, string imag
 
                                 finalExposureTime = minCameraExposureValue;
                                 exposureValue = minCameraExposureValue;
-                                camera->setExposureTime(minCameraExposureValue);
+                                camera->getCam()->setExposureTime(minCameraExposureValue);
                                 cout << "Set Exposure Time to : " << minCameraExposureValue << endl;
 
                             }else if(msvArray_1.back() < 2.5){
 
                                 finalExposureTime = maxCameraExposureValue;
                                 exposureValue = maxCameraExposureValue;
-                                camera->setExposureTime(maxCameraExposureValue);
+                                camera->getCam()->setExposureTime(maxCameraExposureValue);
                                 cout << "Set Exposure Time to : " << maxCameraExposureValue << endl;
 
                             }else{
@@ -347,7 +347,7 @@ bool ExposureControl::controlExposureTime(Device *camera, Mat image, string imag
                                             cout << "msvMax_1 : " << msvMax_1 << endl;
                                             cout << "expMax_1 : " << expMax_1 << endl;
 
-                                            camera->setExposureTime(exposureValue);
+                                            camera->getCam()->setExposureTime(exposureValue);
                                             cout << "Set Exposure Time to : " << exposureValue << endl;
 
                                             break;
@@ -391,7 +391,7 @@ bool ExposureControl::controlExposureTime(Device *camera, Mat image, string imag
                             }
 
                             expArray_2.push_back(exposureValue);
-                            camera->setExposureTime(exposureValue);
+                            camera->getCam()->setExposureTime(exposureValue);
                             cout << "Set Exposure Time to : " << exposureValue << endl;
 
                         }else{
@@ -399,13 +399,13 @@ bool ExposureControl::controlExposureTime(Device *camera, Mat image, string imag
                             if(msvArray_2.front() > 2.5){
 
                                 finalExposureTime = expMin_1;
-                                camera->setExposureTime(expMin_1);
+                                camera->getCam()->setExposureTime(expMin_1);
                                 cout << "Set Exposure Time to : " << expMin_1 << endl;
 
                             }else if(msvArray_2.back() < 2.5){
 
                                 finalExposureTime = expMax_2;
-                                camera->setExposureTime(expMax_2);
+                                camera->getCam()->setExposureTime(expMax_2);
                                 cout << "Set Exposure Time to : " << expMax_2 << endl;
 
                             }else{
@@ -433,7 +433,7 @@ bool ExposureControl::controlExposureTime(Device *camera, Mat image, string imag
 
                                             }
 
-                                            camera->setExposureTime(exposureValue);
+                                            camera->getCam()->setExposureTime(exposureValue);
                                             cout << "Set Exposure Time to : " << exposureValue << endl;
 
                                             cout << "msvMin_2 : " << msvMin_2 << endl;
