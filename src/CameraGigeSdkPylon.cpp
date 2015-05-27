@@ -38,7 +38,8 @@
 #ifdef USE_PYLON
 
 boost::log::sources::severity_logger< LogSeverityLevel >  CameraGigeSdkPylon::logger;
-CameraGigeSdkPylon::_Init CameraGigeSdkPylon::_initializer;
+
+CameraGigeSdkPylon::Init CameraGigeSdkPylon::initializer;
 
 CameraGigeSdkPylon::CameraGigeSdkPylon(){
 
@@ -729,7 +730,7 @@ int CameraGigeSdkPylon::getFrameWidth(){
 
 }
 
-int CameraGigeSdkPylon::getHeight(){
+int CameraGigeSdkPylon::getFrameHeight(){
 
 	int imgH = 0;
 
@@ -831,12 +832,12 @@ bool CameraGigeSdkPylon::setPixelFormat(CamBitDepth format){
 
     Basler_GigECamera::PixelFormatEnums fpix;
 
-	if(depth == MONO_8 ){
+	if(format == MONO_8 ){
 
 		fpix = PixelFormat_Mono8;
 
 	}
-	else if (depth == MONO_12 ){
+	else if (format == MONO_12 ){
 
 		fpix = PixelFormat_Mono12;
 

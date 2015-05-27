@@ -307,7 +307,16 @@ void AcqThread::operator()(){
 
                                 BOOST_LOG_SEV(logger, notification) << "Run regular acquisition.";
                                 runRegularAcquisition(accurateFrameDate);
-                                sleep(1);
+
+								#ifdef LINUX
+									sleep(1);
+								#else
+									#ifdef LINUX
+										Sleep(1);
+									#endif
+								#endif
+								
+                                
                                 regularAcqFrameCounter = 0;
 
                             }else{
@@ -336,7 +345,13 @@ void AcqThread::operator()(){
                             // Launch single acquisition
                             bool result = runScheduledAcquisition(mNextAcq);
 
-                            sleep(1);
+                            #ifdef LINUX
+								sleep(1);
+							#else
+								#ifdef LINUX
+									Sleep(1);
+								#endif
+							#endif
 
                             // Update mNextAcq
                             selectNextAcquisitionSchedule();
@@ -915,6 +930,7 @@ bool AcqThread::runScheduledAcquisition(AcqSchedule task){
     cout<< "Restarting camera in continuous mode..." << endl;
     mDevice->runContinuousAcquisition();
 
+	return true;
 }
 
 bool AcqThread::runRegularAcquisition(string frameDate){
@@ -1077,6 +1093,8 @@ bool AcqThread::runRegularAcquisition(string frameDate){
 
     cout<< "Restarting camera in continuous mode..." << endl;
     mDevice->runContinuousAcquisition();
+
+	return true;
 
 }
 

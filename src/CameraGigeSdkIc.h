@@ -60,6 +60,8 @@
     #include "tisudshl.h"
     #include <algorithm>
 
+	#define NUMBER_OF_BUFFERS 1	
+
     using namespace cv;
     using namespace std;
 
@@ -81,6 +83,7 @@
 
             } initializer;
 
+			DShowLib::Grabber::tVidCapDevListPtr pVidCapDevList;
             DShowLib::tIVCDRangePropertyPtr getPropertyRangeInterface(_DSHOWLIB_NAMESPACE::tIVCDPropertyItemsPtr& pItems, const GUID& id);
             bool propertyIsAvailable(const GUID& id, _DSHOWLIB_NAMESPACE::tIVCDPropertyItemsPtr m_pItemContainer);
             long getPropertyValue(const GUID& id, _DSHOWLIB_NAMESPACE::tIVCDPropertyItemsPtr m_pItemContainer);
@@ -88,9 +91,17 @@
             long getPropertyRangeMin(const GUID& id, _DSHOWLIB_NAMESPACE::tIVCDPropertyItemsPtr m_pItemContainer);
             long getPropertyRangeMax(const GUID& id, _DSHOWLIB_NAMESPACE::tIVCDPropertyItemsPtr m_pItemContainer);
 
-        public :
-
             DShowLib::Grabber* m_pGrabber;
+			DShowLib::tFrameHandlerSinkPtr pSink;
+			DShowLib::Grabber::tMemBufferCollectionPtr pCollection;
+			BYTE* pBuf[NUMBER_OF_BUFFERS];
+
+			int mFrameCounter;
+			int mGain;
+			int mExposure;
+			int mFPS;
+			CamBitDepth mImgDepth;
+			int mSaturateVal;
 
         public:
 
@@ -121,9 +132,81 @@
             */
             bool grabSingleImage(Frame &frame, int camID);
 
-            bool getAvailableFormat();
+			/**
+			* Open/create a device.
+			*
+			* @param id Identification number of the camera to create.
+			*/
+            bool createDevice(int id);
 
-            bool createDevice(int id, string name){};
+			/**
+			* Set device's format.
+			*
+			* @param format New format.
+			* @return Success status to set format.
+			*/
+			bool setPixelFormat(CamBitDepth format);
+
+			/**
+			* Get device's exposure time bounds.
+			*
+			* @param eMin Return minimum exposure time value.
+			* @param eMax Return maximum exposure time value.
+			*/
+			void getExposureBounds(int &eMin, int &eMax);
+
+			/**
+			* Get device's gain bounds.
+			*
+			* @param gMin Return minimum gain value.
+			* @param gMax Return maximum gain value.
+			*/
+			void getGainBounds(int &gMin, int &gMax);
+
+			/**
+			* Set device's exposure time value.
+			*
+			* @param value New exposure time value (us).
+			* @return Success status to set new exposure time.
+			*/
+			bool setExposureTime(int value);
+
+			/**
+			* Set device's gain value.
+			*
+			* @param value New gain value.
+			* @return Success status to set new gain.
+			*/
+			bool setGain(int value);
+
+			/**
+			* Set device's acquisition frequency.
+			*
+			* @param value New fps value.
+			* @return Success status to set fps.
+			*/
+			bool setFPS(int value);
+
+			/**
+			* Prepare device to grab frames.
+			*
+			* @return Success status to prepare camera.
+			*/
+			bool grabInitialization();
+
+			/**
+			* Run acquisition.
+			*
+			*/
+			void acqStart();
+
+			/**
+			* Get a frame from continuous acquisition.
+			*
+			* @param newFrame New frame's container object.
+			* @return Success status to grab a frame.
+			*/
+			bool grabImage(Frame &newFrame);
 
     };
 

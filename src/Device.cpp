@@ -523,13 +523,13 @@ void Device::runContinuousAcquisition(){
     int timeStartSunset = mSunsetTime.at(0) * 3600 + mSunsetTime.at(1) * 60;
     int timeStopSunset = timeStartSunset + mSunsetDuration * 2;
 
-    cout << "timeStartSunrise : " << timeStartSunrise << endl;
-    cout << "timeStopSunrise : " << timeStopSunrise << endl;
-    cout << "timeStartSunset : " << timeStartSunset << endl;
-    cout << "timeStopSunset : " << timeStopSunset << endl;
+   // cout << "timeStartSunrise : " << timeStartSunrise << endl;
+   // cout << "timeStopSunrise : " << timeStopSunrise << endl;
+   // cout << "timeStartSunset : " << timeStartSunset << endl;
+   // cout << "timeStopSunset : " << timeStopSunset << endl;
 
     int currentTimeInSec = intDate.at(3) * 3600 + intDate.at(4) * 60 + intDate.at(5);
-    cout << "currentTimeInSec : " << currentTimeInSec << endl;
+   // cout << "currentTimeInSec : " << currentTimeInSec << endl;
 
     // Check sunrise and sunset time.
     if((currentTimeInSec > timeStopSunrise && currentTimeInSec < timeStartSunset)){
@@ -559,6 +559,8 @@ void Device::runContinuousAcquisition(){
             throw "Fail to set Day Gain.";
 
     }else{
+
+		cout << "set Day Exposure mMinExposureTime" << endl;
 
         if(!cam->setExposureTime(mMinExposureTime))
             throw "Fail to set Day Exposure.";

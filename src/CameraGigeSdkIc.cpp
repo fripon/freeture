@@ -38,22 +38,28 @@
 #ifdef WINDOWS
 
 	boost::log::sources::severity_logger< LogSeverityLevel >  CameraGigeSdkIc::logger;
-	CameraGigeSdkIc::_Init CameraGigeSdkIc::_initializer;
 
+	CameraGigeSdkIc::Init CameraGigeSdkIc::initializer;
 
 	CameraGigeSdkIc::CameraGigeSdkIc(){
 
 		if(!DShowLib::InitLibrary())
 			throw "Fail DShowLib::InitLibrary().";
 		
-		 m_pGrabber = new DShowLib::Grabber();
+		m_pGrabber = new DShowLib::Grabber();
+		mFrameCounter = 0;
+		mGain = 0;
+		mExposure = 0;
+		mFPS = 30;
+		mImgDepth = MONO_8;
+		mSaturateVal = 0;
 	
 	}
 
 	void CameraGigeSdkIc::listGigeCameras(){
 
 		// Retrieve a list with the video capture devices connected to the computer.
-		DShowLib::Grabber::tVidCapDevListPtr pVidCapDevList = m_pGrabber->getAvailableVideoCaptureDevices();
+		pVidCapDevList = m_pGrabber->getAvailableVideoCaptureDevices();
 
 		cout << "******** DETECTED CAMERAS WITH IMAGING SOURCE ********** " << endl;
 		cout << "*" << endl;
@@ -133,7 +139,7 @@
 		return rval;
 	}
 	
-	bool CameraGigeSdkIc::getAvailableFormat(){
+	/*bool CameraGigeSdkIc::getAvailableFormat(){
 
 		// Open device first.
 
@@ -159,9 +165,278 @@
 
 		// Close device.
 
+	}*/
+
+	bool CameraGigeSdkIc::setFPS(int value) {
+
+		return true;
+
 	}
 
-	bool CameraGigeSdkIc::grabSingleImage(Frame &frame, int camID){
+	bool CameraGigeSdkIc::createDevice(int id){
+	
+		// Open the selected video capture device.
+		m_pGrabber->openDev(pVidCapDevList->at(id));
+
+		if(pVidCapDevList == 0 || pVidCapDevList->empty()){
+
+			cout << "No device available." << endl;
+			return false;
+
+		}
+
+		return true;
+	}
+
+	bool CameraGigeSdkIc::setPixelFormat(CamBitDepth format) {
+
+		mImgDepth = format;
+
+		switch(format){
+					
+			case MONO_8 :
+
+				cout << "Y8 (1280x960-1280x960)" << endl;
+
+				m_pGrabber->setVideoFormat("Y8 (1280x960-1280x960)");
+
+				// Set the image buffer format to eY800. eY800 means monochrome, 8 bits (1 byte) per pixel.
+				// Let the sink create a matching MemBufferCollection with 1 buffer.
+				pSink = DShowLib::FrameHandlerSink::create( DShowLib::eY800, NUMBER_OF_BUFFERS );
+
+				break;
+
+			case MONO_12 :
+				
+				cout << "Y16 (1280x960-1280x960)" << endl;
+				m_pGrabber->setVideoFormat("Y16 (1280x960-1280x960)");
+
+				// Disable overlay.
+				// http://www.theimagingsourceforums.com/archive/index.php/t-319880.html
+				m_pGrabber->setOverlayBitmapPathPosition(DShowLib::ePP_NONE);
+
+				// Set the image buffer format to eY16. eY16 means monochrome, 16 bits (2 byte) per pixel.
+				// Let the sink create a matching MemBufferCollection with 1 buffer.
+				pSink = DShowLib::FrameHandlerSink::create( DShowLib::eY16, NUMBER_OF_BUFFERS );
+
+				break;
+						
+			default:
+												
+				return false;
+
+				break;
+		}
+
+		return true;
+
+	}
+
+	void CameraGigeSdkIc::getExposureBounds(int &eMin, int &eMax) {
+
+		// Get properties.
+		_DSHOWLIB_NAMESPACE::tIVCDPropertyItemsPtr pItems = m_pGrabber->getAvailableVCDProperties();
+				
+		eMin  = (int)getPropertyRangeMin(DShowLib::VCDID_Exposure, pItems);
+		eMax  = (int)getPropertyRangeMax(DShowLib::VCDID_Exposure, pItems);
+
+		cout << "eMin : " << eMin << " eMax : " << eMax << endl;
+
+	}
+
+	void CameraGigeSdkIc::getGainBounds(int &gMin, int &gMax) {
+
+		// Get properties.
+		_DSHOWLIB_NAMESPACE::tIVCDPropertyItemsPtr pItems = m_pGrabber->getAvailableVCDProperties();
+									
+		gMin  = (int)getPropertyRangeMin(DShowLib::VCDID_Gain, pItems);
+		gMax  = (int)getPropertyRangeMax(DShowLib::VCDID_Gain, pItems);
+
+		cout << "gMin : " << gMin << " gMax : " << gMax << endl;
+
+	
+	}
+
+	bool CameraGigeSdkIc::setExposureTime(int value) {
+
+		_DSHOWLIB_NAMESPACE::tIVCDPropertyItemsPtr pItems = m_pGrabber->getAvailableVCDProperties();
+
+		setPropertyValue(DShowLib::VCDID_Exposure, (long)value, pItems);
+		mExposure = value;
+
+		cout << "setExposureTime : " << value <<  endl;
+
+		return true;
+	}
+
+	bool CameraGigeSdkIc::setGain(int value) {
+
+		_DSHOWLIB_NAMESPACE::tIVCDPropertyItemsPtr pItems = m_pGrabber->getAvailableVCDProperties();
+
+		setPropertyValue(DShowLib::VCDID_Gain, (long)value, pItems);
+		mGain = value;
+
+		cout << "setGain : " << mGain <<  endl;
+		
+		return true;
+	}
+
+	bool CameraGigeSdkIc::grabInitialization() {
+
+		// Set the sink.
+		m_pGrabber->setSinkType(pSink);
+				
+		// We use snap mode.
+		pSink->setSnapMode(true);
+
+		// Prepare the live mode, to get the output size if the sink.
+		if(!m_pGrabber->prepareLive(false)){
+
+			std::cerr << "Could not render the VideoFormat into a eY800 sink.";
+			return false;
+		}
+
+		// Retrieve the output type and dimension of the handler sink.
+		// The dimension of the sink could be different from the VideoFormat, when
+		// you use filters.
+		DShowLib::FrameTypeInfo info;
+		pSink->getOutputFrameType(info);
+
+		// Allocate NUMBER_OF_BUFFERS image buffers of the above (info) buffer size.
+		for (int ii = 0; ii < NUMBER_OF_BUFFERS; ++ii)
+		{
+			pBuf[ii] = new BYTE[info.buffersize];
+			assert(pBuf[ii]);
+		}
+
+		// Create a new MemBuffer collection that uses our own image buffers.
+		pCollection = DShowLib::MemBufferCollection::create(info, NUMBER_OF_BUFFERS, pBuf);
+		if (pCollection == 0) return false;
+		if (!pSink->setMemBufferCollection(pCollection)) return false;
+ 
+		if (!m_pGrabber->startLive(false)) return false;
+
+
+	}
+
+	void CameraGigeSdkIc::acqStart() {
+
+		if (!m_pGrabber->isLive()) {
+
+			m_pGrabber->startLive(false);
+
+		}
+
+		pSink->snapImages(1,(DWORD)-1);
+
+	}
+
+	bool CameraGigeSdkIc::grabImage(Frame &newFrame) {
+
+		Mat newImg;
+
+		// Retrieve the output type and dimension of the handler sink.
+		// The dimension of the sink could be different from the VideoFormat, when
+		// you use filters.
+		DShowLib::FrameTypeInfo info;
+		pSink->getOutputFrameType(info);
+
+		//Timestamping.
+        string acquisitionDate = TimeDate::localDateTime(microsec_clock::universal_time(),"%Y:%m:%d:%H:%M:%S");
+        //BOOST_LOG_SEV(logger, normal) << "Date : " << acquisitionDate;
+        boost::posix_time::ptime time = boost::posix_time::microsec_clock::universal_time();
+        string acqDateInMicrosec = to_iso_extended_string(time);
+
+		switch(info.getBitsPerPixel()){
+					
+			case 8 :
+
+				{
+
+					newImg = Mat(info.dim.cy, info.dim.cx, CV_8UC1, Scalar(0));
+					
+					pSink->snapImages(1,(DWORD)-1);
+					
+					memcpy(newImg.ptr(), pBuf[0], info.buffersize);
+
+				}
+
+				break;
+
+			case 16 :
+
+				{
+
+					newImg = Mat(info.dim.cy, info.dim.cx, CV_16UC1, Scalar(0));
+
+					pSink->snapImages(1,(DWORD)-1);
+
+					memcpy(newImg.ptr(), pBuf[0], info.buffersize);
+												
+					unsigned short * ptr;
+
+					double t = (double)getTickCount();
+
+					for(int i = 0; i < newImg.rows; i++){
+
+						ptr = newImg.ptr<unsigned short>(i);
+
+						for(int j = 0; j < newImg.cols; j++){
+
+							ptr[j] = ptr[j] >> 4;
+
+						}
+					}	
+
+				}
+
+				break;
+						
+			default:
+												
+				return false;
+
+				break;
+		}
+
+		if(newImg.data) {
+
+			//BOOST_LOG_SEV(logger, normal) << "Creating frame object ...";
+			newFrame = Frame(newImg, mGain, mExposure, acquisitionDate);
+			//BOOST_LOG_SEV(logger, normal) << "Setting date of frame ...";
+			newFrame.setAcqDateMicro(acqDateInMicrosec);
+			//BOOST_LOG_SEV(logger, normal) << "Setting fps of frame ...";
+			newFrame.setFPS(mFPS);
+			newFrame.setBitDepth(mImgDepth);
+			//BOOST_LOG_SEV(logger, normal) << "Setting saturated value of frame ...";
+			newFrame.setSaturatedValue(mSaturateVal);
+
+			newFrame.setNumFrame(mFrameCounter);
+			mFrameCounter++;
+			string nn = "test-" + Conversion::intToString(mFrameCounter);
+			//pCollection->save(nn);
+
+			SaveImg::saveBMP(newImg,nn);
+
+			if(mFrameCounter > 100) {
+
+				m_pGrabber->stopLive();
+
+				m_pGrabber->closeDev();
+
+				
+				return false;
+			}
+
+			return true;
+
+		}
+
+		return false;
+		
+	}
+
+	bool CameraGigeSdkIc::grabSingleImage(Frame &frame, int camID) {
 
 		// Retrieve a list with the video capture devices connected to the computer.
 		DShowLib::Grabber::tVidCapDevListPtr pVidCapDevList = m_pGrabber->getAvailableVideoCaptureDevices();
@@ -206,7 +481,7 @@
 					printf("%s\n", (*pDescription)->toString().c_str());
 				}*/
 				
-				DShowLib::tFrameHandlerSinkPtr pSink;
+				
 
 				cout << "Current bits per pixel : " << m_pGrabber->getVideoFormat().getBitsPerPixel() << endl;
 
@@ -314,7 +589,7 @@
 				cout << info.getBitsPerPixel() << endl;
 
 				Mat newImg;
-				DShowLib::Grabber::tMemBufferCollectionPtr pCollection;
+				//DShowLib::Grabber::tMemBufferCollectionPtr pCollection;
 
 				switch(info.getBitsPerPixel()){
 					
@@ -323,7 +598,7 @@
 						{
 
 							newImg = Mat(info.dim.cy, info.dim.cx, CV_8UC1, Scalar(0));
-							BYTE* pBuf[1];
+							//BYTE* pBuf[1];
 							// Allocate image buffers of the above calculate buffer size.
 							pBuf[0] = new BYTE[info.buffersize];
 
@@ -370,6 +645,22 @@
 
 							memcpy(newImg.ptr(), pBuf[0], info.buffersize);
 
+							
+							unsigned short * ptr;
+
+							double t = (double)getTickCount();
+
+							for(int i = 0; i < newImg.rows; i++){
+
+								ptr = newImg.ptr<unsigned short>(i);
+
+								for(int j = 0; j < newImg.cols; j++){
+
+									ptr[j] = ptr[j] >> 4;
+
+								}
+							}	
+
 						}
 
 						break;
@@ -397,35 +688,20 @@
 				//cout << "save " << endl;
 				//pCollection->save( "yio*.bmp" );
 
-				double minVal, maxVal;
-				minMaxLoc(newImg, &minVal, &maxVal);
+				//double minVal, maxVal;
+				//minMaxLoc(newImg, &minVal, &maxVal);
 
-				cout << "minVal :" << minVal << endl;
-				cout << "maxVal :" << maxVal << endl;
+				//cout << "minVal :" << minVal << endl;
+				//cout << "maxVal :" << maxVal << endl;
 				
-				unsigned short * ptr;
+				//t = (((double)getTickCount() - t )/getTickFrequency())*1000;
 
-				double t = (double)getTickCount();
-
-				for(int i = 0; i < newImg.rows; i++){
-
-					ptr = newImg.ptr<unsigned short>(i);
-
-					for(int j = 0; j < newImg.cols; j++){
-
-						ptr[j] = ptr[j] >> 4;
-
-					}
-				}	
-
-				t = (((double)getTickCount() - t )/getTickFrequency())*1000;
-
-				cout << "time decalage : " << t << endl;
+				//cout << "time decalage : " << t << endl;
 				
-				minMaxLoc(newImg, &minVal, &maxVal);
+				//minMaxLoc(newImg, &minVal, &maxVal);
 
-				cout << "minVal :" << minVal << endl;
-				cout << "maxVal :" << maxVal << endl;
+				//cout << "minVal :" << minVal << endl;
+				//cout << "maxVal :" << maxVal << endl;
 
 			}
 		}
