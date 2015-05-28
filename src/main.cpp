@@ -82,6 +82,7 @@
 #include "StackThread.h"
 #include "AcqThread.h"
 #include "CameraGigeSdkIc.h"
+#include "ImgProcessing.h"
 
 #define BOOST_NO_SCOPED_ENUMS
 
@@ -511,7 +512,7 @@ int main(int argc, const char ** argv){
                                             act.sa_sigaction = sigTermHandler;
                                             act.sa_flags = SA_SIGINFO;
                                             sigaction(SIGTERM,&act,NULL);
-
+											
                                         #endif
 
                                         int cptTime = 0;
@@ -519,7 +520,7 @@ int main(int argc, const char ** argv){
                                         while(!sigTermFlag){
 
                                             #ifdef WINDOWS
-                                                waitKey(1000);
+                                                Sleep(1000);
                                                 //cout << "wait 1 in main sec" << endl;
                                             #elif defined LINUX
                                                 sleep(1);
@@ -535,7 +536,7 @@ int main(int argc, const char ** argv){
                                                 }
                                                 cptTime ++;
 
-                                            }
+                                            }  
 
                                             if(inputDevice != NULL){
 
@@ -545,7 +546,7 @@ int main(int argc, const char ** argv){
                                                     break;
 
                                                 }
-
+											
                                                 if(detection != NULL){
                                                     if(!detection->getRunStatus()){
                                                         BOOST_LOG_SEV(slg, critical) << "DetThread not running. Stopping the process ...";
@@ -932,21 +933,27 @@ int main(int argc, const char ** argv){
 
                     {
 
+                        Fits2D newFits;
+                        Mat resMat;
+		             
+				        //newFits.readFits16S(resMat, filename);
+				        newFits.readFits16US(resMat, "C:/Users/Yoan/Documents/GitHub/freeture/build/CAP_20150528T010127_UT-0.fit");
 
-                        Configuration cfg;
-                        cfg.Load("/home/fripon/FreeTure-v0.6/freeture/share/configuration.cfg");
+                        Mat newMat = Conversion::convertTo8UC1(resMat);
+                        Mat withoutGammaCorrection;
+                      
+                        newMat.copyTo(withoutGammaCorrection);
+                     
+                        namedWindow("Without gamma correction", WINDOW_NORMAL );
 
-                        string ACQ_SCHEDULE ;
-                        cfg.Get("ACQ_SCHEDULE", ACQ_SCHEDULE );
-                        cout << endl<< "ACQ_SCHEDULE  : " << ACQ_SCHEDULE  << endl;
+                        imshow("Without gamma correction",withoutGammaCorrection );
+                 
+                        namedWindow("With gamma correction ", WINDOW_NORMAL );
+                        Mat ress = ImgProcessing::correctGamma(newMat,2.2);
+                        imshow("With gamma correction ",ress );
 
-                        string INPUT_FRAMES_DIRECTORY_PATH ;
-                        cfg.Get("INPUT_FRAMES_DIRECTORY_PATH", INPUT_FRAMES_DIRECTORY_PATH );
-                        cout << endl<< "INPUT_FRAMES_DIRECTORY_PATH  : " << INPUT_FRAMES_DIRECTORY_PATH  << endl;
+                        waitKey(0);
 
-                        string INPUT_VIDEO_PATH ;
-                        cfg.Get("INPUT_VIDEO_PATH", INPUT_VIDEO_PATH );
-                        cout << endl<< "INPUT_VIDEO_PATH  : " << INPUT_VIDEO_PATH  << endl;
 
                     }
 

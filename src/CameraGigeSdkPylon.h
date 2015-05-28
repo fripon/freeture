@@ -94,6 +94,7 @@
             int                                     nbEventBuffers;
             GrabResult                              result;
             bool                                    connectionStatus;
+			int										mFrameCounter;
 
         public:
 

@@ -203,8 +203,12 @@ void AcqThread::operator()(){
                 bool grabStatus = false;
 
                 double tacq = (double)getTickCount();
+				double tacq1 = (double)getTickCount();
 
                 if(mDevice->getCam()->grabImage(newFrame)){
+
+					tacq1 = (((double)getTickCount() - tacq1)/getTickFrequency())*1000;
+					std::cout << " [ TIME GRAB IMAGE ] : " << tacq1 << " ms" << endl;
 
                     grabStatus = true;
 
@@ -470,6 +474,8 @@ void AcqThread::operator()(){
 
             }while(stop == false && !mDevice->getCam()->getStopStatus());
 
+			cout << "stop : " <<  stop << endl;
+			cout << "mDevice->getCam()->getStopStatus() : "  << mDevice->getCam()->getStopStatus()<< endl;
             waitKey(1000);
 
             //cout << "Clear detection method." << endl;

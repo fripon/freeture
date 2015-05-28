@@ -52,6 +52,7 @@ CameraGigeSdkPylon::CameraGigeSdkPylon(){
 	nbEventBuffers		= 20;
 
 	connectionStatus	= false;
+    mFrameCounter = 0;
 
 }
 
@@ -481,6 +482,8 @@ bool CameraGigeSdkPylon::grabImage(Frame &newFrame){
 
 			newFrame.setAcqDateMicro(acqDateInMicrosec);
 			newFrame.setFPS(pCamera->AcquisitionFrameRateAbs.GetValue());
+            newFrame.setNumFrame(mFrameCounter);
+            mFrameCounter++;
 
 			if(pCamera->PixelFormat.GetValue() == PixelFormat_Mono8){
 
@@ -825,7 +828,10 @@ bool CameraGigeSdkPylon::setGain(int gain){
 }
 
 bool CameraGigeSdkPylon::setFPS(int fps){
-	return false;
+
+
+
+	return true;
 }
 
 bool CameraGigeSdkPylon::setPixelFormat(CamBitDepth format){

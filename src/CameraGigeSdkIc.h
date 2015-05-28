@@ -102,6 +102,10 @@
 			int mFPS;
 			CamBitDepth mImgDepth;
 			int mSaturateVal;
+			int mGainMin;
+			int mGainMax;
+			int mExposureMin;
+			int mExposureMax;
 
         public:
 
@@ -207,6 +211,26 @@
 			* @return Success status to grab a frame.
 			*/
 			bool grabImage(Frame &newFrame);
+
+			/**
+			* Stop acquisition.
+			*
+			*/
+			void acqStop();
+
+			/**
+			* Close a device and clean resources.
+			*
+			*/
+			void grabCleanse();
+
+			/**
+			* Get device's image format.
+			*
+			* @param format Return image format.
+			* @return Success status to get format.
+			*/
+			bool getPixelFormat(CamBitDepth &format);
 
     };
 
