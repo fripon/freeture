@@ -44,6 +44,7 @@
 #include "EDetMeth.h"
 #include "EStackMeth.h"
 #include "ELogSeverityLevel.h"
+#include "ESmtpSecurity.h"
 
 using namespace std;
 

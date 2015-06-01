@@ -54,6 +54,7 @@
 #include "EDetMeth.h"
 #include <boost/circular_buffer.hpp>
 #include <boost/filesystem.hpp>
+#include "ESmtpSecurity.h"
 
 using namespace boost::filesystem;
 using namespace cv;
@@ -95,6 +96,9 @@ class DetThread {
         bool                            mMailAlertEnabled;          // Enable to send mail alert        (parameter from configuration file).
         string                          mMailSmtpServer;            // SMTP server                      (parameter from configuration file).
         string                          mMailSmtpHostname;          // SMTP hostname                    (parameter from configuration file).
+        string                          mMailSmtpLogin;
+        string                          mMailSmtpPassword;
+        SmtpSecurity                    mSmtpSecurity;
         vector<string>                  mMailRecipients;            // Mail recipients                  (parameter from configuration file).
         bool                            mStackReduction;            // Reduce sum fits to 16 bits.      (parameter from configuration file).
         StackMeth                       mStackMthd;                 // Reduction method                 (parameter from configuration file).

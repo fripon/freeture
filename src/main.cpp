@@ -44,7 +44,8 @@
         #define BOOST_LOG_DYN_LINK 1
     #endif
 #endif
-
+#include "ESmtpSecurity.h"
+#include "SMTPClient.h"
 #include <boost/log/common.hpp>
 #include <boost/log/expressions.hpp>
 #include <boost/log/utility/setup/file.hpp>
@@ -884,16 +885,28 @@ int main(int argc, const char ** argv){
                                 vector<string> mailAttachments;
                                 mailAttachments.push_back(savePath + fileName + "-" + Conversion::intToString(filenum) + ".fit");
 
-                                SMTPClient mailc("10.8.0.1", 25, "u-psud.fr");
+                              //  SMTPClient mailc("10.8.0.1", 25, "u-psud.fr");
 
                                 vector<string> to;
                                 to.push_back(sendMail);
-                                mailc.send("yoan.audureau@u-psud.fr",
+                               /* mailc.send("yoan.audureau@u-psud.fr",
                                             to,
                                             fileName + "-" + Conversion::intToString(filenum) + ".fit",
                                             " Exposure time : " + Conversion::intToString((int)exp) + "\n Gain : " + Conversion::intToString((int)gain) + "\n Format : " + Conversion::intToString(acqFormat),
                                             mailAttachments,
-                                            false);
+                                            false);*/
+
+
+                                SMTPClient::sendMail("10.8.0.1", 
+                                                    "",
+                                                    "", 
+                                                    "yoan.audureau@u-psud.fr", 
+                                                    to, 
+                                                    fileName + "-" + Conversion::intToString(filenum) + ".fit", 
+                                                    " Exposure time : " + Conversion::intToString((int)exp) + "\n Gain : " + Conversion::intToString((int)gain) + "\n Format : " + Conversion::intToString(acqFormat),
+                                                    mailAttachments,
+                              
+                                                    NO_SECURITY);
 
 
                             }
@@ -954,6 +967,26 @@ int main(int argc, const char ** argv){
 
                         waitKey(0);
 
+
+                    }
+
+                case 6 :
+
+                    {
+                   
+                        vector<string> recipients;
+                        vector<string> mailAttachments;
+                        mailAttachments.push_back("C:/Users/Yoan/Documents/GitHub/freeture/build/test-1.bmp");
+                        recipients.push_back("yoan.audureau@gmail.com");
+                        SMTPClient::sendMail("smtp.u-psud.fr", 
+                                "",
+                                "", 
+                                "fripon@ORSAY.fr", 
+                                recipients, 
+                                "Detection test mail", 
+                                "Is it works ? ", 
+                                mailAttachments,
+                                NO_SECURITY);
 
                     }
 

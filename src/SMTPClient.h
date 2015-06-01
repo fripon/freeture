@@ -41,13 +41,16 @@
     #define WIN32_LEAN_AND_MEAN
     #include <boost/asio.hpp>
     #include <windows.h>
+    #include <iphlpapi.h>
+    #include <stdint.h>
 #else
     #ifdef LINUX
         #include <boost/asio.hpp>
         #define BOOST_LOG_DYN_LINK 1
     #endif
 #endif
-
+#include "OpenSSL.h"
+#include "Socket.h"
 #include <stdio.h>
 #include <stdlib.h>
 #include <string>
@@ -73,6 +76,7 @@
 #include "Conversion.h"
 #include "Base64.h"
 #include <cerrno>
+#include "ESmtpSecurity.h"
 
 using namespace std;
 
@@ -94,37 +98,33 @@ class SMTPClient {
 
         }initializer;
 
-        string                          mMailServerHostname;
-        string                          mMailSmtpServer;
-        string                          mMailUserName;
-        string                          mMailPassword;
-        string                          mMailFrom;
-        vector<string>                  mMailTo;
-        vector<string>                  mMailAttachments;
-        string                          mMailSubject;
-        string                          mMailMessage;
-        unsigned int                    mMailPort;
-        bool                            mImageInline;
-        boost::asio::io_service         mIo_service;
-        boost::asio::ip::tcp::socket    mSocket;
-
     public :
 
         /**
-        * Constructor.
+        * Send mail.
         *
-        * @param smtpServer
-        * @param port
-        * @param hostname
+        * @param server SMTP server name.
+        * @param login Login to use if a secured connection to the SMTP server is required.
+        * @param password Password to use if a secured connection to the SMTP server is required.
+        * @param from Mail sender.
+        * @param to Mail recipients.
+        * @param subject Mail subject.
+        * @param message Mail message.
+        * @param pathAttachments Path of files to send.
+        * @param imgInline 
+        * @param securityType Use secured connection or not.
         */
-        SMTPClient(string smtpServer, unsigned int port, string hostname ):mMailSmtpServer(smtpServer), mMailPort(port), mMailServerHostname(hostname), mSocket(mIo_service){};
+        static void sendMail(   string            server, 
+                                string            login,
+                                string            password, 
+                                string            from, 
+                                vector<string>    to, 
+                                string            subject, 
+                                string            message, 
+                                vector<string>    pathAttachments,
+                                SmtpSecurity      securityType);
 
-        /**
-        * Get server response of a request.
-        *
-        * @param request
-        */
-        void getServerResponse(string request);
+    private :
 
         /**
         * Check SMTP answer.
@@ -133,7 +133,7 @@ class SMTPClient {
         * @param socket
         * @return Answer is correct or not.
         */
-        bool checkSMTPAnswer(const std::string & responseWaited, boost::asio::ip::tcp::socket & socket);
+        static bool checkSMTPAnswer(const std::string & responseWaited, boost::asio::ip::tcp::socket & socket);
 
         /**
         * Send data to SMTP.
@@ -143,34 +143,15 @@ class SMTPClient {
         * @param checkAnswer
         * @param printCmd
         */
-        void write(string data, string expectedAnswer, bool checkAnswer, bool printCmd);
+        static void write(string data, string expectedAnswer, bool checkAnswer, boost::asio::ip::tcp::socket & socket);
 
         /**
-        * Create message to send.
+        * Create MIME message.
         *
-        * @return Final composed message.
+        * @return Final message to send.
         */
-        string message();
-
-        /**
-        * Create a SMTP connection.
-        *
-        */
-        void smtpServerConnection();
-
-        /**
-        * Send mail.
-        *
-        * @param from
-        * @param to Recipients.
-        * @param subject
-        * @param msg Message.
-        * @param pathAttachments
-        * @param imgInline
-        */
-        void send(string from, vector<string> to, string subject, string msg, vector<string> pathAttachments,bool imgInline);
-
-    private :
+        static string buildMessage( string msg, vector<string> mMailAttachments,
+             vector<string> mMailTo,  string mMailFrom,  string mMailSubject);
 
         /**
         * Get file content.
@@ -178,8 +159,44 @@ class SMTPClient {
         * @param filename
         * @return File's content.
         */
-        string getFileContents(const char *filename);
+        static bool getFileContents(const char *filename, string &content);
 
+
+        struct ReceiveFunctor{
+
+            enum {codeLength = 3};
+            const string code;
+
+            ReceiveFunctor(int expectingCode) : code (to_string(expectingCode)){
+                if(code.length() != codeLength) {
+                    BOOST_LOG_SEV(logger,fail) << "SMTP code must be three-digits.";
+                    throw "SMTP code must be three-digits.";
+                    //throw runtime_error("SMTP code must be three-digits.");}
+                }
+            }
+
+            bool operator()(const string &msg) const {
+
+                if(msg.length() < codeLength) return false;
+                if(code!=msg.substr(0,codeLength)) {
+                    BOOST_LOG_SEV(logger,fail) << "SMTP code must be three-digits.";
+                    throw "SMTP code must be three-digits.";
+                    //throw runtime_error("SMTP code is not received");
+                }
+
+                const size_t posNewline = msg.find_first_of("\n", codeLength);
+                if(posNewline == string::npos) return false;
+                if(msg.at(codeLength ) == ' ') return true;
+                if(msg.at(codeLength ) == '-') return this->operator()(msg.substr(posNewline + 1));
+                throw "Unexpected return code received.";
+
+            }
+        };
 };
+
+
+
+
+
 
 

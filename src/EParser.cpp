@@ -42,6 +42,14 @@ template<> EParser<CamBitDepth>::EParser(){
 
 }
 
+template<> EParser<SmtpSecurity>::EParser(){
+
+    enumMap["NO_SECURITY"]  = NO_SECURITY;
+    enumMap["USE_TLS"]      = USE_TLS;
+    enumMap["USE_SSL"]      = USE_SSL;
+
+}
+
 template<> EParser<CamType>::EParser(){
 
     enumMap["DMK_GIGE"]     = DMK_GIGE;

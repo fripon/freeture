@@ -37,7 +37,7 @@ freeture_SOURCES	= EImgBitDepth.h ECamType.h EParser.h EParser.cpp \
 			LocalEvent.h EStackMeth.h DetectionTemplate.cpp DetectionTemporal.h DetectionTemporal.cpp \
 			TimeDate.h Device.h Device.cpp Stack.h Stack.cpp \
 			SaveImg.h ECamBitDepth.h StackThread.h StackThread.cpp \
-			Base64.cpp \
+			Base64.cpp ESmtpSecurity.h OpenSSL.h OpenSSL.cpp Socket.h \
 			CameraFrames.cpp SMTPClient.cpp HistogramGray.h HistogramGray.cpp \
 			CameraVideo.cpp Configuration.cpp Conversion.cpp \
 			DetThread.cpp Fits.cpp Fits2D.cpp Fits3D.cpp \

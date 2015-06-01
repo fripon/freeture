@@ -188,6 +188,17 @@ bool DetThread::loadDetThreadParameters(){
 		cfg.Get("MAIL_SMTP_SERVER", mMailSmtpServer);
 		BOOST_LOG_SEV(logger, notification) << "MAIL_SMTP_SERVER : " << mMailSmtpServer;
 
+        // Get the SMTP login.
+		cfg.Get("MAIL_SMTP_LOGIN", mMailSmtpLogin);
+		
+        // Get the SMTP server adress.
+		cfg.Get("MAIL_SMTP_PASSWORD", mMailSmtpPassword);
+
+        // Get connection type to the SMTP server.
+		string smtp_connection_type; cfg.Get("MAIL_CONNECTION_TYPE", smtp_connection_type);
+		EParser<SmtpSecurity> smtp_security;
+		mSmtpSecurity = smtp_security.parseEnum("MAIL_CONNECTION_TYPE", smtp_connection_type);
+	
 		// Get the SMTP server hostname.
 		cfg.Get("MAIL_SMTP_HOSTNAME", mMailSmtpHostname);
 		BOOST_LOG_SEV(logger, notification) << "MAIL_SMTP_HOSTNAME : " << mMailSmtpHostname;
@@ -803,14 +814,16 @@ bool DetThread::saveEventData(int firstEvPosInFB, int lastEvPosInFB){
 
 		mailAttachments.push_back(mEventPath + "GeMap.bmp");
 
-        SMTPClient mailc(mMailSmtpServer, 25, mMailSmtpHostname);
+        SMTPClient::sendMail(   mMailSmtpServer, 
+                                mMailSmtpLogin,
+                                mMailSmtpPassword, 
+                                "freeture@" + mStationName +".fr", 
+                                mMailRecipients, 
+                                "Detection by " + mStationName  + "'s station - " + TimeDate::get_YYYYMMDDThhmmss(mEventDate), 
+                                mStationName + "\n" + mEventPath, 
+                                mailAttachments,
+                                mSmtpSecurity);
 
-        mailc.send("yoan.audureau@u-psud.fr",
-					mMailRecipients,
-					"Detection by " + mStationName  + "'s station - " + TimeDate::get_YYYYMMDDThhmmss(mEventDate),
-					mStationName + "\n" + mEventPath,
-					mailAttachments,
-					false);
 
 		BOOST_LOG_SEV(logger,notification) << "Mail sent.";
 

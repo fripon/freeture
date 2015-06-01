@@ -39,19 +39,6 @@ boost::log::sources::severity_logger< LogSeverityLevel >  SMTPClient::logger;
 
 SMTPClient::Init SMTPClient::initializer;
 
-void SMTPClient::getServerResponse(string request) {
-
-    size_t requestLength = strlen(request.c_str());
-    char reply[1024];
-    size_t reply_length = boost::asio::read(mSocket, boost::asio::buffer(reply, requestLength));
-    string str(reply);
-    BOOST_LOG_SEV(logger,notification) << "Reply is :" << str;
-    cout << "Reply is: ";
-    cout.write(reply, reply_length);
-    cout << "\n";
-
-}
-
 bool SMTPClient::checkSMTPAnswer(const std::string & responseWaited, boost::asio::ip::tcp::socket & socket) {
 
     bool res = true;
@@ -61,7 +48,7 @@ bool SMTPClient::checkSMTPAnswer(const std::string & responseWaited, boost::asio
     std::string code;
 
     // Read data into a streambuf until it contains "\r\n".
-    boost::asio::read_until(mSocket, response, "\r\n");
+    boost::asio::read_until(socket, response, "\r\n");
 
     {
         std::istream is(&response);
@@ -84,12 +71,12 @@ bool SMTPClient::checkSMTPAnswer(const std::string & responseWaited, boost::asio
 
         // IO control command to get the amount of data that can be read without blocking.
         boost::asio::socket_base::bytes_readable command(true);
-        mSocket.io_control(command);
+        socket.io_control(command);
 
         while(command.get()) {
 
-            boost::asio::read_until(mSocket, response, "\r\n");
-            mSocket.io_control(command);
+            boost::asio::read_until(socket, response, "\r\n");
+            socket.io_control(command);
 
         }
 
@@ -100,76 +87,43 @@ bool SMTPClient::checkSMTPAnswer(const std::string & responseWaited, boost::asio
     return res;
 }
 
-void SMTPClient::write(string data, string expectedAnswer, bool checkAnswer, bool printCmd) {
+void SMTPClient::write(string data, string expectedAnswer, bool checkAnswer, boost::asio::ip::tcp::socket & socket) {
 
-    if(printCmd)
-        BOOST_LOG_SEV(logger,notification) << "data :" << data;
-
-    boost::asio::write(mSocket, boost::asio::buffer(data));
+    boost::asio::write(socket, boost::asio::buffer(data));
 
     if(checkAnswer)
-        checkSMTPAnswer(expectedAnswer, mSocket);
+        checkSMTPAnswer(expectedAnswer, socket);
 
 }
 
-void SMTPClient::smtpServerConnection(){
-
-	boost::asio::ip::tcp::resolver resolver(mIo_service);
-
-	// Erreur par défaut.
-	boost::system::error_code error = boost::asio::error::host_not_found;
-
-    boost::asio::ip::tcp::resolver::query query(mMailSmtpServer, "25");
-
-    boost::asio::ip::tcp::resolver::iterator endpoint_iterator = resolver.resolve(query);
-    boost::asio::ip::tcp::resolver::iterator end;
-
-    // Pour chaque serveur trouvé.
-    while(error && endpoint_iterator != end ) {
-
-        // On essaye de se connecter au serveur.
-        mSocket.close();
-        mSocket.connect(*endpoint_iterator++, error);
-
-    }
-
-	// Si aucun serveur n'a été trouvé.
-	if( error ){
-		cout << "SMTP server not found" <<endl;
-		throw boost::system::system_error(error);
-	}
-
-	checkSMTPAnswer("220", mSocket);
-
-}
-
-string SMTPClient::getFileContents(const char *filename){
+bool SMTPClient::getFileContents(const char *filename, string &content){
 
     ifstream in(filename, ios::in | ios::binary);
+    cout << filename<< endl;
+    if(in){
 
-    if (in){
-
-        string contents;
         in.seekg(0, ios::end);
-        contents.resize(in.tellg());
+        content.resize(in.tellg());
         in.seekg(0, ios::beg);
-        in.read(&contents[0], contents.size());
+        in.read(&content[0], content.size());
         in.close();
-        return(contents);
+        return true;
 
     }
 
-    throw(errno);
+    return false;
 
 }
 
-string SMTPClient::message(){
+
+string SMTPClient::buildMessage( string msg, vector<string> mMailAttachments,
+                                 vector<string> mMailTo,  string mMailFrom,  string mMailSubject){
 
     // Final data to send.
     string message;
 
     // In case where mail client doesn't support HTML.
-    string rawMessage = mMailMessage;
+    string rawMessage = msg;
 
     // Used to separate different mail formats.
     string section = "08zs01293eraf47a7804dcd17b1e";
@@ -177,17 +131,8 @@ string SMTPClient::message(){
     // Message using HTML.
     string htmlMessage =    "<html>\
                                 <body>\
-                                    <p> " + mMailMessage + " </p> ";
-
-            if(mImageInline)
-
-                for(int i=0; i<mMailAttachments.size(); i++){
-
-                    htmlMessage+=  "<img src=\"cid:image" + Conversion::intToString(i) + "@here\" alt=\"image\">";
-
-                }
-
-                    htmlMessage+= "</body>\
+                                    <p> " + msg + " </p> ";
+                 htmlMessage+= "</body>\
                              </html>";
 
     // Specify the MIME version used.
@@ -246,65 +191,6 @@ string SMTPClient::message(){
 
                 message += "\r\n--" + section  + "\r\n";
 
-                // IMAGE inline.
-                if(mImageInline){
-
-                    for(int i=0; i<mMailAttachments.size(); i++){
-
-                        cout <<  mMailAttachments.at(i) << " -> " << endl;
-
-                        std::string s = mMailAttachments.at(i);
-                        std::string delimiter = "/";
-                        vector<string> elements;
-                        string fileName;
-                        string fileExtension;
-
-                        size_t pos = 0;
-                        std::string token;
-                        while ((pos = s.find(delimiter)) != std::string::npos) {
-                            token = s.substr(0, pos);
-                            elements.push_back(token);
-                            s.erase(0, pos + delimiter.length());
-                        }
-                        elements.push_back(s);
-
-                        fileName = elements.back();
-                        //cout << "fileName : " << fileName << endl;
-
-                        s = mMailAttachments.at(i);
-                        delimiter = ".";
-                        elements.clear();
-
-                        pos = 0;
-                        token="";
-                        while ((pos = s.find(delimiter)) != std::string::npos) {
-                            token = s.substr(0, pos);
-                            elements.push_back(token);
-                            s.erase(0, pos + delimiter.length());
-                        }
-                        elements.push_back(s);
-
-                        fileExtension = elements.back();
-                        //cout << "fileExtension : " <<fileExtension << endl;
-
-
-                        message += "Content-Type: image/" + fileExtension + "; name =\"" + fileName + "\"\r\n";
-                        message += "Content-Transfer-Encoding: Base64\r\n";
-                        message += "Content-Disposition: inline\r\n";
-                        message += "Content-ID: <image" + Conversion::intToString(i) + "@here>\r\n\n"; // ID used in the construction of the HTML message above.
-                        message += "filename=\"" + fileName + "\"\r\n";
-
-                        string img =  getFileContents(mMailAttachments.at(i).c_str());
-                        cout << "encode"<<endl;
-                        message += Base64::encodeBase64(img);
-
-                        message += "\r\n";
-
-                        message += "\r\n--" + section  + "\r\n";
-
-                    }
-                }
-
         // ATTACHMENTS.
 
         // .txt attachment.
@@ -319,71 +205,67 @@ string SMTPClient::message(){
         // png attachment.
         //http://dataurl.net/#dataurlmaker
 
-        if(!mImageInline){
+        for(int i=0; i<mMailAttachments.size(); i++){
 
-            for(int i=0; i<mMailAttachments.size(); i++){
+            message += "\r\n--" + section  + "\r\n";
 
-                message += "\r\n--" + section  + "\r\n";
+            std::string s = mMailAttachments.at(i);
+            std::string delimiter = "/";
 
-                /*
-                //inverser string
-                std::string inversePath = "";
-                for (std::string::reverse_iterator rit=mailAttachments.at(i).rbegin(); rit!=mailAttachments.at(i).rend(); ++rit)
-                    inversePath += *rit;
-                */
+            vector<string> elements;
+            string fileName;
+            string fileExtension;
+             
+            size_t pos = 0;
+            std::string token;
+            while((pos = s.find(delimiter)) != std::string::npos) {
 
-                std::string s = mMailAttachments.at(i);
-                std::string delimiter = "/";
-                vector<string> elements;
-                string fileName;
-                string fileExtension;
-
-                size_t pos = 0;
-                std::string token;
-                while((pos = s.find(delimiter)) != std::string::npos) {
-
-                    token = s.substr(0, pos);
-                    elements.push_back(token);
-                    s.erase(0, pos + delimiter.length());
-
-                }
-
-                elements.push_back(s);
-
-                fileName = elements.back();
-                //cout << fileName << endl;
-
-                s = mMailAttachments.at(i);
-                delimiter = ".";
-                elements.clear();
-
-                pos = 0;
-                token="";
-                while ((pos = s.find(delimiter)) != std::string::npos) {
-                    token = s.substr(0, pos);
-                    elements.push_back(token);
-                    s.erase(0, pos + delimiter.length());
-                }
-                elements.push_back(s);
-
-                fileExtension = elements.back();
-                //cout << fileExtension << endl;
-
-                message += "Content-Type: image/" + fileExtension + "; name =\"" + fileName + "\"\r\n";
-                message += "Content-Transfer-Encoding: Base64\r\n";
-                message += "Content-Disposition: attachment\r\n";
-                message += "filename=\"" + fileName + "\"\r\n\n";
-
-                string img =  getFileContents(mMailAttachments.at(i).c_str());
-
-                message += Base64::encodeBase64(img);
-
-
-                message += "\r\n";
+                token = s.substr(0, pos);
+                elements.push_back(token);
+                //cout << token << endl;
+                s.erase(0, pos + delimiter.length());
 
             }
-        }
 
+            elements.push_back(s);
+
+            fileName = elements.back();
+            //cout << fileName << endl;
+
+            s = mMailAttachments.at(i);
+            delimiter = ".";
+            elements.clear();
+
+            pos = 0;
+            token="";
+            while ((pos = s.find(delimiter)) != std::string::npos) {
+                token = s.substr(0, pos);
+                elements.push_back(token);
+                s.erase(0, pos + delimiter.length());
+            }
+            elements.push_back(s);
+
+            fileExtension = elements.back();
+            //  cout << fileExtension << endl;
+
+            message += "Content-Type: image/" + fileExtension + "; name =\"" + fileName + "\"\r\n";
+            message += "Content-Transfer-Encoding: Base64\r\n";
+            message += "Content-Disposition: attachment\r\n";
+            message += "filename=\"" + fileName + "\"\r\n\n";
+            // cout << "getFileContents : " << mMailAttachments.at(i)<< endl;
+            string img;
+            if(!getFileContents(mMailAttachments.at(i).c_str(), img)) {
+                cout << "Fail to load image to attach to mail message" << endl;
+                BOOST_LOG_SEV(logger,fail) << "Fail to load image to attach to mail message";
+                img = "";
+            }
+            //  cout << "end getFileContents" << endl;
+            message += Base64::encodeBase64(img);
+            
+            message += "\r\n";
+
+        }
+        
     // Mail end.
     message += "\r\n--" + section  + "--\r\n";
 
@@ -391,58 +273,133 @@ string SMTPClient::message(){
 
 }
 
-void SMTPClient::send(  string              from,
-                        vector<string>      to,
-                        string              subject,
-                        string              msg,
-                        vector<string>      pathAttachments,
-                        bool                imgInline) {
+void SMTPClient::sendMail(  string            server, 
+                            string            login,
+                            string            password, 
+                            string            from, 
+                            vector<string>    to, 
+                            string            subject, 
+                            string            message, 
+                            vector<string>    pathAttachments,
+                            SmtpSecurity      securityType) {
+            
+    try {
 
-    string data;
+        switch(securityType) {
 
-    mMailTo			= to;
-    mMailFrom		= from;
-    mMailSubject		= subject;
-    mMailMessage		= msg;
-    mMailSubject		= subject;
-    mMailAttachments = pathAttachments;
-    mImageInline		= imgInline;
+            case NO_SECURITY :
 
-    // Connection to SMTP server.
-    BOOST_LOG_SEV(logger,normal) << "Connection to SMTP server.";
-    smtpServerConnection();
+                {
+   
+                    Socket socket(server, 25);
 
-    // HELO to SMTP server.
-    BOOST_LOG_SEV(logger,normal) << "HELO to SMTP server.";
-    write("HELO " + mMailServerHostname + "\r\n", "250", true, true);
+                    // HELO to SMTP server.
+                    BOOST_LOG_SEV(logger,normal) << "HELLO to SMTP server.";
+                    write("HELO " + server + "\r\n", "250", true, *socket.GetSocket());
 
-    // Sender.
-    BOOST_LOG_SEV(logger,normal) << "Write sender.";
-    write("MAIL FROM: <" + mMailFrom + ">\r\n", "250", true, true);
+                    // Sender.
+                    BOOST_LOG_SEV(logger,normal) << "Write sender.";
+                    write("MAIL FROM: <" + from + ">\r\n", "250", true, *socket.GetSocket());
 
-    // Recipients.
-    BOOST_LOG_SEV(logger,normal) << "Write recipients.";
-    for(int i = 0; i < mMailTo.size(); i++)
-        write("RCPT TO: <" + mMailTo.at(i) + ">\r\n", "250", true, true);
+                    // Recipients.
+                    BOOST_LOG_SEV(logger,normal) << "Write recipients.";
+                    for(int i = 0; i < to.size(); i++)
+                    write("RCPT TO: <" + to.at(i) + ">\r\n", "250", true, *socket.GetSocket());
 
-    // Start to sending data.
-    BOOST_LOG_SEV(logger,normal) << "Write datas.";
-    write("DATA\r\n", "354", true, true);
+                    // Start to sending data.
+                    BOOST_LOG_SEV(logger,normal) << "Write datas.";
+                    write("DATA\r\n", "354", true, *socket.GetSocket());
 
-    // Build message using MIME.
-    BOOST_LOG_SEV(logger,normal) << "Build message using MIME.";
-    data = message();
+                    // Build message using MIME.
+                    BOOST_LOG_SEV(logger,normal) << "Build message using MIME.";
+                    string data = buildMessage(message, pathAttachments, to, from, subject);
 
-    // Send data.
-    BOOST_LOG_SEV(logger,normal) << "Send data.";
-    write(data, "", false, false);
+                    // Send data.
+                    BOOST_LOG_SEV(logger,normal) << "Send data.";
+                    write(data, "", false, *socket.GetSocket());
 
-    // End of sending data.
-    BOOST_LOG_SEV(logger,normal) << "End of sending data.";
-    write("\r\n.\r\n", "250", true, true);
+                    // End of sending data.
+                    BOOST_LOG_SEV(logger,normal) << "End of sending data.";
+                    write("\r\n.\r\n", "250", true, *socket.GetSocket());
 
-    // Deconnection.
-    BOOST_LOG_SEV(logger,normal) << "Deconnection.";
-    write("QUIT\r\n", "221", true, true);
+                    // Deconnection.
+                    BOOST_LOG_SEV(logger,normal) << "Deconnection.";
+                    write("QUIT\r\n", "221", true, *socket.GetSocket());
 
+                }
+
+                break;
+
+            case USE_SSL : 
+
+                {
+
+                    Socket socket(server, 465);
+
+                    static const string newline = "\r\n";
+
+                    BOOST_LOG_SEV(logger,notification) << "Initialize SSL connection.";
+                    OpenSSL::StaticInitialize sslInitializer;
+
+                    OpenSSL openSSL(socket.GetSocket()->native());
+                    cout << openSSL.Read(ReceiveFunctor(220));
+
+                    BOOST_LOG_SEV(logger,notification) << string("EHLO ") << server;
+                    openSSL.Write(string("EHLO ") + server + newline);
+                    cout << openSSL.Read(ReceiveFunctor(250));
+
+                    BOOST_LOG_SEV(logger,notification) << "AUTH LOGIN";
+                    openSSL.Write(string("AUTH LOGIN") + newline);
+                    cout << openSSL.Read(ReceiveFunctor(334));
+
+                    BOOST_LOG_SEV(logger,notification) << "Write Login";
+                    openSSL.Write(Base64::encodeBase64(login) + newline);
+                    cout << openSSL.Read(ReceiveFunctor(334));
+
+                    BOOST_LOG_SEV(logger,notification) << "Write password";
+                    openSSL.Write(password + newline);
+                    cout << openSSL.Read(ReceiveFunctor(235));
+
+                    BOOST_LOG_SEV(logger,notification) << "MAIL FROM:<" << from << ">";
+                    openSSL.Write(string("MAIL FROM:<") + from + ">" + newline);
+                    cout << openSSL.Read(ReceiveFunctor(250));
+
+                    for(int i = 0; i < to.size(); i++) {
+
+                        BOOST_LOG_SEV(logger,notification) << "RCPT TO:<" << to.at(i) << ">";
+                        openSSL.Write(string("RCPT TO:<") + to.at(i) + ">" + newline);
+                        cout << openSSL.Read(ReceiveFunctor(250));
+
+                    }
+
+                    BOOST_LOG_SEV(logger,notification) << "DATA";
+                    openSSL.Write(string("DATA") + newline);
+                    cout << openSSL.Read(ReceiveFunctor(354));
+         
+                    BOOST_LOG_SEV(logger,notification) << "Build message";
+                    string m = buildMessage(message, pathAttachments, to, from, subject);
+                    openSSL.Write( m + newline + "." + newline);
+                    cout << openSSL.Read(ReceiveFunctor(250));
+
+                    BOOST_LOG_SEV(logger,notification) << "QUIT";
+                    openSSL.Write(string("QUIT: ") + newline);
+                    cout << openSSL.Read(ReceiveFunctor(221));
+
+                }
+
+                break;
+
+
+            case USE_TLS :
+
+                break;
+
+
+        }
+
+    }catch(const char * msg){
+
+        BOOST_LOG_SEV(logger,fail) << "FAIL TO SEND MAIL : " << msg;
+
+    }
 }
