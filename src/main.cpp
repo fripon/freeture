@@ -84,6 +84,8 @@
 #include "AcqThread.h"
 #include "CameraGigeSdkIc.h"
 #include "ImgProcessing.h"
+#include <boost/filesystem.hpp>
+#include "Logger.h"
 
 #define BOOST_NO_SCOPED_ENUMS
 
@@ -144,6 +146,8 @@ std::ostream& operator<< (std::ostream& strm, LogSeverityLevel level){
 void init_log(string path, LogSeverityLevel sev){
 
     // Create a text file sink
+    // Can't use rotation with text_multifile_backend
+    // http://stackoverflow.com/questions/18228123/text-multifile-backend-how-to-set-rool-file-size
     typedef sinks::synchronous_sink< sinks::text_multifile_backend > file_sink;
     boost::shared_ptr< file_sink > sink(new file_sink);
 
@@ -527,6 +531,8 @@ int main(int argc, const char ** argv){
                                                 sleep(1);
                                             #endif
 
+                                            string acquisitionDate = TimeDate::localDateTime(microsec_clock::universal_time(),"%Y:%m:%d:%H:%M:%S");
+
                                             if(executionTime != 0){
 
                                                 if(cptTime > executionTime){
@@ -769,12 +775,12 @@ int main(int argc, const char ** argv){
 
                             if(camFormat == MONO_12){
                                 
-                                Mat temp = Conversion::convertTo8UC1(temp1);
-                                newMat = ImgProcessing::correctGamma(temp, 2.2);
+                                newMat = ImgProcessing::correctGammaOnMono12(temp1, 2.2);
+                                Mat temp = Conversion::convertTo8UC1(newMat);
 
                             }else {
 
-                                newMat = ImgProcessing::correctGamma(temp1, 2.2);
+                                newMat = ImgProcessing::correctGammaOnMono8(temp1, 2.2);
                             }
 
                             SaveImg::saveBMP(newMat, savePath + fileName + "-" + Conversion::intToString(filenum));
@@ -946,33 +952,41 @@ int main(int argc, const char ** argv){
 
                 case 5 :
 
+                    ///%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+                    ///%%%%%%%%%%%%%%%%%%%%%% MODE 5 : CLEAN LOGS %%%%%%%%%%%%%%%%%%%%%%%%%%%%
+                    ///%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+                    // Simply remove all log directory contents.
+
                     {
 
-                        Fits2D newFits;
-                        Mat resMat;
-		             
-				        //newFits.readFits16S(resMat, filename);
-				        newFits.readFits16US(resMat, "C:/Users/Yoan/Documents/GitHub/freeture/build/CAP_20150528T010127_UT-0.fit");
+                        boost::filesystem::path pcfg(configPath);
+                        if(!boost::filesystem::exists(pcfg))
+                            throw "configuration.cfg not found.";
 
-                        Mat newMat = Conversion::convertTo8UC1(resMat);
-                        Mat withoutGammaCorrection;
-                      
-                        newMat.copyTo(withoutGammaCorrection);
-                     
-                        namedWindow("Without gamma correction", WINDOW_NORMAL );
+                        Configuration cfg;
+                        cfg.Load(configPath);
 
-                        imshow("Without gamma correction",withoutGammaCorrection );
-                 
-                        namedWindow("With gamma correction ", WINDOW_NORMAL );
-                        Mat ress = ImgProcessing::correctGamma(newMat,2.2);
-                        imshow("With gamma correction ",ress );
+                        // Get log path.
+                        string LOG_PATH; cfg.Get("LOG_PATH", LOG_PATH);
 
-                        waitKey(0);
+	                    boost::filesystem::path p(LOG_PATH);
 
+                        if(boost::filesystem::exists(p)){
 
-                    }
+                            boost::filesystem::remove_all(p);
 
-               
+                            cout << "Clean log completed." << endl;
+
+                        }else {
+
+                            cout << "Log directory not found." << endl;
+
+                        }
+
+                    } 
+
+                    break;
 
                 default :
 

@@ -51,6 +51,15 @@ class ImgProcessing {
         * @param gamma Gamma value.
         * @return Image with gamma corrected.
         */
-        static Mat correctGamma(Mat& img, double gamma);
+        static Mat correctGammaOnMono8(Mat& img, double gamma);
+
+        /**
+        * Gamma correction on Mono12 image.
+        *
+        * @param img Opencv mat image to correct.
+        * @param gamma Gamma value.
+        * @return Image with gamma corrected.
+        */
+        static Mat correctGammaOnMono12(Mat& img, double gamma);
 
 };

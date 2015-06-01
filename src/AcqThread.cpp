@@ -873,6 +873,15 @@ bool AcqThread::runScheduledAcquisition(AcqSchedule task){
                                 if(newFits.writeFits(frame.getImg(), UC8, fileName))
                                     cout << ">> Fits saved in : " << mDataLocation << fileName << endl;
 
+                                // Save jpeg version 
+                                if(mDevice->getRegularSaveJEG() && mDevice->getAcqRegularEnabled() || 
+                                   mDevice->getScheduleSaveJEG() && mDevice->getAcqScheduleEnabled()){
+
+                                    Mat newMat = ImgProcessing::correctGammaOnMono8(frame.getImg(), 2.2);
+                                    SaveImg::saveJPEG(newMat, mDataLocation + fileName);
+
+                                }
+
                             }
 
                             break;
@@ -915,6 +924,16 @@ bool AcqThread::runScheduledAcquisition(AcqSchedule task){
                                 // Create FITS image with BITPIX = SHORT_IMG (16-bits signed integers), pixel with TSHORT (signed short)
                                 if(newFits.writeFits(newMat, S16, fileName))
                                     cout << ">> Fits saved in : " << mDataLocation << fileName << endl;
+
+                                // Save jpeg version 
+                                if(mDevice->getRegularSaveJEG() && mDevice->getAcqRegularEnabled() || 
+                                   mDevice->getScheduleSaveJEG() && mDevice->getAcqScheduleEnabled()){
+
+                                    Mat newMat = ImgProcessing::correctGammaOnMono12(frame.getImg(), 2.2);
+                                    Mat newMat2 = Conversion::convertTo8UC1(newMat);
+                                    SaveImg::saveJPEG(newMat2, mDataLocation + fileName);
+
+                                }
 
                             }
                     }
@@ -1045,7 +1064,7 @@ bool AcqThread::runRegularAcquisition(string frameDate){
                                 if(mDevice->getRegularSaveJEG() && mDevice->getAcqRegularEnabled() || 
                                    mDevice->getScheduleSaveJEG() && mDevice->getAcqScheduleEnabled()){
 
-                                    Mat newMat = ImgProcessing::correctGamma(frame.getImg(), 2.2);
+                                    Mat newMat = ImgProcessing::correctGammaOnMono8(frame.getImg(), 2.2);
                                     SaveImg::saveJPEG(newMat, mDataLocation + fileName);
 
                                 }
@@ -1097,9 +1116,9 @@ bool AcqThread::runRegularAcquisition(string frameDate){
                                 if(mDevice->getRegularSaveJEG() && mDevice->getAcqRegularEnabled() || 
                                    mDevice->getScheduleSaveJEG() && mDevice->getAcqScheduleEnabled()){
 
-                                    Mat mono8Img = Conversion::convertTo8UC1(frame.getImg());
-                                    Mat newMat = ImgProcessing::correctGamma(mono8Img, 2.2);
-                                    SaveImg::saveJPEG(newMat, mDataLocation + fileName);
+                                    Mat newMat = ImgProcessing::correctGammaOnMono12(frame.getImg(), 2.2);
+                                    Mat newMat2 = Conversion::convertTo8UC1(newMat);
+                                    SaveImg::saveJPEG(newMat2, mDataLocation + fileName);
 
                                 }
 

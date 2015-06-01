@@ -34,7 +34,7 @@
 
 #include "ImgProcessing.h"
 
-Mat ImgProcessing::correctGamma(Mat& img, double gamma) {
+Mat ImgProcessing::correctGammaOnMono8(Mat& img, double gamma) {
 
     double gammaInverse = 1.0 / gamma;
  
@@ -45,6 +45,45 @@ Mat ImgProcessing::correctGamma(Mat& img, double gamma) {
  
     Mat result;
     LUT( img, lutMatrix, result );
+ 
+    return result;
+
+}
+
+Mat ImgProcessing::correctGammaOnMono12(Mat& img, double gamma) {
+
+    double gammaInverse = 1.0 / gamma;
+ /*
+    Mat lutMatrix(1, 4095, CV_8UC1 );
+    uchar * ptr = lutMatrix.ptr();
+    for( int i = 0; i < 4095; i++ )
+    ptr[i] = (int)( pow( (double) i / 4095.0, gammaInverse ) * 4095.0 );
+ 
+    Mat result;
+    LUT( img, lutMatrix, result );
+    */
+
+    Mat result = Mat(img.rows, img.cols, CV_16UC1, Scalar(0));
+
+    unsigned short * ptr;
+    unsigned short * ptr2;
+
+    for(int i = 0; i < img.rows; i++){
+
+        ptr = img.ptr<unsigned short>(i);
+        ptr2 = result.ptr<unsigned short>(i);
+
+        for(int j = 0; j < img.cols; j++){
+
+            ptr2[j] = (int)( pow( (double) ptr[j] / 4095.0, gammaInverse ) * 4095.0 );
+
+        }
+
+    }
+
+
+
+
  
     return result;
 
