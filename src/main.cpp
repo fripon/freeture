@@ -764,18 +764,20 @@ int main(int argc, const char ** argv){
 
                             cout << ">> Saving bmp file ..." << endl;
 
-                            Mat temp, temp1;
+                            Mat temp1, newMat;
                             frame.getImg().copyTo(temp1);
 
                             if(camFormat == MONO_12){
+                                
+                                Mat temp = Conversion::convertTo8UC1(temp1);
+                                newMat = ImgProcessing::correctGamma(temp, 2.2);
 
-                                temp = Conversion::convertTo8UC1(temp1);
+                            }else {
 
-                            }else
+                                newMat = ImgProcessing::correctGamma(temp1, 2.2);
+                            }
 
-                                frame.getImg().copyTo(temp);
-
-                            SaveImg::saveBMP(temp, savePath + fileName + "-" + Conversion::intToString(filenum));
+                            SaveImg::saveBMP(newMat, savePath + fileName + "-" + Conversion::intToString(filenum));
 
                         }
 
@@ -970,26 +972,7 @@ int main(int argc, const char ** argv){
 
                     }
 
-                case 6 :
-
-                    {
-                   
-                        vector<string> recipients;
-                        vector<string> mailAttachments;
-                        mailAttachments.push_back("C:/Users/Yoan/Documents/GitHub/freeture/build/test-1.bmp");
-                        recipients.push_back("yoan.audureau@gmail.com");
-                        SMTPClient::sendMail("smtp.u-psud.fr", 
-                                "",
-                                "", 
-                                "fripon@ORSAY.fr", 
-                                recipients, 
-                                "Detection test mail", 
-                                "Is it works ? ", 
-                                mailAttachments,
-                                NO_SECURITY);
-
-                    }
-
+               
 
                 default :
 

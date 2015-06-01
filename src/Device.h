@@ -99,6 +99,7 @@ class Device{
         Camera              *cam;
         vector<AcqSchedule> mSchedule;
         bool                mScheduleEnabled;
+        bool                mScheduleSaveJPEG;
         string              mDataPath;
         string              mStationName;
         CamBitDepth         mBitDepth;
@@ -126,6 +127,7 @@ class Device{
         int                 mRegularGain;
         CamBitDepth         mRegularFormat;
         int                 mRegularRepetition;
+        bool                mRegularSaveJPEG;
         bool                mDisplayVideoInInput;
         bool                mVideoFramesInInput;
         bool                mDetectionEnabled;
@@ -205,6 +207,8 @@ class Device{
         bool                getDisplayInput()               {return mDisplayVideoInInput;};
         bool                getVideoFramesInput()           {return mVideoFramesInInput;};
         bool                getDetectionEnabled()           {return mDetectionEnabled;};
+        bool                getRegularSaveJEG()             {return mRegularSaveJPEG;};
+        bool                getScheduleSaveJEG()            {return mScheduleSaveJPEG;};
 
     private :
 

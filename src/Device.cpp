@@ -258,6 +258,10 @@ bool Device::prepareDevice() {
                 cfg.Get("ACQ_SCHEDULE_ENABLED", mScheduleEnabled);
                 BOOST_LOG_SEV(logger, notification) << "ACQ_SCHEDULE_ENABLED : " << mScheduleEnabled;
 
+                // Get option to save a jpeg of a regular capture.
+                cfg.Get("ACQ_SCHEDULE_SAVE_JPEG", mScheduleSaveJPEG);
+                BOOST_LOG_SEV(logger, notification) << "ACQ_SCHEDULE_SAVE_JPEG : " << mScheduleSaveJPEG;
+
                  // Get regular acquisition option status.
                 cfg.Get("ACQ_REGULAR_ENABLED", mRegularAcqEnabled);
                 BOOST_LOG_SEV(logger, notification) << "ACQ_REGULAR_ENABLED : " << mRegularAcqEnabled;
@@ -284,6 +288,10 @@ bool Device::prepareDevice() {
                 // Get regular acquisition repetition.
                 cfg.Get("ACQ_REGULAR_REPETITION", mRegularRepetition);
                 BOOST_LOG_SEV(logger, notification) << "ACQ_REGULAR_REPETITION : " << mRegularRepetition;
+
+                // Get option to save a jpeg of a regular capture.
+                cfg.Get("ACQ_REGULAR_SAVE_JPEG", mRegularSaveJPEG);
+                BOOST_LOG_SEV(logger, notification) << "ACQ_REGULAR_SAVE_JPEG : " << mRegularSaveJPEG;
 
                 // Get regular acquisition format.
                 string acq_regular_format; cfg.Get("ACQ_REGULAR_FORMAT", acq_regular_format);

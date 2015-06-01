@@ -1041,6 +1041,15 @@ bool AcqThread::runRegularAcquisition(string frameDate){
                                 if(newFits.writeFits(frame.getImg(), UC8, fileName))
                                     cout << ">> Fits saved in : " << mDataLocation << fileName << endl;
 
+                                // Save jpeg version 
+                                if(mDevice->getRegularSaveJEG() && mDevice->getAcqRegularEnabled() || 
+                                   mDevice->getScheduleSaveJEG() && mDevice->getAcqScheduleEnabled()){
+
+                                    Mat newMat = ImgProcessing::correctGamma(frame.getImg(), 2.2);
+                                    SaveImg::saveJPEG(newMat, mDataLocation + fileName);
+
+                                }
+
                             }
 
                             break;
@@ -1084,8 +1093,17 @@ bool AcqThread::runRegularAcquisition(string frameDate){
                                 if(newFits.writeFits(newMat, S16, fileName))
                                     cout << ">> Fits saved in : " << mDataLocation << fileName << endl;
 
+                                // Save jpeg version 
+                                if(mDevice->getRegularSaveJEG() && mDevice->getAcqRegularEnabled() || 
+                                   mDevice->getScheduleSaveJEG() && mDevice->getAcqScheduleEnabled()){
 
-                            }
+                                    Mat mono8Img = Conversion::convertTo8UC1(frame.getImg());
+                                    Mat newMat = ImgProcessing::correctGamma(mono8Img, 2.2);
+                                    SaveImg::saveJPEG(newMat, mDataLocation + fileName);
+
+                                }
+
+                          }
                     }
                 }
             }

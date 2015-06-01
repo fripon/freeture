@@ -47,6 +47,7 @@
 #include "StackThread.h"
 #include "Device.h"
 #include "ExposureControl.h"
+#include "ImgProcessing.h"
 
 using namespace cv;
 using namespace std;
