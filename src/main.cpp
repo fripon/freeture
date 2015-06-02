@@ -44,6 +44,7 @@
         #define BOOST_LOG_DYN_LINK 1
     #endif
 #endif
+
 #include "ESmtpSecurity.h"
 #include "SMTPClient.h"
 #include <boost/log/common.hpp>
@@ -85,7 +86,14 @@
 #include "CameraGigeSdkIc.h"
 #include "ImgProcessing.h"
 #include <boost/filesystem.hpp>
-#include "Logger.h"
+#include "Logger.h"/*
+#include <fstream>
+#include <iostream>
+
+#include <boost/iostreams/filtering_stream.hpp>    
+#include <boost/iostreams/filtering_streambuf.hpp>
+#include <boost/iostreams/copy.hpp>
+#include <boost/iostreams/filter/gzip.hpp>*/
 
 #define BOOST_NO_SCOPED_ENUMS
 
@@ -366,6 +374,8 @@ int main(int argc, const char ** argv){
 
                         // Get log path.
                         string LOG_PATH; cfg.Get("LOG_PATH", LOG_PATH);
+                        int LOG_ARCHIVE_DAY; cfg.Get("LOG_ARCHIVE_DAY", LOG_ARCHIVE_DAY);
+                        Logger logSystem(LOG_PATH, LOG_ARCHIVE_DAY);
 
                         // Get log severity.
                         string log_severity; cfg.Get("LOG_SEVERITY", log_severity);
@@ -521,17 +531,35 @@ int main(int argc, const char ** argv){
                                         #endif
 
                                         int cptTime = 0;
+                                        bool waitLogTime = true;
 
                                         while(!sigTermFlag){
 
                                             #ifdef WINDOWS
                                                 Sleep(1000);
-                                                //cout << "wait 1 in main sec" << endl;
+                                                //cout << "wait 60 in main sec" << endl;
                                             #elif defined LINUX
                                                 sleep(1);
                                             #endif
 
-                                            string acquisitionDate = TimeDate::localDateTime(microsec_clock::universal_time(),"%Y:%m:%d:%H:%M:%S");
+                                            string acq = TimeDate::localDateTime(microsec_clock::universal_time(),"%Y:%m:%d:%H:%M:%S");
+                                            vector<int> acq_int= TimeDate::splitStringToIntVector(acq);
+
+                                            // At 00h00, check logs once.
+                                            if(acq_int.at(3) == 0 && acq_int.at(4) == 0 && waitLogTime) {
+
+                                                logSystem.archiveLog();
+                                                logSystem.cleanLogArchives();
+                                                waitLogTime = false;
+                                       
+                                            }
+
+                                            // Reset log ckeck for the next time.
+                                            if(acq_int.at(3) == 0 && acq_int.at(4) == 1) {
+
+                                                waitLogTime = true;
+
+                                            }
 
                                             if(executionTime != 0){
 
@@ -893,18 +921,9 @@ int main(int argc, const char ** argv){
                                 vector<string> mailAttachments;
                                 mailAttachments.push_back(savePath + fileName + "-" + Conversion::intToString(filenum) + ".fit");
 
-                              //  SMTPClient mailc("10.8.0.1", 25, "u-psud.fr");
-
                                 vector<string> to;
                                 to.push_back(sendMail);
-                               /* mailc.send("yoan.audureau@u-psud.fr",
-                                            to,
-                                            fileName + "-" + Conversion::intToString(filenum) + ".fit",
-                                            " Exposure time : " + Conversion::intToString((int)exp) + "\n Gain : " + Conversion::intToString((int)gain) + "\n Format : " + Conversion::intToString(acqFormat),
-                                            mailAttachments,
-                                            false);*/
-
-
+             
                                 SMTPClient::sendMail("10.8.0.1", 
                                                     "",
                                                     "", 
@@ -985,6 +1004,30 @@ int main(int argc, const char ** argv){
                         }
 
                     } 
+
+                    break;
+
+                case 6 :
+
+                    {
+
+                        
+
+                    }
+
+                    break;
+
+                case 7 :
+
+                    {
+              /*
+                        std::ofstream ofile("hello.gz", std::ios_base::out | std::ios_base::binary);
+                        boost::iostreams::filtering_ostream out;
+                        out.push(boost::iostreams::gzip_compressor()); 
+                        out.push(ofile); 
+                        out << "This is a gz file\n";*/
+
+                    }
 
                     break;
 
