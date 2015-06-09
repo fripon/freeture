@@ -65,7 +65,7 @@ class Logger {
         void archiveLog() {
 
             // Get current date.
-            mDate = TimeDate::splitStringToIntVector(TimeDate::localDateTime(microsec_clock::universal_time(),"%Y:%m:%d:%H:%M:%S"));
+            mDate = TimeDate::splitStringToInt(TimeDate::localDateTime(microsec_clock::universal_time(),"%Y:%m:%d:%H:%M:%S"));
 
             path pp(mLogPath);
 

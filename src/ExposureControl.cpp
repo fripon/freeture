@@ -250,7 +250,7 @@ bool ExposureControl::controlExposureTime(Device *camera, Mat image, string imag
                         putText(saveFrame, "EXP : " + Conversion::intToString(camera->getCam()->getExposureTime()), cvPoint(20,40),FONT_HERSHEY_COMPLEX_SMALL, 0.8, cvScalar(255), 1, CV_AA);
 
                         if(checkDataLocation(imageDate))
-                            SaveImg::saveBMP(saveFrame, finalDataLocation + "expControl_" + TimeDate::get_YYYYMMDDThhmmss(imageDate));
+                            SaveImg::saveBMP(saveFrame, finalDataLocation + "expControl_" + TimeDate::getYYYYMMDDThhmmss(imageDate));
 
                     }
 
@@ -480,7 +480,7 @@ bool ExposureControl::controlExposureTime(Device *camera, Mat image, string imag
                             putText(saveFrame, "EXP : " + Conversion::intToString(finalExposureTime), cvPoint(20,40),FONT_HERSHEY_COMPLEX_SMALL, 0.8, cvScalar(255), 1, CV_AA);
 
                             if(checkDataLocation(imageDate))
-                                SaveImg::saveBMP(saveFrame, finalDataLocation + "expControl_" + TimeDate::get_YYYYMMDDThhmmss(imageDate));
+                                SaveImg::saveBMP(saveFrame, finalDataLocation + "expControl_" + TimeDate::getYYYYMMDDThhmmss(imageDate));
 
                         }
 
@@ -493,7 +493,7 @@ bool ExposureControl::controlExposureTime(Device *camera, Mat image, string imag
                                 string infFilePath = finalDataLocation + "ExposureControl.txt";
                                 infFile.open(infFilePath.c_str(),std::ios_base::app);
 
-                                string d = TimeDate::get_YYYYMMDDThhmmss(imageDate);
+                                string d = TimeDate::getYYYYMMDDThhmmss(imageDate);
 
                                 infFile << "# DATE : " << d << "  EXP : " << Conversion::intToString(exposureValue) << "  MSV : "<< Conversion::floatToString(msv) << "\n";
 
@@ -562,7 +562,7 @@ bool ExposureControl::checkDataLocation(string date){
 	path p(autoExposureDataLocation);
 
     // data/STATION_YYYMMDD/
-	string sp1 = autoExposureDataLocation + stationName + "_" + TimeDate::get_YYYYMMDD_fromDateString(date) +"/";
+	string sp1 = autoExposureDataLocation + stationName + "_" + TimeDate::getYYYYMMDDfromDateString(date) +"/";
 	path p1(sp1);
 
     // data/STATION_YYYMMDD/exposure/

@@ -175,7 +175,7 @@ bool StackThread::loadStackParameters(){
 bool StackThread::buildStackDataDirectory(string date){
 
     namespace fs = boost::filesystem;
-    string	YYYYMMDD	= TimeDate::get_YYYYMMDD_fromDateString(date);
+    string	YYYYMMDD	= TimeDate::getYYYYMMDDfromDateString(date);
     string	root		= DATA_PATH + STATION_NAME + "_" + YYYYMMDD +"/";
     string	subDir		= "astro/";
     string	finalPath	= root + subDir;

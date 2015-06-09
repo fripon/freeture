@@ -860,7 +860,7 @@ bool Fits2D::writeFits(Mat img, ImgBitDepth imgType, string fileName){
     kDATE = to_iso_extended_string(time);
 
 	// Date in the fits filename.
-	string dateFileName = TimeDate::get_YYYYMMDDThhmmss(to_iso_string(time));
+	string dateFileName = TimeDate::getYYYYMMDDThhmmss(to_iso_string(time));
 
     // Define CRPIX1 and CRPIX2
     kCRPIX1 = (int)naxes[0] / 2;

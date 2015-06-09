@@ -51,43 +51,7 @@ string TimeDate::localDateTime(::boost::posix_time::ptime pt, string format){
 
 }
 
-//http://jean-paul.cornec.pagesperso-orange.fr/formule_jj.htm
-double TimeDate::gregorianToJulian_1(vector<int> date){
-
-    int y   = date.at(0);
-    int m   = date.at(1);
-    int d   = date.at(2);
-    int h   = date.at(3);
-    int min = date.at(4);
-    int s   = date.at(5);
-
-    if(m == 1 || m == 2){
-
-        y = y - 1;
-        m = m + 12;
-
-    }
-
-    double ent1 ;
-    double fractpart1 = modf(y/100, &ent1);
-
-    double ent2;
-    double fractpart2 = modf(ent1/4, &ent2);
-    double b = 2 - ent1 + ent2;
-
-    double t = h/24 + min/1440 + s/86400;
-
-    double ent3;
-    double fractpart3 = modf(365.25*(y+4716),&ent3);
-
-    double ent4;
-    double fractpart4 = modf(30.6001*(m+1),&ent4);
-
-    return ent3 + ent4 + d + t + b - 1524.5;
-
-}
-
-double TimeDate::gregorianToJulian_2(vector<int> date){
+double TimeDate::gregorianToJulian(vector<int> date){
 
     int y   = date.at(0);
     int m   = date.at(1);
@@ -143,12 +107,6 @@ double TimeDate::hmsToHdecimal(int H, int M, int S){
 
 }
 
-double TimeDate::degreeToHdecimal(int val){
-
-    return val / 15;
-
-}
-
 //conversion longitude degrées en H M S
 vector <int> TimeDate::HdecimalToHMS(double val){
 
@@ -167,16 +125,6 @@ vector <int> TimeDate::HdecimalToHMS(double val){
     res.push_back(entPart_s);
 
     return res;
-
-}
-
-double TimeDate::julianDateFromPreviousMidnightUT(int gregorianH, int gregorianMin, int gregorianS, double JDO){
-
-    double H = gregorianH + ((double)gregorianMin)/60 + ((double)gregorianS)/3600;
-
-    double JD = JDO + H/24;
-
-    return JD;
 
 }
 
@@ -219,7 +167,7 @@ double TimeDate::localSideralTime_1(double JD0, int gregorianH, int gregorianMin
 }
 
 //http://jean-paul.cornec.pagesperso-orange.fr/gmst0.htm
-double TimeDate::localSideralTime_2(double julianCentury, int gregorianH, int gregorianMin, int gregorianS, int longitude){
+double TimeDate::localSideralTime_2(double julianCentury, int gregorianH, int gregorianMin, int gregorianS, double longitude){
 
     double T = julianCentury;
 
@@ -295,99 +243,7 @@ double TimeDate::localSideralTime_2(double julianCentury, int gregorianH, int gr
 
 }
 
-//http://jean-paul.cornec.pagesperso-orange.fr/gmst0.htm
-double TimeDate::localSideralTime_2(double julianCentury, int gregorianH, int gregorianMin, float gregorianS, float longitude){
-
-    double T = julianCentury;
-
-    //Temps sidéral de Greenwich à 0h TU
-    double GTSM0_sec = 24110.54841 + (8640184.812866 * julianCentury) + (0.093104 * pow(julianCentury,2)) - (pow(julianCentury,3) * 0.0000062);
-    //cout << "GTSM0_sec "<< GTSM0_sec<<endl;
-
-    double entPart_h;
-    double fractPart_ms_dec = modf(GTSM0_sec/3600,&entPart_h);
-    //cout << "fractPart_ms_dec "<< fractPart_ms_dec<<endl;
-
-    double entPart_m ;
-    double fractPart_s = modf(fractPart_ms_dec*60,&entPart_m);
-    //cout << "fractPart_s "<< fractPart_s<<endl;
-
-    vector<int> GTSM0_hms;
-    GTSM0_hms.push_back((int)entPart_h%24); // H
-    GTSM0_hms.push_back((int)entPart_m); // M
-    GTSM0_hms.push_back((int)std::floor(fractPart_s*60+0.5)); // S
-
-    //cout << "GTSM0_hms-> "<<GTSM0_hms.at(0)<<"h "<<GTSM0_hms.at(1)<< "m "<<GTSM0_hms.at(2)<< "s"<<endl;
-
-    //conversion longitude degrées en H décimal
-   // double lon = 2.1794397;
-    double lon_Hdec = longitude / 15;
-
-    //cout << "LON_dec-> "<<lon_Hdec<<endl;
-
-    //conversion longitude degrées en H M S
-    double entPart_lon_h;
-    double fractPart_lon_ms_dec = modf(lon_Hdec,&entPart_lon_h);
-
-    double entPart_lon_m;
-    double fractPart_lon_s_dec = modf(fractPart_lon_ms_dec*60,&entPart_lon_m);
-
-    double entPart_lon_s = fractPart_lon_s_dec*60;
-
-    //cout << "LON_hms-> "<<entPart_lon_h<<"h "<<entPart_lon_m<< "m "<<entPart_lon_s<< "s"<<endl;
-
-    //cout << "LON_sec-> "<<entPart_lon_h*3600+entPart_lon_m*60+entPart_lon_s<<endl;
-
-
-    //Conversion de l'heure en temps sidéral écoulé
-    double HTS =(gregorianH*3600+gregorianMin*60+gregorianS)* 1.00273790935;
-    //cout << "HTS_sec-> "<<HTS<<endl;
-
-
-    double GTSMLocal_sec=GTSM0_sec+entPart_lon_h*3600+entPart_lon_m*60+entPart_lon_s+HTS;
-    //cout << "GTSMLocal_sec-> "<<GTSMLocal_sec<<endl;
-
-
-    double entPart_gtsm_h;
-    double fractPart_gtsm_ms_dec = modf(GTSMLocal_sec/3600,&entPart_gtsm_h);
-  //  cout << "fractPart_gtsm_ms_dec "<< fractPart_gtsm_ms_dec<<endl;
-
-    double entPart_gtsm_m ;
-    double fractPart_gtsm_s = modf(fractPart_gtsm_ms_dec*60,&entPart_gtsm_m);
-  //  cout << "fractPart_gtsm_s "<< fractPart_gtsm_s<<endl;
-
-    vector<double> GTSM0Local_hms;
-    GTSM0Local_hms.push_back((double)((int)entPart_gtsm_h%24)); // H
-    GTSM0Local_hms.push_back(entPart_gtsm_m); // M
-    GTSM0Local_hms.push_back(fractPart_gtsm_s*60); // S
-
-   // cout << "GTSMLocal_hms-> "<<GTSM0Local_hms.at(0)<<"h "<<GTSM0Local_hms.at(1)<< "m "<<fractPart_gtsm_s*60<< "s"<<endl;
-
-    double sideralT = 0.0;
-    sideralT = GTSM0Local_hms.at(0) * 15 + GTSM0Local_hms.at(1) * 0.250 + GTSM0Local_hms.at(2) *  0.00416667;
-
-    //cout << "sideralT in degree-> "<<sideralT<<endl;
-
-    return sideralT;
-
-}
-
-
-vector<string> TimeDate::splitStringToStringVector(string str){
-
-    vector<string> output;
-    typedef boost::tokenizer<boost::char_separator<char> > tokenizer;
-    boost::char_separator<char> sep(":");
-    tokenizer tokens(str, sep);
-    for (tokenizer::iterator tok_iter = tokens.begin();tok_iter != tokens.end(); ++tok_iter){
-        output.push_back(*tok_iter);
-    }
-
-    return output;
-
-}
-
-vector<int> TimeDate::splitStringToIntVector(string str){
+vector<int> TimeDate::splitStringToInt(string str){
 
     vector<string> output;
     vector<int> intOutput;
@@ -457,7 +313,7 @@ vector<int> TimeDate::getIntVectorFromDateString(string date){
 }
 
 // Input date format : YYYY:MM:DD from YYYY-MM-DDTHH:MM:SS,fffffffff
-string TimeDate::get_YYYYMMDD_fromDateString(string date){
+string TimeDate::getYYYYMMDDfromDateString(string date){
 
 	vector<string> output1;
 	vector<string> output2;
@@ -489,7 +345,7 @@ string TimeDate::get_YYYYMMDD_fromDateString(string date){
 
 }
 
-string TimeDate::get_YYYYMMDDThhmmss(string date){
+string TimeDate::getYYYYMMDDThhmmss(string date){
 
 	string finalDate = "";
 

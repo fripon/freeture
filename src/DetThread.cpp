@@ -198,10 +198,6 @@ bool DetThread::loadDetThreadParameters(){
 		string smtp_connection_type; cfg.Get("MAIL_CONNECTION_TYPE", smtp_connection_type);
 		EParser<SmtpSecurity> smtp_security;
 		mSmtpSecurity = smtp_security.parseEnum("MAIL_CONNECTION_TYPE", smtp_connection_type);
-	
-		// Get the SMTP server hostname.
-		cfg.Get("MAIL_SMTP_HOSTNAME", mMailSmtpHostname);
-		BOOST_LOG_SEV(logger, notification) << "MAIL_SMTP_HOSTNAME : " << mMailSmtpHostname;
 
 		// Get the option to reduce the stack of frame's event to 16 bits.
 		cfg.Get("STACK_REDUCTION", mStackReduction);
@@ -450,7 +446,7 @@ bool DetThread::buildEventDataDirectory(){
     namespace fs = boost::filesystem;
 
 	// eventDate is the date of the first frame attached to the event.
-	string YYYYMMDD = TimeDate::get_YYYYMMDD_fromDateString(mEventDate);
+	string YYYYMMDD = TimeDate::getYYYYMMDDfromDateString(mEventDate);
 
 	// Data location.
 	path p(mDataPath);
@@ -464,7 +460,7 @@ bool DetThread::buildEventDataDirectory(){
 	path p1(fp + fp1);
 
     // Current event directory with the format : STATION_AAAAMMDDThhmmss_UT
-	string fp2 = mStationName + "_" + TimeDate::get_YYYYMMDDThhmmss(mEventDate) + "_UT/";
+	string fp2 = mStationName + "_" + TimeDate::getYYYYMMDDThhmmss(mEventDate) + "_UT/";
 	path p2(fp + fp1 + fp2);
 
 	// Final path used by an other function to save event data.
@@ -693,7 +689,7 @@ bool DetThread::saveEventData(int firstEvPosInFB, int lastEvPosInFB){
             // FPS.
             fits3d.setCd3_3((*it).getFPS());
             // CRVAL1 : sideral time.
-            double  julianDate      = TimeDate::gregorianToJulian_2((*it).getDate());
+            double  julianDate      = TimeDate::gregorianToJulian((*it).getDate());
             double  julianCentury   = TimeDate::julianCentury(julianDate);
             double  sideralT        = TimeDate::localSideralTime_2(julianCentury, (*it).getDate().at(3), (*it).getDate().at(4), (*it).getDateSeconds(), mFitsHeader.getSitelong());
             fits3d.setCrval1(sideralT);
@@ -754,7 +750,7 @@ bool DetThread::saveEventData(int firstEvPosInFB, int lastEvPosInFB){
                 // FPS.
                 newFits.setCd3_3((*it).getFPS());
                 // CRVAL1 : sideral time.
-                double  julianDate      = TimeDate::gregorianToJulian_2((*it).getDate());
+                double  julianDate      = TimeDate::gregorianToJulian((*it).getDate());
                 double  julianCentury   = TimeDate::julianCentury(julianDate);
                 double  sideralT        = TimeDate::localSideralTime_2(julianCentury, (*it).getDate().at(3), (*it).getDate().at(4), (*it).getDateSeconds(), mFitsHeader.getSitelong());
                 newFits.setCrval1(sideralT);
@@ -819,7 +815,7 @@ bool DetThread::saveEventData(int firstEvPosInFB, int lastEvPosInFB){
                                 mMailSmtpPassword, 
                                 "freeture@" + mStationName +".fr", 
                                 mMailRecipients, 
-                                "Detection by " + mStationName  + "'s station - " + TimeDate::get_YYYYMMDDThhmmss(mEventDate), 
+                                "Detection by " + mStationName  + "'s station - " + TimeDate::getYYYYMMDDThhmmss(mEventDate), 
                                 mStationName + "\n" + mEventPath, 
                                 mailAttachments,
                                 mSmtpSecurity);

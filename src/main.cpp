@@ -45,6 +45,8 @@
     #endif
 #endif
 
+#include "Ephemeris.h"
+
 #include "ESmtpSecurity.h"
 #include "SMTPClient.h"
 #include <boost/log/common.hpp>
@@ -228,7 +230,7 @@ int main(int argc, const char ** argv){
         string  fileName        = "snap";
         string  sendMail        = "";
 
-        std::cout << "Default configuration file : " << string(CFG_PATH) << "configuration.cfg" <<endl;
+        //std::cout << " ( Default cfg file : " << string(CFG_PATH) << "configuration.cfg )" <<endl;
 
         po::store(po::parse_command_line(argc, argv, desc), vm);
 
@@ -282,22 +284,44 @@ int main(int argc, const char ** argv){
                         BOOST_LOG_SEV(slg,notification) << "======== FREETURE - Available cameras ========";
                         BOOST_LOG_SEV(slg,notification) << "==============================================";
 
-
                         std::cout << "================================================" << endl;
                         std::cout << "========= FREETURE - Available cameras =========" << endl;
                         std::cout << "================================================" << endl << endl;
 
-                        string  camtype;
-                        if(vm.count("camtype"))	camtype = vm["camtype"].as<string>();
-                        std::transform(camtype.begin(), camtype.end(),camtype.begin(), ::toupper);
-
                         std::cout << "Searching cameras..." << endl << endl;
 
+                        string camtype; 
+                        camtype = "BASLER_GIGE";
                         EParser<CamType> cam_type;
 
-                        Device *device = new Device(cam_type.parseEnum("CAMERA_TYPE", camtype));
+                        #ifdef WINDOWS
 
-                        device->getCam()->listGigeCameras();
+                            // Search BASLER GIGE cameras.
+                            {
+                                
+                                Device *device = new Device(cam_type.parseEnum("CAMERA_TYPE", camtype));
+                                device->getCam()->listGigeCameras();
+                                delete device;
+                            }
+
+                            // Search TIS GIGE cameras.
+                            camtype = "DMK_GIGE";
+                            {
+                                
+                                Device *device = new Device(cam_type.parseEnum("CAMERA_TYPE", camtype));
+                                device->getCam()->listGigeCameras();
+                                delete device;
+                            }
+
+                            cout << endl << "************************************************" << endl;
+                            
+                        #else
+
+                            Device *device = new Device(cam_type.parseEnum("CAMERA_TYPE", camtype));
+                            device->getCam()->listGigeCameras();
+                            delete device;
+
+                        #endif
 
                     }
 
@@ -306,17 +330,27 @@ int main(int argc, const char ** argv){
                 case 2 :
 
                     ///%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-                    ///%%%%%%%%%%%%%%% MODE 2 : VIEW/CHECK CONFIGURATION FILE %%%%%%%%%%%%%%%%
+                    ///%%%%%%%%%%%%%%% MODE 2 : TEST/CHECK CONFIGURATION %%%%%%%%%%%%%%%%%%%%%
                     ///%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
                     {
-                        /*
-                        FreeTure ft(configPath);
-                        ft.loadParameters();
-                        ft.printParameters();
-                        */
+              
+                        std::cout << "================================================" << endl;
+                        std::cout << "====== FREETURE - Test/Check configuration =====" << endl;
+                        std::cout << "================================================" << endl << endl;
 
-                        cout << "Mode 2 not available in this version" << endl;
+                        std::cout << "Mode 2 disabled in this version." << endl;
+
+                        /*
+                        
+                        //The static member function boost::thread::hardware_concurrency() returns the number
+                        //of threads that can physically be executed at the same time, based on the underlying
+                        //number of CPUs or CPU cores. Calling this function on a dual-core processor returns a
+                        //value of 2. This function provides a simple method to identify the theoretical maximum
+                        //number of threads that should be used.
+                        std::cout << "CORE DETECTED : " << boost::thread::hardware_concurrency()<< endl << endl;
+                        
+                        */
 
                     }
 
@@ -333,13 +367,6 @@ int main(int argc, const char ** argv){
                         std::cout << "================================================" << endl;
                         std::cout << "======= FREETURE - Meteor detection mode =======" << endl;
                         std::cout << "================================================" << endl << endl;
-
-                        /*The static member function boost::thread::hardware_concurrency() returns the number
-                        of threads that can physically be executed at the same time, based on the underlying
-                        number of CPUs or CPU cores. Calling this function on a dual-core processor returns a
-                        value of 2. This function provides a simple method to identify the theoretical maximum
-                        number of threads that should be used.*/
-                        std::cout << "CORE DETECTED : " << boost::thread::hardware_concurrency()<< endl << endl;
 
                         /// ------------------------------------
                         /// ------ LOAD FREETURE PARAMETERS ----
@@ -537,13 +564,17 @@ int main(int argc, const char ** argv){
 
                                             #ifdef WINDOWS
                                                 Sleep(1000);
-                                                //cout << "wait 60 in main sec" << endl;
+                                                
+                                                // Exit if ESC is pressed.
+                                                if(GetAsyncKeyState(VK_ESCAPE)!=0)
+                                                    break;
+
                                             #elif defined LINUX
                                                 sleep(1);
                                             #endif
-
+                                  
                                             string acq = TimeDate::localDateTime(microsec_clock::universal_time(),"%Y:%m:%d:%H:%M:%S");
-                                            vector<int> acq_int= TimeDate::splitStringToIntVector(acq);
+                                            vector<int> acq_int= TimeDate::splitStringToInt(acq);
 
                                             // At 00h00, check logs once.
                                             if(acq_int.at(3) == 0 && acq_int.at(4) == 0 && waitLogTime) {
@@ -780,16 +811,15 @@ int main(int argc, const char ** argv){
                         frame.setBitDepth(camFormat);
 
                         EParser<CamType> cam_type;
-
                         Device *device = new Device(cam_type.parseEnum("CAMERA_TYPE", camtype));
 
                         if(!device->getCam()->grabSingleImage(frame, camID)){
                             delete device;
-                            throw "> Failed to grab a single frame.";
+                            throw ">> Single capture failed.";
                         }
                         delete device;
 
-                        cout << endl << ">> Single capture succeed !" << endl;
+                        cout << ">> Single capture succeed." << endl;
 
                         /// ---------------------- Save grabbed frame --------------------------
 
@@ -812,6 +842,7 @@ int main(int argc, const char ** argv){
                             }
 
                             SaveImg::saveBMP(newMat, savePath + fileName + "-" + Conversion::intToString(filenum));
+                            cout << ">> Bmp saved : " << savePath << fileName << "-" << Conversion::intToString(filenum) << ".bmp" << endl;
 
                         }
 
@@ -845,7 +876,7 @@ int main(int argc, const char ** argv){
 
                                 vector<int> firstDateInt = TimeDate::getIntVectorFromDateString(frame.getAcqDateMicro());
                                 double  debObsInSeconds = firstDateInt.at(3)*3600 + firstDateInt.at(4)*60 + firstDateInt.at(5);
-                                double  julianDate      = TimeDate::gregorianToJulian_2(firstDateInt);
+                                double  julianDate      = TimeDate::gregorianToJulian(firstDateInt);
                                 double  julianCentury   = TimeDate::julianCentury(julianDate);
                                 double  sideralT        = TimeDate::localSideralTime_2(julianCentury, firstDateInt.at(3), firstDateInt.at(4), firstDateInt.at(5), fitsHeader.getSitelong());
                                 newFits.setCrval1(sideralT);
@@ -863,7 +894,7 @@ int main(int argc, const char ** argv){
                                     {
                                         // Create FITS image with BITPIX = BYTE_IMG (8-bits unsigned integers), pixel with TBYTE (8-bit unsigned byte)
                                         if(newFits.writeFits(frame.getImg(), UC8, fileName + "-" + Conversion::intToString(filenum)))
-                                            cout << ">> Fits saved in : " << savePath << fileName << "-" << Conversion::intToString(filenum) << endl;
+                                            cout << ">> Fits saved in : " << savePath << fileName << "-" << Conversion::intToString(filenum) << ".fit" << endl;
 
                                     }
 
@@ -906,7 +937,7 @@ int main(int argc, const char ** argv){
 
                                         // Create FITS image with BITPIX = SHORT_IMG (16-bits signed integers), pixel with TSHORT (signed short)
                                         if(newFits.writeFits(newMat, S16, fileName + "-" + Conversion::intToString(filenum)))
-                                            cout << ">> Fits saved in : " << savePath << fileName << "-" << Conversion::intToString(filenum)<< endl;
+                                            cout << ">> Fits saved in : " << savePath << fileName << "-" << Conversion::intToString(filenum) << ".fit" << endl;
 
                                     }
                             }
@@ -927,7 +958,7 @@ int main(int argc, const char ** argv){
                                 SMTPClient::sendMail("10.8.0.1", 
                                                     "",
                                                     "", 
-                                                    "yoan.audureau@u-psud.fr", 
+                                                    "freeture@u-psud.fr", 
                                                     to, 
                                                     fileName + "-" + Conversion::intToString(filenum) + ".fit", 
                                                     " Exposure time : " + Conversion::intToString((int)exp) + "\n Gain : " + Conversion::intToString((int)gain) + "\n Format : " + Conversion::intToString(acqFormat),
@@ -939,34 +970,34 @@ int main(int argc, const char ** argv){
                             }
                         }
 
-
                         /// -------------------- Display grabbed frame --------------------------
 
                         // Display the frame in an opencv window
                         if(display && frame.getImg().data){
 
-                            cout << ">> Display captured frame..." << endl;
+                            cout << ">> Display single capture." << endl;
 
                             Mat temp, temp1;
                             frame.getImg().copyTo(temp1);
 
                             if(camFormat == MONO_12){
 
-                                temp = Conversion::convertTo8UC1(temp1);
+                                Mat gammaCorrected = ImgProcessing::correctGammaOnMono12(temp1,2.2);
+                                temp = Conversion::convertTo8UC1(gammaCorrected);
 
                             }else{
 
-                                frame.getImg().copyTo(temp);
+                                temp = ImgProcessing::correctGammaOnMono8(temp1,2.2);
                             }
 
-                            namedWindow( "Frame", WINDOW_AUTOSIZE );
-                            imshow("Frame", temp);
+                            namedWindow("FreeTure - Single capture", WINDOW_NORMAL);
+                            imshow("FreeTure - Single capture", temp);
                             waitKey(0);
 
                         }
+                    
                     }
-
-
+                    
                     break;
 
                 case 5 :
@@ -1011,21 +1042,7 @@ int main(int argc, const char ** argv){
 
                     {
 
-                        
-
-                    }
-
-                    break;
-
-                case 7 :
-
-                    {
-              /*
-                        std::ofstream ofile("hello.gz", std::ios_base::out | std::ios_base::binary);
-                        boost::iostreams::filtering_ostream out;
-                        out.push(boost::iostreams::gzip_compressor()); 
-                        out.push(ofile); 
-                        out << "This is a gz file\n";*/
+                        Ephemeris::ephemeris();
 
                     }
 
@@ -1035,13 +1052,12 @@ int main(int argc, const char ** argv){
 
                     {
 
-                        cout << "Please choose a mode (example : -m 1 )"            << endl
+                        cout << "Please choose a mode, for example : freeture -m 1" << endl
                                                                                     << endl;
-                        cout << "Available modes are :"                             << endl;
-                        cout << "1 : List connected devices"                        << endl;
-                        cout << "2 : Check and print configuration file"            << endl;
-                        cout << "3 : Run meteor detection"                          << endl;
-                        cout << "4 : Test a camera by single capture"               << endl;
+                        cout << "[1] List connected cameras."                       << endl;
+                        cout << "[2] Check configuration."                          << endl;
+                        cout << "[3] Run meteor detection."                         << endl;
+                        cout << "[4] Run single capture."                           << endl;
 
                     }
 

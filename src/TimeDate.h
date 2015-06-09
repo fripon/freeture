@@ -29,7 +29,7 @@
 * \author  Yoan Audureau -- FRIPON-GEOPS-UPSUD
 * \version 1.0
 * \date    13/06/2014
-* \brief   Manage time.
+* \brief   Time helpers.
 */
 
 #pragma once
@@ -49,41 +49,103 @@ class TimeDate {
 
     public :
 
+        /**
+        * Get local date time in UT
+        *
+        * @param pt Boost ptime.
+        * @param format "%Y:%m:%d:%H:%M:%S"
+        * @return Date time in string.
+        */
         static string localDateTime(::boost::posix_time::ptime pt, string format);
 
-        static double gregorianToJulian_1(vector<int> date);
+        /**
+        * Convert gregorian date to julian date.
+        *
+        * @param date Vector of date : YYYY, MM, DD, hh, mm, ss.
+        * @return Julian date.
+        */
+        static double gregorianToJulian(vector<int> date);
 
-        static double gregorianToJulian_2(vector<int> date);
-
+        /**
+        * Get julian century from julian date.
+        *
+        * @param julianDate.
+        * @return Julian century.
+        */
         static double julianCentury(double julianDate);
 
+        /**
+        * Convert Hours:Minutes:seconds to decimal hours.
+        *
+        * @param H hours.
+        * @param M minutes.
+        * @param S seconds.
+        * @return decimal hours.
+        */
         static double hmsToHdecimal(int H, int M, int S);
 
-        static double degreeToHdecimal(int val);
-
+        /**
+        * Convert decimal hours to Hours:Minutes:seconds.
+        *
+        * @param val Decimal hours.
+        * @return Vector of Hours:Minutes:seconds.
+        */
         static vector<int> HdecimalToHMS(double val);
 
-        static double julianDateFromPreviousMidnightUT(int gregorianH, int gregorianMin, int gregorianS, double JD0);
+        /**
+        * Get local sideral time.
+        *
+        * @param julianCentury 
+        * @param gregorianH
+        * @param gregorianMin
+        * @param gregorianS
+        * @param longitude
+        * @return Local sideral time.
+        */
+        static double localSideralTime_2(double julianCentury, int gregorianH, int gregorianMin, int gregorianS, double longitude);
 
-        static double localSideralTime_2(double julianCentury, int gregorianH, int gregorianMin, int gregorianS, int longitude);
-
-        static double localSideralTime_2(double julianCentury, int gregorianH, int gregorianMin, float gregorianS, float longitude);
-
+        /**
+        * Get local sideral time.
+        *
+        * @param julianDate 
+        * @param gregorianH
+        * @param gregorianMin
+        * @param gregorianS
+        * @return Local sideral time.
+        */
         static double localSideralTime_1(double JD0, int gregorianH, int gregorianMin, int gregorianS);
 
-        static vector<string> splitStringToStringVector(string str);
+        /**
+        * Split string to int values according to the ":" separator.
+        * 
+        * @param str String to split. Its format is YYYY:MM:DD:HH:MM:SS
+        * @return Vector of int values.
+        */
+        static vector<int> splitStringToInt(string str);
 
-        static vector<int> splitStringToIntVector(string str);
+        /**
+        * Get YYYYMMDD from date string.
+        * 
+        * @param date Date with the following format : YYYY-MM-DDTHH:MM:SS.fffffffff
+        * @return YYYYMMDD.
+        */
+        static string getYYYYMMDDfromDateString(string date);
 
-        // Date input format : YYYY-MM-DDTHH:MM:SS.fffffffff
-        static string get_YYYYMMDD_fromDateString(string date);
-
-        // Date input format : YYYY-MM-DDTHH:MM:SS.fffffffff
+        /**
+        * Get year, month, date, hours, minutes and seconds from date string.
+        * 
+        * @param date Date with the following format : YYYY-MM-DDTHH:MM:SS.fffffffff
+        * @return Vector of int values.
+        */
         static vector<int> getIntVectorFromDateString(string date);
 
-        // Date input format	: YYYYMMJJTHHMMSS.fffffffff
-        // Date output format	: YYYYMMJJTHHMMSS
-        static string get_YYYYMMDDThhmmss(string date);
+        /**
+        * Get YYYYMMJJTHHMMSS date.
+        * 
+        * @param date YYYYMMJJTHHMMSS.fffffffff
+        * @return YYYYMMJJTHHMMSS.
+        */
+        static string getYYYYMMDDThhmmss(string date);
 
 };
 

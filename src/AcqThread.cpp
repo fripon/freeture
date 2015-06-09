@@ -203,12 +203,8 @@ void AcqThread::operator()(){
                 bool grabStatus = false;
 
                 double tacq = (double)getTickCount();
-				double tacq1 = (double)getTickCount();
-
+	
                 if(mDevice->getCam()->grabImage(newFrame)){
-
-					tacq1 = (((double)getTickCount() - tacq1)/getTickFrequency())*1000;
-					std::cout << " [ TIME GRAB IMAGE ] : " << tacq1 << " ms" << endl;
 
                     grabStatus = true;
 
@@ -293,7 +289,7 @@ void AcqThread::operator()(){
 
                 }else{
 
-                    BOOST_LOG_SEV(logger, notification) << "> Fail to grab frame";
+                    BOOST_LOG_SEV(logger, notification) << ">> Fail to grab frame";
                     mNbGrabFail++;
 
                 }
@@ -834,7 +830,7 @@ bool AcqThread::runScheduledAcquisition(AcqSchedule task){
             // Save the frame in Fits 2D.
             if(frame.getImg().data){
 
-                string	YYYYMMDD = TimeDate::get_YYYYMMDD_fromDateString(task.getDate());
+                string	YYYYMMDD = TimeDate::getYYYYMMDDfromDateString(task.getDate());
                 cout << "YYYYMMDD : " << YYYYMMDD << endl;
                 if(buildAcquisitionDirectory(YYYYMMDD)){
 
@@ -848,7 +844,7 @@ bool AcqThread::runScheduledAcquisition(AcqSchedule task){
 
                     vector<int> firstDateInt = TimeDate::getIntVectorFromDateString(task.getDate());
                     double  debObsInSeconds = firstDateInt.at(3)*3600 + firstDateInt.at(4)*60 + firstDateInt.at(5);
-                    double  julianDate      = TimeDate::gregorianToJulian_2(firstDateInt);
+                    double  julianDate      = TimeDate::gregorianToJulian(firstDateInt);
                     double  julianCentury   = TimeDate::julianCentury(julianDate);
                     double  sideralT        = TimeDate::localSideralTime_2(julianCentury, firstDateInt.at(3), firstDateInt.at(4), firstDateInt.at(5), mDevice->getFitsHeader().getSitelong());
                     newFits.setCrval1(sideralT);
@@ -1017,7 +1013,7 @@ bool AcqThread::runRegularAcquisition(string frameDate){
             // Save the frame in Fits 2D.
             if(frame.getImg().data){
 
-                string	YYYYMMDD = TimeDate::get_YYYYMMDD_fromDateString(frameDate);
+                string	YYYYMMDD = TimeDate::getYYYYMMDDfromDateString(frameDate);
                 cout << "YYYYMMDD : " << YYYYMMDD << endl;
                 if(buildAcquisitionDirectory(YYYYMMDD)){
 
@@ -1033,7 +1029,7 @@ bool AcqThread::runRegularAcquisition(string frameDate){
 
                     vector<int> firstDateInt = TimeDate::getIntVectorFromDateString(frameDate);
                     double  debObsInSeconds = firstDateInt.at(3)*3600 + firstDateInt.at(4)*60 + firstDateInt.at(5);
-                    double  julianDate      = TimeDate::gregorianToJulian_2(firstDateInt);
+                    double  julianDate      = TimeDate::gregorianToJulian(firstDateInt);
                     double  julianCentury   = TimeDate::julianCentury(julianDate);
                     double  sideralT        = TimeDate::localSideralTime_2(julianCentury, firstDateInt.at(3), firstDateInt.at(4), firstDateInt.at(5), mDevice->getFitsHeader().getSitelong());
                     newFits.setCrval1(sideralT);

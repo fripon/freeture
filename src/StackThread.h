@@ -99,6 +99,17 @@ class StackThread {
 
     public :
 
+        /**
+        * Constructor.
+        *
+        * @param cfg_p Path of the configuration file.
+        * @param sS Pointer on a boolean used as a signal.
+        * @param sS_m Pointer on a mutex.
+        * @param sS_c Pointer on a condition variable.
+        * @param fb Pointer on the framebuffer.
+        * @param fb_m Pointer on the mutex to access to the framebuffer.
+        * @param fb_c Pointer on a condition variable.
+        */
         StackThread(    string                          cfg_p,
                         bool                            *sS,
                         boost::mutex                    *sS_m,
@@ -107,22 +118,56 @@ class StackThread {
                         boost::mutex                    *fb_m,
                         boost::condition_variable       *fb_c);
 
+        /**
+        * Destructor.
+        *
+        */
         ~StackThread(void);
 
+        /**
+        * Start thread.
+        *
+        */
         bool startThread();
 
+        /**
+        * Stop thread.
+        *
+        */
         void stopThread();
 
+        /**
+        * Stack thread.
+        *
+        */
         void operator()();
 
+        /**
+        * Get stack thread running status.
+        *
+        */
         bool getRunStatus();
 
+        /**
+        * Interrupt stack thread.
+        *
+        */
         bool interruptThread();
 
     private :
 
+        /**
+        * Load stack thread parameters.
+        *
+        */
         bool loadStackParameters();
 
+        /**
+        * Build directory to save stack.
+        *
+        * @param date
+        * @return Success to create directory.
+        */
         bool buildStackDataDirectory(string date);
 
 

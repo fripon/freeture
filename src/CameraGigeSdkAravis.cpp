@@ -58,18 +58,18 @@
 
         BOOST_LOG_SEV(logger, notification) << "Cameras detected with Aravis : ";
 
-		cout << "******** DETECTED CAMERAS WITH ARAVIS ********** " << endl;
-		cout << "*" << endl;
+		
+        cout << endl << "************* GIGE with ARAVIS *****************" << endl << endl;
 
 		for(int i = 0; i < n_devices; i++){
 
-			cout << "* -> [" << i << "] " << arv_get_device_id(i)<< endl;
+			cout << "-> [" << i << "] " << arv_get_device_id(i)<< endl;
 			BOOST_LOG_SEV(logger, notification) << " -> [" << i << "] " << arv_get_device_id(i);
 
 		}
 
-		cout << "*" << endl;
-		cout << "************************************************ " << endl;
+        if(n_devices == 0)
+            cout << "-> No cameras detected..." << endl;
 
 	}
 

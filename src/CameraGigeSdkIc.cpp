@@ -65,16 +65,23 @@
 		// Retrieve a list with the video capture devices connected to the computer.
 		pVidCapDevList = m_pGrabber->getAvailableVideoCaptureDevices();
 
-		cout << "******** DETECTED CAMERAS WITH IMAGING SOURCE ********** " << endl;
-		cout << "*" << endl;
+        cout << endl << "******************* TIS GIGE *******************" << endl << endl;
 
 		// Print available devices.
-		for(int i = 0; i < pVidCapDevList->size(); i++)
-			cout << "* -> [" << i << "] " << pVidCapDevList->at(0).c_str() << endl;
-		
-		cout << "*" << endl;
-		cout << "******************************************************** " << endl;
+		for(int i = 0; i < pVidCapDevList->size(); i++) {
 
+            LARGE_INTEGER iSerNum;
+            if(pVidCapDevList->at(0).getSerialNumber(iSerNum.QuadPart) == false) iSerNum.QuadPart = 0;
+            std::ostringstream ossSerNum;
+            ossSerNum << std::hex << iSerNum.QuadPart;
+            string SerNum = ossSerNum.str();
+
+			cout << "-> ID[" << i << "]  NAME[" << pVidCapDevList->at(0).c_str() << "]  S/N[" << SerNum <<"]" << endl;
+
+        }
+
+        if(pVidCapDevList->size() == 0)
+            cout << "-> No cameras detected..." << endl;
 	}
 
 	// https://valelab.ucsf.edu/svn/micromanager2/branches/micromanager1.3/DeviceAdapters/TISCam/SimplePropertyAccess.cpp
@@ -202,8 +209,6 @@
 					
 			case MONO_8 :
 
-				cout << "Y8 (1280x960-1280x960)" << endl;
-
 				m_pGrabber->setVideoFormat("Y8 (1280x960-1280x960)");
 
 				// Set the image buffer format to eY800. eY800 means monochrome, 8 bits (1 byte) per pixel.
@@ -214,7 +219,6 @@
 
 			case MONO_12 :
 				
-				cout << "Y16 (1280x960-1280x960)" << endl;
 				m_pGrabber->setVideoFormat("Y16 (1280x960-1280x960)");
 
 				// Disable overlay.
@@ -276,13 +280,12 @@
 
 		if(value > mExposureMax || value < mExposureMin){
 
-			cout << "Fail to set exposure. Available range value is " << mExposureMin << " to " << mExposureMax << endl;
+			cout << ">> Fail to set exposure. Available range value is " << mExposureMin << " to " << mExposureMax << endl;
 			return false;
 		}
 
 		setPropertyValue(DShowLib::VCDID_Exposure, (long)value, pItems);
 		mExposure = value;
-		cout << "setExposureTime : " << mExposure <<  endl;
 		return true;
 
 	}
@@ -300,14 +303,13 @@
 
 		if(value > mGainMax || value < mGainMin){
 
-			cout << "Fail to set gain. Available range value is " << mGainMin << " to " << mGainMax << endl;
+			cout << ">> Fail to set gain. Available range value is " << mGainMin << " to " << mGainMax << endl;
 			return false;
 
 		}
 
 		setPropertyValue(DShowLib::VCDID_Gain, (long)value, pItems);
 		mGain = value;
-		cout << "setGain : " << mGain <<  endl;
 		return true;
 
 	}
@@ -383,7 +385,7 @@
 			case 8 :
 
 				{
-					cout << "8 bits"  << endl;
+			
 					newImg = Mat(info.dim.cy, info.dim.cx, CV_8UC1, Scalar(0));
 					
 					pSink->snapImages(1,(DWORD)-1);
@@ -398,15 +400,12 @@
 
 				{
 
-					cout << "16 bits"  << endl;
 					newImg = Mat(info.dim.cy, info.dim.cx, CV_16UC1, Scalar(0));
 				
-					
 					pSink->snapImages(1,(DWORD)-1);
 
 					memcpy(newImg.ptr(), pBuf[0], info.buffersize);
-
-										
+				
 					unsigned short * ptr;
 
 					double t = (double)getTickCount();
@@ -498,6 +497,8 @@
 
 		listGigeCameras();
 
+        cout << endl << "************************************************" << endl << endl;
+
 		if(createDevice(camID)) {
 
 			if(!setPixelFormat(frame.getBitDepth()))
@@ -508,6 +509,8 @@
 
 			if(!setGain(frame.getGain()))
 				return false;
+
+            cout << ">> Acquisition in progress..." << endl;
 								
 			// Set the sink.
 			m_pGrabber->setSinkType(pSink);
@@ -535,7 +538,7 @@
 				case 8 :
 
 					{
-						cout << "8 bits image" << endl;
+	
 						newImg = Mat(info.dim.cy, info.dim.cx, CV_8UC1, Scalar(0));
 						//BYTE* pBuf[1];
 						// Allocate image buffers of the above calculate buffer size.
@@ -563,7 +566,7 @@
 				case 16 :
 
 					{
-						cout << "16 bits image" << endl;
+		
 						newImg = Mat(info.dim.cy, info.dim.cx, CV_16UC1, Scalar(0));
 						BYTE * pBuf[1];
 						// Allocate image buffers of the above calculate buffer size.
@@ -620,7 +623,8 @@
 			boost::posix_time::ptime time = boost::posix_time::microsec_clock::universal_time();
 			string acqDateInMicrosec = to_iso_extended_string(time);
 
-            frame = Frame(newImg, 0, 0, acquisitionDate);
+            frame.setAcqDate(acquisitionDate);
+            frame.setImg(newImg);
             frame.setAcqDateMicro(acqDateInMicrosec);
             frame.setFPS(0);
 

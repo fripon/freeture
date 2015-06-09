@@ -110,7 +110,7 @@ bool Stack::saveStack(Fits fitsHeader, string path, StackMeth stackMthd, string 
     double  debObsInSeconds = firstDateInt.at(3)*3600 + firstDateInt.at(4)*60 + firstDateInt.at(5);
     double  endObsInSeconds = lastDateInt.at(3)*3600 + lastDateInt.at(4)*60 + lastDateInt.at(5);
     double  elapTime        = endObsInSeconds - debObsInSeconds;
-    double  julianDate      = TimeDate::gregorianToJulian_2(firstDateInt);
+    double  julianDate      = TimeDate::gregorianToJulian(firstDateInt);
     double  julianCentury   = TimeDate::julianCentury(julianDate);
     double  sideralT        = TimeDate::localSideralTime_2(julianCentury, firstDateInt.at(3), firstDateInt.at(4), firstDateInt.at(5), fitsHeader.getSitelong());
 

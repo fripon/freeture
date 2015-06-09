@@ -95,7 +95,6 @@ class DetThread {
         Fits                            mFitsHeader;
         bool                            mMailAlertEnabled;          // Enable to send mail alert        (parameter from configuration file).
         string                          mMailSmtpServer;            // SMTP server                      (parameter from configuration file).
-        string                          mMailSmtpHostname;          // SMTP hostname                    (parameter from configuration file).
         string                          mMailSmtpLogin;
         string                          mMailSmtpPassword;
         SmtpSecurity                    mSmtpSecurity;

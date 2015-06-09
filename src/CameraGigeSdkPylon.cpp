@@ -67,61 +67,53 @@ CameraGigeSdkPylon::~CameraGigeSdkPylon(void){
 
 }
 
-void CameraGigeSdkPylon::listGigeCameras(){
+void CameraGigeSdkPylon::listGigeCameras() {
 
-	try{
+	try {
 
-		if (!pTlFactory){
+		if(!pTlFactory) {
 
-			cout << "TransportLayer creation succeed" << endl;
 			pTlFactory=&CTlFactory::GetInstance();
 
 		}
 
 		// Exit the application if the specific transport layer is not available
-		if (!pTlFactory){
+		if(!pTlFactory) {
 
 			cout << "Failed to create TransportLayer" << endl;
 			return;
 		}
 
-		if (!connectionStatus){
+		if(!connectionStatus) {
 
 			devices.clear();
 
-			if (pTlFactory){
+			if(pTlFactory) {
 
-				if (0 == pTlFactory->EnumerateDevices(devices)){
+                cout << "****************** BASLER GIGE ***************** " << endl << endl;
 
-					cout << "No cameras detected..." << endl;
+				if (0 == pTlFactory->EnumerateDevices(devices)) {
 
-				}else{
-
-					cout << "(ID) Cameras has been detected : " << endl;
+					cout << "-> No cameras detected..." << endl;
 
 				}
 
 				int id=0;
 
-				if ( ! devices.empty() && ! connectionStatus){
+				if( ! devices.empty() && ! connectionStatus) {
 
 					DeviceInfoList_t::const_iterator it;
 
-					for (it = devices.begin(); it != devices.end(); ++it ){
+					for(it = devices.begin(); it != devices.end(); ++it ) {
 
-						if (!devices.empty()){
+						if(!devices.empty()){
 
-							if(devices[id].GetFullName().find_first_of("Basler")==0||devices[id].GetFullName().find_first_of("Prosilica")==0){
+							if(devices[id].GetFullName().find_first_of("Basler")==0||devices[id].GetFullName().find_first_of("Prosilica")==0) {
 
-								cout<<"-->";
-								cout<< "	ID :		"		<<id<<endl;
-								cout<< "	S/N :		"		<<devices[id].GetSerialNumber().c_str()<<endl;
-								cout<< "	Name :		"		<<devices[id].GetModelName().c_str()<<endl;
+                                /*list<string> ch;
+								Conversion::stringTok(ch,devices[id].GetFullName().c_str(), "#");*/
 
-								list<string> ch;
-								Conversion::stringTok(ch,devices[id].GetFullName().c_str(), "#");
-
-								cout<< "	Adress :	"		<<ch.back()<<endl<<endl;
+                                cout << "-> ID[" << id << "]  NAME[" << devices[id].GetModelName().c_str() << "]  S/N[" << devices[id].GetSerialNumber().c_str() <<"]"/* ADRESS[" << ch.back() << "]"*/ << endl;
 
 							}
 						}
@@ -152,8 +144,7 @@ bool CameraGigeSdkPylon::createDevice(int id){
 				if(id >= 0 && id < devices.size()){
 
 					pDevice = pTlFactory->CreateDevice(devices[id]);
-					cout << "success to create device : " << id<< endl;
-
+			
 				}else{
 
 					cout << "No camera with id : " << id << endl;
@@ -426,20 +417,6 @@ bool CameraGigeSdkPylon::grabImage(Frame &newFrame){
 
     bool res = true;
 
- //  pCamera->TemperatureSelector.SetValue(TemperatureSelector_Sensorboard);
-
-   // double temperature = pCamera->TemperatureAbs.GetValue();
-
-          /* INodeMap* nodemap = pCamera->GetNodeMap();
-           cout << "Vendor           : "
-             << CStringPtr( nodemap->GetNode( "DeviceInformation") )->GetValue() << endl;
-
-          // CFloatPtr tempe( nodemap->GetNode( "TemperatureAbs"));
-//cout << "TEMPERATURE : " <<  tempe  <<endl;
-
-           cout << "TEMPERATURE : " <<  temperature  <<endl;
-*/
-
     if(pStreamGrabber->GetWaitObject().Wait(3000)){
 
         // Get an item from the grabber's output queue
@@ -453,7 +430,6 @@ bool CameraGigeSdkPylon::grabImage(Frame &newFrame){
         CGrabResultPtr ptrGrabResult;
 
         if(result.Succeeded()){
-			cout << "success to grab a frame "<<endl;
 
 			//Timestamping.
 			string acquisitionDate = TimeDate::localDateTime(microsec_clock::universal_time(),"%Y:%m:%d:%H:%M:%S");
@@ -519,22 +495,22 @@ bool CameraGigeSdkPylon::grabImage(Frame &newFrame){
 
 bool CameraGigeSdkPylon::grabSingleImage(Frame &frame, int camID){
 
-	try{
+	try {
 
 		pTlFactory = &CTlFactory::GetInstance();
 
 		devices.clear();
 
-		if(pTlFactory){
+		if(pTlFactory) {
 
 			if (0 == pTlFactory->EnumerateDevices(devices)){
 
-				cout << "Camera (ID:" << camID << ") not found. " << endl;
+				cout << ">> Camera (ID:" << camID << ") not found. " << endl;
 				return false;
 
-			}else{
+			}else {
 
-				cout << "Camera (ID:" << camID << ") found ! " << endl;
+				cout << ">> Camera (ID:" << camID << ") found. " << endl;
 
 			}
 		}
@@ -542,16 +518,13 @@ bool CameraGigeSdkPylon::grabSingleImage(Frame &frame, int camID){
 		// Create an instant camera object with the correct id camera device.
 		CInstantCamera camera( CTlFactory::GetInstance().CreateDevice(devices[camID].GetFullName()));
 
-		// Print infos about the camera.
-		cout << "Device selected :          " << camera.GetDeviceInfo().GetModelName() << endl;
-
 		INodeMap& nodemap = camera.GetNodeMap();
 
         // Open the camera for accessing the parameters.
         camera.Open();
 
-		CIntegerPtr width( nodemap.GetNode("Width"));
-        CIntegerPtr height( nodemap.GetNode("Height"));
+		CIntegerPtr width(nodemap.GetNode("Width"));
+        CIntegerPtr height(nodemap.GetNode("Height"));
 
 		// Set width and height to the maximum sensor's size.
         width->SetValue(width->GetMax());
@@ -559,76 +532,70 @@ bool CameraGigeSdkPylon::grabSingleImage(Frame &frame, int camID){
 
 		// Set pixel format.
 		// Access the PixelFormat enumeration type node.
-        CEnumerationPtr pixelFormat( nodemap.GetNode("PixelFormat"));
+        CEnumerationPtr pixelFormat(nodemap.GetNode("PixelFormat"));
 
-        // Remember the current pixel format.
-        String_t oldPixelFormat = pixelFormat->ToString();
-        cout << "Old PixelFormat :          " << oldPixelFormat << endl;
+		if(frame.getBitDepth() == MONO_8) {
 
-		if(frame.getBitDepth() == MONO_8){
-
-			// Set the pixel format to Mono8 if available.
 			if(IsAvailable(pixelFormat->GetEntryByName("Mono8"))){
 				pixelFormat->FromString("Mono8");
-				cout << "New PixelFormat :          " << pixelFormat->ToString() << endl;
+				
 			}else{
-				cout << "Fail to set pixel format to MONO_8" << endl;
+				cout << ">> Fail to set pixel format to MONO_8" << endl;
 				return false;
 			}
 
 		}else if(frame.getBitDepth() == MONO_12){
 
-			// Set the pixel format to Mono8 if available.
 			if(IsAvailable(pixelFormat->GetEntryByName("Mono12"))){
 				pixelFormat->FromString("Mono12");
-				cout << "New PixelFormat :          " << pixelFormat->ToString() << endl;
+				
 			}else{
-				cout << "Fail to set pixel format to MONO_12" << endl;
+				cout << ">> Fail to set pixel format to MONO_12" << endl;
 				return false;
 			}
 
 		}else{
 
-			cout << "No depth specified for the frame container." << endl;
+			cout << ">> No depth specified for the frame container." << endl;
 			return false;
 		}
 
 		// Set exposure.
+		CIntegerPtr ExposureTimeRaw(nodemap.GetNode("ExposureTimeRaw"));
 
-		CIntegerPtr ExposureTimeRaw( nodemap.GetNode("ExposureTimeRaw"));
-        if(ExposureTimeRaw.IsValid()){
+        if(ExposureTimeRaw.IsValid()) {
 
-			//cout << "Min exp : " << ExposureTimeRaw->GetMin() << endl;
-			//cout << "Max exp : " << ExposureTimeRaw->GetMax() << endl;
+			if(frame.getExposure() >= ExposureTimeRaw->GetMin() && frame.getExposure() <= ExposureTimeRaw->GetMax()) {
 
-			if(frame.getExposure() >= ExposureTimeRaw->GetMin() && frame.getExposure() <= ExposureTimeRaw->GetMax()){
 				ExposureTimeRaw->SetValue(frame.getExposure());
-				cout << "New exposure value :       " << frame.getExposure() << endl;
-			}else{
+
+			}else {
+
 				ExposureTimeRaw->SetValue(ExposureTimeRaw->GetMin());
-				cout << endl << "WARNING : exposure has been setted with the minimum available value."
-					 <<	" The wanted value is not in range [min = " << ExposureTimeRaw->GetMin() << ";" << "max= " << ExposureTimeRaw->GetMax() << "] (us)" << endl << endl;
+				cout << ">> Exposure has been setted with the minimum available value." << endl;
+				cout <<	">> The available exposure range is [" << ExposureTimeRaw->GetMin() << "-" << ExposureTimeRaw->GetMax() << "] (us)" << endl;
 			}
-        }else{
-			cout << "Fail to set exposure value" << endl;
+
+        }else {
+
+			cout << ">> Fail to set exposure value." << endl;
 			return false;
 		}
 
 		// Set gain.
 		// Access the GainRaw integer type node. This node is available for Firewire and GigE Devices.
-        CIntegerPtr gainRaw( nodemap.GetNode("GainRaw"));
-        if(gainRaw.IsValid())
-        {
-			//cout << "Min gain : " << gainRaw->GetMin() << endl;
-			//cout << "Max gain : " << gainRaw->GetMax() << endl;
+        CIntegerPtr gainRaw(nodemap.GetNode("GainRaw"));
+        if(gainRaw.IsValid()) {
 
-			if(frame.getGain() >= gainRaw->GetMin() && frame.getGain() <= gainRaw->GetMax()){
+			if(frame.getGain() >= gainRaw->GetMin() && frame.getGain() <= gainRaw->GetMax()) {
+
 				gainRaw->SetValue(frame.getGain());
-				cout << "New gain value :           " << frame.getGain() << endl;
-			}else{
+
+			}else {
+
 				gainRaw->SetValue(gainRaw->GetMin());
-				cout << endl << "WARNING : gain has been setted with the minimum available value."
-					 <<	" The wanted value is not in range [min = " << gainRaw->GetMin() << ";" << "max= " << gainRaw->GetMax() << "]" << endl << endl;
+				cout << ">> Gain has been setted to the minimum available value." << endl;
+				cout <<	">> The available gain range is [" << gainRaw->GetMin() << "-" << gainRaw->GetMax() << "]" << endl;
 			}
         }
 
@@ -637,23 +604,32 @@ bool CameraGigeSdkPylon::grabSingleImage(Frame &frame, int camID){
 		// This smart pointer will receive the grab result data.
 		CGrabResultPtr ptrGrabResult;
 
-		camera.GrabOne(500, ptrGrabResult);
+        cout << ">> Acquisition in progress..." << endl;
+
+        int timeout = 1000 + frame.getExposure()/1000;
+
+		camera.GrabOne(timeout , ptrGrabResult);
 
 		Mat newImg;
 
-		// Image grabbed successfully?
+		// Image grabbed successfully ?
 		if(ptrGrabResult->GrabSucceeded()){
 
-			// Access the image data.
-			//cout << "SizeX: " << ptrGrabResult->GetWidth() << endl;
-			//cout << "SizeY: " << ptrGrabResult->GetHeight() << endl;
+            //Timestamping.
+			string acquisitionDate = TimeDate::localDateTime(microsec_clock::universal_time(),"%Y:%m:%d:%H:%M:%S");
+			boost::posix_time::ptime time = boost::posix_time::microsec_clock::universal_time();
+			string acqDateInMicrosec = to_iso_extended_string(time);
 
-			if(ptrGrabResult->GetPixelType()== PixelType_Mono8){
-				//cout << "Pixel Format : Mono8" << endl;
+            frame.setAcqDate(acquisitionDate);
+            frame.setAcqDateMicro(acqDateInMicrosec);
+            frame.setFPS(0);
+
+			if(ptrGrabResult->GetPixelType()== PixelType_Mono8) {
+	
 				newImg = Mat(ptrGrabResult->GetHeight(), ptrGrabResult->GetWidth(), CV_8UC1, Scalar(0));
 
-			}else if(ptrGrabResult->GetPixelType()== PixelType_Mono12){
-				//cout << "Pixel Format : Mono12" << endl;
+			}else if(ptrGrabResult->GetPixelType()== PixelType_Mono12) {
+
 				newImg = Mat(ptrGrabResult->GetHeight(), ptrGrabResult->GetWidth(), CV_16UC1, Scalar(0));
 
 			}
@@ -668,11 +644,9 @@ bool CameraGigeSdkPylon::grabSingleImage(Frame &frame, int camID){
 
 		return false;
 
-	}catch (GenICam::GenericException &e){
-        // Error handling.
-        cerr << "An exception occurred." << endl
-			 << e.GetDescription() << endl;
+	}catch(GenICam::GenericException &e) {
 
+        cerr << ">> An exception occurred : " << e.GetDescription() << endl;
     }
 }
 

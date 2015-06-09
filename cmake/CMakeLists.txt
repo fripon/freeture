@@ -16,44 +16,6 @@ file(
 	GLOB_RECURSE
 	SRC_FILES
 	../src/*
-	#../src/AstThread.h ../src/AstThread.cpp
-	#../src/Base64.h ../src/Base64.cpp
-	#../src/Camera.h ../src/Camera.cpp
-	#../src/CameraFrames.h src/CameraFrames.cpp
-	#../src/CameraSDK.h src/CameraSDK.cpp
-	#../src/CameraVideo.h src/CameraVideo.cpp
-	#../src/Configuration.h src/Configuration.cpp
-	#../src/Conversion.h src/Conversion.cpp
-	#../src/DetByLines.h src/DetByLines.cpp
-	#../src/DetByLists.h src/DetByLists.cpp
-	#../src/DetThread.h src/DetThread.cpp
-	#../src/ECamBitDepth.h 
-	#../src/ECamType.h 
-	#../src/EDetMeth.h 
-	#../src/EImgBitDepth.h 
-	#../src/ELogSeverityLevel.h
-	#../src/EParser.h src/EParser.cpp
-	#../src/EStackMeth.h 
-	#../src/Fits.h src/Fits.cpp
-	#../src/Fits2D.h src/Fits2D.cpp
-	#src/Fits3D.h src/Fits3D.cpp
-	#src/Frame.h src/Frame.cpp
-	#src/FreeTure.h src/FreeTure.cpp
-	#src/GlobalEvent.h src/GlobalEvent.cpp
-	#src/Histogram.h src/Histogram.cpp
-	#src/ImgReduction.h src/ImgReduction.cpp
-	#src/includes.h
-	#src/LocalEvent.h src/LocalEvent.cpp
-	#src/main.cpp
-	#src/ManageFiles.h src/ManageFiles.cpp
-	#src/PixelEvent.h src/PixelEvent.cpp
-	#src/RecEvent.h src/RecEvent.cpp
-	#src/SaveImg.h src/SaveImg.cpp
-	#src/SMTPClient.h src/SMTPClient.cpp
-	#src/StackedFrames.h src/StackedFrames.cpp
-	#src/TimeDate.h src/TimeDate.cpp
-	#src/CameraSDKAravis.h src/CameraSDKAravis.cpp
-	#src/CameraSDKPylon.h src/CameraSDKPylon.cpp
 )
 message("> SOURCES : " ${SRC_FILES})
 #------------------------------------------------
@@ -200,6 +162,17 @@ IF(${OperatingSystem} MATCHES "Windows")
 	include_directories(${TIS_INCLUDE_DIR})
 	#link_directories(${TIS_LIBRARY})
 	target_link_libraries( ${EXE_NAME} ${TIS_LIBRARIES} )
+	
+	# OPENSSL
+	message("> Searching openssl...")
+	find_package( OPENSSL )
+	message ("OPENSSL_FOUND : " ${OPENSSL_FOUND})
+	message ("OPENSSL_INCLUDE_DIR : " ${OPENSSL_INCLUDE_DIR})
+	message ("OPENSSL_LIBRARIES : " ${OPENSSL_LIBRARIES})
+	message ("OPENSSL_LIBRARY : " ${OPENSSL_LIBRARY})
+	include_directories(${OPENSSL_INCLUDE_DIR})
+	link_directories(${OPENSSL_LIBRARY})
+	target_link_libraries( ${EXE_NAME} ${OPENSSL_LIBRARIES} )
 
 ELSE(${OperatingSystem} MATCHES "Windows")
 	IF(${OperatingSystem} MATCHES "Linux")
