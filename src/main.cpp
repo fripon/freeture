@@ -92,7 +92,7 @@
 #include <fstream>
 #include <iostream>
 
-#include <boost/iostreams/filtering_stream.hpp>    
+#include <boost/iostreams/filtering_stream.hpp>
 #include <boost/iostreams/filtering_streambuf.hpp>
 #include <boost/iostreams/copy.hpp>
 #include <boost/iostreams/filter/gzip.hpp>*/
@@ -290,7 +290,7 @@ int main(int argc, const char ** argv){
 
                         std::cout << "Searching cameras..." << endl << endl;
 
-                        string camtype; 
+                        string camtype;
                         camtype = "BASLER_GIGE";
                         EParser<CamType> cam_type;
 
@@ -298,7 +298,7 @@ int main(int argc, const char ** argv){
 
                             // Search BASLER GIGE cameras.
                             {
-                                
+
                                 Device *device = new Device(cam_type.parseEnum("CAMERA_TYPE", camtype));
                                 device->getCam()->listGigeCameras();
                                 delete device;
@@ -307,14 +307,14 @@ int main(int argc, const char ** argv){
                             // Search TIS GIGE cameras.
                             camtype = "DMK_GIGE";
                             {
-                                
+
                                 Device *device = new Device(cam_type.parseEnum("CAMERA_TYPE", camtype));
                                 device->getCam()->listGigeCameras();
                                 delete device;
                             }
 
                             cout << endl << "************************************************" << endl;
-                            
+
                         #else
 
                             Device *device = new Device(cam_type.parseEnum("CAMERA_TYPE", camtype));
@@ -334,7 +334,7 @@ int main(int argc, const char ** argv){
                     ///%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
                     {
-              
+
                         std::cout << "================================================" << endl;
                         std::cout << "====== FREETURE - Test/Check configuration =====" << endl;
                         std::cout << "================================================" << endl << endl;
@@ -342,14 +342,14 @@ int main(int argc, const char ** argv){
                         std::cout << "Mode 2 disabled in this version." << endl;
 
                         /*
-                        
+
                         //The static member function boost::thread::hardware_concurrency() returns the number
                         //of threads that can physically be executed at the same time, based on the underlying
                         //number of CPUs or CPU cores. Calling this function on a dual-core processor returns a
                         //value of 2. This function provides a simple method to identify the theoretical maximum
                         //number of threads that should be used.
                         std::cout << "CORE DETECTED : " << boost::thread::hardware_concurrency()<< endl << endl;
-                        
+
                         */
 
                     }
@@ -554,7 +554,7 @@ int main(int argc, const char ** argv){
                                             act.sa_sigaction = sigTermHandler;
                                             act.sa_flags = SA_SIGINFO;
                                             sigaction(SIGTERM,&act,NULL);
-											
+
                                         #endif
 
                                         int cptTime = 0;
@@ -564,7 +564,7 @@ int main(int argc, const char ** argv){
 
                                             #ifdef WINDOWS
                                                 Sleep(1000);
-                                                
+
                                                 // Exit if ESC is pressed.
                                                 if(GetAsyncKeyState(VK_ESCAPE)!=0)
                                                     break;
@@ -572,7 +572,7 @@ int main(int argc, const char ** argv){
                                             #elif defined LINUX
                                                 sleep(1);
                                             #endif
-                                  
+
                                             string acq = TimeDate::localDateTime(microsec_clock::universal_time(),"%Y:%m:%d:%H:%M:%S");
                                             vector<int> acq_int= TimeDate::splitStringToInt(acq);
 
@@ -582,7 +582,7 @@ int main(int argc, const char ** argv){
                                                 logSystem.archiveLog();
                                                 logSystem.cleanLogArchives();
                                                 waitLogTime = false;
-                                       
+
                                             }
 
                                             // Reset log ckeck for the next time.
@@ -602,7 +602,7 @@ int main(int argc, const char ** argv){
                                                 }
                                                 cptTime ++;
 
-                                            }  
+                                            }
 
                                             if(inputDevice != NULL){
 
@@ -612,7 +612,7 @@ int main(int argc, const char ** argv){
                                                     break;
 
                                                 }
-											
+
                                                 if(detection != NULL){
                                                     if(!detection->getRunStatus()){
                                                         BOOST_LOG_SEV(slg, critical) << "DetThread not running. Stopping the process ...";
@@ -832,7 +832,7 @@ int main(int argc, const char ** argv){
                             frame.getImg().copyTo(temp1);
 
                             if(camFormat == MONO_12){
-                                
+
                                 newMat = ImgProcessing::correctGammaOnMono12(temp1, 2.2);
                                 Mat temp = Conversion::convertTo8UC1(newMat);
 
@@ -954,16 +954,16 @@ int main(int argc, const char ** argv){
 
                                 vector<string> to;
                                 to.push_back(sendMail);
-             
-                                SMTPClient::sendMail("10.8.0.1", 
+
+                                SMTPClient::sendMail("10.8.0.1",
                                                     "",
-                                                    "", 
-                                                    "freeture@u-psud.fr", 
-                                                    to, 
-                                                    fileName + "-" + Conversion::intToString(filenum) + ".fit", 
+                                                    "",
+                                                    "freeture@u-psud.fr",
+                                                    to,
+                                                    fileName + "-" + Conversion::intToString(filenum) + ".fit",
                                                     " Exposure time : " + Conversion::intToString((int)exp) + "\n Gain : " + Conversion::intToString((int)gain) + "\n Format : " + Conversion::intToString(acqFormat),
                                                     mailAttachments,
-                              
+
                                                     NO_SECURITY);
 
 
@@ -995,9 +995,9 @@ int main(int argc, const char ** argv){
                             waitKey(0);
 
                         }
-                    
+
                     }
-                    
+
                     break;
 
                 case 5 :
@@ -1020,7 +1020,7 @@ int main(int argc, const char ** argv){
                         // Get log path.
                         string LOG_PATH; cfg.Get("LOG_PATH", LOG_PATH);
 
-	                    boost::filesystem::path p(LOG_PATH);
+                        boost::filesystem::path p(LOG_PATH);
 
                         if(boost::filesystem::exists(p)){
 
@@ -1034,7 +1034,7 @@ int main(int argc, const char ** argv){
 
                         }
 
-                    } 
+                    }
 
                     break;
 
@@ -1080,7 +1080,7 @@ int main(int argc, const char ** argv){
 
     po::notify(vm);
 
-	getchar();
+    //getchar();
 
     return 0 ;
 

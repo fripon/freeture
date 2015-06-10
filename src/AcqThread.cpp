@@ -203,7 +203,7 @@ void AcqThread::operator()(){
                 bool grabStatus = false;
 
                 double tacq = (double)getTickCount();
-	
+
                 if(mDevice->getCam()->grabImage(newFrame)){
 
                     grabStatus = true;
@@ -315,8 +315,8 @@ void AcqThread::operator()(){
 										Sleep(1);
 									#endif
 								#endif
-								
-                                
+
+
                                 regularAcqFrameCounter = 0;
 
                             }else{
@@ -869,11 +869,13 @@ bool AcqThread::runScheduledAcquisition(AcqSchedule task){
                                 if(newFits.writeFits(frame.getImg(), UC8, fileName))
                                     cout << ">> Fits saved in : " << mDataLocation << fileName << endl;
 
-                                // Save jpeg version 
-                                if(mDevice->getRegularSaveJEG() && mDevice->getAcqRegularEnabled() || 
+                                // Save jpeg version
+                                if(mDevice->getRegularSaveJEG() && mDevice->getAcqRegularEnabled() ||
                                    mDevice->getScheduleSaveJEG() && mDevice->getAcqScheduleEnabled()){
 
-                                    Mat newMat = ImgProcessing::correctGammaOnMono8(frame.getImg(), 2.2);
+                                    Mat temp;
+                                    frame.getImg().copyTo(temp);
+                                    Mat newMat = ImgProcessing::correctGammaOnMono8(temp, 2.2);
                                     SaveImg::saveJPEG(newMat, mDataLocation + fileName);
 
                                 }
@@ -921,11 +923,13 @@ bool AcqThread::runScheduledAcquisition(AcqSchedule task){
                                 if(newFits.writeFits(newMat, S16, fileName))
                                     cout << ">> Fits saved in : " << mDataLocation << fileName << endl;
 
-                                // Save jpeg version 
-                                if(mDevice->getRegularSaveJEG() && mDevice->getAcqRegularEnabled() || 
+                                // Save jpeg version
+                                if(mDevice->getRegularSaveJEG() && mDevice->getAcqRegularEnabled() ||
                                    mDevice->getScheduleSaveJEG() && mDevice->getAcqScheduleEnabled()){
 
-                                    Mat newMat = ImgProcessing::correctGammaOnMono12(frame.getImg(), 2.2);
+                                    Mat temp;
+                                    frame.getImg().copyTo(temp);
+                                    Mat newMat = ImgProcessing::correctGammaOnMono12(temp, 2.2);
                                     Mat newMat2 = Conversion::convertTo8UC1(newMat);
                                     SaveImg::saveJPEG(newMat2, mDataLocation + fileName);
 
@@ -1056,11 +1060,13 @@ bool AcqThread::runRegularAcquisition(string frameDate){
                                 if(newFits.writeFits(frame.getImg(), UC8, fileName))
                                     cout << ">> Fits saved in : " << mDataLocation << fileName << endl;
 
-                                // Save jpeg version 
-                                if(mDevice->getRegularSaveJEG() && mDevice->getAcqRegularEnabled() || 
+                                // Save jpeg version
+                                if(mDevice->getRegularSaveJEG() && mDevice->getAcqRegularEnabled() ||
                                    mDevice->getScheduleSaveJEG() && mDevice->getAcqScheduleEnabled()){
 
-                                    Mat newMat = ImgProcessing::correctGammaOnMono8(frame.getImg(), 2.2);
+                                    Mat temp;
+                                    frame.getImg().copyTo(temp);
+                                    Mat newMat = ImgProcessing::correctGammaOnMono8(temp, 2.2);
                                     SaveImg::saveJPEG(newMat, mDataLocation + fileName);
 
                                 }
@@ -1108,11 +1114,13 @@ bool AcqThread::runRegularAcquisition(string frameDate){
                                 if(newFits.writeFits(newMat, S16, fileName))
                                     cout << ">> Fits saved in : " << mDataLocation << fileName << endl;
 
-                                // Save jpeg version 
-                                if(mDevice->getRegularSaveJEG() && mDevice->getAcqRegularEnabled() || 
+                                // Save jpeg version
+                                if(mDevice->getRegularSaveJEG() && mDevice->getAcqRegularEnabled() ||
                                    mDevice->getScheduleSaveJEG() && mDevice->getAcqScheduleEnabled()){
 
-                                    Mat newMat = ImgProcessing::correctGammaOnMono12(frame.getImg(), 2.2);
+                                    Mat temp;
+                                    frame.getImg().copyTo(temp);
+                                    Mat newMat = ImgProcessing::correctGammaOnMono12(temp, 2.2);
                                     Mat newMat2 = Conversion::convertTo8UC1(newMat);
                                     SaveImg::saveJPEG(newMat2, mDataLocation + fileName);
 

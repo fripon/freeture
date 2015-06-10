@@ -56,6 +56,22 @@ message("> Processor : " ${CMAKE_SYSTEM_PROCESSOR})
 # Executable.
 add_executable( ${EXE_NAME} ${SRC_FILES} )
 #------------------------------------------------
+
+
+include(CheckCXXCompilerFlag)
+CHECK_CXX_COMPILER_FLAG("-std=c++11" COMPILER_SUPPORTS_CXX11)
+CHECK_CXX_COMPILER_FLAG("-std=c++0x" COMPILER_SUPPORTS_CXX0X)
+IF(COMPILER_SUPPORTS_CXX11)
+    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=c++11")
+ELSEIF(COMPILER_SUPPORTS_CXX0X)
+    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=c++0x")
+ELSE()
+     message(STATUS "The compiler ${CMAKE_CXX_COMPILER} has no C++11 support. Please use a different C++ compiler.")
+ENDIF()
+
+
+
+#------------------------------------------------
 # Add path to find cmake modules.
 # http://www.vtk.org/Wiki/CMake%3aHow_To_Find_Libraries#How_package_finding_works
 set(CMAKE_MODULE_PATH ${CMAKE_MODULE_PATH} "${CMAKE_SOURCE_DIR}/Modules/")
@@ -248,6 +264,17 @@ ELSE(${OperatingSystem} MATCHES "Windows")
 	include_directories(${aravis_INCLUDE_DIR})
 	#link_directories(${ARAVIS_LIBRARY_DIRS})
 	target_link_libraries(${EXE_NAME} ${aravis_LIBRARIES})
+
+	# Openssl
+	include(FindOpenSSL)
+	find_package( OpenSSL REQUIRED)
+	message ("OPENSSL_FOUND : " ${OPENSSL_FOUND})
+	message ("OPENSSL_INCLUDE_DIR : " ${OPENSSL_INCLUDE_DIR})
+	message ("OPENSSL_LIBRARIES : " ${OPENSSL_LIBRARIES})
+	message ("OPENSSL_LIBRARY : " ${OPENSSL_LIBRARY})
+	include_directories(${OPENSSL_INCLUDE_DIR})
+	#link_directories(${OPENSSL_LIBRARY_DIRS})
+	target_link_libraries(${EXE_NAME} ${OPENSSL_LIBRARIES})
 	
 	ENDIF(${OperatingSystem} MATCHES "Linux")
 ENDIF(${OperatingSystem} MATCHES "Windows")

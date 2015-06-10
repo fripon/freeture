@@ -128,15 +128,15 @@ am_freeture_OBJECTS = EParser.$(OBJEXT) AcqThread.$(OBJEXT) \
 	CameraGigeSdkIc.$(OBJEXT) Detection.$(OBJEXT) \
 	DetectionStreak.$(OBJEXT) DetectionTemporal.$(OBJEXT) \
 	Device.$(OBJEXT) Stack.$(OBJEXT) DetectionTemporal_.$(OBJEXT) \
-	StackThread.$(OBJEXT) Base64.$(OBJEXT) Camera.$(OBJEXT) \
+	StackThread.$(OBJEXT) Base64.$(OBJEXT) \
 	DetectionDayTime.$(OBJEXT) CameraFrames.$(OBJEXT) \
 	SMTPClient.$(OBJEXT) HistogramGray.$(OBJEXT) \
 	CameraVideo.$(OBJEXT) Configuration.$(OBJEXT) \
 	Conversion.$(OBJEXT) DetThread.$(OBJEXT) Fits.$(OBJEXT) \
 	Fits2D.$(OBJEXT) Fits3D.$(OBJEXT) Frame.$(OBJEXT) \
-	GlobalEvent.$(OBJEXT) Histogram.$(OBJEXT) LocalEvent.$(OBJEXT) \
-	main.$(OBJEXT) HistogramRGB.$(OBJEXT) TimeDate.$(OBJEXT) \
-	SaveImg.$(OBJEXT)
+	GlobalEvent.$(OBJEXT) Histogram.$(OBJEXT) AcqRegular.$(OBJEXT) \
+	LocalEvent.$(OBJEXT) main.$(OBJEXT) HistogramRGB.$(OBJEXT) \
+	TimeDate.$(OBJEXT) ExposureControl.$(OBJEXT) SaveImg.$(OBJEXT)
 freeture_OBJECTS = $(am_freeture_OBJECTS)
 freeture_LDADD = $(LDADD)
 AM_V_P = $(am__v_P_$(V))
@@ -236,8 +236,8 @@ CXXCPP = g++ -E
 CXXDEPMODE = depmode=gcc3
 CXXFLAGS = -g -O2
 CYGPATH_W = echo
-DATE2 = Thu Apr 23 2015
-DATE3 = April 2015
+DATE2 = Fri May 15 2015
+DATE3 = May 2015
 DEFS = -DHAVE_CONFIG_H
 DEPDIR = .deps
 ECHO_C = 
@@ -272,10 +272,10 @@ PACKAGE = freeture
 PACKAGER = Yoan Audureau
 PACKAGE_BUGREPORT = yoan.audureau@u-psud.fr
 PACKAGE_NAME = freeture
-PACKAGE_STRING = freeture 0.6-4
+PACKAGE_STRING = freeture 0.6-5
 PACKAGE_TARNAME = freeture
 PACKAGE_URL = 
-PACKAGE_VERSION = 0.6-4
+PACKAGE_VERSION = 0.6-5
 PATH_SEPARATOR = :
 PKG_CONFIG = /usr/bin/pkg-config
 PKG_CONFIG_LIBDIR = 
@@ -289,7 +289,7 @@ SHELL = /bin/bash
 STRIP = 
 UDEV_CFLAGS = 
 UDEV_LIBS = -ludev 
-VERSION = 0.6-4
+VERSION = 0.6-5
 abs_builddir = /home/fripon/FreeTure-v0.6/freeture/src
 abs_srcdir = /home/fripon/FreeTure-v0.6/freeture/src
 abs_top_builddir = /home/fripon/FreeTure-v0.6/freeture
@@ -351,13 +351,13 @@ freeture_SOURCES = EImgBitDepth.h ECamType.h EParser.h EParser.cpp \
 			LocalEvent.h EStackMeth.h DetectionStreak.cpp DetectionTemporal.h DetectionTemporal.cpp \
 			TimeDate.h Device.h Device.cpp Stack.h Stack.cpp DetectionTemporal_.h DetectionTemporal_.cpp \
 			SaveImg.h ECamBitDepth.h StackThread.h StackThread.cpp \
-			Base64.cpp Camera.cpp DetectionDayTime.h DetectionDayTime.cpp \
+			Base64.cpp DetectionDayTime.h DetectionDayTime.cpp \
 			CameraFrames.cpp SMTPClient.cpp HistogramGray.h HistogramGray.cpp \
 			CameraVideo.cpp Configuration.cpp Conversion.cpp \
 			DetThread.cpp Fits.cpp Fits2D.cpp Fits3D.cpp \
-			Frame.cpp GlobalEvent.cpp Histogram.cpp \
+			Frame.cpp GlobalEvent.cpp Histogram.cpp AcqRegular.h AcqRegular.cpp \
 			LocalEvent.cpp main.cpp HistogramRGB.h HistogramRGB.cpp \
-			TimeDate.cpp \
+			TimeDate.cpp ExposureControl.cpp ExposureControl.h \
 			SaveImg.cpp ELogSeverityLevel.h
 
 DATE = `date +"%Y-%m-%d"`
@@ -374,9 +374,9 @@ $(srcdir)/Makefile.in:  $(srcdir)/Makefile.am  $(am__configure_deps)
 	      exit 1;; \
 	  esac; \
 	done; \
-	echo ' cd $(top_srcdir) && $(AUTOMAKE) --gnu src/Makefile'; \
+	echo ' cd $(top_srcdir) && $(AUTOMAKE) --foreign src/Makefile'; \
 	$(am__cd) $(top_srcdir) && \
-	  $(AUTOMAKE) --gnu src/Makefile
+	  $(AUTOMAKE) --foreign src/Makefile
 .PRECIOUS: Makefile
 Makefile: $(srcdir)/Makefile.in $(top_builddir)/config.status
 	@case '$?' in \
@@ -448,9 +448,9 @@ mostlyclean-compile:
 distclean-compile:
 	-rm -f *.tab.c
 
+include ./$(DEPDIR)/AcqRegular.Po
 include ./$(DEPDIR)/AcqThread.Po
 include ./$(DEPDIR)/Base64.Po
-include ./$(DEPDIR)/Camera.Po
 include ./$(DEPDIR)/CameraFrames.Po
 include ./$(DEPDIR)/CameraGigeSdkAravis.Po
 include ./$(DEPDIR)/CameraGigeSdkIc.Po
@@ -466,6 +466,7 @@ include ./$(DEPDIR)/DetectionTemporal.Po
 include ./$(DEPDIR)/DetectionTemporal_.Po
 include ./$(DEPDIR)/Device.Po
 include ./$(DEPDIR)/EParser.Po
+include ./$(DEPDIR)/ExposureControl.Po
 include ./$(DEPDIR)/Fits.Po
 include ./$(DEPDIR)/Fits2D.Po
 include ./$(DEPDIR)/Fits3D.Po

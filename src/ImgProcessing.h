@@ -42,10 +42,10 @@ using namespace cv;
 
 class ImgProcessing {
 
-    public:
+    public :
 
         /**
-        * Gamma correction.
+        * Gamma correction on Mono8 image..
         *
         * @param img Opencv mat image to correct.
         * @param gamma Gamma value.

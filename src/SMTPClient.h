@@ -111,16 +111,16 @@ class SMTPClient {
         * @param subject Mail subject.
         * @param message Mail message.
         * @param pathAttachments Path of files to send.
-        * @param imgInline 
+        * @param imgInline
         * @param securityType Use secured connection or not.
         */
-        static void sendMail(   string            server, 
+        static void sendMail(   string            server,
                                 string            login,
-                                string            password, 
-                                string            from, 
-                                vector<string>    to, 
-                                string            subject, 
-                                string            message, 
+                                string            password,
+                                string            from,
+                                vector<string>    to,
+                                string            subject,
+                                string            message,
                                 vector<string>    pathAttachments,
                                 SmtpSecurity      securityType);
 
@@ -167,7 +167,7 @@ class SMTPClient {
             enum {codeLength = 3};
             const string code;
 
-            ReceiveFunctor(int expectingCode) : code (to_string(expectingCode)){
+            ReceiveFunctor(int expectingCode) : code (Conversion::intToString(expectingCode)){
                 if(code.length() != codeLength) {
                     BOOST_LOG_SEV(logger,fail) << "SMTP code must be three-digits.";
                     throw "SMTP code must be three-digits.";

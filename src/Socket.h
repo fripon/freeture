@@ -53,6 +53,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string>
+#include <string.h>
 #include <iostream>
 #include <boost/archive/iterators/ostream_iterator.hpp>
 #include <boost/log/common.hpp>
@@ -66,6 +67,7 @@
 #include <boost/log/sources/logger.hpp>
 #include <boost/log/core.hpp>
 #include "ELogSeverityLevel.h"
+#include "Conversion.h"
 
 using namespace std;
 
@@ -86,10 +88,10 @@ class Socket {
 
             boost::asio::ip::tcp::resolver resolver(mIoService);
 
-            boost::asio::ip::tcp::resolver::query query(server, to_string(port));
+            boost::asio::ip::tcp::resolver::query query(server, Conversion::intToString((int)port));
 
             boost::asio::ip::tcp::resolver::iterator endpoint_iterator = resolver.resolve(query);
-    
+
             boost::asio::connect(mSocket, endpoint_iterator);
         }
 
@@ -101,5 +103,5 @@ class Socket {
         boost::asio::ip::tcp::socket * GetSocket() {
             return &mSocket;
         }
-   
+
 };

@@ -52,15 +52,15 @@ class Logger {
 
         /**
         * Constructor.
-        * 
+        *
         */
         Logger(string logPath, int timeLimit):mLogPath(logPath), mTimeLimit(timeLimit) {
 
         }
 
         /**
-        * Archive log files. 
-        * 
+        * Archive log files.
+        *
         */
         void archiveLog() {
 
@@ -85,8 +85,8 @@ class Logger {
                 if(is_regular_file(curr)) {
 
                     // Get file name.
-	                string fileName = curr.filename().string();
-    
+                    string fileName = curr.filename().string();
+
                     if(fileName == "STACK_THREAD.log"){
 
                         cout << "STACK_THREAD.log found" << endl;
@@ -127,12 +127,12 @@ class Logger {
             }
 
             if(logToCopy.size() != 0 && mDate.size() == 6) {
-                 
+
                 // Create archive name with the following pattern : LOG_YYYYMMDDhhmmss.log
                 string newArchive = mLogPath + "LOG_" +
-                                    Conversion::numbering(2,mDate.at(0)) + Conversion::intToString(mDate.at(0)) + 
-                                    Conversion::numbering(2,mDate.at(1)) + Conversion::intToString(mDate.at(1)) + 
-                                    Conversion::numbering(2,mDate.at(2)) + Conversion::intToString(mDate.at(2)) + 
+                                    Conversion::numbering(2,mDate.at(0)) + Conversion::intToString(mDate.at(0)) +
+                                    Conversion::numbering(2,mDate.at(1)) + Conversion::intToString(mDate.at(1)) +
+                                    Conversion::numbering(2,mDate.at(2)) + Conversion::intToString(mDate.at(2)) +
                                     Conversion::numbering(2,mDate.at(3)) + Conversion::intToString(mDate.at(3)) +
                                     Conversion::numbering(2,mDate.at(4)) + Conversion::intToString(mDate.at(4)) +
                                     Conversion::numbering(2,mDate.at(5)) + Conversion::intToString(mDate.at(5)) + "/";
@@ -146,7 +146,9 @@ class Logger {
                     for(int i = 0; i<logToCopy.size(); i++) {
 
                         path pppp(newArchive + logFile.at(i));
-                        boost::filesystem::copy_file(logToCopy.at(i), pppp);
+                        // Not works with boost 1.55 and c++11
+
+                        //boost::filesystem::copy_file(logToCopy.at(i), pppp);
                         boost::filesystem::remove(logToCopy.at(i));
 
                     }
@@ -159,8 +161,8 @@ class Logger {
         }
 
         /**
-        * Delete too old log archives. 
-        * 
+        * Delete too old log archives.
+        *
         */
         void cleanLogArchives() {
 
@@ -180,7 +182,7 @@ class Logger {
                 if(is_directory(curr)) {
 
                     string dirName = file->path().filename().string();
-           
+
                     // Extract YYYYMMDDhhmmss from LOG_YYYYMMDDhhmmss
                     list<string> ch;
                     Conversion::stringTok(ch, dirName.c_str(), "_");
@@ -188,7 +190,7 @@ class Logger {
                     year = atoi(ch.back().substr(0,4).c_str());
 
                     month = atoi(ch.back().substr(4,2).c_str());
- 
+
                     day = atoi(ch.back().substr(6,2).c_str());
 
                     using boost::gregorian::date;
@@ -201,7 +203,7 @@ class Logger {
                         fileToRemove.push_back(dirName);
 
                     }
-                                
+
                 }
             }
 
@@ -211,7 +213,7 @@ class Logger {
                 cout << fileToRemove.at(i) << endl;
                 path p(mLogPath + fileToRemove.at(i));
                 boost::filesystem::remove_all(p);
-                            
+
             }
 
         }

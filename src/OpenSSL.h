@@ -42,8 +42,6 @@
     #include <windows.h>
     #include <iphlpapi.h>
     #include <stdint.h>
-    #include <openssl\err.h>
-    #include <openssl\ssl.h>
 
 #else
     #ifdef LINUX
@@ -52,6 +50,8 @@
     #endif
 #endif
 
+#include <openssl/err.h>
+#include <openssl/ssl.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string>
@@ -99,8 +99,8 @@ class OpenSSL {
 
         unique_ptr< SSL_CTX, decltype(SSL_CTX_free)*> ctx_;
         unique_ptr< SSL, decltype( SSL_free )* > ssl_;
-        enum { 
-            errorBufSize = 256, 
+        enum {
+            errorBufSize = 256,
             readBufSize = 256
         };
 
@@ -122,7 +122,7 @@ class OpenSSL {
         * Read data on the SSL connection.
         *
         * @param isDoneReceiving Struct to handle response.
-        * @return Response. 
+        * @return Response.
         */
         template<typename IsDoneReceivingFunctorType> string Read(IsDoneReceivingFunctorType isDoneReceiving) {
 
@@ -137,7 +137,7 @@ class OpenSSL {
                     throw "Connection lost while read.";
                     //throw runtime_error("Connection lost while read.");
                 }
-                if(0>rstRead && SSL_ERROR_WANT_READ == SSL_get_error(ssl_.get(), rstRead)) 
+                if(0>rstRead && SSL_ERROR_WANT_READ == SSL_get_error(ssl_.get(), rstRead))
                     continue;
                 read+= string(buf, buf + rstRead);
                 if(isDoneReceiving(read)) return read;
