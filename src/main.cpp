@@ -1042,7 +1042,24 @@ int main(int argc, const char ** argv){
 
                     {
 
-                        Ephemeris::ephemeris();
+                        //Ephemeris::ephemeris();
+
+                        /*vector<string> mailAttachments;
+
+
+                        vector<string> to;
+                        to.push_back("yoan.audureau@gmail.com");
+
+                        SMTPClient::sendMail("10.8.0.1",
+                                            "",
+                                            "",
+                                            "yoan.audureau@u-psud.fr",
+                                            to,
+                                            "test",
+                                            " Exposure time : test ",
+                                            mailAttachments,
+
+                                            NO_SECURITY);*/
 
                     }
 

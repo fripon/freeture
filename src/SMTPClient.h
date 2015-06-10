@@ -167,7 +167,7 @@ class SMTPClient {
             enum {codeLength = 3};
             const string code;
 
-            ReceiveFunctor(int expectingCode) : code (Conversion::intToString(expectingCode)){
+            ReceiveFunctor(int expectingCode) : code (to_string(expectingCode)){
                 if(code.length() != codeLength) {
                     BOOST_LOG_SEV(logger,fail) << "SMTP code must be three-digits.";
                     throw "SMTP code must be three-digits.";

@@ -88,7 +88,7 @@ class Socket {
 
             boost::asio::ip::tcp::resolver resolver(mIoService);
 
-            boost::asio::ip::tcp::resolver::query query(server, Conversion::intToString((int)port));
+            boost::asio::ip::tcp::resolver::query query(server, to_string(port));
 
             boost::asio::ip::tcp::resolver::iterator endpoint_iterator = resolver.resolve(query);
 

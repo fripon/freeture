@@ -215,7 +215,7 @@ string SMTPClient::buildMessage( string msg, vector<string> mMailAttachments,
             vector<string> elements;
             string fileName;
             string fileExtension;
-             
+
             size_t pos = 0;
             std::string token;
             while((pos = s.find(delimiter)) != std::string::npos) {
@@ -261,11 +261,11 @@ string SMTPClient::buildMessage( string msg, vector<string> mMailAttachments,
             }
             //  cout << "end getFileContents" << endl;
             message += Base64::encodeBase64(img);
-            
+
             message += "\r\n";
 
         }
-        
+
     // Mail end.
     message += "\r\n--" + section  + "--\r\n";
 
@@ -273,16 +273,16 @@ string SMTPClient::buildMessage( string msg, vector<string> mMailAttachments,
 
 }
 
-void SMTPClient::sendMail(  string            server, 
+void SMTPClient::sendMail(  string            server,
                             string            login,
-                            string            password, 
-                            string            from, 
-                            vector<string>    to, 
-                            string            subject, 
-                            string            message, 
+                            string            password,
+                            string            from,
+                            vector<string>    to,
+                            string            subject,
+                            string            message,
                             vector<string>    pathAttachments,
                             SmtpSecurity      securityType) {
-            
+
     try {
 
         switch(securityType) {
@@ -290,8 +290,9 @@ void SMTPClient::sendMail(  string            server,
             case NO_SECURITY :
 
                 {
-   
+
                     Socket socket(server, 25);
+                    checkSMTPAnswer("220", *socket.GetSocket());
 
                     // HELO to SMTP server.
                     BOOST_LOG_SEV(logger,normal) << "HELLO to SMTP server.";
@@ -330,7 +331,7 @@ void SMTPClient::sendMail(  string            server,
 
                 break;
 
-            case USE_SSL : 
+            case USE_SSL :
 
                 {
 
@@ -375,7 +376,7 @@ void SMTPClient::sendMail(  string            server,
                     BOOST_LOG_SEV(logger,notification) << "DATA";
                     openSSL.Write(string("DATA") + newline);
                     cout << openSSL.Read(ReceiveFunctor(354));
-         
+
                     BOOST_LOG_SEV(logger,notification) << "Build message";
                     string m = buildMessage(message, pathAttachments, to, from, subject);
                     openSSL.Write( m + newline + "." + newline);
