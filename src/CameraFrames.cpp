@@ -76,7 +76,7 @@ bool CameraFrames::grabInitialization() {
 }
 
 
-bool CameraFrames::getDataStatus() {
+bool CameraFrames::getDataSetStatus() {
 
     mCurrDirId++;
 

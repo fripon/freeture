@@ -137,7 +137,7 @@ class CameraFrames: public Camera {
         *
         * @return If there is still a directory to load in input.
         */
-        bool getDataStatus();
+        bool getDataSetStatus();
 
 
 };

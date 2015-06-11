@@ -136,7 +136,7 @@ class CameraVideo : public Camera{
         *
         * @return If there is still a video to load in input.
         */
-        bool getDataStatus();
+        bool getDataSetStatus();
 
         /**
         * Load next video if there is.

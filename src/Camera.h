@@ -43,7 +43,7 @@
 using namespace cv;
 using namespace std;
 
-class Camera{
+class Camera {
 
     public :
 

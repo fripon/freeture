@@ -1097,7 +1097,7 @@ int main(int argc, const char ** argv){
 
     po::notify(vm);
 
-    //getchar();
+    getchar();
 
     return 0 ;
 

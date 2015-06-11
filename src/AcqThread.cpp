@@ -284,7 +284,7 @@ void AcqThread::operator()(){
                     if(pExpCtrl != NULL && exposureControlActive)
                         exposureControlStatus = pExpCtrl->controlExposureTime(mDevice, newFrame.getImg(), accurateFrameDate);
 
-                    if(mDevice->getDisplayInput())
+                    if(mDevice->getDisplayInput() && newFrame.getImg().data)
                         imshow("Display window", newFrame.getImg());
 
                 }else{
@@ -477,12 +477,16 @@ void AcqThread::operator()(){
             //cout << "Clear detection method." << endl;
             if(pDetection != NULL){
 
+                BOOST_LOG_SEV(logger, normal) << "Reset detection";
                 pDetection->getDetMethod()->resetDetection();
+                BOOST_LOG_SEV(logger, normal) << "Reset mask";
                 pDetection->getDetMethod()->resetMask();
 
-                if(!pDetection->getRunStatus())
-                    break;
+                if(!pDetection->getRunStatus()) {
 
+                    BOOST_LOG_SEV(logger, normal) << "Detection thread is not running, stop acquisition thread.";
+                    break;
+                }
             }
 
             cout << "Clear framebuffer" << endl;

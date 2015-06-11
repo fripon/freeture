@@ -43,6 +43,8 @@ CameraVideo::CameraVideo(vector<string> videoList):mVideoID(0), mFrameWidth(0), 
 
     mVideoList = videoList;
 
+    BOOST_LOG_SEV(logger,notification) << "Number of video in input : " << mVideoList.size();
+
     // Open the video file for reading.
     mCap = VideoCapture(videoList.front());
 
@@ -54,8 +56,9 @@ CameraVideo::~CameraVideo(void){
 
 bool CameraVideo::grabInitialization(){
 
-    if ( !mCap.isOpened() ){
+    if(!mCap.isOpened()) {
 
+         BOOST_LOG_SEV(logger,fail) << "Cannot open the video file";
          cout << "Cannot open the video file" << endl;
          return false;
     }
@@ -70,7 +73,7 @@ bool CameraVideo::getStopStatus(){
 
 }
 
-bool CameraVideo::getDataStatus(){
+bool CameraVideo::getDataSetStatus(){
 
     if(mVideoID == mVideoList.size())
         return false;
