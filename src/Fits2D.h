@@ -21,7 +21,7 @@
 *	You should have received a copy of the GNU General Public License
 *	along with FreeTure. If not, see <http://www.gnu.org/licenses/>.
 *
-*	Last modified:		28/11/2014
+*	Last modified:		14/06/2015
 *
 *%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%*/
 
@@ -29,7 +29,7 @@
 * \file    Fits2D.h
 * \author  Yoan Audureau -- FRIPON-GEOPS-UPSUD
 * \version 1.0
-* \date    01/12/2014
+* \date    14/06/2015
 * \brief   Write/Read fits2D file.
 */
 
@@ -43,7 +43,11 @@
 
 #include "opencv2/highgui/highgui.hpp"
 #include <opencv2/imgproc/imgproc.hpp>
-#include "fitsio.h"
+#ifdef CFITSIO_H
+  #include CFITSIO_H
+#else
+  #include "fitsio.h"
+#endif
 #include <boost/log/common.hpp>
 #include <boost/log/expressions.hpp>
 #include <boost/log/utility/setup/file.hpp>

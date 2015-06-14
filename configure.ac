@@ -23,7 +23,7 @@
 #*	You should have received a copy of the GNU General Public License
 #*	along with FreeTure. If not, see <http://www.gnu.org/licenses/>.
 #*
-#*	Last modified:		19/06/2014
+#*	Last modified:		13/06/2015
 #*
 #*%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%*/
 
@@ -51,6 +51,7 @@ AC_DEFINE(LINUX, 1, [Linux plateform])
 sinclude(acx_urbi_resolve_dir.m4)
 sinclude(acx_boost.m4)
 sinclude(acx_opencv.m4)
+sinclude(acx_openssl.m4)
 sinclude(acx_cfitsio.m4)
 sinclude(acx_pylon.m4)
 
@@ -120,6 +121,14 @@ AC_ARG_WITH(opencv-incdir,
         [AS_HELP_STRING([--with-opencv-incdir=<OPENCV include dir>],
 	[Alternative directory for OPENCV include files])])
 
+# Provide special options for OPENSSL
+AC_ARG_WITH(openssl-libdir,
+        [AS_HELP_STRING([--with-openssl-libdir=<OPENSSL library path>],
+        [Alternative directory for the OPENSSL library])])
+AC_ARG_WITH(openssl-incdir,
+        [AS_HELP_STRING([--with-openssl-incdir=<OPENSSL include dir>],
+        [Alternative directory for OPENSSL include files])])
+
 # Provide special options for CFITSIO
 AC_ARG_WITH(cfitsio-libdir,
         [AS_HELP_STRING([--with-cfitsio-libdir=<CFITSIO library path>],
@@ -168,6 +177,15 @@ ACX_OPENCV($with_opencv_libdir,$with_opencv_incdir,
 	  AC_MSG_WARN([$OPENCV_WARN])
 	fi,
 	AC_MSG_ERROR([$OPENCV_ERROR Exiting.]))						
+
+###################### handle the OPENSSL library ######################
+ACX_OPENSSL($with_openssl_libdir,$with_openssl_incdir,
+        [AM_CPPFLAGS="$AM_CPPFLAGS $OPENSSL_CFLAGS"]
+        [LIBS="$OPENSSL_LIBS $LIBS"]
+        if test "$OPENSSL_WARN" != ""; then
+          AC_MSG_WARN([$OPENSSL_WARN])
+        fi,
+        AC_MSG_ERROR([$OPENSSL_ERROR Exiting.]))
 
 ###################### handle the CFITSIO library ######################
 ACX_CFITSIO($with_cfitsio_libdir,$with_cfitsio_incdir,
