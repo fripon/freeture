@@ -23,7 +23,7 @@
 #*	You should have received a copy of the GNU General Public License
 #*	along with FreeTure. If not, see <http://www.gnu.org/licenses/>.
 #*
-#*	Last modified:		13/06/2015
+#*	Last modified:		15/06/2015
 #*
 #*%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%*/
 
@@ -51,7 +51,7 @@ AC_DEFINE(LINUX, 1, [Linux plateform])
 sinclude(acx_urbi_resolve_dir.m4)
 sinclude(acx_boost.m4)
 sinclude(acx_opencv.m4)
-sinclude(acx_openssl.m4)
+#sinclude(acx_openssl.m4)
 sinclude(acx_cfitsio.m4)
 sinclude(acx_pylon.m4)
 
@@ -65,6 +65,9 @@ AC_PROG_CC
 # Checks for languages.
 AC_LANG(C)
 AC_LANG(C++)
+
+### Adding C++11 compatibility compilation flag
+CPPFLAGS="$CPPFLAGS -std=c++11 -std=c++0x"
 
 # Checks for header files.
 AC_CHECK_HEADERS([stdlib.h unistd.h])
@@ -90,6 +93,9 @@ PKG_CHECK_MODULES(GOBJ_2_0, gobject-2.0, [LIBS="$GOBJ_2_0_LIBS $LIBS"]
 PKG_CHECK_MODULES(UDEV, libudev, [LIBS="$UDEV_LIBS $LIBS"]
 				      [AM_CPPFLAGS="$AM_CPPFLAGS $UDEV_CFLAGS"],
 				      [AC_MSG_ERROR([$UDEV_ERROR Exiting.])])
+PKG_CHECK_MODULES(CRYPTO, libcrypto, [LIBS="$CRYPTO_LIBS $LIBS"]
+				      [AM_CPPFLAGS="$AM_CPPFLAGS $CRYPTO_CFLAGS"],
+				      [AC_MSG_ERROR([$CRYPTO_ERROR Exiting.])])
 
 # Provide special options for PYLON SDK (Basler Camera)
 AC_MSG_CHECKING([whether we should use the Pylon SDK for Basler Camera])
@@ -145,7 +151,6 @@ AC_ARG_WITH(cfg_path,
 
 AC_DEFINE_UNQUOTED([CFG_PATH], "$with_cfg_path",[Default path for the configuration file])
 
-
 ################# handle the Pylon library ##################
 if test "$enable_pylon" = "yes"; then
   AC_DEFINE(USE_PYLON, 1, [Pylon activated for Basler cameras])
@@ -159,7 +164,6 @@ if test "$enable_pylon" = "yes"; then
 fi
 AM_CONDITIONAL(USE_PYLON, test "$use_pylon" = "yes")
 
-
 ###################### handle the BOOST library ######################
 ACX_BOOST($with_boost_libdir,$with_boost_incdir,
     	[AM_CPPFLAGS="$AM_CPPFLAGS $BOOST_CPPFLAGS"]
@@ -171,21 +175,12 @@ ACX_BOOST($with_boost_libdir,$with_boost_incdir,
 
 ###################### handle the OPENCV library ######################
 ACX_OPENCV($with_opencv_libdir,$with_opencv_incdir,
-    	[AM_CPPFLAGS="$AM_CPPFLAGS $BOOST_CPPFLAGS"]
+    	[AM_CPPFLAGS="$AM_CPPFLAGS $OPENCV_CPPFLAGS"]
 	[LIBS="$OPENCV_LIBS $LIBS"]
 	if test "$OPENCV_WARN" != ""; then
 	  AC_MSG_WARN([$OPENCV_WARN])
 	fi,
 	AC_MSG_ERROR([$OPENCV_ERROR Exiting.]))						
-
-###################### handle the OPENSSL library ######################
-ACX_OPENSSL($with_openssl_libdir,$with_openssl_incdir,
-        [AM_CPPFLAGS="$AM_CPPFLAGS $OPENSSL_CFLAGS"]
-        [LIBS="$OPENSSL_LIBS $LIBS"]
-        if test "$OPENSSL_WARN" != ""; then
-          AC_MSG_WARN([$OPENSSL_WARN])
-        fi,
-        AC_MSG_ERROR([$OPENSSL_ERROR Exiting.]))
 
 ###################### handle the CFITSIO library ######################
 ACX_CFITSIO($with_cfitsio_libdir,$with_cfitsio_incdir,
@@ -195,6 +190,13 @@ ACX_CFITSIO($with_cfitsio_libdir,$with_cfitsio_incdir,
 	  AC_MSG_WARN([$CFITSIO_WARN])
 	fi,
 	AC_MSG_ERROR([$CFITSIO_ERROR Exiting.]))						
+
+###################### handle the OPENSSL library ######################
+PKG_CHECK_MODULES(OPENSSL, openssl,
+	[LIBS="$OPENSSL_LIBS $LIBS"]
+	[AM_CPPFLAGS="$AM_CPPFLAGS $OPENSSL_CFLAGS"],
+	[AC_MSG_ERROR([$OPENSSL_ERROR Exiting.])])
+
 ###################### handle the GSTREAMER library ######################
 PKG_CHECK_MODULES(GST01, gstreamer-0.10,
 	[LIBS="$GST01_LIBS $LIBS"]
@@ -206,7 +208,7 @@ PKG_CHECK_MODULES(ARV, aravis-0.4,
 	[LIBS="$ARV_LIBS $LIBS"]
 	[AM_CPPFLAGS="$AM_CPPFLAGS $ARV_CFLAGS"],
 	[AC_MSG_ERROR([$ARV_ERROR Exiting.])])
-							
+
 AC_SUBST(AM_CFLAGS)
 AC_SUBST(AM_CPPFLAGS)
 AC_SUBST(AM_LDFLAGS)
