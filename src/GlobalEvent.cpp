@@ -80,6 +80,17 @@ bool GlobalEvent::addLE(LocalEvent le){
 
         //float d = sqrt(pow(pt.back().x - pt.at(pt.size()-2).x,2.0) + pow(pt.back().y - pt.at(pt.size()-2).y,2.0));
 
+        if(listv.size()>1) {
+
+            float scalar = le.getLeDir().x * listv.back().x + le.getLeDir().y * listv.back().y;
+       
+            
+            if(scalar <= 0.0) clusterNegPos.push_back(false);
+            else clusterNegPos.push_back(true);
+
+        }
+
+
         // Check global event direction each 3 new local event.
         if((pts.size()+1)%3 == 0){
 
@@ -119,6 +130,13 @@ bool GlobalEvent::addLE(LocalEvent le){
                     circle(geDirMap, center, 5, Scalar(255,255,255), 1, 8, 0);*/
 
                 }else{
+
+                    // Birds filter
+                    /*float scalar = le.getLeDir().x * v.x + le.getLeDir().y * v.y;
+               
+                    if(scalar <= 0.0) clusterNegPos.push_back(false);
+                    else clusterNegPos.push_back(true);
+                    */
 
                     // Norm vector u
                     float normU = sqrt(pow(u.x,2.0)+pow(u.y,2.0));
@@ -210,10 +228,13 @@ bool GlobalEvent::addLE(LocalEvent le){
 
 }
 
-bool GlobalEvent::continuousGoodPos(int n){
+bool GlobalEvent::continuousGoodPos(int n, string &msg){
 
+    msg += "continuousGoodPos\n";
     int nb = 0;
     int nn = 0;
+    
+    msg += "size pts validity : " + Conversion::intToString(ptsValidity.size()) + " \n";
 
     for(int i = 0; i < ptsValidity.size(); i++){
 
@@ -222,16 +243,20 @@ bool GlobalEvent::continuousGoodPos(int n){
             nb++;
             nn=0;
 
-            if(nb >= n)
+            if(nb >= n) {
+                msg += "continuousGoodPos " + Conversion::intToString(n) + " = OK\n";
                 return true;
+            }
 
         }else{
 
             nn++;
             nb=0;
 
-            if(nn == 2)
+            if(nn == 2) {
+                msg += "continuousGoodPos " + Conversion::intToString(n) + " = NOT OK\n";
                 return false;
+            }
 
         }
 
@@ -272,14 +297,47 @@ bool GlobalEvent::continuousBadPos(int n){
 
 }
 
-bool GlobalEvent::ratioFramesDist(){
+bool GlobalEvent::negPosClusterFilter(string &msg) {
 
-    int d = (int)sqrt(pow(mainPts.back().x - mainPts.front().x,2.0) + pow(mainPts.back().y - mainPts.front().y,2.0));
+    msg += "negPosClusterFilter\n";
+    int counter = 0;
+    msg += "clusterNegPos size = " +Conversion::intToString(clusterNegPos.size())+ " \n";
+    for(int i = 0; i < clusterNegPos.size(); i++) {
+       
+        if(clusterNegPos.at(i)) {
+            msg += "clusterNegPos true\n";
+            counter+=1;
+        }else{
+            msg += "clusterNegPos false\n";
 
+        }
+
+    }
+
+    if(counter >= clusterNegPos.size()/2) {
+        msg += "negPosClusterFilter = OK\n";
+        return true;
+    }else {
+        msg += "negPosClusterFilter = NOT OK\n";
+        return false;
+    }
+}
+
+bool GlobalEvent::ratioFramesDist(string &msg){
+
+    msg += "ratioFramesDist\n";
+    float d = sqrt(pow(mainPts.back().x - mainPts.front().x,2.0) + pow(mainPts.back().y - mainPts.front().y,2.0));
+    msg += "d = "  +Conversion::floatToString(d)+   " \n";
     int n = geLastFrameNum - geFirstFrameNum;
+    msg += "n = "+Conversion::intToString(n)+ " \n";
 
-    if(d > (n *0.333)) return true;
-    else return false;
+    if(d > (n *0.333)){
+        msg += "ratio = ok\n";
+        return true;
+    }else{ 
+        msg += "ratio = not ok\n";
+        return false;
+    }
 
 
 }

@@ -130,7 +130,7 @@ class CameraFrames: public Camera {
         *
         * @return Success status to load next data set.
         */
-        bool loadNextDataSet();
+        bool loadNextDataSet(string &location);
 
         /**
         * Get data status : Is there another directory to use in input ?

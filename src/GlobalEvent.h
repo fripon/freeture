@@ -67,6 +67,7 @@ class GlobalEvent {
         Scalar  geColor;
         Mat     geMapColor;
 
+
     public :
 
         vector<LocalEvent>  LEList;
@@ -75,6 +76,8 @@ class GlobalEvent {
         vector<float>       distBtwMainPts;
         vector<Point>       mainPts;
         vector<Point>       pts;
+        Point leDir;
+        Point geDir;
 
         vector<Point>       listA;
         vector<Point>       listB;
@@ -84,6 +87,7 @@ class GlobalEvent {
         vector<float>       listAngle;
         vector<float>       listRad;
         vector<bool>        mainPtsValidity;
+        vector<bool>         clusterNegPos;
 
 
         GlobalEvent(string frameDate, int frameNum, int frameHeight, int frameWidth, Scalar c);
@@ -111,10 +115,11 @@ class GlobalEvent {
         void setNumFirstFrame(int n) {geFirstFrameNum = n;};
         void setNumLastFrame(int n) {geLastFrameNum = n;};
 
-        bool ratioFramesDist();
+        bool ratioFramesDist(string &msg);
 
         bool addLE(LocalEvent le);
-        bool continuousGoodPos(int n);
+        bool continuousGoodPos(int n, string &msg);
         bool continuousBadPos(int n);
+        bool negPosClusterFilter(string &msg);
 
 };

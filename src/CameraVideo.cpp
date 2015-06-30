@@ -145,7 +145,7 @@ bool CameraVideo::grabImage(Frame &img){
 
     }
 
-    waitKey(150);
+    waitKey(30);
     return true;
 }
 

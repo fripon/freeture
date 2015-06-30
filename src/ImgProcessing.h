@@ -36,6 +36,8 @@
 
 #include "opencv2/highgui/highgui.hpp"
 #include <opencv2/imgproc/imgproc.hpp>
+#include <string>
+#include <iostream>
 
 using namespace std;
 using namespace cv;
@@ -61,5 +63,41 @@ class ImgProcessing {
         * @return Image with gamma corrected.
         */
         static Mat correctGammaOnMono12(Mat& img, double gamma);
+
+
+        static Mat subdivideFrame(Mat img, int n) {
+
+            vector<Point> listSubPos;
+
+            int subW = img.cols/n;
+            int subH = img.rows/n;
+
+            cout << "subW : " << subW << endl;
+            cout << "subH : " << subH << endl;
+
+            for(int j = 0; j < n; j++) {
+
+                for(int i = 0; i < n; i++) {
+
+                    listSubPos.push_back(Point(i*subW, j*subH));
+                   // cout << Point(i*subW, j*subH)<< endl;
+
+                }
+
+            }
+
+            Mat imgSubdivided;
+            img.copyTo(imgSubdivided);
+
+            for(int i = 0; i < n; i++)
+                line(imgSubdivided, Point(i * subW, 0), Point(i*subW, subH * n), Scalar(255), 1, 8);
+
+            for(int j = 0; j < n; j++)
+                line(imgSubdivided, Point(0, j * subH), Point(subW * n, j * subH), Scalar(255), 1, 8);
+
+            return imgSubdivided;
+
+        };
+
 
 };

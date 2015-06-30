@@ -46,7 +46,7 @@
 #endif
 
 #include "Ephemeris.h"
-
+#include "Circle.h"
 #include "ESmtpSecurity.h"
 #include "SMTPClient.h"
 #include <boost/log/common.hpp>
@@ -1033,33 +1033,6 @@ int main(int argc, const char ** argv){
                             cout << "Log directory not found." << endl;
 
                         }
-
-                    }
-
-                    break;
-
-                case 6 :
-
-                    {
-
-                        //Ephemeris::ephemeris();
-
-                        /*vector<string> mailAttachments;
-
-
-                        vector<string> to;
-                        to.push_back("yoan.audureau@gmail.com");
-
-                        SMTPClient::sendMail("10.8.0.1",
-                                            "",
-                                            "",
-                                            "yoan.audureau@u-psud.fr",
-                                            to,
-                                            "test",
-                                            " Exposure time : test ",
-                                            mailAttachments,
-
-                                            NO_SECURITY);*/
 
                     }
 

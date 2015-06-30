@@ -64,6 +64,7 @@ DetThread::DetThread(   string						   cfg_p,
 	mNbDetection             = 0;
 
 	mWaitFramesToCompleteEvent = false;
+    mCurrentDataSetLocation = "";
 	mNbWaitFrames = 0;
 
 	mInterruptionStatus = false;
@@ -306,12 +307,12 @@ void DetThread::operator ()(){
                 BOOST_LOG_SEV(logger, normal) << "End to wait new frame from AcqThread.";
 
                 // Check interruption signal from AcqThread.
-                bool forceToReset = false;
+                mForceToReset = false;
                 mInterruptionStatusMutex.lock();
-                if(mInterruptionStatus) forceToReset = true;
+                if(mInterruptionStatus) mForceToReset = true;
                 mInterruptionStatusMutex.unlock();
 
-                if(!forceToReset){
+                if(!mForceToReset){
 
                     // Fetch the two last frames grabbed.
                     BOOST_LOG_SEV(logger, normal) << "Fetch the two last frames grabbed.";
@@ -363,13 +364,15 @@ void DetThread::operator ()(){
                                     BOOST_LOG_SEV(logger,critical) << "Error saving event data.";
                                     throw "Error saving event data.";
                                 }else{
+
                                     BOOST_LOG_SEV(logger, notification) << "Success to save event !" << endl;
+
                                 }
                                 lock.unlock();
 
                                 // Reset detection.
                                 BOOST_LOG_SEV(logger, notification) << "Reset detection process." << endl;
-                                pDetMthd->resetDetection();
+                                pDetMthd->resetDetection(false);
                                 mWaitFramesToCompleteEvent = false;
                                 mNbWaitFrames = 0;
 
@@ -389,7 +392,7 @@ void DetThread::operator ()(){
 
                     // reset method
                     if(pDetMthd != NULL)
-                        pDetMthd->resetDetection();
+                        pDetMthd->resetDetection(false);
 
                     mWaitFramesToCompleteEvent = false;
                     mNbWaitFrames = 0;
@@ -414,7 +417,38 @@ void DetThread::operator ()(){
 
         }while(!stopThread);
 
-        cout << "--> NUMBER OF DETECTED EVENTS : " << mNbDetection << endl;
+        
+        
+        if(mDetectionResults.size() == 0) {
+
+            cout << "-----------------------------------------------" << endl;
+            cout << "------------->> DETECTED EVENTS : " << mNbDetection << endl;
+            cout << "-----------------------------------------------" << endl;
+
+        }else {
+
+            // Create Report for videos and frames in input.
+            ofstream report;
+		    string reportPath = mDataPath + "detections_report.txt";
+		    report.open(reportPath.c_str());
+
+            cout << "--------------- DETECTION REPORT --------------" << endl;
+
+            for(int i = 0; i < mDetectionResults.size(); i++) {
+                report << mDetectionResults.at(i).first << "------> " << mDetectionResults.at(i).second << "\n";
+                cout << "- DATASET " << i << " : ";
+                
+                if(mDetectionResults.at(i).second > 1)
+                    cout << mDetectionResults.at(i).second << " events" << endl;
+                else 
+                    cout << mDetectionResults.at(i).second << " event" << endl;
+            }
+
+            cout << "-----------------------------------------------" << endl;
+
+            report.close();
+
+        }
 
     }catch(const char * msg){
 

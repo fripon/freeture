@@ -187,17 +187,18 @@ void AcqThread::operator()(){
 
     /// Acquisition process.
 
-    try{
+    try {
 
-        do{
+        do {
 
             // Load videos file or frames directory if input type is : FRAMES or VIDEO
-            if(!mDevice->getCam()->loadNextDataSet()) break;
+            string location = "";
+            if(!mDevice->getCam()->loadNextDataSet(location)) break;
+            pDetection->setCurrentDataSet(location);
 
-            do{
+            do {
 
-                if(mDevice->getDisplayInput())
-                    namedWindow("Display window", WINDOW_NORMAL );
+                if(mDevice->getDisplayInput()) namedWindow("Display window", WINDOW_NORMAL );
 
                 Frame newFrame;
                 bool grabStatus = false;
@@ -205,6 +206,18 @@ void AcqThread::operator()(){
                 double tacq = (double)getTickCount();
 
                 if(mDevice->getCam()->grabImage(newFrame)){
+
+                    if(mDevice->getVideoFramesInput()) {
+
+                        #ifdef WINDOWS
+                            Sleep(200);
+                        #else
+                            #ifdef LINUX
+                            usleep(200);
+                            #endif
+                        #endif
+
+                    }
 
                     grabStatus = true;
 
@@ -311,7 +324,7 @@ void AcqThread::operator()(){
 								#ifdef LINUX
 									sleep(1);
 								#else
-									#ifdef LINUX
+									#ifdef WINDOWS
 										Sleep(1);
 									#endif
 								#endif
@@ -470,44 +483,34 @@ void AcqThread::operator()(){
 
             }while(stop == false && !mDevice->getCam()->getStopStatus());
 
-			cout << "stop : " <<  stop << endl;
-			cout << "mDevice->getCam()->getStopStatus() : "  << mDevice->getCam()->getStopStatus()<< endl;
-            waitKey(1000);
+            // Reset detection process to prepare the analyse of a new data set.
+            if(pDetection != NULL) {
 
-            //cout << "Clear detection method." << endl;
-            if(pDetection != NULL){
-
-                BOOST_LOG_SEV(logger, normal) << "Reset detection";
-                pDetection->getDetMethod()->resetDetection();
-                BOOST_LOG_SEV(logger, normal) << "Reset mask";
+                BOOST_LOG_SEV(logger, normal) << " RESET DETECTION";
+                pDetection->getDetMethod()->resetDetection(true);
                 pDetection->getDetMethod()->resetMask();
+                pDetection->updateDetectionReport();
 
-                if(!pDetection->getRunStatus()) {
-
-                    BOOST_LOG_SEV(logger, normal) << "Detection thread is not running, stop acquisition thread.";
-                    break;
-                }
+                if(!pDetection->getRunStatus()) break;
+           
             }
 
-            cout << "Clear framebuffer" << endl;
+            // Clear framebuffer.
             boost::mutex::scoped_lock lock(*frameBuffer_mutex);
             frameBuffer->clear();
             lock.unlock();
-
-            cout << "Waiting for 5 seconds ..." << endl;
-            waitKey(2000);
 
         }while(mDevice->getCam()->getDataSetStatus());
 
     }catch(const boost::thread_interrupted&){
 
-            BOOST_LOG_SEV(logger,notification) << "Acquisition Thread INTERRUPTED";
-            cout << "Acquisition Thread INTERRUPTED" <<endl;
+        BOOST_LOG_SEV(logger,notification) << "Acquisition Thread INTERRUPTED";
+        cout << "Acquisition Thread INTERRUPTED" <<endl;
 
     }catch(exception& e){
 
         cout << "An exception occured : " << e.what() << endl;
-        BOOST_LOG_SEV(logger, critical) << e.what();
+        BOOST_LOG_SEV(logger, critical) << "An exception occured : " << e.what();
 
     }
 

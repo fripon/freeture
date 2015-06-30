@@ -37,6 +37,11 @@
 
 #include "opencv2/highgui/highgui.hpp"
 #include <opencv2/imgproc/imgproc.hpp>
+#include <iostream>
+#define _USE_MATH_DEFINES
+#include <math.h>
+#include "Circle.h"
+
 
 using namespace cv;
 using namespace std;
@@ -45,14 +50,28 @@ class LocalEvent {
 
     private :
 
-        Scalar  mLeColor;           // Color attribute of the local event.
-        Mat     mLeMap;             // ROI map.
-        Point   mLeMassCenter;      // Mass center.
-        int     mLeNumFrame;        // Associated frame.
+        Scalar          mLeColor;           // Color attribute of the local event.
+        Mat             mLeMap;             // ROI map.
+        Point           mLeMassCenter;      // Mass center.
+        int             mLeNumFrame;        // Associated frame.
+        int             mFrameHeight;
+        int             mFrameWidth;
+        Point           mPosMassCenter;
+        Point           mNegMassCenter;
+        float           mPosRadius;
+        float           mNegRadius;
+        bool            mPosCluster;
+        bool            mNegCluster;
+        bool            mergedFlag;
+        Point           uNegToPos;
+        int             index;
 
     public :
 
-        vector<Point> mLeRoiList;   // Contains position of region of interest which compose a local event.
+        vector<Point>   mLeRoiList;   // Contains position of region of interest which compose a local event.
+        vector<Point>   mAbsPos;
+        vector<Point>   mPosPos;
+        vector<Point>   mNegPos;
 
         /**
         * Constructor.
@@ -120,5 +139,33 @@ class LocalEvent {
         * @param w Width of the new ROI.
         */
         void setMap(Point p, int h, int w);
+
+        Point getLeDir() {return uNegToPos;};
+
+        void addAbs(vector<Point> p);
+        void addPos(vector<Point> p);
+        void addNeg(vector<Point> p);
+
+        bool getMergedStatus() {return mergedFlag;};
+        void setMergedStatus(bool flag) {mergedFlag = flag;};
+
+        Mat createPosNegAbsMap();
+        bool localEventIsValid();
+
+        bool getPosClusterStatus() {return mPosCluster;};
+        bool getNegClusterStatus() {return mNegCluster;};
+
+        void mergeWithAnOtherLE(LocalEvent &LE);
+        void completeGapWithRoi(Point p1, Point p2);
+        Point getPosMassCenter() {return mPosMassCenter;};
+        Point getNegMassCenter() {return mNegMassCenter;};
+        float getPosRadius() {return mPosRadius;};
+        float getNegRadius() {return mNegRadius;};
+        bool getPosCluster() {return mPosCluster;};
+        bool getNegCluster() {return mNegCluster;};
+        bool getMergedFlag() {return mergedFlag;};
+        int getLeIndex() {return index;};
+        void setLeIndex(int i) {index = i;};
+
 
 };

@@ -138,6 +138,7 @@ class Device{
         Fits                mFitsHeader;
         CamType             mType;
         string              mCfgPath;
+        bool                mDebugEnabled;
 
     public :
 
@@ -209,6 +210,7 @@ class Device{
         bool                getDetectionEnabled()           {return mDetectionEnabled;};
         bool                getRegularSaveJEG()             {return mRegularSaveJPEG;};
         bool                getScheduleSaveJEG()            {return mScheduleSaveJPEG;};
+        bool                getDebugStatus()                {return mDebugEnabled;};
 
     private :
 

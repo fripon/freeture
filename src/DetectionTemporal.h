@@ -128,6 +128,11 @@ class DetectionTemporal : public Detection {
         Mat                             mHighIntensityMap;      // Map of pixel with high intensity.
         Mat                             mMask;                  // Mask applied to frames.
         bool                            mMaskToCreate;          // Mask must be created.
+        string                          mDebugCurrentPath;
+        int                             mDataSetCounter;
+
+      
+
 
     public :
 
@@ -169,7 +174,7 @@ class DetectionTemporal : public Detection {
         * Reset detection method.
         *
         */
-        void resetDetection();
+        void resetDetection(bool loadNewDataSet);
 
         /**
         * Reset mask.
@@ -204,7 +209,7 @@ class DetectionTemporal : public Detection {
         * Initialize debug.
         *
         */
-        void initDebug();
+        void createDebugDirectories(bool cleanDebugDirectory);
 
         /**
         * Select a threshold.
@@ -244,7 +249,7 @@ class DetectionTemporal : public Detection {
         void colorRoiInBlack(Point p, int h, int w, Mat &region);
 
         /**
-        * Create regions of interest.
+        * Create loca events or attach ROI to existing local events.
         *
         * @param region Subdivision where to search.
         * @param frame Thresholded frame.
@@ -253,7 +258,18 @@ class DetectionTemporal : public Detection {
         * @param regionPosInFrame Subdivision position in frame.
         * @param maxNbLE Maximum number of local event.
         */
-        void searchROI(Mat &region, Mat &frame, Mat &eventMap, vector<LocalEvent> &listLE, Point regionPosInFrame, int maxNbLE);
+        void analyseRegion( Mat &subdivision, 
+                            Mat &absDiffBinaryMap, 
+                            Mat &eventMap, 
+                            Mat &posDiff, 
+                            int posDiffThreshold, 
+                            Mat &negDiff, 
+                            int negDiffThreshold, 
+                            vector<LocalEvent> &listLE, 
+                            Point subdivisionPos, 
+                            int maxNbLE, 
+                            int numFrame,
+                            string &msg);
 
 };
 

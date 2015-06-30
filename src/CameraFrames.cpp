@@ -53,12 +53,14 @@ CameraFrames::~CameraFrames(void) {
 }
 
 
-bool CameraFrames::loadNextDataSet() {
+bool CameraFrames::loadNextDataSet(string &location) {
+
+    location = mFramesDir.at(mCurrDirId);
 
     if(mCurrDirId !=0 ) {
 
         mReadDataStatus = false;
-
+        
         if(!searchMinMaxFramesNumber(mFramesDir.at(mCurrDirId)))
             return false;
 
@@ -80,10 +82,8 @@ bool CameraFrames::getDataSetStatus() {
 
     mCurrDirId++;
 
-    if(mCurrDirId == mFramesDir.size())
-        return false;
-    else
-        return true;
+    if(mCurrDirId >= mFramesDir.size()) return false;
+    else return true;
 }
 
 
@@ -295,8 +295,8 @@ bool CameraFrames::grabImage(Frame &img) {
 
 				frameFormat = MONO_12;
 
-				//newFits.readFits16S(resMat, filename);
-				newFits.readFits16US(resMat, filename);
+				newFits.readFits16S(resMat, filename);
+				//newFits.readFits16US(resMat, filename);
 
 				break;
 
@@ -311,13 +311,14 @@ bool CameraFrames::grabImage(Frame &img) {
 		img = f;
 
 		img.setAcqDateMicro(acqDateInMicrosec);
-        cout << "set num frame: " << mFirstFrameNum-1<<  endl;
+        
 		img.setNumFrame(mFirstFrameNum -1 );
 		img.setFrameRemaining(mLastFrameNum - mFirstFrameNum-1);
 		img.setFPS(1);
 		img.setBitDepth(frameFormat);
 
-		waitKey(150);
+		//waitKey(1000);
+        
 
 		return true;
 

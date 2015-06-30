@@ -116,7 +116,7 @@ class Detection {
         * Reset detection method.
         *
         */
-        virtual void resetDetection(){};
+        virtual void resetDetection(bool loadNewDataSet){};
 
         /**
         * Reset mask.

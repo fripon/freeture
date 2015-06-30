@@ -117,6 +117,9 @@ class DetThread {
         bool                            *detSignal;
         boost::mutex                    *detSignal_mutex;
         boost::condition_variable       *detSignal_condition;
+        string                          mCurrentDataSetLocation;
+        vector<pair<string,int>>        mDetectionResults;
+        bool                            mForceToReset;
 
     public :
 
@@ -200,6 +203,24 @@ class DetThread {
         *
         */
         void interruptThread();
+
+        void updateDetectionReport() {
+         
+            if(mCurrentDataSetLocation != "") {
+
+                mDetectionResults.push_back(pair<string,int>(mCurrentDataSetLocation, mNbDetection));
+                mNbDetection = 0;
+
+            }
+
+        };
+        
+        void setCurrentDataSet(string location) {
+   
+            mCurrentDataSetLocation = location;
+
+        };
+       
 
 };
 

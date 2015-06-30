@@ -29,7 +29,7 @@
 * \author  Yoan Audureau -- FRIPON-GEOPS-UPSUD
 * \version 1.0
 * \date    19/06/2014
-* \brief   Frame grabbed from a camera or other input with an image.
+* \brief   Image container.
 */
 
 #pragma once
@@ -66,6 +66,10 @@ class Frame {
 
     public :
 
+        /**
+        * Constructor.
+        *
+        */
         Frame(Mat capImg, int g, int e, string acquisitionDate);
 
         /**

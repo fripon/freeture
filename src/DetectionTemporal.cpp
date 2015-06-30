@@ -47,10 +47,10 @@ DetectionTemporal::DetectionTemporal() {
     mStaticMaskEnabled = false;
 
     mMaskToCreate = false;
+    mDataSetCounter = 0;
 
     mListColors.push_back(Scalar(0,0,139));      // DarkRed
     mListColors.push_back(Scalar(0,0,255));      // Red
-    mListColors.push_back(Scalar(60,20,220));    // Crimson
     mListColors.push_back(Scalar(0,100,100));    // IndianRed
     mListColors.push_back(Scalar(92,92,205));    // Salmon
     mListColors.push_back(Scalar(0,140,255));    // DarkOrange
@@ -70,7 +70,6 @@ DetectionTemporal::DetectionTemporal() {
     mListColors.push_back(Scalar(255,191,0));    // DeepSkyBlue
     mListColors.push_back(Scalar(255,255,0));    // Cyan
 
-    mImgNum = 0;
     mRoiSize[0] = 10;
     mRoiSize[1] = 10;
 
@@ -82,7 +81,11 @@ bool DetectionTemporal::initMethod(string cfgPath) {
 
         Configuration cfg;
         cfg.Load(cfgPath);
-
+                
+        // Get debug option.
+        cfg.Get("DET_DEBUG", mDebugEnabled);
+        BOOST_LOG_SEV(logger, notification) << "DET_DEBUG : " << mDebugEnabled;
+        
         // Get acquisition frequency.
         int ACQ_FPS = 1;
         cfg.Get("ACQ_FPS", ACQ_FPS);
@@ -112,14 +115,14 @@ bool DetectionTemporal::initMethod(string cfgPath) {
         cfg.Get("ACQ_MASK_ENABLED", mMaskEnabled);
         BOOST_LOG_SEV(logger, notification) << "ACQ_MASK_ENABLED : " << mMaskEnabled;
 
-        if(mMaskEnabled){
+        if(mMaskEnabled) {
 
             cfg.Get("ACQ_MASK_PATH", mMaskPath);
             BOOST_LOG_SEV(logger, notification) << "ACQ_MASK_PATH : " << mMaskPath;
 
-            mOriginalMask = imread(mMaskPath, CV_LOAD_IMAGE_GRAYSCALE);
+            mMask = imread(mMaskPath, CV_LOAD_IMAGE_GRAYSCALE);
 
-            if(!mOriginalMask.data){
+            if(!mMask.data){
                 cout << " Can't load the mask from this location : " << mMaskPath;
                 BOOST_LOG_SEV(logger, notification) << " Can't load the mask from this location : " << mMaskPath;
                 throw "Can't load the mask. Wrong location.";
@@ -127,15 +130,12 @@ bool DetectionTemporal::initMethod(string cfgPath) {
 
             if(mDownsampleEnabled){
 
-                int imgH = mOriginalMask.rows; imgH /= 2;
-                int imgW = mOriginalMask.cols; imgW /= 2;
+                int imgH = mMask.rows/2; 
+                int imgW = mMask.cols/2; 
 
-                pyrDown(mOriginalMask, mOriginalMask, Size(imgW, imgH));
+                pyrDown(mMask, mMask, Size(imgW, imgH));
 
             }
-
-
-            mOriginalMask.copyTo(mMask);
 
         }else{
 
@@ -148,13 +148,10 @@ bool DetectionTemporal::initMethod(string cfgPath) {
         maskTemp.at<uchar>(1, 1) = 0;
         maskTemp.copyTo(mLocalMask);
 
-        // Get debug option.
-        cfg.Get("DET_DEBUG", mDebugEnabled);
-        BOOST_LOG_SEV(logger, notification) << "DET_DEBUG : " << mDebugEnabled;
-
         // Get debug path.
         cfg.Get("DET_DEBUG_PATH", mDebugPath);
         BOOST_LOG_SEV(logger, notification) << "DET_DEBUG_PATH : " << mDebugPath;
+        mDebugCurrentPath = mDebugPath;
 
         // Get debug video option.
         cfg.Get("DET_DEBUG_VIDEO", mDebugVideo);
@@ -173,11 +170,11 @@ bool DetectionTemporal::initMethod(string cfgPath) {
 
         // Create directories for debugging method.
         if(mDebugEnabled)
-            initDebug();
+            createDebugDirectories(true);
 
         // Create debug video.
         if(mDebugVideo)
-            mVideoDebug = VideoWriter(mDebugPath + "debug-video.avi", CV_FOURCC('M', 'J', 'P', 'G'), 5, Size(static_cast<int>(1280), static_cast<int>(960)), true);
+            mVideoDebug = VideoWriter(mDebugCurrentPath + "debug-video.avi", CV_FOURCC('M', 'J', 'P', 'G'), 5, Size(static_cast<int>(1280), static_cast<int>(960)), true);
 
 	}catch(exception& e){
 
@@ -199,58 +196,78 @@ DetectionTemporal::~DetectionTemporal() {
 
 }
 
-void DetectionTemporal::resetDetection(){
-
-    BOOST_LOG_SEV(logger, notification) << "Start clear listGlobalEvents";
-    //cout << "Start clear listGlobalEvents" << endl;
+void DetectionTemporal::resetDetection(bool loadNewDataSet){
+ 
+    cout << "Clean Global Events list." << endl;
     mListGlobalEvents.clear();
-    BOOST_LOG_SEV(logger, notification) << "Clear finished";
-    //cout << "Clear finished" << endl;
 
     mSubdivisionStatus = false;
     mPrevThresholdedMap.release();
-    cout << "release mPrevFrame" << endl;
-
     mPrevFrame.release();
-
-    if(mPrevFrame.data)
-        cout << "mPrevFrame.data" << endl;
-    else
-        cout << "!mPrevFrame.data" << endl;
-
-
+    
+    if(mDebugEnabled && loadNewDataSet) {
+        mDataSetCounter++;
+        createDebugDirectories(false);
+    }
 }
 
 void DetectionTemporal::resetMask(){
 
     mMaskToCreate = true;
 
-
 }
 
-void DetectionTemporal::initDebug(){
+void DetectionTemporal::createDebugDirectories(bool cleanDebugDirectory){
+
+    cout << "Debug mode : enabled." << endl;
+    
+    mDebugCurrentPath = mDebugPath + "debug_" + Conversion::intToString(mDataSetCounter) + "/" ;
+
+    if(cleanDebugDirectory) {
+
+        cout << "Clean and create debug directories..." << endl;
+
+        const boost::filesystem::path p0 = path(mDebugPath); // .../debug/
+
+        if(boost::filesystem::exists(p0))
+            boost::filesystem::remove_all(p0);
+
+        if(!boost::filesystem::exists(p0))
+            boost::filesystem::create_directories(p0);
+
+    }else {
+
+        cout << "Create debug directories..." << endl;
+
+    }
+ 
+    const boost::filesystem::path p1 = path(mDebugCurrentPath);             // .../debug/debug_0/
+    const boost::filesystem::path p2 = path(mDebugCurrentPath + "local");   // .../debug/debug_0/local/
+    const boost::filesystem::path p3 = path(mDebugCurrentPath + "global");  // .../debug/debug_0/global/
+   
+    if(!boost::filesystem::exists(p1))
+        boost::filesystem::create_directories(p1);
+
+    if(!boost::filesystem::exists(p2))
+        boost::filesystem::create_directories(p2);
+
+    if(!boost::filesystem::exists(p3))
+        boost::filesystem::create_directories(p3);
 
     vector<string> debugSubDir;
-    debugSubDir.push_back("curr");
-    debugSubDir.push_back("prev");
-    debugSubDir.push_back("diff");
-    debugSubDir.push_back("thsh");
-    debugSubDir.push_back("evMp");
-    debugSubDir.push_back("motionMap");
-    debugSubDir.push_back("motionMap2");
-    debugSubDir.push_back("GEMAP");
-    debugSubDir.push_back("mHighIntensityMap");
-    debugSubDir.push_back("static");
-    debugSubDir.push_back("mask");
-    debugSubDir.push_back("dilateMotionMap");
-    debugSubDir.push_back("currwithmask");
-
+    debugSubDir.push_back("absolute_difference");
+    debugSubDir.push_back("absolute_difference_thresholded");
+    debugSubDir.push_back("event_map_initial"); 
+    debugSubDir.push_back("event_map_filtered"); 
+    debugSubDir.push_back("absolute_difference_dilated");
+    debugSubDir.push_back("neg_difference_thresholded");
+    debugSubDir.push_back("pos_difference_thresholded");
+    debugSubDir.push_back("neg_difference");
+    debugSubDir.push_back("pos_difference");
+      
     for(int i = 0; i< debugSubDir.size(); i++){
 
-        const boost::filesystem::path path(mDebugPath + debugSubDir.at(i));
-
-        if(boost::filesystem::exists(path))
-            boost::filesystem::remove_all(path);
+        const boost::filesystem::path path(mDebugCurrentPath + "global/" + debugSubDir.at(i));
 
         if(!boost::filesystem::exists(path))
             boost::filesystem::create_directories(path);
@@ -488,324 +505,721 @@ void DetectionTemporal::subdivideFrame(vector<Point> &sub, int n, int imgH, int 
     }
 }
 
-bool DetectionTemporal::run(Frame &c){
+bool DetectionTemporal::run(Frame &c) {
 
-	if(!mSubdivisionStatus){
+    BOOST_LOG_SEV(logger, normal) << "************************ DETECTION FRAME " << c.getNumFrame() << "************************";
+
+    double mDownsampleTime  = 0;
+    double absdiffTime      = 0;
+    double posdiffTime      = 0;
+    double negdiffTime      = 0;
+    double dilateTime       = 0;
+    double thresholdTime    = 0;
+    double timeStep1        = 0;
+    double timeStep2        = 0;
+    double timeStep3        = 0;
+    double timeStep4        = 0;
+    double timeTotal        = 0;
+
+    string pFrame0 = mDebugCurrentPath + "local/frame_" + Conversion::intToString(c.getNumFrame());
+    ofstream fileFrame;
+
+    if(mDebugEnabled) {
+
+        const boost::filesystem::path pFrame1 = path(pFrame0);
+        if(!boost::filesystem::exists(pFrame1))
+            boost::filesystem::create_directories(pFrame1);
+
+    
+        string pathFileFrame = pFrame0 + "/locallog.txt";
+        fileFrame.open(pathFileFrame.c_str());
+
+    }
+
+    int h = 1, w = 1;
+
+    if(mDownsampleEnabled) {
+
+        h = c.getImg().rows/2;
+        w = c.getImg().cols/2;
+
+    }else { 
+
+        h = c.getImg().rows;
+        w = c.getImg().cols;
+
+    }
+
+	if(!mSubdivisionStatus) {
+
+        // --------------------------------------------------------------------------------------------------
+        // -------------------------------- ---- FRAME SUBDIVISION ------------------------------------------
+        // --------------------------------------------------------------------------------------------------
 
         mSubdivisionPos.clear();
 
-		if(mDownsampleEnabled)
-            subdivideFrame(mSubdivisionPos, 8, c.getImg().rows/2, c.getImg().cols/2);
-		else
-            subdivideFrame(mSubdivisionPos, 8, c.getImg().rows, c.getImg().cols);
+        subdivideFrame(mSubdivisionPos, 8, h, w);
+
+        if(mDebugEnabled) {
+
+            ofstream fileSub;
+            string pathFileSub = mDebugCurrentPath + "subdivisions.txt";
+            fileSub.open(pathFileSub.c_str());
+ 
+            fileSub << "There are " << mSubdivisionPos.size() << " subdivisions.\n"; 
+
+            for(int i = 0; i < mSubdivisionPos.size(); i++) {
+
+                fileSub << i << " : " << mSubdivisionPos.at(i) << "\n"; 
+
+            }
+
+            fileSub.close();
+
+            Mat s;
+ 
+            s = Mat(h, w,CV_8UC1,Scalar(0));
+
+            for(int i = 0; i < 8; i++) {
+
+               line(s, Point(0, i * (h/8)), Point(w - 1, i * (h/8)), Scalar(255), 1);
+               line(s, Point(i * (w/8), 0), Point(i * (w/8), h-1), Scalar(255), 1);
+
+            }
+
+            SaveImg::saveBMP(s, mDebugCurrentPath + "subdivisions_map");
+            
+        }
 
 		mSubdivisionStatus = true;
 
-	}else{
+	}else {
 
-		// Frame's size.
-		int imgH = c.getImg().rows, imgW = c.getImg().cols;
-
-		// Num of the current frame.
-		mImgNum = c.getNumFrame();
-
-        // Get frame.
-		Mat cc, currImg;
-
-		/// %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+        /// %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 		/// %%%%%%%%%%%%%%%%%%%%%%%%%%% STEP 1 : FILETRING / THRESHOLDING %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 		/// %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
-		double t1 = (double)getTickCount();
+        // SUMMARY : 
+        // - Downsample.
+        // - Check mask.
+        // - Check previous frame.
+        // - Absolute difference (absdiff).
+        // - Positive difference.
+        // - Negative difference.
+        // - Dilatate absdiff.
+        // - Threshold absdiff (3 x mean(absdiff)).
 
-        if(mDebugEnabled) SaveImg::saveBMP(c.getImg(), mDebugPath + "/curr/curr_"+Conversion::intToString(mImgNum));
-        if(mDebugEnabled && mPrevFrame.data) SaveImg::saveBMP(mPrevFrame, mDebugPath + "/prev/prev"+Conversion::intToString(mImgNum));
+        // Time counter.
+        double tstep1 = (double)getTickCount();
 
-        // Not use mask.
-        if(mMaskToCreate && !mMaskEnabled){
+        // Current frame.
+		Mat currImg;
 
-            if(mDownsampleEnabled){
+        // ------------------------------
+        //    Downsample current frame.
+        // -------------------------------
 
-                mOriginalMask = Mat(imgH/2,imgW/2, CV_8UC1,Scalar(255));
-                mMask = Mat(imgH/2,imgW/2, CV_8UC1,Scalar(255));
+		if(mDownsampleEnabled) {
 
-            }else{
+            mDownsampleTime = (double)getTickCount();
+			pyrDown(c.getImg(), currImg, Size(c.getImg().cols / 2, c.getImg().rows / 2));
+			mDownsampleTime = ((double)getTickCount() - mDownsampleTime);
 
-                mOriginalMask = Mat(imgH,imgW, CV_8UC1,Scalar(255));
-                mMask = Mat(imgH,imgW, CV_8UC1,Scalar(255));
+		}else {
 
-            }
+            c.getImg().copyTo(currImg);
 
+        }
+
+        // -------------------------------
+        //      Handle / check mask.
+        // -------------------------------
+
+        if(mMaskToCreate && !mMaskEnabled) {
+
+            // Create a default mask.
+            mMask = Mat(h, w, CV_8UC1,Scalar(255));
             mMaskToCreate = false;
 
-        }
+        }else {
 
-        c.getImg().copyTo(cc);
+            if(currImg.rows == mMask.rows && currImg.cols == mMask.cols) {
 
-        // Downsample current image.
-		if(mDownsampleEnabled){
+                Mat temp;
+                currImg.copyTo(temp, mMask);
+                temp.copyTo(currImg);
 
-            BOOST_LOG_SEV(logger, normal) << "Downsampling current frame ... ";
+            }else {
 
-            double t1_downsample = (double)getTickCount();
+                throw "ERROR : Mask size is not correct according to the frame size.";
 
-			imgH /= 2;
-			imgW /= 2;
-
-			pyrDown(cc, cc, Size(imgW, imgH));
-
-			t1_downsample = (((double)getTickCount() - t1_downsample)/getTickFrequency())*1000;
-            cout << "> Downsample Time : " << t1_downsample << endl;
-
-		}
-
-        // Convert to 8 bits.
-        Mat ccc;
-		Conversion::convertTo8UC1(cc).copyTo(ccc);
-
-        if(mStaticMaskEnabled){
-
-            int dilation_type = MORPH_RECT;
-            int dilation_size = 5;
-
-            double t_static = (double)getTickCount();
-
-            if(!mStaticMask.data){
-
-                // Threshold current image to find pixels with high intensity value.
-                Mat map1 = Mat(imgH,imgW, CV_8UC1,Scalar(0));
-                threshold(ccc, map1, selectThreshold(ccc), 255, THRESH_BINARY);
-
-                Mat element = getStructuringElement(dilation_type, Size(2*dilation_size + 1, 2*dilation_size+1), Point(dilation_size, dilation_size));
-
-                dilate(map1, mStaticMask, element);
-
-            }else{
-
-                // Update mStaticMask
-                if(mImgNum % mStaticMaskInterval == 0){
-
-                    BOOST_LOG_SEV(logger, normal) << "Updating mStaticMask ... ";
-
-                    // Threshold current image to find pixels with high intensity value.
-                    Mat map1 = Mat(imgH,imgW, CV_8UC1,Scalar(0));
-                    threshold(ccc, map1, selectThreshold(ccc), 255, THRESH_BINARY);
-
-                    Mat tempHighIntensityMap;
-                    Mat element = getStructuringElement(dilation_type, Size(2*dilation_size + 1, 2*dilation_size+1), Point(dilation_size, dilation_size));
-
-                    dilate( map1, tempHighIntensityMap, element );
-
-                    mStaticMask = mStaticMask & tempHighIntensityMap;
-
-                    Mat invertStaticMask = cv::Mat::ones(mStaticMask.size(), mStaticMask.type()) * 255 - mStaticMask;
-
-                    // Update mask.
-                    invertStaticMask.copyTo(mMask,mOriginalMask);
-
-                    if(mDebugEnabled) SaveImg::saveBMP(mStaticMask, mDebugPath + "/static/static_"+Conversion::intToString(mImgNum));
-                    if(mDebugEnabled) SaveImg::saveBMP(mMask, mDebugPath + "/mMask/mask_"+Conversion::intToString(mImgNum));
-
-                }
             }
-
-            t_static = (((double)getTickCount() - t_static)/getTickFrequency())*1000;
-            cout << " [- STATIC TIME-] : " << std::setprecision(3) << std::fixed << t_static << " ms " << endl;
-
         }
+                
+        // --------------------------------
+        //      Check previous frame.
+        // --------------------------------
 
-
-        if(cc.rows == mMask.rows && cc.cols == mMask.cols)
-            cc.copyTo(currImg, mMask);
-        else
-            throw "ERROR : Mask size is not correct according to the frame size.";
-
-        /// If previous image has no data.
-        /// The current image become the previous and we do not continue the detection process for the current image.
-		if(!mPrevFrame.data){
+		if(!mPrevFrame.data) {
 
             currImg.copyTo(mPrevFrame);
             return false;
 
         }
 
-		/// Search pixels which have changed.
-        double t1_difference = (double)getTickCount();
+        // --------------------------------
+		//          Differences.
+        // --------------------------------
 
-        BOOST_LOG_SEV(logger, normal) << "Computing absolute difference ... ";
+        Mat absdiffImg, posDiffImg, negDiffImg; 
 
-		Mat diffImg;
+        // Absolute difference.
+        absdiffTime = (double)getTickCount();
+        cv::absdiff(currImg, mPrevFrame, absdiffImg);
+        absdiffTime = (double)getTickCount() - absdiffTime;
 
-		absdiff(currImg, mPrevFrame, diffImg);
+        // Positive difference.
+        posdiffTime = (double)getTickCount();
+        cv::subtract(currImg,mPrevFrame,posDiffImg,mMask);   
+        posdiffTime = (double)getTickCount() - posdiffTime;
+        
+        // Negative difference.
+        negdiffTime = (double)getTickCount();
+        cv::subtract(mPrevFrame,currImg,negDiffImg,mMask);
+        negdiffTime = (double)getTickCount() - negdiffTime;
+     
+        // ---------------------------------
+        //  Dilatation absolute difference.
+        // ---------------------------------
+                
+        dilateTime = (double)getTickCount();
+        int dilation_size = 2;
+        Mat element = getStructuringElement(MORPH_RECT, Size(2*dilation_size + 1, 2*dilation_size+1), Point(dilation_size, dilation_size));
+        dilate(absdiffImg, absdiffImg, element);
+        dilateTime = (double)getTickCount() - dilateTime;
+        
+        if(mDebugEnabled) {
+            
+            SaveImg::saveBMP(absdiffImg, mDebugCurrentPath + "/global/absolute_difference_dilated/frame_" + Conversion::intToString(c.getNumFrame()));
+            SaveImg::saveBMP(absdiffImg, pFrame0 + "/absolute_difference_dilated");
+        }
 
-		Conversion::convertTo8UC1(diffImg).copyTo(diffImg);
+        // ----------------------------------
+        //   Threshold absolute difference.
+        // ----------------------------------
 
-		t1_difference = (((double)getTickCount() - t1_difference)/getTickFrequency())*1000;
-		cout << "> Difference Time : " << t1_difference << endl;
+	    thresholdTime = (double)getTickCount();
+		Mat absDiffBinaryMap = Mat(currImg.rows,currImg.cols, CV_8UC1,Scalar(0));
+        Scalar meanAbsDiff, stddevAbsDiff;
+        meanStdDev(absdiffImg, meanAbsDiff, stddevAbsDiff, mMask);
+        int absDiffThreshold = /*stddevAbsDiff[0] * 5 + 10;//*/meanAbsDiff[0] * 3;
 
-		if(mDebugEnabled) SaveImg::saveBMP(diffImg, mDebugPath + "/diff/diff_"+Conversion::intToString(mImgNum));
+        if(absdiffImg.type() == CV_16UC1) {
 
-        /// The current image become the previous image.
-		currImg.copyTo(mPrevFrame);
+            unsigned short * ptrAbsDiff;
+            unsigned char * ptrMap;
+        
+	        for(int i = 0; i < absdiffImg.rows; i++) {
 
-        /// Apply threshold to create a binary map of changed pixels.
+		        ptrAbsDiff = absdiffImg.ptr<unsigned short>(i);
+                ptrMap = absDiffBinaryMap.ptr<unsigned char>(i);
+  
+		        for(int j = 0; j < absdiffImg.cols; j++){
 
-		double t1_threshold = (double)getTickCount();
+                    if(ptrAbsDiff[j] > absDiffThreshold) {
+				        ptrMap[j] = 255;
+                    }
+		        }
+	        }
 
-		// Threshold map.
-		Mat mapThreshold = Mat(imgH,imgW, CV_8UC1,Scalar(0));
+        }else {
 
-		// Thresholding diff.
-		BOOST_LOG_SEV(logger, normal) << "Thresholding absolute difference ... ";
-		threshold(diffImg, mapThreshold, selectThreshold(diffImg), 255, THRESH_BINARY);
+            unsigned char * ptrAbsDiff;
+            unsigned char * ptrMap;
+        
+	        for(int i = 0; i < absdiffImg.rows; i++) {
 
+		        ptrAbsDiff = absdiffImg.ptr<unsigned char>(i);
+                ptrMap = absDiffBinaryMap.ptr<unsigned char>(i);
+  
+		        for(int j = 0; j < absdiffImg.cols; j++){
 
-		t1_threshold = (((double)getTickCount() - t1_threshold)/getTickFrequency())*1000;
-		cout << "> Threshold Time : " << t1_threshold << endl;
+                    if(ptrAbsDiff[j] > absDiffThreshold) {
+				        ptrMap[j] = 255;
+                    }
+		        }
+	        }
+        }
+        		
+        thresholdTime = (double)getTickCount() - thresholdTime;
+     
+        // ----------------------------------
+        //   Threshold pos / neg difference.
+        // ----------------------------------
 
-		if(mDebugEnabled) SaveImg::saveBMP(mapThreshold, mDebugPath + "/thsh/thsh_"+Conversion::intToString(mImgNum));
+        Scalar meanPosDiff, stddevPosDiff, meanNegDiff, stddevNegDiff;
+        meanStdDev(posDiffImg, meanPosDiff, stddevPosDiff, mMask);
+        meanStdDev(negDiffImg, meanNegDiff, stddevNegDiff, mMask);
+        int posThreshold = stddevPosDiff[0] * 5 + 10;
+        int negThreshold = stddevNegDiff[0] * 5 + 10;
 
-		double t1_threshold2 = (double)getTickCount();
+        if(mDebugEnabled) {
 
-		/// Remove single white pixel.
-		BOOST_LOG_SEV(logger, normal) << "Removing single white pixel ... ";
-		unsigned char * ptrT;
+            Mat posBinaryMap = Mat(currImg.rows,currImg.cols, CV_8UC1,Scalar(0));
+            Mat negBinaryMap = Mat(currImg.rows,currImg.cols, CV_8UC1,Scalar(0));
+        
+            if(absdiffImg.type() == CV_16UC1) {
 
-		Mat black(3,3,CV_8UC1,Scalar(0));
+                unsigned short * ptrInc;
+                unsigned short * ptrDec;
+                unsigned char * ptrT_inc;
+                unsigned char * ptrT_dec;
 
-		for(int i = 0; i < imgH; i++){
+		        for(int i = 0; i < absdiffImg.rows; i++) {
 
-			ptrT = mapThreshold.ptr<unsigned char>(i);
+			        ptrInc = posDiffImg.ptr<unsigned short>(i);
+                    ptrDec = negDiffImg.ptr<unsigned short>(i);
+                    ptrT_inc = posBinaryMap.ptr<unsigned char>(i);
+                    ptrT_dec = negBinaryMap.ptr<unsigned char>(i);
+  
+			        for(int j = 0; j < absdiffImg.cols; j++){
 
-			for(int j = 0; j < imgW; j++){
+                        if(ptrInc[j] > posThreshold) {
+				            ptrT_inc[j] = 255;
+                        }
 
-				if(ptrT[j] > 0){
+                        if(ptrDec[j] > negThreshold) {
+				            ptrT_dec[j] = 255;
+                        }
+			        }
+		        }
 
-					if(j-1 > 0 && j+1 < imgW && i-1 > 0 && i +1 < imgH){
+            }else {
 
-						Mat t = mapThreshold(Rect(j-1, i-1, 3, 3));
+                unsigned char * ptrInc;
+                unsigned char * ptrDec;
+                unsigned char * ptrT_inc;
+                unsigned char * ptrT_dec;
 
-						Mat res = t & mLocalMask;
+		        for(int i = 0; i < absdiffImg.rows; i++) {
 
-						int n = countNonZero(res);
+			        ptrInc = posDiffImg.ptr<unsigned char>(i);
+                    ptrDec = negDiffImg.ptr<unsigned char>(i);
+                    ptrT_inc = posBinaryMap.ptr<unsigned char>(i);
+                    ptrT_dec = negBinaryMap.ptr<unsigned char>(i);
+  
+			        for(int j = 0; j < absdiffImg.cols; j++){
 
-						if(n == 0){
+                        if(ptrInc[j] > posThreshold) {
+				            ptrT_inc[j] = 255;
+                        }
 
-							if(j-1 > 0 && j+1 < imgW && i-1 > 0 && i +1 < imgH){
+                        if(ptrDec[j] > negThreshold) {
+				            ptrT_dec[j] = 255;
+                        }
+			        }
+		        }
 
-								black.copyTo(mapThreshold(Rect(j-1, i-1, 3, 3)));
+            }
 
-							}
-						}
-					}
-				}
-			}
-		}
+            SaveImg::saveBMP(posBinaryMap, mDebugCurrentPath + "/global/pos_difference_thresholded/frame_" + Conversion::intToString(c.getNumFrame()));
+            SaveImg::saveBMP(posBinaryMap, pFrame0 + "/pos_difference_thresholded");
+            SaveImg::saveBMP(negBinaryMap, mDebugCurrentPath + "/global/neg_difference_thresholded/frame_" + Conversion::intToString(c.getNumFrame()));
+            SaveImg::saveBMP(negBinaryMap, pFrame0 + "/neg_difference_thresholded");
 
-		t1_threshold2 = (((double)getTickCount() - t1_threshold2)/getTickFrequency())*1000;
-		cout << "> Eliminate single white pixels Time : " << t1_threshold2 << endl;
+            SaveImg::saveBMP(absDiffBinaryMap, mDebugCurrentPath + "/global/absolute_difference_thresholded/frame_" + Conversion::intToString(c.getNumFrame()));
+            SaveImg::saveBMP(absDiffBinaryMap, pFrame0 + "/absolute_difference_thresholded");
 
-        /// Difference of 2 last threshold map.
-        BOOST_LOG_SEV(logger, normal) << "Differencing of 2 last threshold map ... ";
-        Mat motionMap;
-
-		if(mPrevThresholdedMap.data){
-
-			motionMap = mapThreshold & mPrevThresholdedMap;
-
-			if(mDebugEnabled) SaveImg::saveBMP(motionMap, mDebugPath + "/motionMap/motionMap_"+Conversion::intToString(mImgNum));
-
-            // Create the final map according to the map of pixels with high values and the map of changed pixels.
-			//motionMap = motionMap & mapC;
-
-			if(mDebugEnabled) SaveImg::saveBMP(motionMap, mDebugPath + "/motionMap2/motionMap2_"+Conversion::intToString(mImgNum));
-
-			mapThreshold.copyTo(mPrevThresholdedMap);
-
-		}else{
-
-		    mapThreshold.copyTo(mPrevThresholdedMap);
-		    return false;
+            SaveImg::saveBMP(absdiffImg, mDebugCurrentPath + "/global/absolute_difference/frame_"+Conversion::intToString(c.getNumFrame()));
+            SaveImg::saveBMP(absdiffImg, pFrame0 + "/absolute_difference");
+            SaveImg::saveBMP(Conversion::convertTo8UC1(posDiffImg), mDebugCurrentPath + "/global/pos_difference/frame_" + Conversion::intToString(c.getNumFrame()));
+            SaveImg::saveBMP(Conversion::convertTo8UC1(posDiffImg), pFrame0 + "/pos_difference");
+            SaveImg::saveBMP(Conversion::convertTo8UC1(negDiffImg), mDebugCurrentPath + "/global/neg_difference/frame_" + Conversion::intToString(c.getNumFrame()));
+            SaveImg::saveBMP(Conversion::convertTo8UC1(negDiffImg), pFrame0 + "/neg_difference");
 
         }
 
-		t1 = (((double)getTickCount() - t1)/getTickFrequency())*1000;
-		cout << "> Time 1) : " << t1 << endl << endl;
+        // Current frame is stored as the previous frame.
+		currImg.copyTo(mPrevFrame);
 
+        // Time counter of the first step.
+        timeStep1 = (double)getTickCount() - timeStep1;
+        
 		/// %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 		/// %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%% STEP 2 : FIND LOCAL EVENT %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 		/// %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
+        // SUMMARY :
+        // Loop binarized absolute difference image.
+        // For each white pixel, define a Region of interest (ROI) of 10x10 centered in this pixel.
+        // Create a new Local Event initialized with this first ROI or attach this ROI to an existing Local Event.
+        // Loop the ROI in the binarized absolute difference image to store position of white pixels.
+        // Loop the ROI in the positive difference image to store positions of white pixels.
+        // Loop the ROI in the negative difference image to store positions of white pixels.
+        // Once the list of Local Event has been completed : 
+        // Analyze each local event in order to check that pixels can be clearly split in two groups (negative, positive).
+       
         // List of localEvent objects.
 		vector <LocalEvent> listLocalEvents;
 
-		// Execution time.
-		double t2 = (double)getTickCount();
+        // Iterator on list of sub-regions.
+        vector<LocalEvent>::iterator itLE;
+
+        // Local Event list Historic informations.
+        ofstream fileLe;
+        if(mDebugEnabled) {
+
+            string pathFileLe = pFrame0 + "/LocalEvent.txt";
+            fileLe.open(pathFileLe.c_str());
+
+        }
+
+		// Time counter.
+		timeStep2 = (double)getTickCount();
 
 		// Event map for the current frame.
-		Mat eventMap = Mat(imgH,imgW, CV_8UC3,Scalar(0,0,0));
+		Mat eventMap = Mat(currImg.rows,currImg.cols, CV_8UC3,Scalar(0,0,0));
 
+        // ----------------------------------
+        //        Search local events.
+        // ----------------------------------
+  
         // Iterator on list of sub-regions.
         vector<Point>::iterator itR;
 
-        // Analyse regions.
-        BOOST_LOG_SEV(logger, normal) << "Loop subdivisions on frame " << Conversion::intToString(mImgNum)<< " ... ";
-        cout << "curr frame " << Conversion::intToString(c.getNumFrame())<< " ... " << endl;
+        // Analyse subdivisions.
+        if(mDebugEnabled) fileFrame << "**************** ANALYSE SUBDIVISIONS. ****************\n";
+        for(itR = mSubdivisionPos.begin(); itR != mSubdivisionPos.end(); ++itR) {
 
-        /*double td = (double)getTickCount();
-        int dilation_size = 10;
-        Mat element = getStructuringElement(MORPH_RECT, Size(2*dilation_size + 1, 2*dilation_size+1), Point(dilation_size, dilation_size));
-        dilate(motionMap, motionMap, element);
-        td = (((double)getTickCount() - td)/getTickFrequency())*1000;
-		cout << "> Dilatation time : " << td << endl << endl;
+            // Extract subdivision from binary map.
+            Mat subdivision = absDiffBinaryMap(Rect((*itR).x, (*itR).y, absDiffBinaryMap.cols/8, absDiffBinaryMap.rows/8));
 
-        if(mDebugEnabled) SaveImg::saveBMP(motionMap, mDebugPath + "/dilateMotionMap/dilate_"+Conversion::intToString(mImgNum));*/
+            if(mDebugEnabled) {
 
-        for(itR = mSubdivisionPos.begin(); itR != mSubdivisionPos.end(); ++itR){
-
-            // Extract regions from motionMap.
-            Mat subdivision = motionMap(Rect((*itR).x, (*itR).y, imgW/8, imgH/8));
+                fileLe << "***************************************************\n"; 
+                fileLe << "Nb LE : " << listLocalEvents.size() << "\n";
+                fileLe << "---------------------------------------------------\n";
+                for(int i = 0; i < listLocalEvents.size(); i++) 
+                    fileLe << "LE " << i << " : " << listLocalEvents.at(i).getMassCenter() << "\n";
+                fileLe << "---------------------------------------------------\n";
+            }
 
             // Check if there is white pixels.
             if(countNonZero(subdivision) > 0){
 
-                cout << (*itR)<< endl;
+                if(mDebugEnabled) {
 
-                searchROI(subdivision, motionMap, eventMap, listLocalEvents, (*itR), 10);
+                    fileFrame << "REGION : " << (*itR) << " ----> NOT EMPTY ! \n" ;
+                    fileLe << "Region : " << (*itR) << " ----> NOT EMPTY ! \n" ;
 
+                }
+
+                string debugMsg = "";
+
+                analyseRegion(  subdivision, 
+                                absDiffBinaryMap,
+                                eventMap, 
+                                posDiffImg,
+                                posThreshold,
+                                negDiffImg,
+                                negThreshold,
+                                listLocalEvents, 
+                                (*itR), 
+                                10, 
+                                c.getNumFrame(),
+                                debugMsg);
+
+                if(mDebugEnabled)fileLe << debugMsg;
+
+            }else {
+
+                if(mDebugEnabled) {
+
+                    fileFrame << "REGION : " << (*itR) << " ----> EMPTY \n" ;
+                    fileLe << "Region : " << (*itR) << " ----> EMPTY ! \n" ;
+
+                }
             }
 
         }
 
-		BOOST_LOG_SEV(logger, normal) << "LE number : " << listLocalEvents.size();
+        for(int i = 0; i < listLocalEvents.size(); i++) {
+            listLocalEvents.at(i).setLeIndex(i);
+        }
 
-		if(mDebugEnabled) SaveImg::saveBMP(eventMap, mDebugPath + "/evMp/evMp_" + Conversion::intToString(mImgNum));
+        if(mDebugEnabled) {
 
-		t2 = (((double)getTickCount() - t2)/getTickFrequency())*1000;
-		cout << "> Time 2) : " << t2 << endl << endl;
+            fileLe << "***************************************************\n\n\n"; 
+            fileLe << "Final Nb LE : " << listLocalEvents.size() << "\n";
+            fileLe << "---------------------------------------------------\n";
+            for(int i = 0; i < listLocalEvents.size(); i++) {
+
+                fileLe << "------ LE " << listLocalEvents.at(i).getLeIndex() << "------- \n";
+                fileLe << "- vecteur neg to pos : (" + Conversion::intToString(listLocalEvents.at(i).getLeDir().x) + ";" + Conversion::intToString(listLocalEvents.at(i).getLeDir().y) + ")\n" ;
+                fileLe << "- mass center abs : (" + Conversion::intToString(listLocalEvents.at(i).getMassCenter().x) + ";" + Conversion::intToString(listLocalEvents.at(i).getMassCenter().y) + ")\n";
+                fileLe << "- mass center pos : (" + Conversion::intToString(listLocalEvents.at(i).getPosMassCenter().x) + ";" + Conversion::intToString(listLocalEvents.at(i).getPosMassCenter().y) + ")\n" ;
+                fileLe << "- mass center neg : (" + Conversion::intToString(listLocalEvents.at(i).getNegMassCenter().x) + ";" + Conversion::intToString(listLocalEvents.at(i).getNegMassCenter().y) + ")\n" ;
+                fileLe << "- mPosRadius : " + Conversion::floatToString(listLocalEvents.at(i). getPosRadius()) + "\n";
+                fileLe << "- mNegRadius : " + Conversion::floatToString(listLocalEvents.at(i). getNegRadius()) + "\n";
+                if(listLocalEvents.at(i).getPosCluster())
+                    fileLe << "- mPosCluster : true \n";
+                else
+                    fileLe << "- mPosCluster : false \n";
+
+                if(listLocalEvents.at(i).getNegCluster())
+                    fileLe << "- mNegCluster : true \n";
+                else
+                    fileLe << "- mNegCluster : false \n";
+         
+                if(listLocalEvents.at(i).getMergedFlag())
+                    fileLe << "- mergedFlag : true \n";
+                else
+                    fileLe << "- mergedFlag : false \n";
+
+                SaveImg::saveBMP(listLocalEvents.at(i).createPosNegAbsMap(), pFrame0 + "/LE_" + Conversion::intToString(listLocalEvents.at(i).getLeIndex()));
+         
+            }
+            fileLe << "---------------------------------------------------\n\n\n";
+ 
+            SaveImg::saveBMP(eventMap, mDebugCurrentPath + "/global/event_map_initial/frame_" + Conversion::intToString(c.getNumFrame()));
+            SaveImg::saveBMP(eventMap, pFrame0 + "/event_map_initial");
+        }
+
+        // ----------------------------------
+        //         Link between LE.
+        // ----------------------------------
+
+        int leNumber = listLocalEvents.size();
+        
+        // Liste d'iterators sur la liste des localEvent contenant soit un cluster positif ou négatif.
+        vector<vector<LocalEvent>::iterator > itLePos, itLeNeg;
+        // Association d'un local event à cluster positif avec un local event à cluster negatif.
+        vector<pair<vector<LocalEvent>::iterator, vector<LocalEvent>::iterator> > itPair;
+     
+        itLE = listLocalEvents.begin();
+
+        // Search pos and neg alone.
+        while(itLE != listLocalEvents.end()) {
+
+            // Le has pos cluster but no neg cluster.
+            if((*itLE).getPosClusterStatus() && !(*itLE).getNegClusterStatus()) {
+
+                if(mDebugEnabled)fileLe << "LE " << (*itLE).getLeIndex() << " has no negative cluster\n";
+                itLePos.push_back(itLE);
+
+            }else if(!(*itLE).getPosClusterStatus() && (*itLE).getNegClusterStatus()){
+
+                if(mDebugEnabled)fileLe << "LE " << (*itLE).getLeIndex() << " has no negative cluster\n";
+                itLeNeg.push_back(itLE);
+
+            }  
+
+            ++itLE;
+
+        }
+
+        int maxRadius = 50;
+
+        // Try to link a positive cluster to a negative one.
+        for(int i = 0; i < itLePos.size(); i++) {
+
+            int nbPotentialNeg = 0;
+            
+            vector<LocalEvent>::iterator itChoose;
+            vector<vector<LocalEvent>::iterator >::iterator c;
+
+            for(vector<vector<LocalEvent>::iterator >::iterator j = itLeNeg.begin(); j != itLeNeg.end();) {
+
+                Point A = (*itLePos.at(i)).getMassCenter();
+                Point B = (*(*j)).getMassCenter();
+                float dist = sqrt(pow((A.x - B.x),2) + pow((A.y - B.y),2));
+
+                if(dist < 50) { 
+
+                    nbPotentialNeg++;
+                    itChoose = (*j);
+                    c = j;
+
+                }
+
+                ++j;
+
+            }
+     
+            if(nbPotentialNeg == 1) {
+
+                if(mDebugEnabled)fileLe << "MERGE LE " << (*itLePos.at(i)).getLeIndex() << " with LE " << (*itChoose).getLeIndex() << " \n";
+                (*itLePos.at(i)).mergeWithAnOtherLE((*itChoose));
+                (*itLePos.at(i)).setMergedStatus(true);
+                (*itChoose).setMergedStatus(true);
+                itLeNeg.erase(c);
+
+            }
+            
+        }
+
+        // Delete pos cluster not merged and negative cluster not merged.
+         itLE = listLocalEvents.begin();
+
+        // Search pos and neg alone.
+        while(itLE != listLocalEvents.end()) {
+
+            // Le has pos cluster but no neg cluster.
+            if(// ((*itLE).getPosClusterStatus() && !(*itLE).getNegClusterStatus() && !(*itLE).getMergedStatus())||
+                (!(*itLE).getPosClusterStatus() && (*itLE).getNegClusterStatus()&& (*itLE).getMergedStatus())) {
+
+                if(mDebugEnabled)fileLe << "Remove LE "  << (*itLE).getLeIndex() << " \n";
+                itLE = listLocalEvents.erase(itLE);
+
+            }else {
+
+                ++itLE;
+
+            }  
+
+        }
+
+        // -----------------------------------
+        //            Circle TEST.
+        // -----------------------------------
+
+        leNumber = listLocalEvents.size();
+
+        itLE = listLocalEvents.begin();
+
+        while(itLE != listLocalEvents.end()) {
+
+            if((*itLE).getPosClusterStatus() && (*itLE).getNegClusterStatus()) {
+
+                if((*itLE).localEventIsValid()) {
+
+                    ++itLE;
+
+                }else {
+
+                    fileLe << "Remove LE "  << (*itLE).getLeIndex() << " \n";
+                    itLE = listLocalEvents.erase(itLE);
+
+                }
+
+            }else {
+                ++itLE;
+            }
+        }
+
+        if(mDebugEnabled) {
+
+            fileLe << "\n---------------------------------------------------\n";
+            fileLe << "Final Nb LE : " << listLocalEvents.size() << "\n";
+            for(int i = 0; i < listLocalEvents.size(); i++) 
+                fileLe << "LE " << listLocalEvents.at(i).getLeIndex() << " : " << listLocalEvents.at(i).getMassCenter() << "\n";
+            fileLe << "---------------------------------------------------\n\n\n";
+
+            vector<LocalEvent>::iterator itLE_;
+            itLE_ = listLocalEvents.begin();
+
+            int a = 0;
+
+            ofstream f;
+
+            string fpath = pFrame0 + "/LE.txt";
+            f.open(fpath.c_str());
+
+		    while(itLE_ != listLocalEvents.end()){
+
+                string line = " ******* LE " + Conversion::intToString((*itLE_).getLeIndex()) + " ******* \n";
+                f << line;
+                line = "- vecteur neg to pos : (" + Conversion::intToString((*itLE_).getLeDir().x) + ";" + Conversion::intToString((*itLE_).getLeDir().y) + ")\n" ;
+                f << line ;
+                line = "- mass center abs : (" + Conversion::intToString((*itLE_).getMassCenter().x) + ";" + Conversion::intToString((*itLE_).getMassCenter().y) + ")\n" ;
+                f << line ;
+                line = "- mass center pos : (" + Conversion::intToString((*itLE_).getPosMassCenter().x) + ";" + Conversion::intToString((*itLE_).getPosMassCenter().y) + ")\n" ;
+                f << line ;
+                line = "- mass center neg : (" + Conversion::intToString((*itLE_).getNegMassCenter().x) + ";" + Conversion::intToString((*itLE_).getNegMassCenter().y) + ")\n" ;
+                f << line ;
+                line = "- mPosRadius : " + Conversion::floatToString((*itLE_). getPosRadius()) + "\n";
+                f << line ;
+                line = "- mNegRadius : " + Conversion::floatToString((*itLE_). getNegRadius()) + "\n";
+                f << line ;
+                if((*itLE_).getPosCluster())
+                    line = "- mPosCluster : true \n";
+                else
+                    line = "- mPosCluster : false \n";
+                f << line ;
+                if((*itLE_).getNegCluster())
+                    line = "- mNegCluster : true \n";
+                else
+                    line = "- mNegCluster : false \n";
+                f << line ;
+                if((*itLE_).getMergedFlag())
+                    line = "- mergedFlag : true \n";
+                else
+                    line = "- mergedFlag : false \n";
+                f << line ;
+
+                SaveImg::saveBMP((*itLE_).createPosNegAbsMap(), pFrame0 + "/LE_Filtered_" + Conversion::intToString((*itLE_).getLeIndex()));
+
+                ++itLE_;
+
+                f << "\n\n";
+
+                a++;
+
+            }
+
+            f.close();
+        
+            Mat eventMapFiltered = Mat(currImg.rows,currImg.cols, CV_8UC3,Scalar(0,0,0));
+        
+            for(int i = 0; i < listLocalEvents.size(); i++) {
+
+                Mat roiF(10, 10, CV_8UC3, listLocalEvents.at(i).getColor());
+
+                for(int j = 0; j < listLocalEvents.at(i).mLeRoiList.size();j++) {
+
+                    if( listLocalEvents.at(i).mLeRoiList.at(j).x-5 > 0 &&
+                        listLocalEvents.at(i).mLeRoiList.at(j).x+5 < eventMapFiltered.cols && 
+                        listLocalEvents.at(i).mLeRoiList.at(j).y-5 > 0 &&
+                        listLocalEvents.at(i).mLeRoiList.at(j).y+5 < eventMapFiltered.rows)
+
+                    roiF.copyTo(eventMapFiltered(Rect(listLocalEvents.at(i).mLeRoiList.at(j).x - 5, listLocalEvents.at(i).mLeRoiList.at(j).y + 5, 10, 10)));
+
+                }
+
+            }
+
+            SaveImg::saveBMP(eventMapFiltered, mDebugCurrentPath + "/global/event_map_filtered/frame_" + Conversion::intToString(c.getNumFrame()));
+            SaveImg::saveBMP(eventMapFiltered, pFrame0 + "/event_map_filtered");
+
+            fileLe.close();
+
+        }
+
+		timeStep2 = (double)getTickCount() - timeStep2;
 
 		/// %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 		/// %%%%%%%%%%%%%%%%%%%%%%%%%% STEP 3 : ATTACH LE TO GE OR CREATE NEW ONE %%%%%%%%%%%%%%%%%%%%%%%%%
 		/// %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-
-        BOOST_LOG_SEV(logger, normal) << "Running step 3 ... ";
-
+       
+        // SUMMARY :
+        // Loop list of local events.
+        // Create a new global event initialized with the current Local event or attach it to an existing global event.
+        // If attached, check the positive-negative couple of the global event.
+        
 		// Iterator on list of global event.
 		vector<GlobalEvent>::iterator itGE;
-		// Iterator on list of local event.
-		vector<LocalEvent>::iterator itLE;
-
-		double t3 = (double)getTickCount();
+ 
+		timeStep3 = (double)getTickCount();
 
 		itLE = listLocalEvents.begin();
 
-		while(itLE != listLocalEvents.end()){
+		while(itLE != listLocalEvents.end()) {
 
             bool LELinked = false;
             vector<GlobalEvent>::iterator itGESelected;
             bool GESelected = false;
 
-			(*itLE).setNumFrame(mImgNum);
+			(*itLE).setNumFrame(c.getNumFrame());
 
 			for(itGE = mListGlobalEvents.begin(); itGE != mListGlobalEvents.end(); ++itGE){
 
@@ -879,25 +1293,37 @@ bool DetectionTemporal::run(Frame &c){
 
 		}
 
-		t3 = (((double)getTickCount() - t3)/getTickFrequency())*1000;
-		cout << "> Time 3) : " << t3 << endl;
-
+		timeStep3 = (double)getTickCount() - timeStep3;
+		        
 		/// %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 		/// %%%%%%%%%%%%%%%%%%%%%%%%%%%%%% STEP 4 : MANAGE LIST GLOBAL EVENT %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 		/// %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
-        BOOST_LOG_SEV(logger, normal) << "Running step 4 ... ";
 
-		double  t4 = (double)getTickCount();
+        ofstream fileGe;
+        if(mDebugEnabled) {
+
+            string pathFileGe = pFrame0 + "/GlobalEvent.txt";
+            fileGe.open(pathFileGe.c_str());
+            fileGe << "Size list GE : " << mListGlobalEvents.size() << "\n\n";
+        }
+
+
+		timeStep4 = (double)getTickCount();
 
 		itGE = mListGlobalEvents.begin();
 
 		bool saveSignal = false;
 
+        int nGe = 0;
+
 		while(itGE != mListGlobalEvents.end()){
+
+            if(mDebugEnabled) fileGe << "----------- GE " << nGe << " -----------\n";
 
             // Increment age.
 			(*itGE).setAge((*itGE).getAge() + 1);
+            if(mDebugEnabled) fileGe << "-> AGE :  " << (*itGE).getAge() << "\n";
 
             // The current global event has not received a new local event.
 			if(!(*itGE).getNewLEStatus()){
@@ -912,14 +1338,23 @@ bool DetectionTemporal::run(Frame &c){
 
 			}
 
+            if(mDebugEnabled) fileGe << "-> AGE LAST ELEM :  " << (*itGE).getAgeLastElem() << "\n";
+            if(mDebugEnabled) fileGe << "-> NUM LAST IMG  :  " << (*itGE).getNumLastFrame() << "\n";
+
+            string msgGe = "";
 			// CASE 1 : Finished event.
 			if((*itGE).getAgeLastElem() > 5){
 
+                //cout << "Finished event." << endl;
+                if(mDebugEnabled) fileGe << "-> Finished event.\n";
+                fileGe << "Vec LE : " << (*itGE).leDir << "\n";
+                fileGe << "Vec GE : " << (*itGE).geDir << "\n";
                 // Linear profil ? Minimum duration respected ?
-				if((*itGE).LEList.size() >= 8 && (*itGE).continuousGoodPos(4) && (*itGE).ratioFramesDist()){
+				if((*itGE).LEList.size() >= 5 && (*itGE).continuousGoodPos(4, msgGe) && (*itGE).ratioFramesDist(msgGe) && (*itGE).negPosClusterFilter(msgGe)){
 
+                    if(mDebugEnabled) fileGe <<msgGe;
 					mGeToSave = itGE;
-
+                    if(mDebugEnabled) fileGe << "-> SAVE THIS GE  !  \n";
                     saveSignal = true;
 
                     break;
@@ -927,17 +1362,23 @@ bool DetectionTemporal::run(Frame &c){
 
 				}else{
 
+                    if(mDebugEnabled) fileGe <<msgGe;
+                    if(mDebugEnabled) fileGe << "-> REMOVE THIS GE   \n";
 					// Delete the event.
 					itGE = mListGlobalEvents.erase(itGE);
 
 				}
 
+       
+                
+                
+
 			//CASE 2 : Not finished event.
 			}else{
-
+                if(mDebugEnabled) fileGe << "-> Not Finished event.\n";
                 // Too long event ? or not linear ?
 				if( (*itGE).getAge() > 500 ||
-					(!(*itGE).getLinearStatus() && !(*itGE).continuousGoodPos(5)) ||
+					(!(*itGE).getLinearStatus() && !(*itGE).continuousGoodPos(5,msgGe)) ||
                     (!(*itGE).getLinearStatus() && (*itGE).continuousBadPos((int)(*itGE).getAge()/2))){
 
 					// Delete the event.
@@ -946,7 +1387,7 @@ bool DetectionTemporal::run(Frame &c){
                 // Let the GE alive.
 				}else if(c.getFrameRemaining() < 10 && c.getFrameRemaining() != 0){
 
-				    if((*itGE).LEList.size() >= 8 && (*itGE).continuousGoodPos(4) && (*itGE).ratioFramesDist()){
+				    if((*itGE).LEList.size() >= 5 && (*itGE).continuousGoodPos(4,msgGe) && (*itGE).ratioFramesDist(msgGe)&& (*itGE).negPosClusterFilter(msgGe)){
 
                         mGeToSave = itGE;
 
@@ -968,24 +1409,29 @@ bool DetectionTemporal::run(Frame &c){
 
 				}
 			}
-		}
+		
+            /*if(mDebugEnabled) fileGe << "-> LINEAR        :  " << (*itGE).getLinearStatus() << "\n";
+            if(mDebugEnabled) fileGe << "-> BAD POS       :  " << (*itGE).getBadPos() << "\n";
+            if(mDebugEnabled) fileGe << "-> GOOD POS      :  " << (*itGE).getGoodPos() << "\n";
+            if(mDebugEnabled) fileGe << "-> VELOCITY      :  " << (*itGE).getVelocity() << "\n";*/
+        
+        }
 
-		t4 = (((double)getTickCount() - t4)/getTickFrequency())*1000;
-		cout << "Time 4 : " << t4 << endl;
+		timeStep4 = (double)getTickCount() - timeStep4;
 
 		/// ----------------------------------- DEBUG VIDEO ----------------------------------------
 
 		if(mDebugVideo){
 
             // Create GE memory image
-            Mat GEMAP = Mat(imgH, imgW, CV_8UC3, Scalar(0,0,0));
+            Mat GEMAP = Mat(currImg.rows, currImg.cols, CV_8UC3, Scalar(0,0,0));
             for(itGE = mListGlobalEvents.begin(); itGE!= mListGlobalEvents.end(); ++itGE){
 
                 GEMAP = GEMAP + (*itGE).getGeMapColor();
 
             }
 
-            if(mDebugEnabled) SaveImg::saveBMP(GEMAP, mDebugPath + "/GEMAP/GEMAP_"+Conversion::intToString(mImgNum));
+            if(mDebugEnabled) SaveImg::saveBMP(GEMAP, mDebugCurrentPath + "/GEMAP/GEMAP_"+Conversion::intToString(c.getNumFrame()));
 
             Mat VIDEO               = Mat(960,1280, CV_8UC3,Scalar(255,255,255));
             Mat VIDEO_frame         = Mat(470,630, CV_8UC3,Scalar(0,0,0));
@@ -996,8 +1442,8 @@ bool DetectionTemporal::run(Frame &c){
 
             cvtColor(currImg, currImg, CV_GRAY2BGR);
             resize(currImg, VIDEO_frame, Size(630,470), 0, 0, INTER_LINEAR );
-            cvtColor(mapThreshold, mapThreshold, CV_GRAY2BGR);
-            resize(mapThreshold, VIDEO_threshFrame, Size(630,470), 0, 0, INTER_LINEAR );
+            cvtColor(absDiffBinaryMap, absDiffBinaryMap, CV_GRAY2BGR);
+            resize(absDiffBinaryMap, VIDEO_threshFrame, Size(630,470), 0, 0, INTER_LINEAR );
             resize(eventMap, VIDEO_eventFrame, Size(630,470), 0, 0, INTER_LINEAR );
             resize(GEMAP, VIDEO_geFrame, Size(630,470), 0, 0, INTER_LINEAR );
 
@@ -1016,7 +1462,7 @@ bool DetectionTemporal::run(Frame &c){
             VIDEO_eventFrame.copyTo(VIDEO(Rect(0, 480, 640, 480)));
             VIDEO_geFrame.copyTo(VIDEO(Rect(640, 480, 640, 480)));
 
-            string fn = Conversion::intToString(mImgNum);
+            string fn = Conversion::intToString(c.getNumFrame());
             const char * fn_c;
             fn_c = fn.c_str();
 
@@ -1030,15 +1476,47 @@ bool DetectionTemporal::run(Frame &c){
 
         }
 
+        if(mDebugEnabled) { 
+            fileFrame.close();
+            fileGe.close();
+        }
+
 		return saveSignal;
 
 	}
+
+    if(mDebugEnabled) fileFrame.close();
+
+    timeTotal = (double)getTickCount() - timeTotal;
+
+    if(mDownsampleTime!=0)
+        cout << "mDownsampleTime : " << (mDownsampleTime/getTickFrequency())*1000 << " ms" << endl;
+    if(absdiffTime!=0)
+        cout << "absdiffTime : " << (absdiffTime/getTickFrequency())*1000 << " ms" << endl;
+    if(posdiffTime!=0)
+        cout << "posdiffTime : " << (posdiffTime/getTickFrequency())*1000 << " ms" << endl;
+    if(negdiffTime!=0)
+        cout << "negdiffTime : " << (negdiffTime/getTickFrequency())*1000 << " ms" << endl;
+    if(dilateTime!=0)
+        cout << "dilateTime : " << (dilateTime/getTickFrequency())*1000 << " ms" << endl;
+    if(thresholdTime!=0)
+        cout << "thresholdTime : " << (thresholdTime/getTickFrequency())*1000 << " ms" << endl;
+    if(timeStep1!=0)
+        cout << "timeStep1 : " << (timeStep1/getTickFrequency())*1000 << " ms" << endl;
+    if(timeStep2!=0)
+        cout << "timeStep2 : " << (timeStep2/getTickFrequency())*1000 << " ms" << endl;
+    if(timeStep3!=0)
+        cout << "timeStep3 : " << (timeStep3/getTickFrequency())*1000 << " ms" << endl;
+    if(timeStep4!=0)
+        cout << "timeStep4 : " << (timeStep4/getTickFrequency())*1000 << " ms" << endl;
+    if(timeTotal!=0)
+        cout << "timeTotal : " << (timeTotal/getTickFrequency())*1000 << " ms" << endl;
 
 	return false;
 
 }
 
-vector<Scalar> DetectionTemporal::getColorInEventMap(Mat &eventMap, Point roiCenter){
+vector<Scalar> DetectionTemporal::getColorInEventMap(Mat &eventMap, Point roiCenter) {
 
     // ROI in the eventMap.
     Mat roi;
@@ -1123,60 +1601,165 @@ void DetectionTemporal::colorRoiInBlack(Point p, int h, int w, Mat &region){
 
 }
 
-void DetectionTemporal::searchROI( Mat &region,
-                                    Mat &frame,                 // Thresholded frame
-                                    Mat &eventMap,
-                                    vector<LocalEvent> &listLE,
-                                    Point regionPosInFrame,     // Origin position of a region in frame (corner top left)
-                                    int maxNbLE){
+void DetectionTemporal::analyseRegion(  Mat &subdivision,
+                                        Mat &absDiffBinaryMap,                 
+                                        Mat &eventMap,
+                                        Mat &posDiff,
+                                        int posDiffThreshold,
+                                        Mat &negDiff,
+                                        int negDiffThreshold,
+                                        vector<LocalEvent> &listLE,
+                                        Point subdivisionPos,     // Origin position of a region in frame (corner top left)
+                                        int maxNbLE,
+                                        int numFrame,
+                                        string &msg){
 
     int situation = 0;
+    int nbCreatedLE = 0;
+    int nbRoiAttachedToLE = 0;
+    int nbNoCreatedLE = 0;
+    int nbROI = 0;
+    int nbRoiNotAnalysed = 0;
+    int roicounter = 0;
 
     unsigned char * ptr;
 
-    // Loop pixel's region.
-    for(int i = 0; i < region.rows; i++){
+    // Loop pixel's subdivision.
+    for(int i = 0; i < subdivision.rows; i++) {
 
-        ptr = region.ptr<unsigned char>(i);
+        ptr = subdivision.ptr<unsigned char>(i);
 
-        for(int j = 0; j < region.cols; j++){
+        for(int j = 0; j < subdivision.cols; j++) {
 
-            if((int)ptr[j] > 0){
+            // Pixel is white.
+            if((int)ptr[j] > 0) {
 
-                // Check we are not out of range in the frame if a ROI is defined in the current pixel location.
-                if((regionPosInFrame.y + i - mRoiSize[1]/2 > 0)          &&
-                   (regionPosInFrame.y + i + mRoiSize[1]/2 < frame.rows) &&
-                   (regionPosInFrame.x + j - mRoiSize[0]/2 > 0)          &&
-                   (regionPosInFrame.x + j + mRoiSize[0]/2 < frame.cols)){
+                // Check if we are not out of frame range when a ROI is defined at the current pixel location.
+                if((subdivisionPos.y + i - mRoiSize[1]/2 > 0) &&
+                   (subdivisionPos.y + i + mRoiSize[1]/2 < absDiffBinaryMap.rows) &&
+                   (subdivisionPos.x + j - mRoiSize[0]/2 > 0) &&
+                   (subdivisionPos.x + j + mRoiSize[0]/2 < absDiffBinaryMap.cols)) {
 
+                    msg = msg 
+                        + "Analyse ROI ("
+                        +  Conversion::intToString(subdivisionPos.x + j) + ";" + Conversion::intToString(subdivisionPos.y + i) + ")\n";
+
+                    nbROI++;
+                    roicounter++;
                     // Get colors in eventMap at the current ROI location.
-                    vector<Scalar> listColorInRoi = getColorInEventMap(eventMap, Point(regionPosInFrame.x + j, regionPosInFrame.y + i));
+                    vector<Scalar> listColorInRoi = getColorInEventMap(eventMap, Point(subdivisionPos.x + j, subdivisionPos.y + i));
 
-                    if(listColorInRoi.size() == 0)  situation = 0;  // black color      = create a new local event
-                    if(listColorInRoi.size() == 1)  situation = 1;  // one color        = add the current roi to an existing local event
-                    if(listColorInRoi.size() >  1)  situation = 2;  // several colors   = make a decision
+                    if(listColorInRoi.size() == 0)  situation = 0;  // black color = create a new local event
+                    if(listColorInRoi.size() == 1)  situation = 1;  // one color = add the current roi to an existing local event
+                    if(listColorInRoi.size() >  1)  situation = 2;  // several colors = make a decision
 
-                    switch(situation){
+                    switch(situation) {
 
                         case 0 :
 
                             {
 
-                                if(listLE.size() < maxNbLE){
+                                if(listLE.size() < maxNbLE) {
 
+                                    msg = msg 
+                                        + "->CREATE New Local EVENT\n"
+                                        + "  - Initial position : ("
+                                        +  Conversion::intToString(subdivisionPos.x + j) + ";" + Conversion::intToString(subdivisionPos.y + i) + ")\n" 
+                                        + "  - Color : (" + Conversion::intToString(mListColors.at(listLE.size())[0]) + ";" 
+                                        + Conversion::intToString(mListColors.at(listLE.size())[1]) + ";" 
+                                        + Conversion::intToString(mListColors.at(listLE.size())[2]) + ")\n";
+                                    
                                     // Create new localEvent object.
-                                    LocalEvent newLocalEvent(mListColors.at(listLE.size()), Point(regionPosInFrame.x + j, regionPosInFrame.y + i), frame.rows, frame.cols, mRoiSize);
+                                    LocalEvent newLocalEvent(   mListColors.at(listLE.size()), 
+                                                                Point(subdivisionPos.x + j, subdivisionPos.y + i), 
+                                                                absDiffBinaryMap.rows, 
+                                                                absDiffBinaryMap.cols, 
+                                                                mRoiSize);
+
+                                    // Extract white pixels in ROI.
+                                    vector<Point> whitePixAbsDiff,whitePixPosDiff, whitePixNegDiff;
+                                    Mat roiAbsDiff, roiPosDiff, roiNegDiff; 
+
+                                    absDiffBinaryMap(Rect(subdivisionPos.x + j - mRoiSize[0]/2, subdivisionPos.y + i - mRoiSize[1]/2, mRoiSize[0], mRoiSize[1])).copyTo(roiAbsDiff);
+                                    posDiff(Rect(subdivisionPos.x + j - mRoiSize[0]/2, subdivisionPos.y + i - mRoiSize[1]/2, mRoiSize[0], mRoiSize[1])).copyTo(roiPosDiff);
+                                    negDiff(Rect(subdivisionPos.x + j - mRoiSize[0]/2, subdivisionPos.y + i - mRoiSize[1]/2, mRoiSize[0], mRoiSize[1])).copyTo(roiNegDiff);
+                     
+                                    if(roiPosDiff.type() == CV_16UC1 && roiNegDiff.type() == CV_16UC1) {
+
+                                        unsigned char * ptrRoiAbsDiff;
+                                        unsigned short * ptrRoiPosDiff;
+                                        unsigned short * ptrRoiNegDiff;
+
+		                                for(int a = 0; a < roiAbsDiff.rows; a++) {
+
+			                                ptrRoiAbsDiff = roiAbsDiff.ptr<unsigned char>(a);
+                                            ptrRoiPosDiff = roiPosDiff.ptr<unsigned short>(a);
+                                            ptrRoiNegDiff = roiNegDiff.ptr<unsigned short>(a);
+
+			                                for(int b = 0; b < roiAbsDiff.cols; b++){
+
+				                                if(ptrRoiAbsDiff[b] > 0) whitePixAbsDiff.push_back(Point(subdivisionPos.x + j - mRoiSize[0]/2 + b, subdivisionPos.y + i - mRoiSize[1]/2 + a)); 
+                                                if(ptrRoiPosDiff[b] > posDiffThreshold) whitePixPosDiff.push_back(Point(subdivisionPos.x + j - mRoiSize[0]/2 + b, subdivisionPos.y + i - mRoiSize[1]/2 + a));
+                                                if(ptrRoiNegDiff[b] > negDiffThreshold) whitePixNegDiff.push_back(Point(subdivisionPos.x + j - mRoiSize[0]/2 + b, subdivisionPos.y + i - mRoiSize[1]/2 + a));
+
+			                                }
+		                                }
+
+                                    }else if(roiPosDiff.type() == CV_8UC1 && roiNegDiff.type() == CV_8UC1) {
+
+                                        unsigned char * ptrRoiAbsDiff;
+                                        unsigned char * ptrRoiPosDiff;
+                                        unsigned char * ptrRoiNegDiff;
+
+		                                for(int a = 0; a < roiAbsDiff.rows; a++) {
+
+			                                ptrRoiAbsDiff = roiAbsDiff.ptr<unsigned char>(a);
+                                            ptrRoiPosDiff = roiPosDiff.ptr<unsigned char>(a);
+                                            ptrRoiNegDiff = roiNegDiff.ptr<unsigned char>(a);
+
+			                                for(int b = 0; b < roiAbsDiff.cols; b++){
+
+				                                if(ptrRoiAbsDiff[b] > 0) whitePixAbsDiff.push_back(Point(subdivisionPos.x + j - mRoiSize[0]/2 + b, subdivisionPos.y + i - mRoiSize[1]/2 + a)); 
+                                                if(ptrRoiPosDiff[b] > posDiffThreshold) whitePixPosDiff.push_back(Point(subdivisionPos.x + j - mRoiSize[0]/2 + b, subdivisionPos.y + i - mRoiSize[1]/2 + a));
+                                                if(ptrRoiNegDiff[b] > negDiffThreshold) whitePixNegDiff.push_back(Point(subdivisionPos.x + j - mRoiSize[0]/2 + b, subdivisionPos.y + i - mRoiSize[1]/2 + a));
+
+			                                }
+		                                }
+                                    }
+
+                                    msg = msg + "Number white pix in abs diff : " + Conversion::intToString(whitePixAbsDiff.size()) + "\n";
+                                    msg = msg + "Number white pix in pos diff : " + Conversion::intToString(whitePixPosDiff.size()) + "\n";
+                                    msg = msg + "Number white pix in neg diff : " + Conversion::intToString(whitePixNegDiff.size()) + "\n";
+                                    
+                                    newLocalEvent.addAbs(whitePixAbsDiff);
+                                    newLocalEvent.addPos(whitePixPosDiff);
+                                    newLocalEvent.addNeg(whitePixNegDiff);
+
                                     // Update center of mass.
                                     newLocalEvent.computeMassCenter();
+                                    msg = msg 
+                                        + "  - Center of mass abs pixels : ("
+                                        +  Conversion::intToString(newLocalEvent.getMassCenter().x) + ";" + Conversion::intToString(newLocalEvent.getMassCenter().y) + ")\n";
+
                                     // Save the frame number where the local event has been created.
-                                    newLocalEvent.setNumFrame(mImgNum);
+                                    newLocalEvent.setNumFrame(numFrame);
                                     // Add LE in the list of localEvent.
                                     listLE.push_back(newLocalEvent);
                                     // Update eventMap with the color of the new localEvent.
                                     Mat roi(mRoiSize[1], mRoiSize[0], CV_8UC3, mListColors.at(listLE.size()-1));
-                                    roi.copyTo(eventMap(Rect(regionPosInFrame.x + j-mRoiSize[0]/2, regionPosInFrame.y + i-mRoiSize[1]/2, mRoiSize[0], mRoiSize[1])));
+                                    roi.copyTo(eventMap(Rect(subdivisionPos.x + j-mRoiSize[0]/2, subdivisionPos.y + i-mRoiSize[1]/2, mRoiSize[0], mRoiSize[1])));
                                     // Color roi in black in the current region.
-                                    colorRoiInBlack(Point(j,i), mRoiSize[1], mRoiSize[0], region);
+                                    colorRoiInBlack(Point(j,i), mRoiSize[1], mRoiSize[0], subdivision);
+
+                                    colorRoiInBlack(Point(subdivisionPos.x +j,subdivisionPos.y +i), mRoiSize[1], mRoiSize[0], absDiffBinaryMap);
+                                    colorRoiInBlack(Point(subdivisionPos.x +j,subdivisionPos.y +i), mRoiSize[1], mRoiSize[0], posDiff);
+                                    colorRoiInBlack(Point(subdivisionPos.x +j,subdivisionPos.y +i), mRoiSize[1], mRoiSize[0], negDiff);
+
+                                    nbCreatedLE++;
+
+                                }else {
+
+                                    nbNoCreatedLE++;
 
                                 }
                             }
@@ -1188,30 +1771,105 @@ void DetectionTemporal::searchROI( Mat &region,
                             {
 
                                 vector<LocalEvent>::iterator it;
-
+                                int index = 0;
                                 for(it=listLE.begin(); it!=listLE.end(); ++it){
 
                                     // Try to find a local event which has the same color.
                                     if((*it).getColor() == listColorInRoi.at(0)){
 
+                                        msg = msg 
+                                            + "->Attach ROI ("
+                                            +  Conversion::intToString(subdivisionPos.x + j) + ";" + Conversion::intToString(subdivisionPos.y + i) + ") with LE " + Conversion::intToString(index) + "\n";
+
+                                        // Extract white pixels in ROI.
+                                        vector<Point> whitePixAbsDiff,whitePixPosDiff, whitePixNegDiff;
+                                        Mat roiAbsDiff, roiPosDiff, roiNegDiff; 
+
+                                        absDiffBinaryMap(Rect(subdivisionPos.x + j - mRoiSize[0]/2, subdivisionPos.y + i - mRoiSize[1]/2, mRoiSize[0], mRoiSize[1])).copyTo(roiAbsDiff);
+                                        posDiff(Rect(subdivisionPos.x + j - mRoiSize[0]/2, subdivisionPos.y + i - mRoiSize[1]/2, mRoiSize[0], mRoiSize[1])).copyTo(roiPosDiff);
+                                        negDiff(Rect(subdivisionPos.x + j - mRoiSize[0]/2, subdivisionPos.y + i - mRoiSize[1]/2, mRoiSize[0], mRoiSize[1])).copyTo(roiNegDiff);
+                          
+                                        if(roiPosDiff.type() == CV_16UC1 && roiNegDiff.type() == CV_16UC1) {
+
+                                            unsigned char * ptrRoiAbsDiff;
+                                            unsigned short * ptrRoiPosDiff;
+                                            unsigned short * ptrRoiNegDiff;
+
+		                                    for(int a = 0; a < roiAbsDiff.rows; a++) {
+
+			                                    ptrRoiAbsDiff = roiAbsDiff.ptr<unsigned char>(a);
+                                                ptrRoiPosDiff = roiPosDiff.ptr<unsigned short>(a);
+                                                ptrRoiNegDiff = roiNegDiff.ptr<unsigned short>(a);
+
+			                                    for(int b = 0; b < roiAbsDiff.cols; b++){
+
+				                                    if(ptrRoiAbsDiff[b] > 0) whitePixAbsDiff.push_back(Point(subdivisionPos.x + j - mRoiSize[0]/2 + b, subdivisionPos.y + i - mRoiSize[1]/2 + a)); 
+                                                    if(ptrRoiPosDiff[b] > posDiffThreshold) whitePixPosDiff.push_back(Point(subdivisionPos.x + j - mRoiSize[0]/2 + b, subdivisionPos.y + i - mRoiSize[1]/2 + a));
+                                                    if(ptrRoiNegDiff[b] > negDiffThreshold) whitePixNegDiff.push_back(Point(subdivisionPos.x + j - mRoiSize[0]/2 + b, subdivisionPos.y + i - mRoiSize[1]/2 + a));
+
+			                                    }
+		                                    }
+
+                                        }else if(roiPosDiff.type() == CV_8UC1 && roiNegDiff.type() == CV_8UC1) {
+
+                                            unsigned char * ptrRoiAbsDiff;
+                                            unsigned char * ptrRoiPosDiff;
+                                            unsigned char * ptrRoiNegDiff;
+
+		                                    for(int a = 0; a < roiAbsDiff.rows; a++) {
+
+			                                    ptrRoiAbsDiff = roiAbsDiff.ptr<unsigned char>(a);
+                                                ptrRoiPosDiff = roiPosDiff.ptr<unsigned char>(a);
+                                                ptrRoiNegDiff = roiNegDiff.ptr<unsigned char>(a);
+
+			                                    for(int b = 0; b < roiAbsDiff.cols; b++){
+
+				                                    if(ptrRoiAbsDiff[b] > 0) whitePixAbsDiff.push_back(Point(subdivisionPos.x + j - mRoiSize[0]/2 + b, subdivisionPos.y + i - mRoiSize[1]/2 + a)); 
+                                                    if(ptrRoiPosDiff[b] > posDiffThreshold) whitePixPosDiff.push_back(Point(subdivisionPos.x + j - mRoiSize[0]/2 + b, subdivisionPos.y + i - mRoiSize[1]/2 + a));
+                                                    if(ptrRoiNegDiff[b] > negDiffThreshold) whitePixNegDiff.push_back(Point(subdivisionPos.x + j - mRoiSize[0]/2 + b, subdivisionPos.y + i - mRoiSize[1]/2 + a));
+
+			                                    }
+		                                    }
+                                        }
+
+                                        msg = msg + "Number white pix in abs diff : " + Conversion::intToString(whitePixAbsDiff.size()) + "\n";
+                                        msg = msg + "Number white pix in pos diff : " + Conversion::intToString(whitePixPosDiff.size()) + "\n";
+                                        msg = msg + "Number white pix in neg diff : " + Conversion::intToString(whitePixNegDiff.size()) + "\n";
+
+                                        (*it).addAbs(whitePixAbsDiff);
+                                        (*it).addPos(whitePixPosDiff);
+                                        (*it).addNeg(whitePixNegDiff);
+                                        
                                         // Add the current roi.
-                                        (*it).mLeRoiList.push_back(Point(regionPosInFrame.x + j, regionPosInFrame.y + i));
+                                        (*it).mLeRoiList.push_back(Point(subdivisionPos.x + j, subdivisionPos.y + i));
                                         // Set local event 's map
-                                        (*it).setMap(Point(regionPosInFrame.x + j - mRoiSize[0]/2, regionPosInFrame.y + i - mRoiSize[1]/2), mRoiSize[1], mRoiSize[0]);
+                                        (*it).setMap(Point(subdivisionPos.x + j - mRoiSize[0]/2, subdivisionPos.y + i - mRoiSize[1]/2), mRoiSize[1], mRoiSize[0]);
                                         // Update center of mass
                                         (*it).computeMassCenter();
+                                        msg = msg 
+                                        + "  - Update Center of mass abs pixels of LE " +  Conversion::intToString(index) + " : ("
+                                        +  Conversion::intToString((*it).getMassCenter().x) + ";" + Conversion::intToString((*it).getMassCenter().y) + ")\n";
+
                                         // Update eventMap with the color of the new localEvent
                                         Mat roi(mRoiSize[1], mRoiSize[0], CV_8UC3, listColorInRoi.at(0));
-                                        roi.copyTo(eventMap(Rect(regionPosInFrame.x + j-mRoiSize[0]/2, regionPosInFrame.y + i-mRoiSize[1]/2,mRoiSize[0],mRoiSize[1])));
+                                        roi.copyTo(eventMap(Rect(subdivisionPos.x + j-mRoiSize[0]/2, subdivisionPos.y + i-mRoiSize[1]/2,mRoiSize[0],mRoiSize[1])));
                                         // Color roi in black in thresholded frame.
                                         Mat roiBlack(mRoiSize[1],mRoiSize[0],CV_8UC1,Scalar(0));
-                                        roiBlack.copyTo(frame(Rect(regionPosInFrame.x + j-mRoiSize[0]/2, regionPosInFrame.y + i-mRoiSize[1]/2,mRoiSize[0],mRoiSize[1])));
+                                        roiBlack.copyTo(absDiffBinaryMap(Rect(subdivisionPos.x + j-mRoiSize[0]/2, subdivisionPos.y + i-mRoiSize[1]/2,mRoiSize[0],mRoiSize[1])));
                                         // Color roi in black in the current region.
-                                        colorRoiInBlack(Point(j,i), mRoiSize[1], mRoiSize[0], region);
+                                        colorRoiInBlack(Point(j,i), mRoiSize[1], mRoiSize[0], subdivision);
+
+                                        colorRoiInBlack(Point(subdivisionPos.x +j,subdivisionPos.y +i), mRoiSize[1], mRoiSize[0], absDiffBinaryMap);
+                                        colorRoiInBlack(Point(subdivisionPos.x +j,subdivisionPos.y +i), mRoiSize[1], mRoiSize[0], posDiff);
+                                        colorRoiInBlack(Point(subdivisionPos.x +j,subdivisionPos.y +i), mRoiSize[1], mRoiSize[0], negDiff);
+
+                                        nbRoiAttachedToLE++;
 
                                         break;
 
                                     }
+
+                                    index++;
                                 }
                             }
 
@@ -1220,6 +1878,8 @@ void DetectionTemporal::searchROI( Mat &region,
                         case 2 :
 
                             {
+                                nbRoiNotAnalysed++;
+
                                /* vector<LocalEvent>::iterator it;
                                 vector<LocalEvent>::iterator itLEbase;
                                 it = listLE.begin();
@@ -1301,24 +1961,16 @@ void DetectionTemporal::searchROI( Mat &region,
             }
         }
     }
-}
 
-int DetectionTemporal::selectThreshold(Mat i){
-
-    Scalar imgMean;
-    Scalar imgStddev;
-
-    meanStdDev(i, imgMean, imgStddev);
-
-    /*if(DET_SAVE_STDEV){
-
-        stdev.push_back(imgStddev.val[0]);
-
-        if(imgStddev[0] > maxstdev)
-            maxstdev = imgStddev[0];
-
-    }*/
-
-    return 5*(int)(cvRound(imgStddev.val[0])+1);
+    msg = msg 
+        + "--> RESUME REGION ANALYSE : \n"
+        + "Number of analysed ROI : "
+        + Conversion::intToString(nbROI) + "\n" 
+        + "Number of not analysed ROI : "
+        + Conversion::intToString(nbRoiNotAnalysed) + "\n" 
+        + "Number of new LE : "  
+        + Conversion::intToString(nbCreatedLE) + "\n" 
+        + "Number of updated LE :"
+        + Conversion::intToString(nbRoiAttachedToLE) + "\n";
 
 }
