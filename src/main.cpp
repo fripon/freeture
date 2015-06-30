@@ -39,6 +39,7 @@
     #include <process.h>
 #else
     #ifdef LINUX
+
         #include <signal.h>
         #include <unistd.h>
         #define BOOST_LOG_DYN_LINK 1
@@ -569,8 +570,11 @@ int main(int argc, const char ** argv){
                                                 if(GetAsyncKeyState(VK_ESCAPE)!=0)
                                                     break;
 
-                                            #elif defined LINUX
+                                            #else
+                                                #ifdef LINUX
+
                                                 sleep(1);
+                                                #endif
                                             #endif
 
                                             string acq = TimeDate::localDateTime(microsec_clock::universal_time(),"%Y:%m:%d:%H:%M:%S");
@@ -1037,6 +1041,7 @@ int main(int argc, const char ** argv){
                     }
 
                     break;
+
 
                 default :
 
