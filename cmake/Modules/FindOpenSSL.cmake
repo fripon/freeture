@@ -7,7 +7,7 @@
 
 FIND_PATH(	OPENSSL_INCLUDE_DIR openssl/ssl.h openssl/err.h
 			PATHS
-			/usr/local/ssl/include/
+			/usr/include/
 			"$ENV{OPENSSL_INCLUDEDIR}"
 )
 
@@ -40,7 +40,6 @@ ELSE(${OperatingSystem} MATCHES "Windows")
 					NAMES 
 					ssl libssl
 					PATHS
-					/usr/local/ssl/lib/
 					${OPENSSL_LIBRARY}
 		)
 
@@ -48,7 +47,6 @@ ELSE(${OperatingSystem} MATCHES "Windows")
 					NAMES 
 					crypto libcrypto
 					PATHS
-					/usr/local/ssl/lib/
 					${OPENSSL_LIBRARY}
 		)
 

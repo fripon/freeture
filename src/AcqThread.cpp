@@ -194,7 +194,8 @@ void AcqThread::operator()(){
             // Load videos file or frames directory if input type is : FRAMES or VIDEO
             string location = "";
             if(!mDevice->getCam()->loadNextDataSet(location)) break;
-            pDetection->setCurrentDataSet(location);
+            cout << "here" << endl;
+            if(pDetection != NULL) pDetection->setCurrentDataSet(location);
 
             do {
 
@@ -207,7 +208,7 @@ void AcqThread::operator()(){
 
                 if(mDevice->getCam()->grabImage(newFrame)){
 
-                    if(mDevice->getVideoFramesInput()) {
+                    /*if(mDevice->getVideoFramesInput()) {
 
                         #ifdef WINDOWS
                             Sleep(1000);
@@ -217,7 +218,7 @@ void AcqThread::operator()(){
                             #endif
                         #endif
 
-                    }
+                    }*/
 
                     grabStatus = true;
 
@@ -492,7 +493,7 @@ void AcqThread::operator()(){
                 pDetection->updateDetectionReport();
 
                 if(!pDetection->getRunStatus()) break;
-           
+
             }
 
             // Clear framebuffer.
