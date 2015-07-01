@@ -210,7 +210,7 @@ void AcqThread::operator()(){
                     if(mDevice->getVideoFramesInput()) {
 
                         #ifdef WINDOWS
-                            Sleep(200);
+                            Sleep(1000);
                         #else
                             #ifdef LINUX
                             usleep(200);

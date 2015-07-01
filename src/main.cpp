@@ -1038,6 +1038,61 @@ int main(int argc, const char ** argv){
 
                     break;
 
+                case 6:
+
+                    {
+                        //namedWindow("Display window", WINDOW_NORMAL );
+                        Fits2D newFits;
+                        Mat resMat;
+                        newFits.readFits16US(resMat, "D:/FreeTure/false/ORSAY_20150630T134506_UT/fits2D/frame_05.fit");
+                    
+                        pyrDown(resMat, resMat, Size(resMat.cols / 2, resMat.rows / 2));
+
+                        Mat thresh(resMat.rows, resMat.cols, CV_8UC1, Scalar(0));
+                        double min, max;
+                        minMaxLoc(resMat, &min, &max);
+                        cout << "min: "<<min<< endl;
+                        cout << "max: "<<max<< endl;
+                        unsigned short * ptrAbsDiff;
+                        unsigned char * ptrthresh;
+        
+	                    for(int i = 0; i < resMat.rows; i++) {
+
+		                    ptrAbsDiff = resMat.ptr<unsigned short>(i);
+                            ptrthresh = thresh.ptr<unsigned char>(i);
+  
+		                    for(int j = 0; j < resMat.cols; j++){
+
+                                if(ptrAbsDiff[j] == 4095) {
+				                    ptrthresh[j] = 255;
+                                }
+		                    }
+	                    }
+                        //imshow("Display window", thresh);
+                       // waitKey(0);
+                        SaveImg::saveBMP(thresh,"D:/threshold");
+                        SaveImg::saveBMP(Conversion::convertTo8UC1(resMat),"D:/original");
+                        double dilateTime = (double)getTickCount();
+                        int dilation_size = 10;
+                        Mat element = getStructuringElement(MORPH_RECT, Size(2*dilation_size + 1, 2*dilation_size+1), Point(dilation_size, dilation_size));
+                        dilate(thresh, thresh, element);
+                        
+                        dilateTime = (double)getTickCount() - dilateTime;
+                        cout << "dilateTime : " << (dilateTime/getTickFrequency())*1000 << " ms" << endl;
+                        SaveImg::saveBMP(thresh,"D:/dilate");
+
+                        bitwise_not(thresh,thresh);
+                        Mat mMask = imread("C:/Users/Yoan/Documents/GitHub/freeture/maskOrsay.bmp", CV_LOAD_IMAGE_GRAYSCALE);
+                        pyrDown(mMask, mMask, Size(mMask.cols / 2, mMask.rows / 2));
+                        SaveImg::saveBMP(mMask,"D:/mask");
+                        Mat temp3;
+                        thresh.copyTo(temp3, mMask);
+                
+                        SaveImg::saveBMP(temp3,"D:/final");
+                    }
+
+                    break;
+
                 default :
 
                     {
@@ -1070,7 +1125,7 @@ int main(int argc, const char ** argv){
 
     po::notify(vm);
 
-    getchar();
+    //getchar();
 
     return 0 ;
 

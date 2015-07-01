@@ -295,8 +295,8 @@ bool CameraFrames::grabImage(Frame &img) {
 
 				frameFormat = MONO_12;
 
-				newFits.readFits16S(resMat, filename);
-				//newFits.readFits16US(resMat, filename);
+				//newFits.readFits16S(resMat, filename);
+				newFits.readFits16US(resMat, filename);
 
 				break;
 

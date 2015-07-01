@@ -40,6 +40,7 @@
     #define BOOST_LOG_DYN_LINK 1
 #endif
 
+#include <boost/circular_buffer.hpp>
 #include "opencv2/highgui/highgui.hpp"
 #include <opencv2/imgproc/imgproc.hpp>
 #include <opencv2/video/tracking.hpp>
@@ -130,10 +131,12 @@ class DetectionTemporal : public Detection {
         bool                            mMaskToCreate;          // Mask must be created.
         string                          mDebugCurrentPath;
         int                             mDataSetCounter;
+        bool                            mUpdateMask;
+        bool                            mDebugUpdateMask;
 
-      
-
-
+        boost::circular_buffer<Mat>     mCapBuffer;
+        int                             mCapCounter;
+        
     public :
 
         /**
