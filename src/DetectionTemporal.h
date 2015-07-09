@@ -133,10 +133,14 @@ class DetectionTemporal : public Detection {
         int                             mDataSetCounter;
         bool                            mUpdateMask;
         bool                            mDebugUpdateMask;
+        string mDebugUpdateMaskPath;
 
-        boost::circular_buffer<Mat>     mCapBuffer;
+        boost::circular_buffer<Mat>     mCapBuffer = boost::circular_buffer<Mat>(5) ;
+
+        //boost::circular_buffer<Frame> frameBuffer(ACQ_BUFFER_SIZE * ACQ_FPS);
         int                             mCapCounter;
-        
+        VideoWriter mVideoDebugAutoMask;
+
     public :
 
         /**
@@ -261,16 +265,16 @@ class DetectionTemporal : public Detection {
         * @param regionPosInFrame Subdivision position in frame.
         * @param maxNbLE Maximum number of local event.
         */
-        void analyseRegion( Mat &subdivision, 
-                            Mat &absDiffBinaryMap, 
-                            Mat &eventMap, 
-                            Mat &posDiff, 
-                            int posDiffThreshold, 
-                            Mat &negDiff, 
-                            int negDiffThreshold, 
-                            vector<LocalEvent> &listLE, 
-                            Point subdivisionPos, 
-                            int maxNbLE, 
+        void analyseRegion( Mat &subdivision,
+                            Mat &absDiffBinaryMap,
+                            Mat &eventMap,
+                            Mat &posDiff,
+                            int posDiffThreshold,
+                            Mat &negDiff,
+                            int negDiffThreshold,
+                            vector<LocalEvent> &listLE,
+                            Point subdivisionPos,
+                            int maxNbLE,
                             int numFrame,
                             string &msg);
 

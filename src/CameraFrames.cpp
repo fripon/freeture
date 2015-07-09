@@ -60,7 +60,7 @@ bool CameraFrames::loadNextDataSet(string &location) {
     if(mCurrDirId !=0 ) {
 
         mReadDataStatus = false;
-        
+
         if(!searchMinMaxFramesNumber(mFramesDir.at(mCurrDirId)))
             return false;
 
@@ -268,10 +268,10 @@ bool CameraFrames::grabImage(Frame &img) {
 
 		BOOST_LOG_SEV(logger, normal) <<  "Frame found.";
 
-		Fits2D newFits;
+		Fits2D newFits(filename);
         int bitpix;
 
-        if(!newFits.readIntKeyword(filename, "BITPIX", bitpix)){
+        if(!newFits.readIntKeyword("BITPIX", bitpix)){
 			BOOST_LOG_SEV(logger, fail) << " Fail to read fits keyword : BITPIX";
 
 			return false;
@@ -287,7 +287,7 @@ bool CameraFrames::grabImage(Frame &img) {
 			case 8 :
 
 				frameFormat = MONO_8;
-				newFits.readFits8UC(resMat, filename);
+				newFits.readFits8UC(resMat);
 
 				break;
 
@@ -296,7 +296,7 @@ bool CameraFrames::grabImage(Frame &img) {
 				frameFormat = MONO_12;
 
 				//newFits.readFits16S(resMat, filename);
-				newFits.readFits16US(resMat, filename);
+				newFits.readFits16US(resMat);
 
 				break;
 
@@ -311,14 +311,14 @@ bool CameraFrames::grabImage(Frame &img) {
 		img = f;
 
 		img.setAcqDateMicro(acqDateInMicrosec);
-        
+
 		img.setNumFrame(mFirstFrameNum -1 );
 		img.setFrameRemaining(mLastFrameNum - mFirstFrameNum-1);
 		img.setFPS(1);
 		img.setBitDepth(frameFormat);
 
 		//waitKey(1000);
-        
+
 
 		return true;
 

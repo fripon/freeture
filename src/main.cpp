@@ -870,11 +870,14 @@ int main(int argc, const char ** argv){
                             }else
                                 cout << ">> Can't load fits keywords from configuration file (not found or not exist). Try to use -c option or check your path." << endl;
 
-                            Fits2D newFits(savePath, fitsHeader);
-                            newFits.setGaindb((int)gain);
-                            double exptime = exp/1000000.0;
-                            newFits.setOntime(exptime);
-                            newFits.setDateobs(frame.getAcqDateMicro());
+                            Fits2D newFits(savePath);
+                            newFits.copyKeywords(fitsHeader);
+                            newFits.kGAINDB = (int)gain;
+                            newFits.kONTIME = exp/1000000.0;
+                            newFits.kDATEOBS = frame.getAcqDateMicro();
+                            newFits.kCTYPE1 = "RA---ARC";
+                            newFits.kCTYPE2 = "DEC--ARC";
+                            newFits.kEQUINOX = 2000.0;
 
                             if(useCfg){
 
@@ -882,14 +885,10 @@ int main(int argc, const char ** argv){
                                 double  debObsInSeconds = firstDateInt.at(3)*3600 + firstDateInt.at(4)*60 + firstDateInt.at(5);
                                 double  julianDate      = TimeDate::gregorianToJulian(firstDateInt);
                                 double  julianCentury   = TimeDate::julianCentury(julianDate);
-                                double  sideralT        = TimeDate::localSideralTime_2(julianCentury, firstDateInt.at(3), firstDateInt.at(4), firstDateInt.at(5), fitsHeader.getSitelong());
-                                newFits.setCrval1(sideralT);
+                                double  sideralT        = TimeDate::localSideralTime_2(julianCentury, firstDateInt.at(3), firstDateInt.at(4), firstDateInt.at(5), fitsHeader.kSITELONG);
+                                newFits.kCRVAL1 = sideralT;
 
                             }
-
-                            newFits.setCtype1("RA---ARC");
-                            newFits.setCtype2("DEC--ARC");
-                            newFits.setEquinox(2000.0);
 
                             switch(camFormat){
 
@@ -914,8 +913,8 @@ int main(int argc, const char ** argv){
                                         // Set bzero and bscale for print unsigned short value in soft visualization.
                                         double bscale = 1;
                                         double bzero  = 32768;
-                                        newFits.setBzero(bzero);
-                                        newFits.setBscale(bscale);
+                                        newFits.kBZERO = bzero;
+                                        newFits.kBSCALE = bscale;
 
                                         unsigned short * ptr;
                                         short * ptr2;
@@ -1047,53 +1046,58 @@ int main(int argc, const char ** argv){
 
                     {
                         //namedWindow("Display window", WINDOW_NORMAL );
-                        Fits2D newFits;
+                        Fits2D newFits("/home/fripon/data/ORSAY_20150618/astro/Orsay_20150618T024429_U.fit");
                         Mat resMat;
-                        newFits.readFits16US(resMat, "D:/FreeTure/false/ORSAY_20150630T134506_UT/fits2D/frame_05.fit");
-                    
-                        pyrDown(resMat, resMat, Size(resMat.cols / 2, resMat.rows / 2));
+                        newFits.readFits16US(resMat);
 
-                        Mat thresh(resMat.rows, resMat.cols, CV_8UC1, Scalar(0));
+
                         double min, max;
                         minMaxLoc(resMat, &min, &max);
                         cout << "min: "<<min<< endl;
                         cout << "max: "<<max<< endl;
-                        unsigned short * ptrAbsDiff;
-                        unsigned char * ptrthresh;
-        
-	                    for(int i = 0; i < resMat.rows; i++) {
 
-		                    ptrAbsDiff = resMat.ptr<unsigned short>(i);
-                            ptrthresh = thresh.ptr<unsigned char>(i);
-  
-		                    for(int j = 0; j < resMat.cols; j++){
+                    }
 
-                                if(ptrAbsDiff[j] == 4095) {
-				                    ptrthresh[j] = 255;
-                                }
-		                    }
-	                    }
-                        //imshow("Display window", thresh);
-                       // waitKey(0);
-                        SaveImg::saveBMP(thresh,"D:/threshold");
-                        SaveImg::saveBMP(Conversion::convertTo8UC1(resMat),"D:/original");
-                        double dilateTime = (double)getTickCount();
-                        int dilation_size = 10;
-                        Mat element = getStructuringElement(MORPH_RECT, Size(2*dilation_size + 1, 2*dilation_size+1), Point(dilation_size, dilation_size));
-                        dilate(thresh, thresh, element);
-                        
-                        dilateTime = (double)getTickCount() - dilateTime;
-                        cout << "dilateTime : " << (dilateTime/getTickFrequency())*1000 << " ms" << endl;
-                        SaveImg::saveBMP(thresh,"D:/dilate");
+                    break;
 
-                        bitwise_not(thresh,thresh);
-                        Mat mMask = imread("C:/Users/Yoan/Documents/GitHub/freeture/maskOrsay.bmp", CV_LOAD_IMAGE_GRAYSCALE);
-                        pyrDown(mMask, mMask, Size(mMask.cols / 2, mMask.rows / 2));
-                        SaveImg::saveBMP(mMask,"D:/mask");
-                        Mat temp3;
-                        thresh.copyTo(temp3, mMask);
-                
-                        SaveImg::saveBMP(temp3,"D:/final");
+                case 7 :
+
+                    {
+
+                       /* string date = "20150707";
+                        cout << "Date : " << date << endl;
+                        int mYear = atoi(date.substr(0,4).c_str());
+                        int mMonth = atoi(date.substr(4,2).c_str());
+                        int mDay = atoi(date.substr(6,2).c_str());
+                        cout << "mYear : " << mYear << endl;
+                        cout << "mMonth : " << mMonth << endl;
+                        cout << "mDay : " << mDay << endl;
+
+
+                        Ephemeris ephem = Ephemeris(date, -12, -2.35222222,48.85666666 );
+
+                        int sunriseH, sunriseM, sunsetH, sunsetM;
+
+                        ephem.computeEphemeris(sunriseH, sunriseM,sunsetH, sunsetM);
+
+                        cout << "SUNRISE : " << sunriseH << "H" << sunriseM << endl;
+                        cout << "SUNSET : " << sunsetH << "H" << sunsetM << endl;
+
+*/
+                        string curr = TimeDate::getCurrentDateYYYYMMDD();
+                        string other = "20150710";
+
+                        cout << "current date in UT : "<< curr << endl;
+                        cout << "Other date : " << other << endl;
+
+
+                        if(curr == other )
+                        cout <<"date are the same" << endl;
+                        else
+                        cout <<"date are not the same" << endl;
+
+                        getchar();
+
                     }
 
                     break;

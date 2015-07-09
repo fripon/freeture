@@ -191,7 +191,7 @@ bool DetThread::loadDetThreadParameters(){
 
         // Get the SMTP login.
 		cfg.Get("MAIL_SMTP_LOGIN", mMailSmtpLogin);
-		
+
         // Get the SMTP server adress.
 		cfg.Get("MAIL_SMTP_PASSWORD", mMailSmtpPassword);
 
@@ -417,8 +417,8 @@ void DetThread::operator ()(){
 
         }while(!stopThread);
 
-        
-        
+
+
         if(mDetectionResults.size() == 0) {
 
             cout << "-----------------------------------------------" << endl;
@@ -437,10 +437,10 @@ void DetThread::operator ()(){
             for(int i = 0; i < mDetectionResults.size(); i++) {
                 report << mDetectionResults.at(i).first << "------> " << mDetectionResults.at(i).second << "\n";
                 cout << "- DATASET " << i << " : ";
-                
+
                 if(mDetectionResults.at(i).second > 1)
                     cout << mDetectionResults.at(i).second << " events" << endl;
-                else 
+                else
                     cout << mDetectionResults.at(i).second << " event" << endl;
             }
 
@@ -694,12 +694,12 @@ bool DetThread::saveEventData(int firstEvPosInFB, int lastEvPosInFB){
 
     if(mSaveFits3D){
 
-        fits3d = Fits3D(mBitDepth, frameBuffer->front().getImg().rows, frameBuffer->front().getImg().cols, (numLastFrameToSave - numFirstFrameToSave +1), mFitsHeader);
+        fits3d = Fits3D(mBitDepth, frameBuffer->front().getImg().rows, frameBuffer->front().getImg().cols, (numLastFrameToSave - numFirstFrameToSave +1), mEventPath + "fits3D");
         boost::posix_time::ptime time = boost::posix_time::microsec_clock::universal_time();
-        fits3d.setDate(to_iso_extended_string(time));
+        fits3d.kDATE = to_iso_extended_string(time);
 
         // Name of the fits file.
-        fits3d.setFilename("fits3d.fit");
+        fits3d.kFILENAME = "fits3d.fit";
 
     }
 
@@ -713,28 +713,28 @@ bool DetThread::saveEventData(int firstEvPosInFB, int lastEvPosInFB){
         // Get infos about the first frame of the event for fits 3D.
         if((*it).getNumFrame() == numFirstFrameToSave && mSaveFits3D){
 
-            fits3d.setDateobs((*it).getAcqDateMicro());
+            fits3d.kDATEOBS = (*it).getAcqDateMicro();
             // Exposure time.
-            fits3d.setOntime((*it).getExposure()/1000000.0);
+            fits3d.kONTIME = (*it).getExposure()/1000000.0;
             // Gain.
-            fits3d.setGaindb((*it).getGain());
+            fits3d.kGAINDB = (*it).getGain();
             // Saturation.
-            fits3d.setSaturate((*it).getSaturatedValue());
+            fits3d.kSATURATE = (*it).getSaturatedValue();
             // FPS.
-            fits3d.setCd3_3((*it).getFPS());
+            fits3d.kCD3_3 = (*it).getFPS();
             // CRVAL1 : sideral time.
             double  julianDate      = TimeDate::gregorianToJulian((*it).getDate());
             double  julianCentury   = TimeDate::julianCentury(julianDate);
-            double  sideralT        = TimeDate::localSideralTime_2(julianCentury, (*it).getDate().at(3), (*it).getDate().at(4), (*it).getDateSeconds(), mFitsHeader.getSitelong());
-            fits3d.setCrval1(sideralT);
+            double  sideralT        = TimeDate::localSideralTime_2(julianCentury, (*it).getDate().at(3), (*it).getDate().at(4), (*it).getDateSeconds(), mFitsHeader.kSITELONG);
+            fits3d.kCRVAL1 = sideralT;
             // Projection and reference system
-            fits3d.setCtype1("RA---ARC");
-            fits3d.setCtype2("DEC--ARC");
+            fits3d.kCTYPE1 = "RA---ARC";
+            fits3d.kCTYPE2 = "DEC--ARC";
             // Equinox
-            fits3d.setEquinox(2000.0);
+            fits3d.kEQUINOX = 2000.0;
             // Integration time : 1/fps * nb_frames (sec.)
 			if((*it).getFPS()!=0)
-            fits3d.setExposure((1.0/(*it).getFPS()));
+                fits3d.kEXPOSURE = 1.0/(*it).getFPS();
 
             dateFirstFrame = (*it).getDate();
             dateSecFirstFrame = (*it).getDateSeconds();
@@ -745,7 +745,7 @@ bool DetThread::saveEventData(int firstEvPosInFB, int lastEvPosInFB){
         if((*it).getNumFrame() == numLastFrameToSave && mSaveFits3D){
             cout << "DATE first : " << dateFirstFrame.at(3) << " H " << dateFirstFrame.at(4) << " M " << dateSecFirstFrame << " S" << endl;
             cout << "DATE last : " << (*it).getDate().at(3) << " H " << (*it).getDate().at(4) << " M " << (*it).getDateSeconds() << " S" << endl;
-            fits3d.setElaptime(((*it).getDate().at(3)*3600 + (*it).getDate().at(4)*60 + (*it).getDateSeconds()) - (dateFirstFrame.at(3)*3600 + dateFirstFrame.at(4)*60 + dateSecFirstFrame));
+            fits3d.kELAPTIME = ((*it).getDate().at(3)*3600 + (*it).getDate().at(4)*60 + (*it).getDateSeconds()) - (dateFirstFrame.at(3)*3600 + dateFirstFrame.at(4)*60 + dateSecFirstFrame);
 
         }
 
@@ -763,40 +763,41 @@ bool DetThread::saveEventData(int firstEvPosInFB, int lastEvPosInFB){
 
                 path p(fits2DPath);
 
-                Fits2D newFits(fits2DPath, mFitsHeader);
+                Fits2D newFits(fits2DPath);
+                newFits.copyKeywords(mFitsHeader);
 				cout << (*it).getAcqDateMicro() << endl;
                 // Frame's acquisition date.
-                newFits.setDateobs((*it).getAcqDateMicro());
+                newFits.kDATEOBS = (*it).getAcqDateMicro();
                 // Fits file creation date.
                 boost::posix_time::ptime time = boost::posix_time::second_clock::universal_time();
                 // YYYYMMDDTHHMMSS,fffffffff where T is the date-time separator
-                newFits.setDate(to_iso_string(time));
+                newFits.kDATE = to_iso_string(time);
 				cout << to_iso_string(time) << endl;
 
                 // Name of the fits file.
-                newFits.setFilename(fits2DName);
+                newFits.kFILENAME = fits2DName;
                 // Exposure time.
-                newFits.setOntime((*it).getExposure()/1000000.0);
+                newFits.kONTIME = (*it).getExposure()/1000000.0;
                 // Gain.
-                newFits.setGaindb((*it).getGain());
+                newFits.kGAINDB = (*it).getGain();
                 // Saturation.
-                newFits.setSaturate((*it).getSaturatedValue());
+                newFits.kSATURATE = (*it).getSaturatedValue();
                 // FPS.
-                newFits.setCd3_3((*it).getFPS());
+                newFits.kCD3_3 = (*it).getFPS();
                 // CRVAL1 : sideral time.
                 double  julianDate      = TimeDate::gregorianToJulian((*it).getDate());
                 double  julianCentury   = TimeDate::julianCentury(julianDate);
-                double  sideralT        = TimeDate::localSideralTime_2(julianCentury, (*it).getDate().at(3), (*it).getDate().at(4), (*it).getDateSeconds(), mFitsHeader.getSitelong());
-                newFits.setCrval1(sideralT);
+                double  sideralT        = TimeDate::localSideralTime_2(julianCentury, (*it).getDate().at(3), (*it).getDate().at(4), (*it).getDateSeconds(), mFitsHeader.kSITELONG);
+                newFits.kCRVAL1 = sideralT;
                 // Integration time : 1/fps * nb_frames (sec.)
 				if((*it).getFPS()!=0)
-                newFits.setExposure((1.0f/(*it).getFPS()));
+                newFits.kEXPOSURE = 1.0f/(*it).getFPS();
                 //cout << "EXPOSURE : " << 1.0/(*it).getFPS() << endl;
                 // Projection and reference system
-                newFits.setCtype1("RA---ARC");
-                newFits.setCtype2("DEC--ARC");
+                newFits.kCTYPE1 = "RA---ARC";
+                newFits.kCTYPE2 = "DEC--ARC";
                 // Equinox
-                newFits.setEquinox(2000.0);
+                newFits.kEQUINOX = 2000.0;
 
                 if(!fs::exists(p)) {
 
@@ -830,7 +831,7 @@ bool DetThread::saveEventData(int firstEvPosInFB, int lastEvPosInFB){
     }
 
 	// Write fits cube.
-    if(mSaveFits3D) fits3d.writeFits3D(mEventPath + "fits3D");
+    if(mSaveFits3D) fits3d.writeFits3D();
 
 	// Save stack of the event.
     if(mSaveSum) stack.saveStack(mFitsHeader, mEventPath, mStackMthd, mStationName, mStackReduction);
@@ -844,13 +845,13 @@ bool DetThread::saveEventData(int firstEvPosInFB, int lastEvPosInFB){
 
 		mailAttachments.push_back(mEventPath + "GeMap.bmp");
 
-        SMTPClient::sendMail(   mMailSmtpServer, 
+        SMTPClient::sendMail(   mMailSmtpServer,
                                 mMailSmtpLogin,
-                                mMailSmtpPassword, 
-                                "freeture@" + mStationName +".fr", 
-                                mMailRecipients, 
-                                "Detection by " + mStationName  + "'s station - " + TimeDate::getYYYYMMDDThhmmss(mEventDate), 
-                                mStationName + "\n" + mEventPath, 
+                                mMailSmtpPassword,
+                                "freeture@" + mStationName +".fr",
+                                mMailRecipients,
+                                "Detection by " + mStationName  + "'s station - " + TimeDate::getYYYYMMDDThhmmss(mEventDate),
+                                mStationName + "\n" + mEventPath,
                                 mailAttachments,
                                 mSmtpSecurity);
 

@@ -56,6 +56,7 @@
 #include "EImgBitDepth.h"
 #include "ECamBitDepth.h"
 #include "EParser.h"
+#include "Conversion.h"
 #include "ECamType.h"
 #include "Camera.h"
 #include "CameraGigeSdkAravis.h"
@@ -73,12 +74,13 @@
 #include <algorithm>
 #include <boost/tokenizer.hpp>
 #include <boost/circular_buffer.hpp>
+#include "Ephemeris.h"
 
 using namespace boost::filesystem;
 using namespace cv;
 using namespace std;
 
-class Device{
+class Device {
 
     private:
 
@@ -113,7 +115,7 @@ class Device{
         bool                mMaskEnabled;
         string              mMaskPath;
         bool                mDayAcqEnabled;
-        bool                mEphemerisEnabled;
+
         bool                mExpCtrlSaveImg;
         bool                mExpCtrlSaveInfos;
         int                 mExpCtrlFrequency;
@@ -139,6 +141,15 @@ class Device{
         CamType             mType;
         string              mCfgPath;
         bool                mDebugEnabled;
+        double              mSunHorizonHeight;
+        double              mStationLongitude;
+        double              mStationLatitude;
+
+    public :
+
+        bool                mEphemerisUpdated;
+        bool                mEphemerisEnabled;
+        string              mCurrentEphemerisDate;
 
     public :
 
@@ -168,6 +179,13 @@ class Device{
         *
         */
         bool prepareDevice();
+
+        /**
+        * Update sunrise and sunset times.
+        *
+        * @return Success status.
+        */
+        bool getEphemeris();
 
         /**
         * Configure camera in order to run continuous acquisition.

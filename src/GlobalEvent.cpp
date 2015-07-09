@@ -51,6 +51,7 @@ GlobalEvent::GlobalEvent(string frameDate, int frameNum, int frameHeight, int fr
     geGoodPoint         = 0;
     geShifting          = 0;
     geColor             = c;
+    geDir               = Point(0,0);
 
 }
 
@@ -80,11 +81,15 @@ bool GlobalEvent::addLE(LocalEvent le){
 
         //float d = sqrt(pow(pt.back().x - pt.at(pt.size()-2).x,2.0) + pow(pt.back().y - pt.at(pt.size()-2).y,2.0));
 
-        if(listv.size()>1) {
+        if(listv.size()>1 ) {
 
             float scalar = le.getLeDir().x * listv.back().x + le.getLeDir().y * listv.back().y;
-       
-            
+            cout << "scalar : " << scalar << endl;
+            leDir = le.getLeDir();
+
+            cout << "le.getLeDir() : " << le.getLeDir() << endl;
+             cout << "v : " << listv.back() << endl;
+
             if(scalar <= 0.0) clusterNegPos.push_back(false);
             else clusterNegPos.push_back(true);
 
@@ -109,9 +114,13 @@ bool GlobalEvent::addLE(LocalEvent le){
                 // Vector from first main point to last main point.
                 Point u  = Point(B.x - A.x, B.y - A.y);
                 listu.push_back(u);
+
+
+
                 // Vector from last main point to current le position.
                 Point v  = Point(C.x - B.x, C.y - B.y);
                 listv.push_back(v);
+                geDir = v;
 
                 // Same mainPts position : No Displacement
                 if((v.x == 0 && v.y == 0) || (u.x == 0 && u.y == 0)){
@@ -133,7 +142,7 @@ bool GlobalEvent::addLE(LocalEvent le){
 
                     // Birds filter
                     /*float scalar = le.getLeDir().x * v.x + le.getLeDir().y * v.y;
-               
+
                     if(scalar <= 0.0) clusterNegPos.push_back(false);
                     else clusterNegPos.push_back(true);
                     */
@@ -233,7 +242,7 @@ bool GlobalEvent::continuousGoodPos(int n, string &msg){
     msg += "continuousGoodPos\n";
     int nb = 0;
     int nn = 0;
-    
+
     msg += "size pts validity : " + Conversion::intToString(ptsValidity.size()) + " \n";
 
     for(int i = 0; i < ptsValidity.size(); i++){
@@ -300,13 +309,13 @@ bool GlobalEvent::continuousBadPos(int n){
 bool GlobalEvent::negPosClusterFilter(string &msg) {
 
     msg += "negPosClusterFilter\n";
-    int counter = 0;
+    float counter = 0;
     msg += "clusterNegPos size = " +Conversion::intToString(clusterNegPos.size())+ " \n";
     for(int i = 0; i < clusterNegPos.size(); i++) {
-       
+
         if(clusterNegPos.at(i)) {
             msg += "clusterNegPos true\n";
-            counter+=1;
+            counter+=1.0;
         }else{
             msg += "clusterNegPos false\n";
 
@@ -314,7 +323,7 @@ bool GlobalEvent::negPosClusterFilter(string &msg) {
 
     }
 
-    if(counter >= clusterNegPos.size()/2) {
+    if(counter >= (float)clusterNegPos.size()/2.0 && counter !=0) {
         msg += "negPosClusterFilter = OK\n";
         return true;
     }else {
@@ -334,7 +343,7 @@ bool GlobalEvent::ratioFramesDist(string &msg){
     if(d > (n *0.333)){
         msg += "ratio = ok\n";
         return true;
-    }else{ 
+    }else{
         msg += "ratio = not ok\n";
         return false;
     }

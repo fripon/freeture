@@ -39,52 +39,38 @@ boost::log::sources::severity_logger< LogSeverityLevel >  Fits2D::logger;
 
 Fits2D::Init Fits2D::initializer;
 
-Fits2D::Fits2D() {
-
-    kPROGRAM    = "FreeTure";
-    kCREATOR    = "FRIPON";
-    fitsPath    = "";
-
-}
-
 Fits2D::~Fits2D(void){}
 
-Fits2D::Fits2D(string recPath, Fits fits){
+Fits2D::Fits2D(string path):mFitsPath(path){
 
-    fitsPath = recPath;
-
-    kFILTER     = fits.getFilter();
-    kTELESCOP   = fits.getTelescop();
-    kOBSERVER   = fits.getObserver();
-    kINSTRUME   = fits.getInstrument();
-    kCAMERA     = fits.getCamera();
-    kFOCAL      = fits.getFocal();
-    kAPERTURE   = fits.getAperture();
-    kSITELONG   = fits.getSitelong();
-    kSITELAT    = fits.getSitelat();
-    kSITEELEV   = fits.getSiteelev();
-    kK1         = fits.getK1();
-    kK2         = fits.getK2();
-    kCOMMENT    = fits.getComment();
-    kCD1_1      = fits.getCd1_1();
-    kCD1_2      = fits.getCd1_2();
-    kCD2_1      = fits.getCd2_1();
-    kCD2_2      = fits.getCd2_2();
-    kCRPIX1     = fits.getCrpix1();
-    kCRPIX2     = fits.getCrpix2();
-    kXPIXEL     = fits.getXpixel();
-    kYPIXEL     = fits.getYpixel();
     kPROGRAM    = "FreeTure";
     kCREATOR    = "FRIPON";
 
 }
 
-Fits2D::Fits2D(string recPath){
+void Fits2D::copyKeywords(const Fits &fits) {
 
-    fitsPath = recPath;
-
-    kPROGRAM    = "FreeTure";
-    kCREATOR    = "FRIPON";
+    kFILTER     = fits.kFILTER;
+    kTELESCOP   = fits.kTELESCOP;
+    kOBSERVER   = fits.kOBSERVER;
+    kINSTRUME   = fits.kINSTRUME;
+    kCAMERA     = fits.kCAMERA;
+    kFOCAL      = fits.kFOCAL;
+    kAPERTURE   = fits.kAPERTURE;
+    kSITELONG   = fits.kSITELONG;
+    kSITELAT    = fits.kSITELAT;
+    kSITEELEV   = fits.kSITEELEV;
+    kK1         = fits.kK1;
+    kK2         = fits.kK2;
+    kCOMMENT    = fits.kCOMMENT;
+    kCD1_1      = fits.kCD1_1;
+    kCD1_2      = fits.kCD1_2;
+    kCD2_1      = fits.kCD2_1;
+    kCD2_2      = fits.kCD2_2;
+    kCRPIX1     = fits.kCRPIX1;
+    kCRPIX2     = fits.kCRPIX2;
+    kXPIXEL     = fits.kXPIXEL;
+    kYPIXEL     = fits.kYPIXEL;
 
 }
 
@@ -167,7 +153,8 @@ bool Fits2D::writeKeywords(fitsfile *fptr){
 
         delete filename;
         delete cfilename;
-        return printerror(status, "Error fits_write_key(FILENAME)");
+        printerror(status, "Error fits_write_key(FILENAME)");
+        return false;
 
     }
 
@@ -186,7 +173,8 @@ bool Fits2D::writeKeywords(fitsfile *fptr){
 
         delete date;
         delete cdate;
-        return printerror(status, "Error fits_write_key(DATE)");
+        printerror(status, "Error fits_write_key(DATE)");
+        return false;
 
     }
 
@@ -205,7 +193,8 @@ bool Fits2D::writeKeywords(fitsfile *fptr){
 
         delete dateobs;
         delete cdateobs;
-        return printerror(status, "Error fits_write_key(DATE-OBS)");
+        printerror(status, "Error fits_write_key(DATE-OBS)");
+        return false;
 
     }
 
@@ -224,7 +213,8 @@ bool Fits2D::writeKeywords(fitsfile *fptr){
 
         delete cobsmode;
         delete obsmode;
-        return printerror(status, "Error fits_write_key(OBS_MODE)");
+        printerror(status, "Error fits_write_key(OBS_MODE)");
+        return false;
 
     }
 
@@ -239,7 +229,8 @@ bool Fits2D::writeKeywords(fitsfile *fptr){
     if(fits_write_key(fptr,TDOUBLE,"ELAPTIME",&kELAPTIME,celaptime,&status)){
 
         delete celaptime;
-        return printerror(status, "Error fits_write_key(ELAPTIME)");
+        printerror(status, "Error fits_write_key(ELAPTIME)");
+        return false;
 
     }
 
@@ -253,7 +244,8 @@ bool Fits2D::writeKeywords(fitsfile *fptr){
     if(fits_write_key(fptr,TDOUBLE,"EXPOSURE",&kEXPOSURE,ceposure,&status)){
 
         delete ceposure;
-        return printerror(status, "Error fits_write_key(EXPOSURE)");
+        printerror(status, "Error fits_write_key(EXPOSURE)");
+        return false;
 
     }
 
@@ -267,7 +259,8 @@ bool Fits2D::writeKeywords(fitsfile *fptr){
     if(fits_write_key(fptr,TDOUBLE,"ONTIME",&kONTIME,contime,&status)){
 
         delete contime;
-        return printerror(status, "Error fits_write_key(ONTIME)");
+        printerror(status, "Error fits_write_key(ONTIME)");
+        return false;
 
     }
 
@@ -286,7 +279,8 @@ bool Fits2D::writeKeywords(fitsfile *fptr){
 
         delete cfilter;
         delete f;
-        return printerror(status, "Error fits_write_key(FILTER)");
+        printerror(status, "Error fits_write_key(FILTER)");
+        return false;
 
     }
 
@@ -306,7 +300,8 @@ bool Fits2D::writeKeywords(fitsfile *fptr){
 
         delete ctelescop;
         delete t;
-        return printerror(status, "Error fits_write_key(TELESCOP)");
+        printerror(status, "Error fits_write_key(TELESCOP)");
+        return false;
 
     }
 
@@ -325,7 +320,8 @@ bool Fits2D::writeKeywords(fitsfile *fptr){
 
         delete cobserver;
         delete o;
-        return printerror(status, "Error fits_write_key(OBSERVER)");
+        printerror(status, "Error fits_write_key(OBSERVER)");
+        return false;
 
     }
 
@@ -344,7 +340,8 @@ bool Fits2D::writeKeywords(fitsfile *fptr){
 
         delete cinstrume;
         delete i;
-        return printerror(status, "Error fits_write_key(OBSERVER)");
+        printerror(status, "Error fits_write_key(OBSERVER)");
+        return false;
 
     }
 
@@ -363,7 +360,8 @@ bool Fits2D::writeKeywords(fitsfile *fptr){
 
         delete ccamera;
         delete cam;
-        return printerror(status, "Error fits_write_key(CAMERA)");
+        printerror(status, "Error fits_write_key(CAMERA)");
+        return false;
 
     }
 
@@ -378,7 +376,8 @@ bool Fits2D::writeKeywords(fitsfile *fptr){
     if(fits_write_key(fptr,TDOUBLE,"FOCAL",&kFOCAL,cfocal,&status)){
 
         delete cfocal;
-        return printerror(status, "Error fits_write_key(FOCAL)");
+        printerror(status, "Error fits_write_key(FOCAL)");
+        return false;
 
     }
 
@@ -392,7 +391,8 @@ bool Fits2D::writeKeywords(fitsfile *fptr){
     if(fits_write_key(fptr,TDOUBLE,"APERTURE",&kAPERTURE,caperture,&status)){
 
         delete caperture;
-        return printerror(status, "Error fits_write_key(APERTURE)");
+        printerror(status, "Error fits_write_key(APERTURE)");
+        return false;
 
     }
 
@@ -406,7 +406,8 @@ bool Fits2D::writeKeywords(fitsfile *fptr){
     if(fits_write_key(fptr,TDOUBLE,"SITELONG",&kSITELONG,csitelong,&status)){
 
         delete csitelong;
-        return printerror(status, "Error fits_write_key(APERTURE)");
+        printerror(status, "Error fits_write_key(APERTURE)");
+        return false;
 
     }
 
@@ -420,7 +421,8 @@ bool Fits2D::writeKeywords(fitsfile *fptr){
     if(fits_write_key(fptr,TDOUBLE,"SITELAT",&kSITELAT,csitelat,&status)){
 
         delete csitelat;
-        return printerror(status, "Error fits_write_key(SITELAT)");
+        printerror(status, "Error fits_write_key(SITELAT)");
+        return false;
 
     }
 
@@ -434,7 +436,8 @@ bool Fits2D::writeKeywords(fitsfile *fptr){
     if(fits_write_key(fptr,TDOUBLE,"SITEELEV",&kSITEELEV,csiteelev,&status)){
 
         delete csiteelev;
-        return printerror(status, "Error fits_write_key(SITEELEV)");
+        printerror(status, "Error fits_write_key(SITEELEV)");
+        return false;
 
     }
 
@@ -448,7 +451,8 @@ bool Fits2D::writeKeywords(fitsfile *fptr){
     if(fits_write_key(fptr,TDOUBLE,"XPIXEL",&kXPIXEL,cxpixel,&status)){
 
         delete cxpixel;
-        return printerror(status, "Error fits_write_key(XPIXEL)");
+        printerror(status, "Error fits_write_key(XPIXEL)");
+        return false;
 
     }
 
@@ -462,7 +466,8 @@ bool Fits2D::writeKeywords(fitsfile *fptr){
     if(fits_write_key(fptr,TDOUBLE,"YPIXEL",&kYPIXEL,cypixel,&status)){
 
         delete cypixel;
-        return printerror(status, "Error fits_write_key(YPIXEL)");
+        printerror(status, "Error fits_write_key(YPIXEL)");
+        return false;
 
     }
 
@@ -476,7 +481,8 @@ bool Fits2D::writeKeywords(fitsfile *fptr){
     if(fits_write_key(fptr,TINT,"GAINDB",&kGAINDB,cgaindb,&status)){
 
         delete cgaindb;
-        return printerror(status, "Error fits_write_key(GAINDB)");
+        printerror(status, "Error fits_write_key(GAINDB)");
+        return false;
 
     }
 
@@ -490,7 +496,8 @@ bool Fits2D::writeKeywords(fitsfile *fptr){
     if(fits_write_key(fptr,TDOUBLE,"SATURATE",&kSATURATE,csaturate,&status)){
 
         delete csaturate;
-        return printerror(status, "Error fits_write_key(SATURATE)");
+        printerror(status, "Error fits_write_key(SATURATE)");
+        return false;
 
     }
 
@@ -508,7 +515,8 @@ bool Fits2D::writeKeywords(fitsfile *fptr){
 
         delete cprograme;
         delete p;
-        return printerror(status, "Error fits_write_key(PROGRAM)");
+        printerror(status, "Error fits_write_key(PROGRAM)");
+        return false;
 
     }
 
@@ -527,7 +535,8 @@ bool Fits2D::writeKeywords(fitsfile *fptr){
 
         delete ccreator;
         delete c;
-        return printerror(status, "Error fits_write_key(CREATOR)");
+        printerror(status, "Error fits_write_key(CREATOR)");
+        return false;
 
     }
 
@@ -542,7 +551,8 @@ bool Fits2D::writeKeywords(fitsfile *fptr){
     if(fits_write_key(fptr,TDOUBLE,"BZERO",&kBZERO,cbzero,&status)){
 
         delete cbzero;
-        return printerror(status, "Error fits_write_key(BZERO)");
+        printerror(status, "Error fits_write_key(BZERO)");
+        return false;
 
     }
 
@@ -556,7 +566,8 @@ bool Fits2D::writeKeywords(fitsfile *fptr){
     if(fits_write_key(fptr,TDOUBLE,"BSCALE",&kBSCALE,cbscale,&status)){
 
         delete cbscale;
-        return printerror(status, "Error fits_write_key(BSCALE)");
+        printerror(status, "Error fits_write_key(BSCALE)");
+        return false;
 
     }
 
@@ -574,7 +585,8 @@ bool Fits2D::writeKeywords(fitsfile *fptr){
 
         delete cradesys;
         delete radesys;
-        return printerror(status, "Error fits_write_key(RADESYS)");
+        printerror(status, "Error fits_write_key(RADESYS)");
+        return false;
 
     }
 
@@ -593,7 +605,8 @@ bool Fits2D::writeKeywords(fitsfile *fptr){
 
         delete ctimesys;
         delete timesys;
-        return printerror(status, "Error fits_write_key(TIMESYS)");
+        printerror(status, "Error fits_write_key(TIMESYS)");
+        return false;
 
     }
 
@@ -609,7 +622,8 @@ bool Fits2D::writeKeywords(fitsfile *fptr){
     if(fits_write_key(fptr,TDOUBLE,"EQUINOX",&kEQUINOX,cequinox,&status)){
 
         delete cequinox;
-        return printerror(status, "Error fits_write_key(EQUINOX)");
+        printerror(status, "Error fits_write_key(EQUINOX)");
+        return false;
 
     }
 
@@ -627,7 +641,8 @@ bool Fits2D::writeKeywords(fitsfile *fptr){
 
         delete ctype1;
         delete ktype1;
-        return printerror(status, "Error fits_write_key(CTYPE1)");
+        printerror(status, "Error fits_write_key(CTYPE1)");
+        return false;
 
     }
 
@@ -646,7 +661,8 @@ bool Fits2D::writeKeywords(fitsfile *fptr){
 
         delete ctype2;
         delete ktype2;
-        return printerror(status, "Error fits_write_key(CTYPE2)");
+        printerror(status, "Error fits_write_key(CTYPE2)");
+        return false;
 
     }
 
@@ -665,7 +681,8 @@ bool Fits2D::writeKeywords(fitsfile *fptr){
 
         delete ctimeunit;
         delete ktimeunit;
-        return printerror(status, "Error fits_write_key(TIMEUNIT)");
+        printerror(status, "Error fits_write_key(TIMEUNIT)");
+        return false;
 
     }
 
@@ -680,7 +697,8 @@ bool Fits2D::writeKeywords(fitsfile *fptr){
     if(fits_write_key(fptr,TDOUBLE,"CD1_1",&kCD1_1,ccd1_1,&status)){
 
         delete ccd1_1;
-        return printerror(status, "Error fits_write_key(CD1_1)");
+        printerror(status, "Error fits_write_key(CD1_1)");
+        return false;
 
     }
 
@@ -694,7 +712,8 @@ bool Fits2D::writeKeywords(fitsfile *fptr){
     if(fits_write_key(fptr,TDOUBLE,"CD1_2",&kCD1_2,ccd1_2,&status)){
 
         delete ccd1_2;
-        return printerror(status, "Error fits_write_key(CD1_2)");
+        printerror(status, "Error fits_write_key(CD1_2)");
+        return false;
 
     }
 
@@ -708,7 +727,8 @@ bool Fits2D::writeKeywords(fitsfile *fptr){
     if(fits_write_key(fptr,TDOUBLE,"CD2_1",&kCD2_1,ccd2_1,&status)){
 
         delete ccd2_1;
-        return printerror(status, "Error fits_write_key(CD2_1)");
+        printerror(status, "Error fits_write_key(CD2_1)");
+        return false;
 
     }
 
@@ -722,7 +742,8 @@ bool Fits2D::writeKeywords(fitsfile *fptr){
     if(fits_write_key(fptr,TDOUBLE,"CD2_2",&kCD2_2,ccd2_2,&status)){
 
         delete ccd2_2;
-        return printerror(status, "Error fits_write_key(CD2_2)");
+        printerror(status, "Error fits_write_key(CD2_2)");
+        return false;
 
     }
 
@@ -736,7 +757,8 @@ bool Fits2D::writeKeywords(fitsfile *fptr){
     if(fits_write_key(fptr,TDOUBLE,"CD3_3",&kCD3_3,ccd3_3,&status)){
 
         delete ccd3_3;
-        return printerror(status, "Error fits_write_key(CD3_3)");
+        printerror(status, "Error fits_write_key(CD3_3)");
+        return false;
 
     }
 
@@ -750,7 +772,8 @@ bool Fits2D::writeKeywords(fitsfile *fptr){
     if(fits_write_key(fptr,TINT,"CRPIX1",&kCRPIX1,ccrpix1,&status)){
 
         delete ccrpix1;
-        return printerror(status, "Error fits_write_key(CRPIX1)");
+        printerror(status, "Error fits_write_key(CRPIX1)");
+        return false;
 
     }
 
@@ -764,7 +787,8 @@ bool Fits2D::writeKeywords(fitsfile *fptr){
     if(fits_write_key(fptr,TINT,"CRPIX2",&kCRPIX2,ccrpix2,&status)){
 
         delete ccrpix2;
-        return printerror(status, "Error fits_write_key(CRPIX2)");
+        printerror(status, "Error fits_write_key(CRPIX2)");
+        return false;
 
     }
 
@@ -778,7 +802,8 @@ bool Fits2D::writeKeywords(fitsfile *fptr){
     if(fits_write_key(fptr,TDOUBLE,"CRVAL1",&kCRVAL1,ccrval1,&status)){
 
         delete ccrval1;
-        return printerror(status, "Error fits_write_key(CRVAL1)");
+        printerror(status, "Error fits_write_key(CRVAL1)");
+        return false;
 
     }
 
@@ -792,7 +817,8 @@ bool Fits2D::writeKeywords(fitsfile *fptr){
     if(fits_write_key(fptr,TDOUBLE,"CRVAL2",&kSITELAT,ccrval2,&status)){
 
         delete ccrval2;
-        return printerror(status, "Error fits_write_key(CRVAL2)");
+        printerror(status, "Error fits_write_key(CRVAL2)");
+        return false;
 
     }
 
@@ -806,7 +832,8 @@ bool Fits2D::writeKeywords(fitsfile *fptr){
     if(fits_write_key(fptr,TDOUBLE,"K1",&kK1,ck1,&status)){
 
         delete ck1;
-        return printerror(status, "Error fits_write_key(K1)");
+        printerror(status, "Error fits_write_key(K1)");
+        return false;
 
     }
 
@@ -820,7 +847,8 @@ bool Fits2D::writeKeywords(fitsfile *fptr){
     if(fits_write_key(fptr,TDOUBLE,"K2",&kK2,ck2,&status)){
 
         delete ck2;
-        return printerror(status, "Error fits_write_key(K2)");
+        printerror(status, "Error fits_write_key(K2)");
+        return false;
 
     }
 
@@ -831,13 +859,7 @@ bool Fits2D::writeKeywords(fitsfile *fptr){
 
 }
 
-/******************************************************/
-/* Create a FITS primary array containing a 2-D image */
-/******************************************************/
-
-bool Fits2D::writeFits(Mat img, ImgBitDepth imgType, string fileName){
-
-    BOOST_LOG_SEV(logger, notification) << "Start write Fits 2D.";
+bool Fits2D::writeFits(Mat img, ImgBitDepth imgType, string fileName) {
 
     int status = 0;
 
@@ -850,17 +872,17 @@ bool Fits2D::writeFits(Mat img, ImgBitDepth imgType, string fileName){
     long naxes[2] = { img.cols, img.rows };
 
     // First pixel to write.
-	firstPixel = 1;
+    firstPixel = 1;
 
-	// Number of pixels to write.
+    // Number of pixels to write.
     nbelements = naxes[0] * naxes[1];
 
-	// Fits creation date : 'YYYY-MM-JJTHH:MM:SS.SS'
-	boost::posix_time::ptime time = boost::posix_time::microsec_clock::universal_time();
+    // Fits creation date : 'YYYY-MM-JJTHH:MM:SS.SS'
+    boost::posix_time::ptime time = boost::posix_time::microsec_clock::universal_time();
     kDATE = to_iso_extended_string(time);
 
-	// Date in the fits filename.
-	string dateFileName = TimeDate::getYYYYMMDDThhmmss(to_iso_string(time));
+    // Date in the fits filename.
+    string dateFileName = TimeDate::getYYYYMMDDThhmmss(to_iso_string(time));
 
     // Define CRPIX1 and CRPIX2
     kCRPIX1 = (int)naxes[0] / 2;
@@ -873,31 +895,25 @@ bool Fits2D::writeFits(Mat img, ImgBitDepth imgType, string fileName){
     // Creation of the fits filename.
     string pathAndname = "";
 
-	if(fileName != ""){
+    if(fileName != ""){
 
-		pathAndname = fitsPath + fileName  + ".fit";
-		kFILENAME = fileName + ".fit";
+        pathAndname = mFitsPath + fileName  + ".fit";
+        kFILENAME = fileName + ".fit";
 
-	}else{
+    }else{
 
-		pathAndname = fitsPath + kTELESCOP + "_" + dateFileName + "_UT.fit";
-		kFILENAME = kTELESCOP + "_" +  dateFileName + "_UT.fit";
+        pathAndname = mFitsPath + kTELESCOP + "_" + dateFileName + "_UT.fit";
+        kFILENAME = kTELESCOP + "_" +  dateFileName + "_UT.fit";
 
-	}
-
-	BOOST_LOG_SEV(logger, notification) << "Fits 2D location and name : " << pathAndname;
+    }
 
     filename = pathAndname.c_str();
-    BOOST_LOG_SEV(logger, notification) << " Fits name : " << pathAndname;
 
     switch(imgType){
 
         // UC8
         case 0:
         {
-
-            BOOST_LOG_SEV(logger, notification) << "Fits 2D image type : UC8";
-
             //https://www-n.oca.eu/pichon/Tableau_2D.pdf
             unsigned char ** tab = (unsigned char * *)malloc( img.rows * sizeof(unsigned char *)) ;
 
@@ -1295,7 +1311,7 @@ bool Fits2D::writeFits(Mat img, ImgBitDepth imgType, string fileName){
 }
 
 //Float 32bits float -1.18*10-38~3.40*10-38
-bool Fits2D::readFits32F(Mat &img, string filePath){
+bool Fits2D::readFits32F(Mat &img){
 
     float * ptr = NULL;
     float  * ptr1 = NULL;
@@ -1310,7 +1326,7 @@ bool Fits2D::readFits32F(Mat &img, string filePath){
 
     const char * filename;
 
-    filename = filePath.c_str();
+    filename = mFitsPath.c_str();
 
     if(fits_open_file(&fptr, filename, READONLY, &status)){
 
@@ -1336,7 +1352,7 @@ bool Fits2D::readFits32F(Mat &img, string filePath){
     nbuffer = npixels;
 
     //float  buffer[npixels];
-	float* buffer = new float[npixels];
+    float* buffer = new float[npixels];
 
     if(fits_read_img(fptr, TFLOAT, fpixel, nbuffer, &nullval,buffer, &anynull, &status)){
 
@@ -1365,7 +1381,7 @@ bool Fits2D::readFits32F(Mat &img, string filePath){
     }
 
     loadImg.copyTo(img);
-	delete buffer;
+    delete buffer;
 
     if(fits_close_file(fptr, &status)){
 
@@ -1379,7 +1395,7 @@ bool Fits2D::readFits32F(Mat &img, string filePath){
 }
 
 //Unsigned 16bits ushort 0~65535
-bool Fits2D::readFits16US(Mat &img, string filePath){
+bool Fits2D::readFits16US(Mat &img){
 
     unsigned short * ptr = NULL;
     unsigned short  * ptr1 = NULL;
@@ -1394,7 +1410,7 @@ bool Fits2D::readFits16US(Mat &img, string filePath){
 
     const char * filename;
 
-    filename = filePath.c_str();
+    filename = mFitsPath.c_str();
 
     if(fits_open_file(&fptr, filename, READONLY, &status)){
 
@@ -1462,7 +1478,7 @@ bool Fits2D::readFits16US(Mat &img, string filePath){
 }
 
 //Signed 16bits short -32768~32767
-bool Fits2D::readFits16S(Mat &img, string filePath){
+bool Fits2D::readFits16S(Mat &img){
 
     short * ptr = NULL;
     unsigned short  * ptr1 = NULL;
@@ -1476,7 +1492,7 @@ bool Fits2D::readFits16S(Mat &img, string filePath){
 
     const char * filename;
 
-    filename = filePath.c_str();
+    filename = mFitsPath.c_str();
 
     if(fits_open_file(&fptr, filename, READONLY, &status)){
 
@@ -1500,7 +1516,7 @@ bool Fits2D::readFits16S(Mat &img, string filePath){
     nbuffer = npixels;
 
    // short  buffer[npixels];
-	short* buffer = new short[npixels];
+    short* buffer = new short[npixels];
     if(fits_read_img(fptr, TSHORT, fpixel, nbuffer, &nullval,buffer, &anynull, &status)){
 
         printerror(status);
@@ -1527,7 +1543,7 @@ bool Fits2D::readFits16S(Mat &img, string filePath){
     }
 
     loadImg.copyTo(img);
-	delete buffer;
+    delete buffer;
     if(fits_close_file(fptr, &status)){
 
         printerror(status);
@@ -1540,7 +1556,7 @@ bool Fits2D::readFits16S(Mat &img, string filePath){
 }
 
 //Unsigned 8bits uchar 0~255
-bool Fits2D::readFits8UC(Mat &img, string filePath){
+bool Fits2D::readFits8UC(Mat &img){
 
     unsigned char * ptr = NULL;
     unsigned char  * ptr1 = NULL;
@@ -1554,7 +1570,7 @@ bool Fits2D::readFits8UC(Mat &img, string filePath){
 
     const char * filename;
 
-    filename = filePath.c_str();
+    filename = mFitsPath.c_str();
 
     if(fits_open_file(&fptr, filename, READONLY, &status)){
 
@@ -1578,7 +1594,7 @@ bool Fits2D::readFits8UC(Mat &img, string filePath){
     nbuffer = npixels;
 
     //unsigned char  buffer[npixels];
-	unsigned char* buffer = new unsigned char[npixels];
+    unsigned char* buffer = new unsigned char[npixels];
 
     if(fits_read_img(fptr, TBYTE, fpixel, nbuffer, &nullval,buffer, &anynull, &status)){
 
@@ -1607,7 +1623,7 @@ bool Fits2D::readFits8UC(Mat &img, string filePath){
 
     loadImg.copyTo(img);
 
-	delete buffer;
+    delete buffer;
 
     if(fits_close_file(fptr, &status)){
 
@@ -1620,7 +1636,7 @@ bool Fits2D::readFits8UC(Mat &img, string filePath){
 }
 
 //Signed 8bits char -128~127
-bool Fits2D::readFits8C(Mat &img, string filePath){
+bool Fits2D::readFits8C(Mat &img){
 
     char * ptr = NULL;
     char  * ptr1 = NULL;
@@ -1634,7 +1650,7 @@ bool Fits2D::readFits8C(Mat &img, string filePath){
 
     const char * filename;
 
-    filename = filePath.c_str();
+    filename = mFitsPath.c_str();
 
     if(fits_open_file(&fptr, filename, READONLY, &status)){
 
@@ -1658,7 +1674,8 @@ bool Fits2D::readFits8C(Mat &img, string filePath){
     nbuffer = npixels;
 
 //    char  buffer[npixels];
-	char* buffer = new char[npixels];
+    char* buffer = new char[npixels];
+
     if(fits_read_img(fptr, TSBYTE, fpixel, nbuffer, &nullval,buffer, &anynull, &status)){
 
         printerror(status);
@@ -1685,7 +1702,8 @@ bool Fits2D::readFits8C(Mat &img, string filePath){
     }
 
     loadImg.copyTo(img);
-	delete buffer;
+    delete buffer;
+
     if(fits_close_file(fptr, &status)){
 
         printerror(status);
@@ -1696,7 +1714,7 @@ bool Fits2D::readFits8C(Mat &img, string filePath){
 
 }
 
-bool Fits2D::readIntKeyword(string filePath, string keyword, int &value){
+bool Fits2D::readIntKeyword(string keyword, int &value){
 
     char *ptr = NULL;
 
@@ -1706,7 +1724,7 @@ bool Fits2D::readIntKeyword(string filePath, string keyword, int &value){
 
     const char * filename;
 
-    filename = filePath.c_str();
+    filename = mFitsPath.c_str();
 
     if(fits_open_file(&fptr, filename, READONLY, &status)){
 
@@ -1731,7 +1749,7 @@ bool Fits2D::readIntKeyword(string filePath, string keyword, int &value){
     return true;
 }
 
-bool Fits2D::readStringKeyword(string filePath, string keyword, string &value){
+bool Fits2D::readStringKeyword(string keyword, string &value){
 
     char *ptr = NULL;
 
@@ -1743,7 +1761,7 @@ bool Fits2D::readStringKeyword(string filePath, string keyword, string &value){
 
     char v[40];
 
-    filename = filePath.c_str();
+    filename = mFitsPath.c_str();
 
 
     if(fits_open_file(&fptr, filename, READONLY, &status)){
@@ -1779,7 +1797,7 @@ bool Fits2D::readStringKeyword(string filePath, string keyword, string &value){
     return true;
 }
 
-bool Fits2D::readDoubleKeyword(string filePath, string keyword, double &value){
+bool Fits2D::readDoubleKeyword(string keyword, double &value){
 
     char *ptr = NULL;
 
@@ -1789,7 +1807,7 @@ bool Fits2D::readDoubleKeyword(string filePath, string keyword, double &value){
 
     const char * filename;
 
-    filename = filePath.c_str();
+    filename = mFitsPath.c_str();
 
     if(fits_open_file(&fptr, filename, READONLY, &status)){
 
@@ -1819,58 +1837,32 @@ bool Fits2D::readDoubleKeyword(string filePath, string keyword, double &value){
     return true;
 }
 
-// http://lbti.as.arizona.edu/svn/lbti/fits_index/src/AutoLog/autolog.c
-bool Fits2D::printerror(int status, string errorMsg){
+void Fits2D::printerror(int status, string errorMsg){
 
     if(status){
-
-        fits_report_error(stderr, status);
 
         char status_str[200];
         fits_get_errstatus(status, status_str);
 
-        cout << stderr << endl;
         BOOST_LOG_SEV(logger, fail) << errorMsg;
-
-        if(status_str!= NULL){
-            std::string str(status_str);
-            BOOST_LOG_SEV(logger, fail) << "CFITSIO error " << status << " : " << str;
-
-        }
+        cout << errorMsg << endl;
+        std::string str(status_str);
+        BOOST_LOG_SEV(logger, fail) << "CFITSIO ERROR : " << status << " -> " << str;
+        cout << "CFITSIO ERROR : " << status << " -> " << str << endl;
 
     }
 
-    return false;
 }
 
 void Fits2D::printerror(int status){
 
-    if (status){
-
-        fits_report_error(stderr, status);
+    if(status){
 
         char status_str[200];
         fits_get_errstatus(status, status_str);
-
-        cout << stderr << endl;
-
-        if(status_str!= NULL){
-
-            std::string str(status_str);
-            BOOST_LOG_SEV(logger, fail) << "CFITSIO error " << status << " : " << str;
-
-        }
-    }
-}
-
-bool Fits2D::printerror( string errorMsg){
-
-    if(errorMsg != ""){
-
-        cout << errorMsg << endl;
-        BOOST_LOG_SEV(logger, fail) << errorMsg;
+        std::string str(status_str);
+        BOOST_LOG_SEV(logger, fail) << "CFITSIO ERROR : " << status << " -> " << str;
+        cout << "CFITSIO ERROR : " << status << " -> " << str << endl;
 
     }
-
-    return false;
 }

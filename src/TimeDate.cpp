@@ -51,6 +51,20 @@ string TimeDate::localDateTime(::boost::posix_time::ptime pt, string format){
 
 }
 
+string TimeDate::getCurrentDateYYYYMMDD() {
+
+
+    boost::posix_time::ptime time = boost::posix_time::microsec_clock::universal_time();
+
+    // Convert to form YYYYMMDDTHHMMSS,fffffffff where T is the date-time separator
+    string date = to_iso_string(time);
+    list<string> ch;
+    Conversion::stringTok(ch, date.c_str(), "T");
+
+    return ch.front();
+
+}
+
 double TimeDate::gregorianToJulian(vector<int> date){
 
     int y   = date.at(0);

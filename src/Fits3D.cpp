@@ -39,13 +39,14 @@ boost::log::sources::severity_logger< LogSeverityLevel >  Fits3D::logger;
 
 Fits3D::Init Fits3D::initializer;
 
-Fits3D::Fits3D(CamBitDepth depth, int imgHeight, int imgWidth, int imgNum, Fits fits){
+Fits3D::Fits3D(CamBitDepth depth, int imgHeight, int imgWidth, int numberOfImages, string fileName){
 
+    mFileName    = fileName.c_str();
     status      = 0;
     naxis       = 3;
     naxes[0]    = imgWidth;
     naxes[1]    = imgHeight;
-    naxes[2]    = imgNum;
+    naxes[2]    = numberOfImages;
     size3d      = naxes[0] * naxes[1] * naxes[2];
     fpixel[0]   = 1;
     fpixel[1]   = 1;
@@ -66,29 +67,35 @@ Fits3D::Fits3D(CamBitDepth depth, int imgHeight, int imgWidth, int imgNum, Fits 
 
     }
 
-    kFILTER     = fits.getFilter();
-    kTELESCOP   = fits.getTelescop();
-    kOBSERVER   = fits.getObserver();
-    kINSTRUME   = fits.getInstrument();
-    kCAMERA     = fits.getCamera();
-    kFOCAL      = fits.getFocal();
-    kAPERTURE   = fits.getAperture();
-    kSITELONG   = fits.getSitelong();
-    kSITELAT    = fits.getSitelat();
-    kSITEELEV   = fits.getSiteelev();
-    kK1         = fits.getK1();
-    kK2         = fits.getK2();
-    kCOMMENT    = fits.getComment();
     kPROGRAM    = "FreeTure";
     kCREATOR    = "FRIPON";
-    kCD1_1      = fits.getCd1_1();
-    kCD1_2      = fits.getCd1_2();
-    kCD2_1      = fits.getCd2_1();
-    kCD2_2      = fits.getCd2_2();
     kCRPIX1     = imgWidth/2;
     kCRPIX2     = imgHeight/2;
-    kXPIXEL     = fits.getXpixel();
-    kYPIXEL     = fits.getYpixel();
+
+}
+
+void Fits3D::copyKeywords(const Fits &fits) {
+
+    kFILTER     = fits.kFILTER;
+    kTELESCOP   = fits.kTELESCOP;
+    kOBSERVER   = fits.kOBSERVER;
+    kINSTRUME   = fits.kINSTRUME;
+    kCAMERA     = fits.kCAMERA;
+    kFOCAL      = fits.kFOCAL;
+    kAPERTURE   = fits.kAPERTURE;
+    kSITELONG   = fits.kSITELONG;
+    kSITELAT    = fits.kSITELAT;
+    kSITEELEV   = fits.kSITEELEV;
+    kK1         = fits.kK1;
+    kK2         = fits.kK2;
+    kCOMMENT    = fits.kCOMMENT;
+    kCD1_1      = fits.kCD1_1;
+    kCD1_2      = fits.kCD1_2;
+    kCD2_1      = fits.kCD2_1;
+    kCD2_2      = fits.kCD2_2;
+    kXPIXEL     = fits.kXPIXEL;
+    kYPIXEL     = fits.kYPIXEL;
+
 }
 
 void Fits3D::addImageToFits3D(Mat frame){
@@ -210,7 +217,8 @@ bool Fits3D::writeKeywords(){
 
         delete filename;
         delete cfilename;
-        return printerror(status, "Error fits_write_key(FILENAME)");
+        printerror(status, "Error fits_write_key(FILENAME)");
+        return false;
 
     }
 
@@ -229,7 +237,8 @@ bool Fits3D::writeKeywords(){
 
         delete date;
         delete cdate;
-        return printerror(status, "Error fits_write_key(DATE)");
+        printerror(status, "Error fits_write_key(DATE)");
+        return false;
 
     }
 
@@ -248,7 +257,8 @@ bool Fits3D::writeKeywords(){
 
         delete dateobs;
         delete cdateobs;
-        return printerror(status, "Error fits_write_key(DATE-OBS)");
+        printerror(status, "Error fits_write_key(DATE-OBS)");
+        return false;
 
     }
 
@@ -267,7 +277,8 @@ bool Fits3D::writeKeywords(){
 
         delete cobsmode;
         delete obsmode;
-        return printerror(status, "Error fits_write_key(OBS_MODE)");
+        printerror(status, "Error fits_write_key(OBS_MODE)");
+        return false;
 
     }
 
@@ -282,7 +293,8 @@ bool Fits3D::writeKeywords(){
     if(fits_write_key(fptr,TDOUBLE,"ELAPTIME",&kELAPTIME,celaptime,&status)){
 
         delete celaptime;
-        return printerror(status, "Error fits_write_key(ELAPTIME)");
+        printerror(status, "Error fits_write_key(ELAPTIME)");
+        return false;
 
     }
 
@@ -296,7 +308,8 @@ bool Fits3D::writeKeywords(){
     if(fits_write_key(fptr,TDOUBLE,"EXPOSURE",&kEXPOSURE,ceposure,&status)){
 
         delete ceposure;
-        return printerror(status, "Error fits_write_key(EXPOSURE)");
+        printerror(status, "Error fits_write_key(EXPOSURE)");
+        return false;
 
     }
 
@@ -310,7 +323,8 @@ bool Fits3D::writeKeywords(){
     if(fits_write_key(fptr,TDOUBLE,"ONTIME",&kONTIME,contime,&status)){
 
         delete contime;
-        return printerror(status, "Error fits_write_key(ONTIME)");
+        printerror(status, "Error fits_write_key(ONTIME)");
+        return false;
 
     }
 
@@ -329,7 +343,8 @@ bool Fits3D::writeKeywords(){
 
         delete cfilter;
         delete f;
-        return printerror(status, "Error fits_write_key(FILTER)");
+        printerror(status, "Error fits_write_key(FILTER)");
+        return false;
 
     }
 
@@ -349,7 +364,8 @@ bool Fits3D::writeKeywords(){
 
         delete ctelescop;
         delete t;
-        return printerror(status, "Error fits_write_key(TELESCOP)");
+        printerror(status, "Error fits_write_key(TELESCOP)");
+        return false;
 
     }
 
@@ -368,7 +384,8 @@ bool Fits3D::writeKeywords(){
 
         delete cobserver;
         delete o;
-        return printerror(status, "Error fits_write_key(OBSERVER)");
+        printerror(status, "Error fits_write_key(OBSERVER)");
+        return false;
 
     }
 
@@ -387,7 +404,8 @@ bool Fits3D::writeKeywords(){
 
         delete cinstrume;
         delete i;
-        return printerror(status, "Error fits_write_key(OBSERVER)");
+        printerror(status, "Error fits_write_key(OBSERVER)");
+        return false;
 
     }
 
@@ -406,7 +424,8 @@ bool Fits3D::writeKeywords(){
 
         delete ccamera;
         delete cam;
-        return printerror(status, "Error fits_write_key(CAMERA)");
+        printerror(status, "Error fits_write_key(CAMERA)");
+        return false;
 
     }
 
@@ -421,7 +440,8 @@ bool Fits3D::writeKeywords(){
     if(fits_write_key(fptr,TDOUBLE,"FOCAL",&kFOCAL,cfocal,&status)){
 
         delete cfocal;
-        return printerror(status, "Error fits_write_key(FOCAL)");
+        printerror(status, "Error fits_write_key(FOCAL)");
+        return false;
 
     }
 
@@ -435,7 +455,8 @@ bool Fits3D::writeKeywords(){
     if(fits_write_key(fptr,TDOUBLE,"APERTURE",&kAPERTURE,"",&status)){
 
         delete caperture;
-        return printerror(status, "Error fits_write_key(APERTURE)");
+        printerror(status, "Error fits_write_key(APERTURE)");
+        return false;
 
     }
 
@@ -449,7 +470,8 @@ bool Fits3D::writeKeywords(){
     if(fits_write_key(fptr,TDOUBLE,"SITELONG",&kSITELONG,csitelong,&status)){
 
         delete csitelong;
-        return printerror(status, "Error fits_write_key(APERTURE)");
+        printerror(status, "Error fits_write_key(APERTURE)");
+        return false;
 
     }
 
@@ -463,7 +485,8 @@ bool Fits3D::writeKeywords(){
     if(fits_write_key(fptr,TDOUBLE,"SITELAT",&kSITELAT,csitelat,&status)){
 
         delete csitelat;
-        return printerror(status, "Error fits_write_key(SITELAT)");
+        printerror(status, "Error fits_write_key(SITELAT)");
+        return false;
 
     }
 
@@ -477,7 +500,8 @@ bool Fits3D::writeKeywords(){
     if(fits_write_key(fptr,TDOUBLE,"SITEELEV",&kSITEELEV,csiteelev,&status)){
 
         delete csiteelev;
-        return printerror(status, "Error fits_write_key(SITEELEV)");
+        printerror(status, "Error fits_write_key(SITEELEV)");
+        return false;
 
     }
 
@@ -491,7 +515,8 @@ bool Fits3D::writeKeywords(){
     if(fits_write_key(fptr,TDOUBLE,"XPIXEL",&kXPIXEL,cxpixel,&status)){
 
         delete cxpixel;
-        return printerror(status, "Error fits_write_key(XPIXEL)");
+        printerror(status, "Error fits_write_key(XPIXEL)");
+        return false;
 
     }
 
@@ -505,7 +530,8 @@ bool Fits3D::writeKeywords(){
     if(fits_write_key(fptr,TDOUBLE,"YPIXEL",&kYPIXEL,cypixel,&status)){
 
         delete cypixel;
-        return printerror(status, "Error fits_write_key(YPIXEL)");
+        printerror(status, "Error fits_write_key(YPIXEL)");
+        return false;
 
     }
 
@@ -519,7 +545,8 @@ bool Fits3D::writeKeywords(){
     if(fits_write_key(fptr,TINT,"GAINDB",&kGAINDB,cgaindb,&status)){
 
         delete cgaindb;
-        return printerror(status, "Error fits_write_key(GAINDB)");
+        printerror(status, "Error fits_write_key(GAINDB)");
+        return false;
 
     }
 
@@ -533,7 +560,8 @@ bool Fits3D::writeKeywords(){
     if(fits_write_key(fptr,TDOUBLE,"SATURATE",&kSATURATE,csaturate,&status)){
 
         delete csaturate;
-        return printerror(status, "Error fits_write_key(SATURATE)");
+        printerror(status, "Error fits_write_key(SATURATE)");
+        return false;
 
     }
 
@@ -551,7 +579,8 @@ bool Fits3D::writeKeywords(){
 
         delete cprograme;
         delete p;
-        return printerror(status, "Error fits_write_key(PROGRAM)");
+        printerror(status, "Error fits_write_key(PROGRAM)");
+        return false;
 
     }
 
@@ -570,7 +599,8 @@ bool Fits3D::writeKeywords(){
 
         delete ccreator;
         delete c;
-        return printerror(status, "Error fits_write_key(CREATOR)");
+        printerror(status, "Error fits_write_key(CREATOR)");
+        return false;
 
     }
 
@@ -585,7 +615,8 @@ bool Fits3D::writeKeywords(){
     if(fits_write_key(fptr,TDOUBLE,"BZERO",&kBZERO,cbzero,&status)){
 
         delete cbzero;
-        return printerror(status, "Error fits_write_key(BZERO)");
+        printerror(status, "Error fits_write_key(BZERO)");
+        return false;
 
     }
 
@@ -599,7 +630,8 @@ bool Fits3D::writeKeywords(){
     if(fits_write_key(fptr,TDOUBLE,"BSCALE",&kBSCALE,cbscale,&status)){
 
         delete cbscale;
-        return printerror(status, "Error fits_write_key(BSCALE)");
+        printerror(status, "Error fits_write_key(BSCALE)");
+        return false;
 
     }
 
@@ -617,7 +649,8 @@ bool Fits3D::writeKeywords(){
 
         delete cradesys;
         delete radesys;
-        return printerror(status, "Error fits_write_key(RADESYS)");
+        printerror(status, "Error fits_write_key(RADESYS)");
+        return false;
 
     }
 
@@ -636,7 +669,8 @@ bool Fits3D::writeKeywords(){
 
         delete ctimesys;
         delete timesys;
-        return printerror(status, "Error fits_write_key(TIMESYS)");
+        printerror(status, "Error fits_write_key(TIMESYS)");
+        return false;
 
     }
 
@@ -652,7 +686,8 @@ bool Fits3D::writeKeywords(){
     if(fits_write_key(fptr,TDOUBLE,"EQUINOX",&kEQUINOX,cequinox,&status)){
 
         delete cequinox;
-        return printerror(status, "Error fits_write_key(EQUINOX)");
+        printerror(status, "Error fits_write_key(EQUINOX)");
+        return false;
 
     }
 
@@ -670,7 +705,8 @@ bool Fits3D::writeKeywords(){
 
         delete ctype1;
         delete ktype1;
-        return printerror(status, "Error fits_write_key(CTYPE1)");
+        printerror(status, "Error fits_write_key(CTYPE1)");
+        return false;
 
     }
 
@@ -689,7 +725,8 @@ bool Fits3D::writeKeywords(){
 
         delete ctype2;
         delete ktype2;
-        return printerror(status, "Error fits_write_key(CTYPE2)");
+        printerror(status, "Error fits_write_key(CTYPE2)");
+        return false;
 
     }
 
@@ -708,7 +745,8 @@ bool Fits3D::writeKeywords(){
 
         delete ctype3;
         delete ktype3;
-        return printerror(status, "Error fits_write_key(CTYPE3)");
+        printerror(status, "Error fits_write_key(CTYPE3)");
+        return false;
 
     }
 
@@ -727,7 +765,8 @@ bool Fits3D::writeKeywords(){
 
         delete ctimeunit;
         delete ktimeunit;
-        return printerror(status, "Error fits_write_key(TIMEUNIT)");
+        printerror(status, "Error fits_write_key(TIMEUNIT)");
+        return false;
 
     }
 
@@ -742,7 +781,8 @@ bool Fits3D::writeKeywords(){
     if(fits_write_key(fptr,TDOUBLE,"CD1_1",&kCD1_1,ccd1_1,&status)){
 
         delete ccd1_1;
-        return printerror(status, "Error fits_write_key(CD1_1)");
+        printerror(status, "Error fits_write_key(CD1_1)");
+        return false;
 
     }
 
@@ -756,7 +796,8 @@ bool Fits3D::writeKeywords(){
     if(fits_write_key(fptr,TDOUBLE,"CD1_2",&kCD1_2,ccd1_2,&status)){
 
         delete ccd1_2;
-        return printerror(status, "Error fits_write_key(CD1_2)");
+        printerror(status, "Error fits_write_key(CD1_2)");
+        return false;
 
     }
 
@@ -770,7 +811,8 @@ bool Fits3D::writeKeywords(){
     if(fits_write_key(fptr,TDOUBLE,"CD2_1",&kCD2_1,ccd2_1,&status)){
 
         delete ccd2_1;
-        return printerror(status, "Error fits_write_key(CD2_1)");
+        printerror(status, "Error fits_write_key(CD2_1)");
+        return false;
 
     }
 
@@ -784,7 +826,8 @@ bool Fits3D::writeKeywords(){
     if(fits_write_key(fptr,TDOUBLE,"CD2_2",&kCD2_2,ccd2_2,&status)){
 
         delete ccd2_2;
-        return printerror(status, "Error fits_write_key(CD2_2)");
+        printerror(status, "Error fits_write_key(CD2_2)");
+        return false;
 
     }
 
@@ -798,7 +841,8 @@ bool Fits3D::writeKeywords(){
     if(fits_write_key(fptr,TDOUBLE,"CD3_3",&kCD3_3,ccd3_3,&status)){
 
         delete ccd3_3;
-        return printerror(status, "Error fits_write_key(CD3_3)");
+        printerror(status, "Error fits_write_key(CD3_3)");
+        return false;
 
     }
 
@@ -812,7 +856,8 @@ bool Fits3D::writeKeywords(){
     if(fits_write_key(fptr,TDOUBLE,"CD1_3",&kCD1_3,ccd1_3,&status)){
 
         delete ccd1_3;
-        return printerror(status, "Error fits_write_key(CD1_3)");
+        printerror(status, "Error fits_write_key(CD1_3)");
+        return false;
 
     }
 
@@ -826,7 +871,8 @@ bool Fits3D::writeKeywords(){
     if(fits_write_key(fptr,TDOUBLE,"CD2_3",&kCD2_3,ccd2_3,&status)){
 
         delete ccd2_3;
-        return printerror(status, "Error fits_write_key(CD2_3)");
+        printerror(status, "Error fits_write_key(CD2_3)");
+        return false;
 
     }
 
@@ -840,7 +886,8 @@ bool Fits3D::writeKeywords(){
     if(fits_write_key(fptr,TDOUBLE,"CD3_1",&kCD3_1,ccd3_1,&status)){
 
         delete ccd3_1;
-        return printerror(status, "Error fits_write_key(CD3_1)");
+        printerror(status, "Error fits_write_key(CD3_1)");
+        return false;
 
     }
 
@@ -854,7 +901,8 @@ bool Fits3D::writeKeywords(){
     if(fits_write_key(fptr,TDOUBLE,"CD3_2",&kCD3_2,ccd3_2,&status)){
 
         delete ccd3_2;
-        return printerror(status, "Error fits_write_key(CD3_2)");
+        printerror(status, "Error fits_write_key(CD3_2)");
+        return false;
 
     }
 
@@ -868,7 +916,8 @@ bool Fits3D::writeKeywords(){
     if(fits_write_key(fptr,TINT,"CRPIX1",&kCRPIX1,ccrpix1,&status)){
 
         delete ccrpix1;
-        return printerror(status, "Error fits_write_key(CRPIX1)");
+        printerror(status, "Error fits_write_key(CRPIX1)");
+        return false;
 
     }
 
@@ -882,7 +931,8 @@ bool Fits3D::writeKeywords(){
     if(fits_write_key(fptr,TINT,"CRPIX2",&kCRPIX2,ccrpix2,&status)){
 
         delete ccrpix2;
-        return printerror(status, "Error fits_write_key(CRPIX2)");
+        printerror(status, "Error fits_write_key(CRPIX2)");
+        return false;
 
     }
 
@@ -896,7 +946,8 @@ bool Fits3D::writeKeywords(){
     if(fits_write_key(fptr,TINT,"CRPIX3",&kCRPIX3,ccrpix3,&status)){
 
         delete ccrpix3;
-        return printerror(status, "Error fits_write_key(CRPIX3)");
+        printerror(status, "Error fits_write_key(CRPIX3)");
+        return false;
 
     }
 
@@ -910,7 +961,8 @@ bool Fits3D::writeKeywords(){
     if(fits_write_key(fptr,TDOUBLE,"CRVAL1",&kCRVAL1,ccrval1,&status)){
 
         delete ccrval1;
-        return printerror(status, "Error fits_write_key(CRVAL1)");
+        printerror(status, "Error fits_write_key(CRVAL1)");
+        return false;
 
     }
 
@@ -924,7 +976,8 @@ bool Fits3D::writeKeywords(){
     if(fits_write_key(fptr,TDOUBLE,"CRVAL2",&kSITELAT,ccrval2,&status)){
 
         delete ccrval2;
-        return printerror(status, "Error fits_write_key(CRVAL2)");
+        printerror(status, "Error fits_write_key(CRVAL2)");
+        return false;
 
     }
 
@@ -938,7 +991,8 @@ bool Fits3D::writeKeywords(){
     if(fits_write_key(fptr,TDOUBLE,"K1",&kK1,ck1,&status)){
 
         delete ck1;
-        return printerror(status, "Error fits_write_key(K1)");
+        printerror(status, "Error fits_write_key(K1)");
+        return false;
 
     }
 
@@ -952,7 +1006,8 @@ bool Fits3D::writeKeywords(){
     if(fits_write_key(fptr,TDOUBLE,"K2",&kK2,ck2,&status)){
 
         delete ck2;
-        return printerror(status, "Error fits_write_key(K2)");
+        printerror(status, "Error fits_write_key(K2)");
+        return false;
 
     }
 
@@ -962,27 +1017,29 @@ bool Fits3D::writeKeywords(){
 
 }
 
-bool Fits3D::writeFits3D(string file){
+bool Fits3D::writeFits3D(){
 
-    filename = file.c_str();
+    remove(mFileName);
 
-    remove(filename);
+    if(fits_create_file(&fptr, mFileName, &status)){
 
-    if(fits_create_file(&fptr, filename, &status)){
+        printerror(status);
+        return false;
 
-         return printerror( status, "Fits3D::writeFits3D() -> fits_create_file() failed" );
     }
 
     if(imgDepth == MONO_8){
 
         if(fits_create_img(fptr, BYTE_IMG, naxis, naxes, &status)){
 
-             return printerror( status, "Fits3D::writeFits3D() -> fits_create_img() failed" );
+             printerror(status);
+             return false;
         }
 
         if(fits_write_pix(fptr, TBYTE, fpixel, size3d, array3D_MONO_8, &status)){
 
-            return printerror( status, "Fits3D::writeFits3D() -> fits_write_pix() failed" );
+            printerror( status);
+            return false;
 
         }
 
@@ -992,13 +1049,15 @@ bool Fits3D::writeFits3D(string file){
 
         if(fits_create_img(fptr, SHORT_IMG, naxis, naxes, &status)){
 
-             return printerror( status, "Fits3D::writeFits3D() -> fits_create_img() failed" );
+             printerror(status);
+             return false;
         }
 
 
         if(fits_write_pix(fptr, TSHORT, fpixel, size3d, array3D_MONO_12, &status)){
 
-            return printerror( status, "Fits3D::writeFits3D() -> fits_write_pix() failed" );
+            printerror(status);
+            return false;
 
         }
 
@@ -1008,9 +1067,10 @@ bool Fits3D::writeFits3D(string file){
 
     if(!writeKeywords()){
 
-        if( fits_close_file(fptr, &status)){
+        if(fits_close_file(fptr, &status)){
 
-             return printerror( status, "Fits3D::writeimage() -> fits_close_file() failed" );
+             printerror(status);
+             return false;
         }
 
         return false;
@@ -1019,54 +1079,41 @@ bool Fits3D::writeFits3D(string file){
     // close the file
     if(fits_close_file(fptr, &status)){
 
-         return printerror( status, "Fits3D::writeFits3D() -> fits_close_file() failed" );
+         printerror(status);
+         return false;
     }
 
     return true;
 
 }
 
-bool Fits3D::printerror( int status, string errorMsg){
+void Fits3D::printerror(int status, string errorMsg){
 
-    if (status){
+    if(status){
 
-        fits_report_error(stderr, status);
+        char status_str[200];
+        fits_get_errstatus(status, status_str);
 
-        cout << stderr << endl;
-
-
-    }
-
-    if(errorMsg != ""){
-
+        BOOST_LOG_SEV(logger, fail) << errorMsg;
         cout << errorMsg << endl;
-
-
-    }
-
-    return false;
-}
-
-void Fits3D::printerror( int status ){
-
-    if (status){
-
-        fits_report_error(stderr, status);
-
-
-    }
-}
-
-bool Fits3D::printerror( string errorMsg){
-
-    if(errorMsg != ""){
-
-        cout << errorMsg << endl;
-
+        std::string str(status_str);
+        BOOST_LOG_SEV(logger, fail) << "CFITSIO ERROR : " << status << " -> " << str;
+        cout << "CFITSIO ERROR : " << status << " -> " << str << endl;
 
     }
 
-    return false;
 }
 
+void Fits3D::printerror(int status){
+
+    if(status){
+
+        char status_str[200];
+        fits_get_errstatus(status, status_str);
+        std::string str(status_str);
+        BOOST_LOG_SEV(logger, fail) << "CFITSIO ERROR : " << status << " -> " << str;
+        cout << "CFITSIO ERROR : " << status << " -> " << str << endl;
+
+    }
+}
 

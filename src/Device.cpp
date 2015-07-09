@@ -84,6 +84,7 @@ void Device::initialization() {
     mMaxGain                = 0;
     mDisplayVideoInInput    = false;
     mVideoFramesInInput     = false;
+    mEphemerisUpdated       = false;
 
     switch(mType){
 
@@ -178,7 +179,7 @@ bool Device::prepareDevice() {
 
                 break;
 
-            case VIDEO:
+            case VIDEO :
 
                 {
                     // Get frames locations.
@@ -250,10 +251,6 @@ bool Device::prepareDevice() {
                 cfg.Get("ACQ_DAY_GAIN", mDayGain);
                 BOOST_LOG_SEV(logger, notification) << "ACQ_DAY_GAIN : " << mDayGain;
 
-                // Get ephemeris option.
-                cfg.Get("EPHEMERIS_ENABLED", mEphemerisEnabled);
-                BOOST_LOG_SEV(logger, notification) << "EPHEMERIS_ENABLED : " << mEphemerisEnabled;
-
                 // Get schedule option status.
                 cfg.Get("ACQ_SCHEDULE_ENABLED", mScheduleEnabled);
                 BOOST_LOG_SEV(logger, notification) << "ACQ_SCHEDULE_ENABLED : " << mScheduleEnabled;
@@ -284,7 +281,6 @@ bool Device::prepareDevice() {
                 cfg.Get("ACQ_REGULAR_GAIN", mRegularGain);
                 BOOST_LOG_SEV(logger, notification) << "ACQ_REGULAR_GAIN : " << mRegularGain;
 
-
                 // Get regular acquisition repetition.
                 cfg.Get("ACQ_REGULAR_REPETITION", mRegularRepetition);
                 BOOST_LOG_SEV(logger, notification) << "ACQ_REGULAR_REPETITION : " << mRegularRepetition;
@@ -299,22 +295,62 @@ bool Device::prepareDevice() {
                 mRegularFormat = cam_regular_bit_depth.parseEnum("ACQ_REGULAR_FORMAT", acq_regular_format);
                 BOOST_LOG_SEV(logger, notification) << "ACQ_REGULAR_FORMAT : " << acq_regular_format;
 
-                // Get sunrise time.
-                string sunrise_time;
-                cfg.Get("SUNRISE_TIME", sunrise_time);
-                BOOST_LOG_SEV(logger, notification) << "SUNRISE_TIME : " << sunrise_time;
+                // Get ephemeris option.
+                cfg.Get("EPHEMERIS_ENABLED", mEphemerisEnabled);
+                BOOST_LOG_SEV(logger, notification) << "EPHEMERIS_ENABLED : " << mEphemerisEnabled;
 
-                {
+                if(!mEphemerisEnabled) {
 
-                    typedef boost::tokenizer<boost::char_separator<char> > tokenizer;
-                    boost::char_separator<char> sep(":");
-                    tokenizer tokens(sunrise_time, sep);
+                    // Get sunrise time.
+                    string sunrise_time;
+                    cfg.Get("SUNRISE_TIME", sunrise_time);
+                    BOOST_LOG_SEV(logger, notification) << "SUNRISE_TIME : " << sunrise_time;
 
-                    for(tokenizer::iterator tok_iter = tokens.begin();tok_iter != tokens.end(); ++tok_iter){
+                    {
 
-                        mSunriseTime.push_back(atoi((*tok_iter).c_str()));
+                        typedef boost::tokenizer<boost::char_separator<char> > tokenizer;
+                        boost::char_separator<char> sep(":");
+                        tokenizer tokens(sunrise_time, sep);
 
+                        for(tokenizer::iterator tok_iter = tokens.begin();tok_iter != tokens.end(); ++tok_iter){
+
+                            mSunriseTime.push_back(atoi((*tok_iter).c_str()));
+
+                        }
                     }
+
+                    // Get sunset time.
+                    string sunset_time;
+                    cfg.Get("SUNSET_TIME", sunset_time);
+                    BOOST_LOG_SEV(logger, notification) << "SUNSET_TIME : " << sunset_time;
+
+                    {
+
+                        typedef boost::tokenizer<boost::char_separator<char> > tokenizer;
+                        boost::char_separator<char> sep(":");
+                        tokenizer tokens(sunset_time, sep);
+
+                        for(tokenizer::iterator tok_iter = tokens.begin();tok_iter != tokens.end(); ++tok_iter){
+
+                            mSunsetTime.push_back(atoi((*tok_iter).c_str()));
+
+                        }
+                    }
+
+                }else {
+
+                    // Get sun height on the horizon.
+                    cfg.Get("SUN_HORIZON_HEIGHT", mSunHorizonHeight);
+                    BOOST_LOG_SEV(logger, notification) << "SUN_HORIZON_HEIGHT : " << mSunHorizonHeight;
+
+                    // Get latitude.
+                    cfg.Get("SITELAT", mStationLatitude);
+
+                    // Get longitude.
+                    cfg.Get("SITELONG", mStationLongitude);
+
+                    getEphemeris();
+
                 }
 
                 // Get sunrise duration.
@@ -337,24 +373,6 @@ bool Device::prepareDevice() {
                     cout <<  "SUNRISE_TIME_START : " << mSunriseTime.at(0) << "H" <<  mSunriseTime.at(1) << endl;
 
 
-                }
-
-                // Get sunset time.
-                string sunset_time;
-                cfg.Get("SUNSET_TIME", sunset_time);
-                BOOST_LOG_SEV(logger, notification) << "SUNSET_TIME : " << sunset_time;
-
-                {
-
-                    typedef boost::tokenizer<boost::char_separator<char> > tokenizer;
-                    boost::char_separator<char> sep(":");
-                    tokenizer tokens(sunset_time, sep);
-
-                    for(tokenizer::iterator tok_iter = tokens.begin();tok_iter != tokens.end(); ++tok_iter){
-
-                        mSunsetTime.push_back(atoi((*tok_iter).c_str()));
-
-                    }
                 }
 
                  // Get sunset duration.
@@ -500,6 +518,42 @@ bool Device::prepareDevice() {
     return true;
 }
 
+bool Device::getEphemeris() {
+
+    mCurrentEphemerisDate = TimeDate::getCurrentDateYYYYMMDD();
+
+    Ephemeris ephem = Ephemeris(mCurrentEphemerisDate, mSunHorizonHeight, mStationLongitude, mStationLatitude );
+
+    cout << "date : " << mCurrentEphemerisDate<< endl;
+
+    int sunriseH, sunriseM, sunsetH, sunsetM;
+
+    if(ephem.computeEphemeris(sunriseH, sunriseM,sunsetH, sunsetM)) {
+
+        mSunsetTime.clear();
+        mSunsetTime.push_back(sunsetH);
+        mSunsetTime.push_back(sunsetM);
+
+        cout << "SUNSET : " << sunsetH << "H" << sunsetM << endl;
+        BOOST_LOG_SEV(logger, notification) << "EPHEMERIS SUNSET : " << sunsetH << "H" << sunsetM;
+
+        mSunriseTime.clear();
+        mSunriseTime.push_back(sunriseH);
+        mSunriseTime.push_back(sunriseM);
+
+        cout << "SUNRISE : " << sunriseH << "H" << sunriseM << endl;
+        BOOST_LOG_SEV(logger, notification) << "EPHEMERIS SUNRISE : " << sunriseH << "H" << sunriseM;
+
+        mEphemerisUpdated = true;
+
+        return true;
+
+    }
+
+    return false;
+
+}
+
 void Device::runContinuousAcquisition(){
 
     /// List Gige Camera to check the ID.
@@ -568,7 +622,7 @@ void Device::runContinuousAcquisition(){
 
     }else{
 
-		cout << "set Day Exposure mMinExposureTime" << endl;
+        cout << "set Day Exposure mMinExposureTime" << endl;
 
         if(!cam->setExposureTime(mMinExposureTime))
             throw "Fail to set Day Exposure.";

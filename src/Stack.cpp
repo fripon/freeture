@@ -112,47 +112,48 @@ bool Stack::saveStack(Fits fitsHeader, string path, StackMeth stackMthd, string 
     double  elapTime        = endObsInSeconds - debObsInSeconds;
     double  julianDate      = TimeDate::gregorianToJulian(firstDateInt);
     double  julianCentury   = TimeDate::julianCentury(julianDate);
-    double  sideralT        = TimeDate::localSideralTime_2(julianCentury, firstDateInt.at(3), firstDateInt.at(4), firstDateInt.at(5), fitsHeader.getSitelong());
+    double  sideralT        = TimeDate::localSideralTime_2(julianCentury, firstDateInt.at(3), firstDateInt.at(4), firstDateInt.at(5), fitsHeader.kSITELONG);
 
     BOOST_LOG_SEV(logger, notification) << "Start create fits2D to save the stack.";
 
     // Fits creation.
-    Fits2D newFits(path, fitsHeader);
+    Fits2D newFits(path);
+    newFits.copyKeywords(fitsHeader);
     BOOST_LOG_SEV(logger, notification) << "Fits path : " << path;
     // Creation date of the fits file : YYYY-MM-DDTHH:MM:SS
     boost::posix_time::ptime time = boost::posix_time::microsec_clock::universal_time();
     BOOST_LOG_SEV(logger, notification) << "Setting Fits DATE (creation date) key : " << to_iso_extended_string(time);
-    newFits.setDate(to_iso_extended_string(time));
+    newFits.kDATE = to_iso_extended_string(time);
     // Frame exposure time (sec.)
     BOOST_LOG_SEV(logger, notification) << "Setting fits ONTIME (Frame exposure time (sec.)) key : " << expFirstFrame/1000000.0;
-    newFits.setOntime(expFirstFrame/1000000.0);
+    newFits.kONTIME = expFirstFrame/1000000.0;
     // Detector gain
     BOOST_LOG_SEV(logger, notification) << "Setting fits GAIN key : " << gainFirstFrame;
-    newFits.setGaindb(gainFirstFrame);
+    newFits.kGAINDB = gainFirstFrame;
     // Acquisition date of the first frame 'YYYY-MM-JJTHH:MM:SS.SS'
     BOOST_LOG_SEV(logger, notification) << "Setting fits DATEOBS (Acquisition date of the first frame) key : " << dateFirstFrame;
-    newFits.setDateobs(dateFirstFrame);
+    newFits.kDATEOBS = dateFirstFrame;
     // Integration time : 1/fps * nb_frames (sec.)
     BOOST_LOG_SEV(logger, notification) << "Setting fits EXPOSURE (Integration time : 1/fps * nb_frames (sec.)) key : " << (1.0f/fps)*curFrames;
     if(fps <= 0) fps = 1;
-    newFits.setExposure((1.0f/fps)*curFrames);
+    newFits.kEXPOSURE = (1.0f/fps)*curFrames;
     // end obs. date - start obs. date (sec.)
     BOOST_LOG_SEV(logger, notification) << "Setting fits ELAPTIME (end obs. date - start obs. date (sec.)) key : " << elapTime;
-    newFits.setElaptime(elapTime);
+    newFits.kELAPTIME = elapTime;
     // Sideral time
     BOOST_LOG_SEV(logger, notification) << "Setting fits CRVAL1 (sideraltime) key : " << sideralT;
-    newFits.setCrval1(sideralT);
+    newFits.kCRVAL1 = sideralT;
     // Fps
     BOOST_LOG_SEV(logger, notification) << "Setting fits CD3_3 (fps) key : " << fps;
-    newFits.setCd3_3((double)fps);
+    newFits.kCD3_3 = (double)fps;
     // Projection and reference system
     BOOST_LOG_SEV(logger, notification) << "Setting fits DATEOBS key : RA---ARC";
-    newFits.setCtype1("RA---ARC");
+    newFits.kCTYPE1 = "RA---ARC";
     BOOST_LOG_SEV(logger, notification) << "Setting fits DATEOBS key : DEC--ARC";
-    newFits.setCtype2("DEC--ARC");
+    newFits.kCTYPE2 = "DEC--ARC";
     // Equinox
     BOOST_LOG_SEV(logger, notification) << "Setting fits DATEOBS key : 2000.0";
-    newFits.setEquinox(2000.0);
+    newFits.kEQUINOX = 2000.0;
 
     switch(stackMthd){
 
@@ -163,7 +164,7 @@ bool Stack::saveStack(Fits fitsHeader, string path, StackMeth stackMthd, string 
                 BOOST_LOG_SEV(logger, notification) << "MEAN STACK MODE";
 
                 // 'SINGLE' 'SUM' 'AVERAGE' ('MEDIAN')
-                newFits.setObsmode("AVERAGE");
+                newFits.kOBSMODE = "AVERAGE";
                 stack = stack/curFrames;
 
                 switch(bitdepth){
@@ -174,7 +175,7 @@ bool Stack::saveStack(Fits fitsHeader, string path, StackMeth stackMthd, string 
                             BOOST_LOG_SEV(logger, notification) << "Mono8 format";
 
                             BOOST_LOG_SEV(logger, notification) << "Setting fits SATURATE key : 255";
-                            newFits.setSaturate(255);
+                            newFits.kSATURATE = 255;
 
                             Mat newMat = Mat(stack.rows,stack.cols, CV_8UC1, Scalar(0));
 
@@ -209,11 +210,11 @@ bool Stack::saveStack(Fits fitsHeader, string path, StackMeth stackMthd, string 
                             Mat newMat = Mat(stack.rows,stack.cols, CV_16SC1, Scalar(0));
 
                             BOOST_LOG_SEV(logger, notification) << "Setting fits BZERO key : 32768";
-                            newFits.setBzero(32768);
+                            newFits.kBZERO = 32768;
                             BOOST_LOG_SEV(logger, notification) << "Setting fits BSCALE key : 1";
-                            newFits.setBscale(1);
+                            newFits.kBSCALE = 1;
                             BOOST_LOG_SEV(logger, notification) << "Setting fits SATURATE key : 4095";
-                            newFits.setSaturate(4095);
+                            newFits.kSATURATE = 4095;
 
 
                             float * ptr;
@@ -256,15 +257,15 @@ bool Stack::saveStack(Fits fitsHeader, string path, StackMeth stackMthd, string 
                 BOOST_LOG_SEV(logger, notification) << "SUM STACK MODE";
 
                 // 'SINGLE' 'SUM' 'AVERAGE' ('MEDIAN')
-                newFits.setObsmode("SUM");
+                newFits.kOBSMODE = "SUM";
 
                 if(bitdepth == MONO_8){
                     BOOST_LOG_SEV(logger, notification) << "Setting fits SATURATE key : 255 * curFrames";
-                    newFits.setSaturate(255 * curFrames);
+                    newFits.kSATURATE = 255 * curFrames;
                 }
                 else if(bitdepth = MONO_12){
                     BOOST_LOG_SEV(logger, notification) << "Setting fits SATURATE key : 4095 * curFrames";
-                    newFits.setSaturate(4095 * curFrames);
+                    newFits.kSATURATE = 4095 * curFrames;
                 }
 
                 if(stackReduction){
@@ -280,9 +281,9 @@ bool Stack::saveStack(Fits fitsHeader, string path, StackMeth stackMthd, string 
                     reductionByFactorDivision(bzero, bscale).copyTo(newMat);
 
                     BOOST_LOG_SEV(logger, notification) << "Setting fits BZERO key : " << bzero;
-                    newFits.setBzero(bzero);
+                    newFits.kBZERO = bzero;
                     BOOST_LOG_SEV(logger, notification) << "Setting fits BSCALE key : " << bscale;
-                    newFits.setBscale(bscale);
+                    newFits.kBSCALE = bscale;
 
                     switch(bitdepth){
 

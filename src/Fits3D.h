@@ -3,25 +3,25 @@
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 *
-*	This file is part of:	freeture
+*   This file is part of:   freeture
 *
-*	Copyright:		(C) 2014-2015 Yoan Audureau
+*   Copyright:      (C) 2014-2015 Yoan Audureau
 *                               FRIPON-GEOPS-UPSUD-CNRS
 *
-*	License:		GNU General Public License
+*   License:        GNU General Public License
 *
-*	FreeTure is free software: you can redistribute it and/or modify
-*	it under the terms of the GNU General Public License as published by
-*	the Free Software Foundation, either version 3 of the License, or
-*	(at your option) any later version.
-*	FreeTure is distributed in the hope that it will be useful,
-*	but WITHOUT ANY WARRANTY; without even the implied warranty of
-*	MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-*	GNU General Public License for more details.
-*	You should have received a copy of the GNU General Public License
-*	along with FreeTure. If not, see <http://www.gnu.org/licenses/>.
+*   FreeTure is free software: you can redistribute it and/or modify
+*   it under the terms of the GNU General Public License as published by
+*   the Free Software Foundation, either version 3 of the License, or
+*   (at your option) any later version.
+*   FreeTure is distributed in the hope that it will be useful,
+*   but WITHOUT ANY WARRANTY; without even the implied warranty of
+*   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+*   GNU General Public License for more details.
+*   You should have received a copy of the GNU General Public License
+*   along with FreeTure. If not, see <http://www.gnu.org/licenses/>.
 *
-*	Last modified:		20/10/2014
+*   Last modified:      20/10/2014
 *
 *%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%*/
 
@@ -87,7 +87,7 @@ class Fits3D : public Fits {
         }initializer;
 
         fitsfile        *fptr;
-        const char      *filename;
+        const char      *mFileName;
         int             status;
         long            naxis;
         long            naxes[3];
@@ -95,24 +95,74 @@ class Fits3D : public Fits {
         long            fpixel[3];
         int             imgSize;
         CamBitDepth     imgDepth;
-        int             n;
+        int             n;                  // Index for the number of images
         unsigned char   *array3D_MONO_8;
         unsigned short  *array3D_MONO_12;
 
     public :
 
-        Fits3D(CamBitDepth depth, int imgHeight, int imgWidth, int imgNum, Fits fits);
-        Fits3D(){};
+        /**
+        * Constructor.
+        * @param depth Image format.
+        * @param imgHeight Height of images.
+        * @param imgWidth Width of images.
+        * @param numberOfImages Number of images to add in the fits cube.
+        * @param fileName Name od the fits cube.
+        *
+        */
+        Fits3D(CamBitDepth depth, int imgHeight, int imgWidth, int numberOfImages, string fileName);
+
+        /**
+        * Constructor.
+        *
+        */
+        Fits3D() {};
+
+        /**
+        * Destructor.
+        *
+        */
         ~Fits3D(){};
 
         void addImageToFits3D(Mat frame);
-        bool writeFits3D(string file);
+
+        /**
+        * Copy fits keywords from a Fits object.
+        * @param fits Fits object.
+        *
+        */
+        void copyKeywords(const Fits &fits);
+
+        /**
+        * Create and write fits 3D.
+        * @param status Error cfitsio status.
+        *
+        */
+        bool writeFits3D();
 
     private :
 
-        bool printerror(int status, string errorMsg);
-        bool printerror(string errorMsg);
+        /**
+        * Helper function to get cfitsio error.
+        * @param status Error cfitsio status.
+        * @param errorMsg Additional information about where the error occured.
+        *
+        */
+        void printerror(int status, string errorMsg);
+
+        /**
+        * Helper function to get cfitsio error.
+        * @param status Error cfitsio status.
+        *
+        */
         void printerror(int status);
+
+        /**
+        * Write keywords in fits.
+        * @param fptr Pointer on the fits.
+        * @return Success to write keywords.
+        *
+        */
         bool writeKeywords();
 
 

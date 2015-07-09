@@ -3,24 +3,24 @@
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 *
-*	This file is part of:	freeture
+*   This file is part of:   freeture
 *
-*	Copyright:		(C) 2014-2015 Yoan Audureau -- FRIPON-GEOPS-UPSUD
+*   Copyright:      (C) 2014-2015 Yoan Audureau -- FRIPON-GEOPS-UPSUD
 *
-*	License:		GNU General Public License
+*   License:        GNU General Public License
 *
-*	FreeTure is free software: you can redistribute it and/or modify
-*	it under the terms of the GNU General Public License as published by
-*	the Free Software Foundation, either version 3 of the License, or
-*	(at your option) any later version.
-*	FreeTure is distributed in the hope that it will be useful,
-*	but WITHOUT ANY WARRANTY; without even the implied warranty of
-*	MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-*	GNU General Public License for more details.
-*	You should have received a copy of the GNU General Public License
-*	along with FreeTure. If not, see <http://www.gnu.org/licenses/>.
+*   FreeTure is free software: you can redistribute it and/or modify
+*   it under the terms of the GNU General Public License as published by
+*   the Free Software Foundation, either version 3 of the License, or
+*   (at your option) any later version.
+*   FreeTure is distributed in the hope that it will be useful,
+*   but WITHOUT ANY WARRANTY; without even the implied warranty of
+*   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+*   GNU General Public License for more details.
+*   You should have received a copy of the GNU General Public License
+*   along with FreeTure. If not, see <http://www.gnu.org/licenses/>.
 *
-*	Last modified:		21/01/2015
+*   Last modified:      21/01/2015
 *
 *%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%*/
 
@@ -54,7 +54,7 @@ using namespace std;
 
 class AcqThread {
 
-    private:
+    private :
 
         static boost::log::sources::severity_logger< LogSeverityLevel > logger;
 
@@ -88,6 +88,7 @@ class AcqThread {
         bool                mStackThreadStatus;     // Enable (night) or disable (day) stackThread.
         string              mCfgPath;               // Configuration file path.
 
+
         // Communication with the shared framebuffer.
         boost::condition_variable *frameBuffer_condition;
         boost::mutex *frameBuffer_mutex;
@@ -103,7 +104,7 @@ class AcqThread {
         boost::mutex *detSignal_mutex;
         boost::condition_variable *detSignal_condition;
 
-    public:
+    public :
 
         /**
          * Constructor.

@@ -134,9 +134,9 @@ void AcqThread::operator()(){
 
     /// Prepare scheduled long acquisition.
 
-    mAcqScheduledList = mDevice->getSchedule();      // Get acquisition schedule.
-    sortAcquisitionSchedule();              // Order schedule times.
-    selectNextAcquisitionSchedule();        // Search next acquisition according to the current time.
+    mAcqScheduledList = mDevice->getSchedule();     // Get acquisition schedule.
+    sortAcquisitionSchedule();                      // Order schedule times.
+    selectNextAcquisitionSchedule();                // Search next acquisition according to the current time.
 
     bool scheduleTaskStatus = false;
     bool scheduleTaskActive = false;
@@ -194,7 +194,7 @@ void AcqThread::operator()(){
             // Load videos file or frames directory if input type is : FRAMES or VIDEO
             string location = "";
             if(!mDevice->getCam()->loadNextDataSet(location)) break;
-            cout << "here" << endl;
+
             if(pDetection != NULL) pDetection->setCurrentDataSet(location);
 
             do {
@@ -208,17 +208,17 @@ void AcqThread::operator()(){
 
                 if(mDevice->getCam()->grabImage(newFrame)){
 
-                    /*if(mDevice->getVideoFramesInput()) {
+                    if(mDevice->getVideoFramesInput()) {
 
                         #ifdef WINDOWS
                             Sleep(1000);
                         #else
                             #ifdef LINUX
-                            usleep(200);
+                            sleep(1);
                             #endif
                         #endif
 
-                    }*/
+                    }
 
                     grabStatus = true;
 
@@ -310,26 +310,56 @@ void AcqThread::operator()(){
 
                 if(grabStatus && !mDevice->getVideoFramesInput()){
 
+
+                    //! CHECK IF EPHEMERIS NEED TO BE UPDATED.
+
+                    string currentFrameDate = frameDate.at(0) + frameDate.at(1) + frameDate.at(2);
+
+                    // If the date has evolved, ephemeris must be updated.
+                    if(currentFrameDate != mDevice->mCurrentEphemerisDate) {
+
+                        BOOST_LOG_SEV(logger, notification) << "Date has changed. Former Date is " << mDevice->mCurrentEphemerisDate << ". New Date is " << currentFrameDate << "." ;
+
+                        if(mDevice->getEphemeris()) BOOST_LOG_SEV(logger, notification) << "Success to update sunrise and sunset.";
+                        else BOOST_LOG_SEV(logger, fail) << "Fail to update sunrise and sunset.";
+
+                        timeStartSunrise = 0;
+                        timeStopSunrise = 0;
+                        timeStartSunset = 0;
+                        timeStopSunset = 0;
+
+                        if(mDevice->getSunriseTime().size() != 0 && mDevice->getSunsetTime().size() != 0){
+
+                            timeStartSunrise    = mDevice->getSunriseTime().at(0) * 3600 + mDevice->getSunriseTime().at(1) * 60;
+                            timeStopSunrise     = timeStartSunrise + mDevice->getSunriseDuration() * 2;
+                            timeStartSunset     = mDevice->getSunsetTime().at(0) * 3600 + mDevice->getSunsetTime().at(1) * 60;
+                            timeStopSunset      = timeStartSunset + mDevice->getSunsetDuration() * 2;
+
+                        }
+
+                    }
+
+                    //! CHECK IF IT'S TIME TO RUN REGULAR / SCHEDULED CAPTURES.
+
                     int currentTimeInSec = atoi(frameDate.at(3).c_str()) * 3600 + atoi(frameDate.at(4).c_str()) * 60 + atoi(frameDate.at(5).c_str());
 
                     // If acquisition at regular time interval is enabled.
                     if(mDevice->getAcqRegularEnabled()){
 
-                        if((currentTimeInSec > timeStopSunset) || (currentTimeInSec < timeStartSunrise)){
+                        if(((currentTimeInSec > timeStopSunset) || (currentTimeInSec < timeStartSunrise))&& timeStopSunset != 0 && timeStartSunrise != 0){
 
                             if(regularAcqFrameCounter >= regularAcqFrameInterval){
 
                                 BOOST_LOG_SEV(logger, notification) << "Run regular acquisition.";
                                 runRegularAcquisition(accurateFrameDate);
 
-								#ifdef LINUX
-									sleep(1);
-								#else
-									#ifdef WINDOWS
-										Sleep(1);
-									#endif
-								#endif
-
+                                #ifdef LINUX
+                                    sleep(1);
+                                #else
+                                    #ifdef WINDOWS
+                                        Sleep(1000);
+                                    #endif
+                                #endif
 
                                 regularAcqFrameCounter = 0;
 
@@ -360,12 +390,12 @@ void AcqThread::operator()(){
                             bool result = runScheduledAcquisition(mNextAcq);
 
                             #ifdef LINUX
-								sleep(1);
-							#else
-								#ifdef LINUX
-									Sleep(1);
-								#endif
-							#endif
+                                sleep(1);
+                            #else
+                                #ifdef LINUX
+                                    Sleep(1);
+                                #endif
+                            #endif
 
                             // Update mNextAcq
                             selectNextAcquisitionSchedule();
@@ -399,13 +429,17 @@ void AcqThread::operator()(){
 
                     }
 
+                    //! CHECK IF IT'S DAYTIME OR NOT IN ORDER TO APPLY THE CORRECT GAIN AND EXPOSURE VALUES.
+
                     // If day acquisition enabled, enable or disable exposure control if it's sunset or sunrise.
                     if(mDevice->getAcqDayEnabled()){
 
                         cout << "exposureControlActive : " << exposureControlActive << endl;
 
                         // Check sunrise and sunset time.
-                        if((currentTimeInSec > timeStartSunrise && currentTimeInSec < timeStopSunrise) || (currentTimeInSec > timeStartSunset && currentTimeInSec < timeStopSunset)){
+                        if( ((currentTimeInSec > timeStartSunrise && currentTimeInSec < timeStopSunrise) ||
+                            (currentTimeInSec > timeStartSunset && currentTimeInSec < timeStopSunset)) &&
+                            timeStartSunrise != 0 && timeStopSunrise != 0 && timeStartSunset != 0 && timeStopSunset !=0){
 
                             exposureControlActive = true;
                             cout << "SUNSET or SUNRISE ! "<< endl;
@@ -442,35 +476,6 @@ void AcqThread::operator()(){
                         }
                     }
 
-                    // Asleep or wake up stack process
-                    if(pStack != NULL){
-
-                        if((currentTimeInSec > timeStopSunset) || (currentTimeInSec < timeStartSunrise)){
-
-                            mStackThreadStatus = true;
-                            cout << "mStackThreadStatus night = " << mStackThreadStatus << endl;
-
-                        }else{
-
-                            if(mStackThreadStatus){
-
-                                boost::mutex::scoped_lock lock(*stackSignal_mutex);
-                                *stackSignal = false;
-                                lock.unlock();
-
-                                // Force interruption.
-                                cout << "Send interruption signal to stack " << endl;
-                                pStack->interruptThread();
-
-                            }
-
-                            mStackThreadStatus = false;
-
-                            cout << "mStackThreadStatus day = " << mStackThreadStatus << endl;
-
-                        }
-
-                    }
 
                 }
 
@@ -673,7 +678,7 @@ bool AcqThread::buildAcquisitionDirectory(string YYYYMMDD){
     string subDir = "captures/";
     string finalPath = root + subDir;
 
-    mDataLocation	= finalPath;
+    mDataLocation = finalPath;
     BOOST_LOG_SEV(logger,notification) << "CompleteDataPath : " << mDataLocation;
 
     path p(mDevice->getDataPath());
@@ -838,28 +843,28 @@ bool AcqThread::runScheduledAcquisition(AcqSchedule task){
             // Save the frame in Fits 2D.
             if(frame.getImg().data){
 
-                string	YYYYMMDD = TimeDate::getYYYYMMDDfromDateString(task.getDate());
+                string YYYYMMDD = TimeDate::getYYYYMMDDfromDateString(task.getDate());
                 cout << "YYYYMMDD : " << YYYYMMDD << endl;
                 if(buildAcquisitionDirectory(YYYYMMDD)){
 
                     cout << "Saving fits file ..." << endl;
 
-                    Fits2D newFits(mDataLocation, mDevice->getFitsHeader());
-                    newFits.setGaindb(task.getG());
-                    double exptime = task.getE()/1000000.0;
-                    newFits.setOntime(exptime);
-                    newFits.setDateobs(frame.getAcqDateMicro());
+                    Fits2D newFits(mDataLocation);
+                    newFits.copyKeywords(mDevice->getFitsHeader());
+                    newFits.kGAINDB = task.getG();
+                    newFits.kONTIME = task.getE()/1000000.0;
+                    newFits.kDATEOBS = frame.getAcqDateMicro();
 
                     vector<int> firstDateInt = TimeDate::getIntVectorFromDateString(task.getDate());
                     double  debObsInSeconds = firstDateInt.at(3)*3600 + firstDateInt.at(4)*60 + firstDateInt.at(5);
                     double  julianDate      = TimeDate::gregorianToJulian(firstDateInt);
                     double  julianCentury   = TimeDate::julianCentury(julianDate);
-                    double  sideralT        = TimeDate::localSideralTime_2(julianCentury, firstDateInt.at(3), firstDateInt.at(4), firstDateInt.at(5), mDevice->getFitsHeader().getSitelong());
-                    newFits.setCrval1(sideralT);
 
-                    newFits.setCtype1("RA---ARC");
-                    newFits.setCtype2("DEC--ARC");
-                    newFits.setEquinox(2000.0);
+                    // Sideral time.
+                    newFits.kCRVAL1 = TimeDate::localSideralTime_2(julianCentury, firstDateInt.at(3), firstDateInt.at(4), firstDateInt.at(5), mDevice->getFitsHeader().kSITELONG);
+                    newFits.kCTYPE1 = "RA---ARC";
+                    newFits.kCTYPE2 = "DEC--ARC";
+                    newFits.kEQUINOX = 2000.0;
 
                     string HHMMSS = Conversion::numbering(2, task.getH()) + Conversion::intToString(task.getH()) +
                                     Conversion::numbering(2, task.getM()) + Conversion::intToString(task.getM()) +
@@ -902,8 +907,8 @@ bool AcqThread::runScheduledAcquisition(AcqSchedule task){
                                 // Set bzero and bscale for print unsigned short value in soft visualization.
                                 double bscale = 1;
                                 double bzero  = 32768;
-                                newFits.setBzero(bzero);
-                                newFits.setBscale(bscale);
+                                newFits.kBZERO = bzero;
+                                newFits.kBSCALE = bscale;
 
                                 unsigned short * ptr;
                                 short * ptr2;
@@ -963,7 +968,7 @@ bool AcqThread::runScheduledAcquisition(AcqSchedule task){
     cout<< "Restarting camera in continuous mode..." << endl;
     mDevice->runContinuousAcquisition();
 
-	return true;
+    return true;
 }
 
 bool AcqThread::runRegularAcquisition(string frameDate){
@@ -1033,22 +1038,22 @@ bool AcqThread::runRegularAcquisition(string frameDate){
 
                     cout << "mDataLocation : " << mDataLocation << endl;
 
-                    Fits2D newFits(mDataLocation, mDevice->getFitsHeader());
-                    newFits.setGaindb(mDevice->getAcqRegularGain());
-                    double exptime = mDevice->getAcqRegularExposure()/1000000.0;
-                    newFits.setOntime(exptime);
-                    newFits.setDateobs(frame.getAcqDateMicro());
+                    Fits2D newFits(mDataLocation);
+                    newFits.copyKeywords(mDevice->getFitsHeader());
+                    newFits.kGAINDB = mDevice->getAcqRegularGain();
+                    newFits.kONTIME = mDevice->getAcqRegularExposure()/1000000.0;
+                    newFits.kDATEOBS = frame.getAcqDateMicro();
 
                     vector<int> firstDateInt = TimeDate::getIntVectorFromDateString(frameDate);
                     double  debObsInSeconds = firstDateInt.at(3)*3600 + firstDateInt.at(4)*60 + firstDateInt.at(5);
                     double  julianDate      = TimeDate::gregorianToJulian(firstDateInt);
                     double  julianCentury   = TimeDate::julianCentury(julianDate);
-                    double  sideralT        = TimeDate::localSideralTime_2(julianCentury, firstDateInt.at(3), firstDateInt.at(4), firstDateInt.at(5), mDevice->getFitsHeader().getSitelong());
-                    newFits.setCrval1(sideralT);
 
-                    newFits.setCtype1("RA---ARC");
-                    newFits.setCtype2("DEC--ARC");
-                    newFits.setEquinox(2000.0);
+                    newFits.kCRVAL1 = TimeDate::localSideralTime_2(julianCentury, firstDateInt.at(3), firstDateInt.at(4), firstDateInt.at(5), mDevice->getFitsHeader().kSITELONG);
+
+                    newFits.kCTYPE1 = "RA---ARC";
+                    newFits.kCTYPE2 = "DEC--ARC";
+                    newFits.kEQUINOX = 2000.0;
 
                     string HHMMSS = Conversion::numbering(2, firstDateInt.at(3)) + Conversion::intToString(firstDateInt.at(3)) +
                                     Conversion::numbering(2, firstDateInt.at(4)) + Conversion::intToString(firstDateInt.at(4)) +
@@ -1091,10 +1096,8 @@ bool AcqThread::runRegularAcquisition(string frameDate){
                                 Mat newMat = Mat(frame.getImg().rows, frame.getImg().cols, CV_16SC1, Scalar(0));
 
                                 // Set bzero and bscale for print unsigned short value in soft visualization.
-                                double bscale = 1;
-                                double bzero  = 32768;
-                                newFits.setBzero(bzero);
-                                newFits.setBscale(bscale);
+                                newFits.kBZERO = 1;
+                                newFits.kBSCALE = 32768;
 
                                 unsigned short * ptr;
                                 short * ptr2;

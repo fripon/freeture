@@ -71,7 +71,8 @@ class Fits2D : public Fits {
 
     private :
 
-        string fitsPath;
+        // Location where to save fits or path of a fits file to read.
+        string mFitsPath;
 
         static boost::log::sources::severity_logger< LogSeverityLevel > logger;
 
@@ -93,19 +94,7 @@ class Fits2D : public Fits {
         * Constructor.
         *
         */
-        Fits2D(string recPath, Fits fits);
-
-        /**
-        * Constructor.
-        *
-        */
-        Fits2D(string recPath);
-
-        /**
-        * Constructor.
-        *
-        */
-        Fits2D();
+        Fits2D(string path);
 
         /**
         * Destructor.
@@ -113,26 +102,105 @@ class Fits2D : public Fits {
         */
         ~Fits2D(void);
 
+        /**
+        * Copy fits keywords from a Fits object.
+        * @param fits Fits object.
+        *
+        */
+        void copyKeywords(const Fits &fits);
 
-        bool    writeFits       (Mat img, ImgBitDepth imgType, string fileName);
+        /**
+        * Create and write Fits image.
+        * @param img Image to save in fits format.
+        * @param imgType Format of the image (8 bits signed/unsigned char, 16 bits signed/unsigned char, 32 bits float).
+        * @param fileName Optional parameter to specify a name of the fits file.
+        * @return Success status to create and write the file.
+        *
+        */
+        bool writeFits(Mat img, ImgBitDepth imgType, string fileName);
 
-        bool    readFits32F     (Mat &img, string filePath);
-        bool    readFits16US    (Mat &img, string filePath);
-        bool    readFits16S     (Mat &img, string filePath);
-        bool    readFits8UC     (Mat &img, string filePath);
-        bool    readFits8C      (Mat &img, string filePath);
+        /**
+        * Read a Fits file in 32 bits float format.
+        * @param img Reference on the container which will contain the read fits.
+        *
+        */
+        bool readFits32F(Mat &img);
 
-        bool readIntKeyword  (string filePath, string keyword, int &value);
-        bool readStringKeyword(string filePath, string keyword, string &value);
-        bool readDoubleKeyword(string filePath, string keyword, double &value);
+        /**
+        * Read a Fits file in 16 bits unsigned char format.
+        * @param img Reference on the container which will contain the read fits.
+        *
+        */
+        bool readFits16US(Mat &img);
 
-    private:
+        /**
+        * Read a Fits file in 16 bits signed char format.
+        * @param img Reference on the container which will contain the read fits.
+        *
+        */
+        bool readFits16S(Mat &img);
 
-        bool    printerror      (int status, string errorMsg);
-        bool    printerror      (string errorMsg);
-        void    printerror      (int status);
-        bool    writeKeywords   (fitsfile *fptr);
+        /**
+        * Read a Fits file in 8 bits unsigned char format.
+        * @param img Reference on the container which will contain the read fits.
+        *
+        */
+        bool readFits8UC(Mat &img);
+
+        /**
+        * Read a Fits file in 8 bits signed char format.
+        * @param img Reference on the container which will contain the read fits.
+        *
+        */
+        bool readFits8C(Mat &img);
+
+        /**
+        * Read a keyword in integer type.
+        * @param keyword Keyword name.
+        * @param value Reference on the found keyword's value.
+        *
+        */
+        bool readIntKeyword(string keyword, int &value);
+
+        /**
+        * Read a keyword in string type.
+        * @param keyword Keyword name.
+        * @param value Reference on the found keyword's value.
+        *
+        */
+        bool readStringKeyword(string keyword, string &value);
+
+        /**
+        * Read a keyword in double type.
+        * @param keyword Keyword name.
+        * @param value Reference on the found keyword's value.
+        *
+        */
+        bool readDoubleKeyword(string keyword, double &value);
+
+    private :
+
+        /**
+        * Helper function to get cfitsio error.
+        * @param status Error cfitsio status.
+        * @param errorMsg Additional information about where the error occured.
+        *
+        */
+        void printerror(int status, string errorMsg);
+
+        /**
+        * Helper function to get cfitsio error.
+        * @param status Error cfitsio status.
+        *
+        */
+        void printerror(int status);
+
+        /**
+        * Write keywords in fits.
+        * @param fptr Pointer on the fits.
+        * @return Success to write keywords.
+        *
+        */
+        bool writeKeywords(fitsfile *fptr);
 
 };
-
-

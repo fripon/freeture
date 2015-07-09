@@ -3,24 +3,24 @@
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 *
-*	This file is part of:	freeture
+*   This file is part of:   freeture
+
+*   Copyright:      (C) 2014-2015 Yoan Audureau -- FRIPON-GEOPS-UPSUD
 *
-*	Copyright:		(C) 2014-2015 Yoan Audureau -- FRIPON-GEOPS-UPSUD
+*   License:        GNU General Public License
 *
-*	License:		GNU General Public License
+*   FreeTure is free software: you can redistribute it and/or modify
+*   it under the terms of the GNU General Public License as published by
+*   the Free Software Foundation, either version 3 of the License, or
+*   (at your option) any later version.
+*   FreeTure is distributed in the hope that it will be useful,
+*   but WITHOUT ANY WARRANTY; without even the implied warranty of
+*   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+*   GNU General Public License for more details.
+*   You should have received a copy of the GNU General Public License
+*   along with FreeTure. If not, see <http://www.gnu.org/licenses/>.
 *
-*	FreeTure is free software: you can redistribute it and/or modify
-*	it under the terms of the GNU General Public License as published by
-*	the Free Software Foundation, either version 3 of the License, or
-*	(at your option) any later version.
-*	FreeTure is distributed in the hope that it will be useful,
-*	but WITHOUT ANY WARRANTY; without even the implied warranty of
-*	MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-*	GNU General Public License for more details.
-*	You should have received a copy of the GNU General Public License
-*	along with FreeTure. If not, see <http://www.gnu.org/licenses/>.
-*
-*	Last modified:		20/10/2014
+*   Last modified:      20/10/2014
 *
 *%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%*/
 
@@ -41,6 +41,8 @@
 #include <boost/date_time.hpp>
 #include <boost/date_time/posix_time/posix_time.hpp>
 #include <boost/date_time/posix_time/posix_time_io.hpp>
+#include <list>
+#include "Conversion.h"
 
 using namespace std;
 using namespace boost::posix_time;
@@ -57,6 +59,13 @@ class TimeDate {
         * @return Date time in string.
         */
         static string localDateTime(::boost::posix_time::ptime pt, string format);
+
+        /**
+        * Get date in UT
+        *
+        * @return YYYY, MM, DD.
+        */
+        static string getCurrentDateYYYYMMDD();
 
         /**
         * Convert gregorian date to julian date.
@@ -95,7 +104,7 @@ class TimeDate {
         /**
         * Get local sideral time.
         *
-        * @param julianCentury 
+        * @param julianCentury
         * @param gregorianH
         * @param gregorianMin
         * @param gregorianS
@@ -107,7 +116,7 @@ class TimeDate {
         /**
         * Get local sideral time.
         *
-        * @param julianDate 
+        * @param julianDate
         * @param gregorianH
         * @param gregorianMin
         * @param gregorianS
@@ -117,7 +126,7 @@ class TimeDate {
 
         /**
         * Split string to int values according to the ":" separator.
-        * 
+        *
         * @param str String to split. Its format is YYYY:MM:DD:HH:MM:SS
         * @return Vector of int values.
         */
@@ -125,7 +134,7 @@ class TimeDate {
 
         /**
         * Get YYYYMMDD from date string.
-        * 
+        *
         * @param date Date with the following format : YYYY-MM-DDTHH:MM:SS.fffffffff
         * @return YYYYMMDD.
         */
@@ -133,7 +142,7 @@ class TimeDate {
 
         /**
         * Get year, month, date, hours, minutes and seconds from date string.
-        * 
+        *
         * @param date Date with the following format : YYYY-MM-DDTHH:MM:SS.fffffffff
         * @return Vector of int values.
         */
@@ -141,7 +150,7 @@ class TimeDate {
 
         /**
         * Get YYYYMMJJTHHMMSS date.
-        * 
+        *
         * @param date YYYYMMJJTHHMMSS.fffffffff
         * @return YYYYMMJJTHHMMSS.
         */
