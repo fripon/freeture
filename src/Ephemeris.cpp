@@ -45,7 +45,7 @@ Ephemeris::Ephemeris(string date, double sunElevation, double longitude, double 
     mDay = atoi(date.substr(6,2).c_str());
 
     mSunElevation = sunElevation;
-    mStationLongitude = longitude;
+    mStationLongitude = -longitude;
     mStationLatitude = latitude;
 
 }

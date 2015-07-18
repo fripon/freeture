@@ -1,4 +1,6 @@
 /*
+/*
+/*
                                 Device.cpp
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
@@ -82,9 +84,13 @@ void Device::initialization() {
     mMaxExposureTime        = 0;
     mMinGain                = 0;
     mMaxGain                = 0;
-    mDisplayVideoInInput    = false;
     mVideoFramesInInput     = false;
     mEphemerisUpdated       = false;
+
+    mStartSunriseTime       = 0;
+    mStopSunriseTime        = 0;
+    mStartSunsetTime        = 0;
+    mStopSunsetTime         = 0;
 
     switch(mType){
 
@@ -150,10 +156,6 @@ bool Device::prepareDevice() {
                     string INPUT_FRAMES_DIRECTORY_PATH; cfg.Get("INPUT_FRAMES_DIRECTORY_PATH", INPUT_FRAMES_DIRECTORY_PATH);
                     BOOST_LOG_SEV(logger, normal) << "Read INPUT_FRAMES_DIRECTORY_PATH from configuration file : " << INPUT_FRAMES_DIRECTORY_PATH;
 
-                    // Get separator position in frame's name.
-                    int FRAMES_SEPARATOR_POSITION; cfg.Get("FRAMES_SEPARATOR_POSITION", FRAMES_SEPARATOR_POSITION);
-                    BOOST_LOG_SEV(logger, normal) << "Read FRAMES_SEPARATOR_POSITION from configuration file : " << FRAMES_SEPARATOR_POSITION;
-
                     mVideoFramesInInput = true;
 
                     vector<string> framesLocationList;
@@ -171,7 +173,7 @@ bool Device::prepareDevice() {
                     }
 
                     // Create camera using pre-recorded fits2D in input.
-                    cam = new CameraFrames(framesLocationList, FRAMES_SEPARATOR_POSITION);
+                    cam = new CameraFrames(framesLocationList, 1);
                     if(!cam->grabInitialization())
                         throw "Fail to prepare acquisition on the first frames directory.";
 
@@ -184,9 +186,6 @@ bool Device::prepareDevice() {
                 {
                     // Get frames locations.
                     string INPUT_VIDEO_PATH; cfg.Get("INPUT_VIDEO_PATH", INPUT_VIDEO_PATH);
-
-                    // Get display input option.
-                    cfg.Get("INPUT_VIDEO_DISPLAY", mDisplayVideoInInput);
 
                     mVideoFramesInInput = true;
 
@@ -213,7 +212,7 @@ bool Device::prepareDevice() {
 
             default :
 
-                // Get camera ID to use.
+                // CAMERA_ID.
                 cfg.Get("CAMERA_ID", mCamID);
                 BOOST_LOG_SEV(logger, notification) << "CAMERA_ID : " << mCamID;
 
@@ -255,9 +254,14 @@ bool Device::prepareDevice() {
                 cfg.Get("ACQ_SCHEDULE_ENABLED", mScheduleEnabled);
                 BOOST_LOG_SEV(logger, notification) << "ACQ_SCHEDULE_ENABLED : " << mScheduleEnabled;
 
-                // Get option to save a jpeg of a regular capture.
-                cfg.Get("ACQ_SCHEDULE_SAVE_JPEG", mScheduleSaveJPEG);
-                BOOST_LOG_SEV(logger, notification) << "ACQ_SCHEDULE_SAVE_JPEG : " << mScheduleSaveJPEG;
+                // Get schedule acquisition ouput type.
+                string sOutput;
+                cfg.Get("ACQ_SCHEDULE_OUTPUT", sOutput);
+                 cout << "schedule output :" << sOutput << endl;
+                BOOST_LOG_SEV(logger, notification) << "ACQ_SCHEDULE_OUTPUT : " << sOutput;
+                EParser<ImgFormat> sOutput1;
+                mScheduleOutput = sOutput1.parseEnum("ACQ_SCHEDULE_OUTPUT", sOutput);
+
 
                  // Get regular acquisition option status.
                 cfg.Get("ACQ_REGULAR_ENABLED", mRegularAcqEnabled);
@@ -269,35 +273,80 @@ bool Device::prepareDevice() {
 
                 }
 
-                // Get regular acquisition time interval.
-                cfg.Get("ACQ_REGULAR_INTERVAL", mRegularInterval);
-                BOOST_LOG_SEV(logger, notification) << "ACQ_REGULAR_INTERVAL : " << mRegularInterval;
+                // Get regular acquisition mode.
+                string regular_mode;
+                cfg.Get("ACQ_REGULAR_MODE", regular_mode);
+                BOOST_LOG_SEV(logger, notification) << "ACQ_REGULAR_MODE : " << regular_mode;
+                EParser<RegularAcqMode> regMode;
+                mRegularMode = regMode.parseEnum("ACQ_REGULAR_MODE", regular_mode);
+                cout << "regular mode :" << mRegularMode << endl;
 
-                // Get regular acquisition exposure time.
-                cfg.Get("ACQ_REGULAR_EXPOSURE", mRegularExposure);
-                BOOST_LOG_SEV(logger, notification) << "ACQ_REGULAR_EXPOSURE : " << mRegularExposure;
+                string regAcqParam;
+                cfg.Get("ACQ_REGULAR_CFG", regAcqParam);
+                std::transform(regAcqParam.begin(), regAcqParam.end(),regAcqParam.begin(), ::toupper);
+                //00h15m00s10000000e300g8f1n
 
-                // Get regular acquisition gain.
-                cfg.Get("ACQ_REGULAR_GAIN", mRegularGain);
-                BOOST_LOG_SEV(logger, notification) << "ACQ_REGULAR_GAIN : " << mRegularGain;
+                typedef boost::tokenizer<boost::char_separator<char> > tokenizer1;
+                boost::char_separator<char> sep1("HMSEGFN");
+                tokenizer1 tokens1(regAcqParam, sep1);
 
-                // Get regular acquisition repetition.
-                cfg.Get("ACQ_REGULAR_REPETITION", mRegularRepetition);
-                BOOST_LOG_SEV(logger, notification) << "ACQ_REGULAR_REPETITION : " << mRegularRepetition;
+                vector<string> res1;
 
-                // Get option to save a jpeg of a regular capture.
-                cfg.Get("ACQ_REGULAR_SAVE_JPEG", mRegularSaveJPEG);
-                BOOST_LOG_SEV(logger, notification) << "ACQ_REGULAR_SAVE_JPEG : " << mRegularSaveJPEG;
+                for(tokenizer1::iterator tokIter = tokens1.begin();tokIter != tokens1.end(); ++tokIter){
 
-                // Get regular acquisition format.
-                string acq_regular_format; cfg.Get("ACQ_REGULAR_FORMAT", acq_regular_format);
-                EParser<CamBitDepth> cam_regular_bit_depth;
-                mRegularFormat = cam_regular_bit_depth.parseEnum("ACQ_REGULAR_FORMAT", acq_regular_format);
-                BOOST_LOG_SEV(logger, notification) << "ACQ_REGULAR_FORMAT : " << acq_regular_format;
+                    res1.push_back(*tokIter);
+                    cout <<  *tokIter << endl;
+
+                }
+
+                if(res1.size() == 7) {
+
+                    // Get regular acquisition time interval.
+                    mRegularInterval = atoi(res1.at(0).c_str()) * 3600 + atoi(res1.at(1).c_str()) * 60 + atoi(res1.at(2).c_str());
+                    BOOST_LOG_SEV(logger, notification) << "ACQ_REGULAR_INTERVAL : " << mRegularInterval;
+
+                    // Get regular acquisition exposure time.
+                    mRegularExposure = atoi(res1.at(3).c_str());
+                    BOOST_LOG_SEV(logger, notification) << "ACQ_REGULAR_EXPOSURE : " << mRegularExposure;
+
+                    // Get regular acquisition gain.
+                    mRegularGain = atoi(res1.at(4).c_str());
+                    BOOST_LOG_SEV(logger, notification) << "ACQ_REGULAR_GAIN : " << mRegularGain;
+
+                    // Get regular acquisition repetition.
+                    mRegularRepetition = atoi(res1.at(6).c_str());
+                    BOOST_LOG_SEV(logger, notification) << "ACQ_REGULAR_REPETITION : " << mRegularRepetition;
+
+                    // Get regular acquisition format.
+                    Conversion::intBitDepthToCamBitDepthEnum(atoi(res1.at(5).c_str()), mRegularFormat);
+                    BOOST_LOG_SEV(logger, notification) << "ACQ_REGULAR_FORMAT : " << res1.at(5);
+
+
+
+                }
+
+                // Get regular acquisition ouput type.
+                string rOutput;
+                cfg.Get("ACQ_REGULAR_OUTPUT", rOutput);
+                BOOST_LOG_SEV(logger, notification) << "ACQ_REGULAR_OUTPUT : " << rOutput;
+                EParser<ImgFormat> rOutput1;
+                mRegularOutput = rOutput1.parseEnum("ACQ_REGULAR_OUTPUT", rOutput);
+                cout << "regular output :" << mRegularOutput << endl;
 
                 // Get ephemeris option.
                 cfg.Get("EPHEMERIS_ENABLED", mEphemerisEnabled);
-                BOOST_LOG_SEV(logger, notification) << "EPHEMERIS_ENABLED : " << mEphemerisEnabled;
+
+                if(mEphemerisEnabled) {
+
+                    cout << "EPHEMERIS   :  ON" << endl;
+                    BOOST_LOG_SEV(logger, notification) << "EPHEMERIS_ENABLED : ON";
+
+                }else {
+
+                    cout << "EPHEMERIS   :  OFF" << endl;
+                    BOOST_LOG_SEV(logger, notification) << "EPHEMERIS_ENABLED : OFF";
+
+                }
 
                 if(!mEphemerisEnabled) {
 
@@ -340,8 +389,11 @@ bool Device::prepareDevice() {
                 }else {
 
                     // Get sun height on the horizon.
-                    cfg.Get("SUN_HORIZON_HEIGHT", mSunHorizonHeight);
-                    BOOST_LOG_SEV(logger, notification) << "SUN_HORIZON_HEIGHT : " << mSunHorizonHeight;
+                    cfg.Get("SUN_HORIZON_1", mSunHorizon1);
+                    BOOST_LOG_SEV(logger, notification) << "SUN_HORIZON_1 : " << mSunHorizon1;
+
+                    cfg.Get("SUN_HORIZON_2", mSunHorizon2);
+                    BOOST_LOG_SEV(logger, notification) << "SUN_HORIZON_2 : " << mSunHorizon2;
 
                     // Get latitude.
                     cfg.Get("SITELAT", mStationLatitude);
@@ -349,62 +401,15 @@ bool Device::prepareDevice() {
                     // Get longitude.
                     cfg.Get("SITELONG", mStationLongitude);
 
-                    getEphemeris();
-
                 }
 
                 // Get sunrise duration.
                 cfg.Get("SUNRISE_DURATION", mSunriseDuration);
                 BOOST_LOG_SEV(logger, notification) << "SUNRISE_DURATION : " << mSunriseDuration;
 
-                {
-                    // Compute start time of exposure control for sunrise.
-
-                    float Hd_start = (mSunriseTime.at(0) * 3600 + mSunriseTime.at(1) * 60 - mSunriseDuration)/3600.f;
-
-                    if(Hd_start < 0) Hd_start = Hd_start + 24;
-
-                    cout << "Hd_start : " << Hd_start<< endl;
-
-                    mSunriseTime.clear();
-
-                    mSunriseTime = TimeDate::HdecimalToHMS(Hd_start);
-
-                    cout <<  "SUNRISE_TIME_START : " << mSunriseTime.at(0) << "H" <<  mSunriseTime.at(1) << endl;
-
-
-                }
-
                  // Get sunset duration.
                 cfg.Get("SUNSET_DURATION", mSunsetDuration);
                 BOOST_LOG_SEV(logger, notification) << "SUNSET_DURATION : " << mSunsetDuration;
-
-                {
-                    // Compute start time of exposure control for sunset.
-
-                    float Hd_start = (mSunsetTime.at(0) * 3600 + mSunsetTime.at(1) * 60 - mSunsetDuration)/3600.f;
-
-                    if(Hd_start < 0) Hd_start = Hd_start + 24;
-
-                    cout << "Hd_start : " << Hd_start<< endl;
-
-                    mSunsetTime.clear();
-
-                    mSunsetTime = TimeDate::HdecimalToHMS(Hd_start);
-
-                    cout <<  "SUNSET_TIME_START : " << mSunsetTime.at(0) << "H" <<  mSunsetTime.at(1) << endl;
-
-                }
-
-                int timeStartSunrise = mSunriseTime.at(0) * 3600 + mSunriseTime.at(1) * 60;
-                int timeStopSunrise = timeStartSunrise + mSunriseDuration * 2;
-                int timeStartSunset = mSunsetTime.at(0) * 3600 + mSunsetTime.at(1) * 60;
-                int timeStopSunset = timeStartSunset + mSunsetDuration * 2;
-
-                cout << "timeStartSunrise : " << timeStartSunrise << endl;
-                cout << "timeStopSunrise : " << timeStopSunrise << endl;
-                cout << "timeStartSunset : " << timeStartSunset << endl;
-                cout << "timeStopSunset : " << timeStopSunset << endl;
 
                 // Get acquisition FPS.
                 cfg.Get("ACQ_FPS", mFPS);
@@ -466,12 +471,8 @@ bool Device::prepareDevice() {
 
                             int scheduledTimeInSec = atoi(sp.at(0).c_str()) * 3600 + atoi(sp.at(1).c_str()) * 60 + atoi(sp.at(2).c_str());
 
-                            // Only keep night time.
-                            if((scheduledTimeInSec > timeStopSunset) || (scheduledTimeInSec < timeStartSunrise)){
+                            mSchedule.push_back(r);
 
-                                mSchedule.push_back(r);
-
-                            }
                         }
                     }
                 }
@@ -518,39 +519,148 @@ bool Device::prepareDevice() {
     return true;
 }
 
-bool Device::getEphemeris() {
+bool Device::getSunTimes() {
 
-    mCurrentEphemerisDate = TimeDate::getCurrentDateYYYYMMDD();
+    int sunriseStartH = 0, sunriseStartM = 0, sunriseStopH = 0, sunriseStopM = 0,
+        sunsetStartH = 0, sunsetStartM = 0, sunsetStopH = 0, sunsetStopM = 0;
 
-    Ephemeris ephem = Ephemeris(mCurrentEphemerisDate, mSunHorizonHeight, mStationLongitude, mStationLatitude );
+    boost::posix_time::ptime time = boost::posix_time::microsec_clock::universal_time();
+    string date = to_iso_extended_string(time);
+    vector<int> intDate = TimeDate::getIntVectorFromDateString(date);
 
-    cout << "date : " << mCurrentEphemerisDate<< endl;
+    string month = Conversion::intToString(intDate.at(1));
+    if(month.size() == 1) month = "0" + month;
+    string day = Conversion::intToString(intDate.at(2));
+    if(day.size() == 1) day = "0" + day;
+    mCurrentDate = Conversion::intToString(intDate.at(0)) + month + day;
+    mCurrentTime = intDate.at(3) * 3600 + intDate.at(4) * 60 + intDate.at(5);
 
-    int sunriseH, sunriseM, sunsetH, sunsetM;
+    cout << "LOCAL DATE      :  " << mCurrentDate << endl;
 
-    if(ephem.computeEphemeris(sunriseH, sunriseM,sunsetH, sunsetM)) {
+    if(mEphemerisEnabled) {
 
-        mSunsetTime.clear();
-        mSunsetTime.push_back(sunsetH);
-        mSunsetTime.push_back(sunsetM);
+        Ephemeris ephem1 = Ephemeris(mCurrentDate, mSunHorizon1, mStationLongitude, mStationLatitude );
 
-        cout << "SUNSET : " << sunsetH << "H" << sunsetM << endl;
-        BOOST_LOG_SEV(logger, notification) << "EPHEMERIS SUNSET : " << sunsetH << "H" << sunsetM;
+        if(!ephem1.computeEphemeris(sunriseStartH, sunriseStartM,sunsetStopH, sunsetStopM)) {
 
-        mSunriseTime.clear();
-        mSunriseTime.push_back(sunriseH);
-        mSunriseTime.push_back(sunriseM);
+            return false;
 
-        cout << "SUNRISE : " << sunriseH << "H" << sunriseM << endl;
-        BOOST_LOG_SEV(logger, notification) << "EPHEMERIS SUNRISE : " << sunriseH << "H" << sunriseM;
+        }
 
-        mEphemerisUpdated = true;
+        Ephemeris ephem2 = Ephemeris(mCurrentDate, mSunHorizon2, mStationLongitude, mStationLatitude );
 
-        return true;
+        if(!ephem2.computeEphemeris(sunriseStopH, sunriseStopM,sunsetStartH, sunsetStartM)) {
+
+            return false;
+
+        }
+
+    }else {
+
+        sunriseStartH = mSunriseTime.at(0);
+        sunriseStartM = mSunriseTime.at(1);
+
+        double intpart1 = 0;
+        double fractpart1 = modf((double)mSunriseDuration/3600.0 , &intpart1);
+
+        if(intpart1!=0) {
+
+            if(sunriseStartH + intpart1 < 24) {
+
+                sunriseStopH = sunriseStartH + intpart1;
+
+            }else {
+
+                sunriseStopH = sunriseStartH + intpart1 - 24;
+
+            }
+
+        }
+
+        double intpart2 = 0;
+        double fractpart2 = modf(fractpart1 * 60 , &intpart2);
+
+        if(sunriseStopM + intpart2 < 60) {
+
+            sunriseStopM = sunriseStartM + intpart2;
+
+        }else {
+
+
+            if(sunriseStopH + 1 < 24) {
+
+                sunriseStopH += 1;
+
+            }else {
+
+                sunriseStopH = sunriseStopH + 1 - 24;
+
+            }
+
+
+            sunriseStopM = intpart2;
+
+        }
+
+
+        sunsetStartH = mSunsetTime.at(0);
+        sunsetStartM = mSunsetTime.at(1);
+
+        double intpart3 = 0;
+        double fractpart3 = modf((double)mSunsetDuration/3600.0 , &intpart3);
+
+        if(intpart3!=0) {
+
+            if(sunsetStartH + intpart3 < 24) {
+
+                sunsetStopH = sunsetStartH + intpart3;
+
+            }else {
+
+                sunsetStopH = sunsetStartH + intpart3 - 24;
+
+            }
+
+        }
+
+        double intpart4 = 0;
+        double fractpart4 = modf(fractpart3 * 60 , &intpart4);
+
+        if(sunsetStopM + intpart4 < 60) {
+
+            sunsetStopM = sunsetStartM + intpart4;
+
+        }else {
+
+
+            if(sunsetStopH + 1 < 24) {
+
+                sunsetStopH += 1;
+
+            }else {
+
+                sunsetStopH = sunsetStopH + 1 - 24;
+
+            }
+
+
+            sunsetStopM = intpart4;
+
+        }
+
+
 
     }
 
-    return false;
+    cout << "SUNRISE         :  " << sunriseStartH << "H" << sunriseStartM << " - " << sunriseStopH << "H" << sunriseStopM << endl;
+    cout << "SUNSET          :  " << sunsetStartH << "H" << sunsetStartM << " - " << sunsetStopH << "H" << sunsetStopM << endl;
+
+    mStartSunriseTime = sunriseStartH * 3600 + sunriseStartM * 60;
+    mStopSunriseTime = sunriseStopH * 3600 + sunriseStopM * 60;
+    mStartSunsetTime = sunsetStartH * 3600 + sunsetStartM * 60;
+    mStopSunsetTime = sunsetStopH * 3600 + sunsetStopM * 60;
+
+    return true;
 
 }
 
@@ -575,45 +685,40 @@ void Device::runContinuousAcquisition(){
 
     cam->getGainBounds(mMinGain, mMaxGain);
 
-    boost::posix_time::ptime time = boost::posix_time::microsec_clock::universal_time();
-    string date = to_iso_extended_string(time);
-    cout << "date : " << date << endl;
-    vector<int> intDate = TimeDate::getIntVectorFromDateString(date);
-
-    int timeStartSunrise = mSunriseTime.at(0) * 3600 + mSunriseTime.at(1) * 60;
-    int timeStopSunrise = timeStartSunrise + mSunriseDuration * 2;
-    int timeStartSunset = mSunsetTime.at(0) * 3600 + mSunsetTime.at(1) * 60;
-    int timeStopSunset = timeStartSunset + mSunsetDuration * 2;
-
-   // cout << "timeStartSunrise : " << timeStartSunrise << endl;
-   // cout << "timeStopSunrise : " << timeStopSunrise << endl;
-   // cout << "timeStartSunset : " << timeStartSunset << endl;
-   // cout << "timeStopSunset : " << timeStopSunset << endl;
-
-    int currentTimeInSec = intDate.at(3) * 3600 + intDate.at(4) * 60 + intDate.at(5);
-   // cout << "currentTimeInSec : " << currentTimeInSec << endl;
+    // Sunrise start/stop, Sunset start/stop.
+    getSunTimes();
 
     // Check sunrise and sunset time.
-    if((currentTimeInSec > timeStopSunrise && currentTimeInSec < timeStartSunset)){
+    if((mCurrentTime > mStopSunriseTime && mCurrentTime < mStartSunsetTime)){
 
-        cout << "DAY ! "<< endl;
+        cout << "DAYTIME         :  YES" << endl;
+        cout << "AUTO EXPOSURE   :  NO" << endl;
+        cout << "EXPOSURE TIME   :  " << mDayExposure << endl;
+
         /// Set camera exposure time.
         BOOST_LOG_SEV(logger, notification) << "Setting day exposure time to " << mDayExposure << "...";
         if(!cam->setExposureTime(mDayExposure))
             throw "Fail to set Night Exposure.";
+
+        cout << "GAIN            :  " << mDayGain << endl;
 
         /// Set camera gain.
         BOOST_LOG_SEV(logger, notification) << "Setting day gain to " << mDayGain << "...";
         if(!cam->setGain(mDayGain))
             throw "Fail to set Night Gain.";
 
-    }else if((currentTimeInSec > timeStopSunset) || (currentTimeInSec < timeStartSunrise) ){
+    }else if((mCurrentTime > mStopSunsetTime) || (mCurrentTime < mStartSunriseTime) ){
 
-        cout << "NIGHT ! "<< endl;
+        cout << "DAYTIME         :  NO" << endl;
+        cout << "AUTO EXPOSURE   :  NO" << endl;
+        cout << "EXPOSURE TIME   :  " << mNightExposure << endl;
+
         /// Set camera exposure time.
         BOOST_LOG_SEV(logger, notification) << "Setting night exposure time to " << mNightExposure << "...";
         if(!cam->setExposureTime(mNightExposure))
             throw "Fail to set Day Exposure.";
+
+        cout << "GAIN            :  " << mNightGain << endl;
 
         /// Set camera gain.
         BOOST_LOG_SEV(logger, notification) << "Setting night gain to " << mNightGain << "...";
@@ -622,10 +727,14 @@ void Device::runContinuousAcquisition(){
 
     }else{
 
-        cout << "set Day Exposure mMinExposureTime" << endl;
+        cout << "DAYTIME         :  NO" << endl;
+        cout << "AUTO EXPOSURE   :  YES" << endl;
+        cout << "EXPOSURE TIME   :  Minimum (" << mMinExposureTime << ")"<< mNightExposure << endl;
 
         if(!cam->setExposureTime(mMinExposureTime))
             throw "Fail to set Day Exposure.";
+
+        cout << "GAIN            :  Minimum (" << mMinGain << ")" << endl;
 
         /// Set camera gain.
         BOOST_LOG_SEV(logger, notification) << "Setting night gain to " << mMinGain << "...";

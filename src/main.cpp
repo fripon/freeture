@@ -1015,7 +1015,7 @@ int main(int argc, const char ** argv){
 
                         boost::filesystem::path pcfg(configPath);
                         if(!boost::filesystem::exists(pcfg))
-                            throw "configuration.cfg not found.";
+                            throw "Configuration.cfg not found.";
 
                         Configuration cfg;
                         cfg.Load(configPath);
@@ -1041,7 +1041,6 @@ int main(int argc, const char ** argv){
 
                     break;
 
-
                 case 6:
 
                     {
@@ -1060,58 +1059,19 @@ int main(int argc, const char ** argv){
 
                     break;
 
-                case 7 :
-
-                    {
-
-                       /* string date = "20150707";
-                        cout << "Date : " << date << endl;
-                        int mYear = atoi(date.substr(0,4).c_str());
-                        int mMonth = atoi(date.substr(4,2).c_str());
-                        int mDay = atoi(date.substr(6,2).c_str());
-                        cout << "mYear : " << mYear << endl;
-                        cout << "mMonth : " << mMonth << endl;
-                        cout << "mDay : " << mDay << endl;
-
-
-                        Ephemeris ephem = Ephemeris(date, -12, -2.35222222,48.85666666 );
-
-                        int sunriseH, sunriseM, sunsetH, sunsetM;
-
-                        ephem.computeEphemeris(sunriseH, sunriseM,sunsetH, sunsetM);
-
-                        cout << "SUNRISE : " << sunriseH << "H" << sunriseM << endl;
-                        cout << "SUNSET : " << sunsetH << "H" << sunsetM << endl;
-
-*/
-                        string curr = TimeDate::getCurrentDateYYYYMMDD();
-                        string other = "20150710";
-
-                        cout << "current date in UT : "<< curr << endl;
-                        cout << "Other date : " << other << endl;
-
-
-                        if(curr == other )
-                        cout <<"date are the same" << endl;
-                        else
-                        cout <<"date are not the same" << endl;
-
-                        getchar();
-
-                    }
-
-                    break;
-
                 default :
 
                     {
 
-                        cout << "Please choose a mode, for example : freeture -m 1" << endl
-                                                                                    << endl;
-                        cout << "[1] List connected cameras."                       << endl;
-                        cout << "[2] Check configuration."                          << endl;
-                        cout << "[3] Run meteor detection."                         << endl;
-                        cout << "[4] Run single capture."                           << endl;
+                        cout << "PLEASE CHOOSE A MODE (e.g. freeture -m 1) "            << endl
+                                                                                        << endl;
+                        cout << "[1] Show detected cameras."                            << endl;
+                        cout << "[2] Check configuration file."                         << endl;
+                        cout << "[3] Run meteor detection."                             << endl;
+                        cout << "[4] Run single capture."                               << endl;
+                        cout << "[5] Clean logs."                                       << endl << endl;
+
+                        cout << "Try help option (-h) or consult man pages for more informations." << endl;
 
                     }
 
@@ -1121,20 +1081,17 @@ int main(int argc, const char ** argv){
 
         }
 
-
-    }catch(exception& e){
+    }catch(exception& e) {
 
         cout << "An exception occured : " << e.what() << endl;
 
-    }catch(const char * msg){
+    }catch(const char * msg) {
 
         cout << msg << endl;
 
     }
 
     po::notify(vm);
-
-    //getchar();
 
     return 0 ;
 

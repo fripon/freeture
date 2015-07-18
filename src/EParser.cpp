@@ -1,27 +1,27 @@
 /*
-								EParser.cpp
+                                EParser.cpp
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 *
-*	This file is part of:	freeture
+*   This file is part of:   freeture
 *
-*	Copyright:		(C) 2014-2015 Yoan Audureau
+*   Copyright:      (C) 2014-2015 Yoan Audureau
 *                               FRIPON-GEOPS-UPSUD-CNRS
 *
-*	License:		GNU General Public License
+*   License:        GNU General Public License
 *
-*	FreeTure is free software: you can redistribute it and/or modify
-*	it under the terms of the GNU General Public License as published by
-*	the Free Software Foundation, either version 3 of the License, or
-*	(at your option) any later version.
-*	FreeTure is distributed in the hope that it will be useful,
-*	but WITHOUT ANY WARRANTY; without even the implied warranty of
-*	MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-*	GNU General Public License for more details.
-*	You should have received a copy of the GNU General Public License
-*	along with FreeTure. If not, see <http://www.gnu.org/licenses/>.
+*   FreeTure is free software: you can redistribute it and/or modify
+*   it under the terms of the GNU General Public License as published by
+*   the Free Software Foundation, either version 3 of the License, or
+*   (at your option) any later version.
+*   FreeTure is distributed in the hope that it will be useful,
+*   but WITHOUT ANY WARRANTY; without even the implied warranty of
+*   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+*   GNU General Public License for more details.
+*   You should have received a copy of the GNU General Public License
+*   along with FreeTure. If not, see <http://www.gnu.org/licenses/>.
 *
-*	Last modified:		04/12/2014
+*   Last modified:      04/12/2014
 *
 *%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%*/
 
@@ -35,14 +35,14 @@
 
 #include "EParser.h"
 
-template<> EParser<CamBitDepth>::EParser(){
+template<> EParser<CamBitDepth>::EParser() {
 
     enumMap["MONO_8"]   = MONO_8;
     enumMap["MONO_12"]  = MONO_12;
 
 }
 
-template<> EParser<SmtpSecurity>::EParser(){
+template<> EParser<SmtpSecurity>::EParser() {
 
     enumMap["NO_SECURITY"]  = NO_SECURITY;
     enumMap["USE_TLS"]      = USE_TLS;
@@ -50,7 +50,7 @@ template<> EParser<SmtpSecurity>::EParser(){
 
 }
 
-template<> EParser<CamType>::EParser(){
+template<> EParser<CamType>::EParser() {
 
     enumMap["DMK_GIGE"]     = DMK_GIGE;
     enumMap["BASLER_GIGE"]  = BASLER_GIGE;
@@ -60,21 +60,21 @@ template<> EParser<CamType>::EParser(){
 
 }
 
-template<> EParser<StackMeth>::EParser(){
+template<> EParser<StackMeth>::EParser() {
 
     enumMap["SUM"]      = SUM;
     enumMap["MEAN"]     = MEAN;
 
 }
 
-template<> EParser<DetMeth>::EParser(){
+template<> EParser<DetMeth>::EParser() {
 
     enumMap["TEMPORAL_MTHD"]    = TEMPORAL_MTHD;
     enumMap["TEMPLATE_MTHD"]    = TEMPORAL_MTHD;
 
 }
 
-template<> EParser<LogSeverityLevel>::EParser(){
+template<> EParser<LogSeverityLevel>::EParser() {
 
     enumMap["normal"]           = normal;
     enumMap["notification"]     = notification;
@@ -84,3 +84,17 @@ template<> EParser<LogSeverityLevel>::EParser(){
 
 }
 
+template<> EParser<RegularAcqMode>::EParser() {
+
+    enumMap["DAY"]          = DAY;
+    enumMap["NIGHT"]        = NIGHT;
+    enumMap["DAYNIGHT"]     = DAYNIGHT;
+
+}
+
+template<> EParser<ImgFormat>::EParser() {
+
+    enumMap["JPEG"]        = JPEG;
+    enumMap["FITS"]        = FITS;
+
+}

@@ -147,7 +147,6 @@ void AcqThread::operator()(){
     int regularAcqFrameCounter = 0;
 
     if(mDevice->getAcqRegularEnabled())
-
         regularAcqFrameInterval = mDevice->getAcqRegularTimeInterval() * mDevice->getCam()->getFPS();
 
     /// Exposure adjustment variables.
@@ -163,20 +162,6 @@ void AcqThread::operator()(){
                                         mDevice->getExposureControlSaveInfos(),
                                         mDevice->getDataPath(),
                                         mDevice->getStationName());
-
-    int timeStartSunrise    = 0;
-    int timeStopSunrise     = 0;
-    int timeStartSunset     = 0;
-    int timeStopSunset      = 0;
-
-    if(mDevice->getSunriseTime().size() != 0 && mDevice->getSunsetTime().size() != 0){
-
-        timeStartSunrise    = mDevice->getSunriseTime().at(0) * 3600 + mDevice->getSunriseTime().at(1) * 60;
-        timeStopSunrise     = timeStartSunrise + mDevice->getSunriseDuration() * 2;
-        timeStartSunset     = mDevice->getSunsetTime().at(0) * 3600 + mDevice->getSunsetTime().at(1) * 60;
-        timeStopSunset      = timeStartSunset + mDevice->getSunsetDuration() * 2;
-
-    }
 
     /// Enable or disable stack thread in daytime.
 
@@ -198,8 +183,6 @@ void AcqThread::operator()(){
             if(pDetection != NULL) pDetection->setCurrentDataSet(location);
 
             do {
-
-                if(mDevice->getDisplayInput()) namedWindow("Display window", WINDOW_NORMAL );
 
                 Frame newFrame;
                 bool grabStatus = false;
@@ -298,9 +281,6 @@ void AcqThread::operator()(){
                     if(pExpCtrl != NULL && exposureControlActive)
                         exposureControlStatus = pExpCtrl->controlExposureTime(mDevice, newFrame.getImg(), accurateFrameDate);
 
-                    if(mDevice->getDisplayInput() && newFrame.getImg().data)
-                        imshow("Display window", newFrame.getImg());
-
                 }else{
 
                     BOOST_LOG_SEV(logger, notification) << ">> Fail to grab frame";
@@ -316,26 +296,11 @@ void AcqThread::operator()(){
                     string currentFrameDate = frameDate.at(0) + frameDate.at(1) + frameDate.at(2);
 
                     // If the date has evolved, ephemeris must be updated.
-                    if(currentFrameDate != mDevice->mCurrentEphemerisDate) {
+                    if(currentFrameDate != mDevice->mCurrentDate) {
 
-                        BOOST_LOG_SEV(logger, notification) << "Date has changed. Former Date is " << mDevice->mCurrentEphemerisDate << ". New Date is " << currentFrameDate << "." ;
+                        BOOST_LOG_SEV(logger, notification) << "Date has changed. Former Date is " << mDevice->mCurrentDate << ". New Date is " << currentFrameDate << "." ;
 
-                        if(mDevice->getEphemeris()) BOOST_LOG_SEV(logger, notification) << "Success to update sunrise and sunset.";
-                        else BOOST_LOG_SEV(logger, fail) << "Fail to update sunrise and sunset.";
-
-                        timeStartSunrise = 0;
-                        timeStopSunrise = 0;
-                        timeStartSunset = 0;
-                        timeStopSunset = 0;
-
-                        if(mDevice->getSunriseTime().size() != 0 && mDevice->getSunsetTime().size() != 0){
-
-                            timeStartSunrise    = mDevice->getSunriseTime().at(0) * 3600 + mDevice->getSunriseTime().at(1) * 60;
-                            timeStopSunrise     = timeStartSunrise + mDevice->getSunriseDuration() * 2;
-                            timeStartSunset     = mDevice->getSunsetTime().at(0) * 3600 + mDevice->getSunsetTime().at(1) * 60;
-                            timeStopSunset      = timeStartSunset + mDevice->getSunsetDuration() * 2;
-
-                        }
+                        mDevice->getSunTimes();
 
                     }
 
@@ -344,11 +309,14 @@ void AcqThread::operator()(){
                     int currentTimeInSec = atoi(frameDate.at(3).c_str()) * 3600 + atoi(frameDate.at(4).c_str()) * 60 + atoi(frameDate.at(5).c_str());
 
                     // If acquisition at regular time interval is enabled.
-                    if(mDevice->getAcqRegularEnabled()){
+                    if(mDevice->getAcqRegularEnabled()) {
 
-                        if(((currentTimeInSec > timeStopSunset) || (currentTimeInSec < timeStartSunrise))&& timeStopSunset != 0 && timeStartSunrise != 0){
+                        // Current time is after the sunset stop and before the sunrise start.
+                        if(((currentTimeInSec > mDevice->mStopSunsetTime) || (currentTimeInSec < mDevice->mStartSunriseTime)) &&
+                            (mDevice->mRegularMode == NIGHT || mDevice->mRegularMode == DAYNIGHT)) {
 
-                            if(regularAcqFrameCounter >= regularAcqFrameInterval){
+                            // Check it's time to run a regular capture.
+                            if(regularAcqFrameCounter >= regularAcqFrameInterval) {
 
                                 BOOST_LOG_SEV(logger, notification) << "Run regular acquisition.";
                                 runRegularAcquisition(accurateFrameDate);
@@ -363,12 +331,16 @@ void AcqThread::operator()(){
 
                                 regularAcqFrameCounter = 0;
 
-                            }else{
+                            }else {
 
                                 cout << "Next regular acquisition in : " << regularAcqFrameInterval - regularAcqFrameCounter << " frames." << endl;
                                 regularAcqFrameCounter++;
 
                             }
+
+                        //}else if() {
+
+
 
                         }else{
 
@@ -434,21 +406,20 @@ void AcqThread::operator()(){
                     // If day acquisition enabled, enable or disable exposure control if it's sunset or sunrise.
                     if(mDevice->getAcqDayEnabled()){
 
-                        cout << "exposureControlActive : " << exposureControlActive << endl;
-
                         // Check sunrise and sunset time.
-                        if( ((currentTimeInSec > timeStartSunrise && currentTimeInSec < timeStopSunrise) ||
-                            (currentTimeInSec > timeStartSunset && currentTimeInSec < timeStopSunset)) &&
-                            timeStartSunrise != 0 && timeStopSunrise != 0 && timeStartSunset != 0 && timeStopSunset !=0){
+                        if( ((currentTimeInSec > mDevice->mStartSunriseTime && currentTimeInSec < mDevice->mStopSunriseTime) ||
+                            (currentTimeInSec > mDevice->mStartSunsetTime && currentTimeInSec < mDevice->mStopSunsetTime)) &&
+                            mDevice->mStartSunriseTime != 0 && mDevice->mStopSunriseTime != 0 && mDevice->mStartSunsetTime != 0 && mDevice->mStopSunsetTime !=0){
 
                             exposureControlActive = true;
                             cout << "SUNSET or SUNRISE ! "<< endl;
+                            BOOST_LOG_SEV(logger, notification) << "SUNSET or SUNRISE ! ";
 
                         }else{
 
                             if(exposureControlActive){
 
-                                if((currentTimeInSec >= timeStopSunrise && currentTimeInSec < timeStartSunset)){
+                                if((currentTimeInSec >= mDevice->mStopSunriseTime && currentTimeInSec < mDevice->mStartSunsetTime)){
 
                                     cout << "DAYTIME ! "<< endl;
                                     BOOST_LOG_SEV(logger, notification) << "Apply day exposure time.";
@@ -458,7 +429,7 @@ void AcqThread::operator()(){
                                     mDevice->getCam()->setGain(mDevice->getDayGain());
 
 
-                                }else if((currentTimeInSec >= timeStopSunset) || (currentTimeInSec < timeStartSunrise)){
+                                }else if((currentTimeInSec >= mDevice->mStopSunsetTime) || (currentTimeInSec < mDevice->mStartSunriseTime)){
 
                                     cout << "NIGHT ! "<< endl;
                                     BOOST_LOG_SEV(logger, notification) << "Apply night exposure time.";
@@ -879,17 +850,31 @@ bool AcqThread::runScheduledAcquisition(AcqSchedule task){
                             {
                                 // Create FITS image with BITPIX = BYTE_IMG (8-bits unsigned integers), pixel with TBYTE (8-bit unsigned byte)
 
-                                if(newFits.writeFits(frame.getImg(), UC8, fileName))
-                                    cout << ">> Fits saved in : " << mDataLocation << fileName << endl;
+                                switch(mDevice->mScheduleOutput) {
 
-                                // Save jpeg version
-                                if(mDevice->getRegularSaveJEG() && mDevice->getAcqRegularEnabled() ||
-                                   mDevice->getScheduleSaveJEG() && mDevice->getAcqScheduleEnabled()){
+                                    case JPEG :
 
-                                    Mat temp;
-                                    frame.getImg().copyTo(temp);
-                                    Mat newMat = ImgProcessing::correctGammaOnMono8(temp, 2.2);
-                                    SaveImg::saveJPEG(newMat, mDataLocation + fileName);
+                                        {
+
+                                            Mat temp;
+                                            frame.getImg().copyTo(temp);
+                                            Mat newMat = ImgProcessing::correctGammaOnMono8(temp, 2.2);
+                                            SaveImg::saveJPEG(newMat, mDataLocation + fileName);
+
+                                        }
+
+                                        break;
+
+                                    case FITS :
+
+                                        {
+
+                                            if(newFits.writeFits(frame.getImg(), UC8, fileName))
+                                                cout << ">> Fits saved in : " << mDataLocation << fileName << endl;
+
+                                        }
+
+                                        break;
 
                                 }
 
@@ -931,20 +916,33 @@ bool AcqThread::runScheduledAcquisition(AcqSchedule task){
                                     }
                                 }
 
+                                switch(mDevice->mRegularOutput) {
 
-                                // Create FITS image with BITPIX = SHORT_IMG (16-bits signed integers), pixel with TSHORT (signed short)
-                                if(newFits.writeFits(newMat, S16, fileName))
-                                    cout << ">> Fits saved in : " << mDataLocation << fileName << endl;
+                                    case JPEG :
 
-                                // Save jpeg version
-                                if(mDevice->getRegularSaveJEG() && mDevice->getAcqRegularEnabled() ||
-                                   mDevice->getScheduleSaveJEG() && mDevice->getAcqScheduleEnabled()){
+                                        {
 
-                                    Mat temp;
-                                    frame.getImg().copyTo(temp);
-                                    Mat newMat = ImgProcessing::correctGammaOnMono12(temp, 2.2);
-                                    Mat newMat2 = Conversion::convertTo8UC1(newMat);
-                                    SaveImg::saveJPEG(newMat2, mDataLocation + fileName);
+                                            Mat temp;
+                                            frame.getImg().copyTo(temp);
+                                            Mat newMat = ImgProcessing::correctGammaOnMono12(temp, 2.2);
+                                            Mat newMat2 = Conversion::convertTo8UC1(newMat);
+                                            SaveImg::saveJPEG(newMat2, mDataLocation + fileName);
+
+                                        }
+
+                                        break;
+
+                                    case FITS :
+
+                                        {
+
+                                            // Create FITS image with BITPIX = SHORT_IMG (16-bits signed integers), pixel with TSHORT (signed short)
+                                            if(newFits.writeFits(newMat, S16, fileName))
+                                                cout << ">> Fits saved in : " << mDataLocation << fileName << endl;
+
+                                        }
+
+                                        break;
 
                                 }
 
@@ -1070,17 +1068,31 @@ bool AcqThread::runRegularAcquisition(string frameDate){
                             {
                                 // Create FITS image with BITPIX = BYTE_IMG (8-bits unsigned integers), pixel with TBYTE (8-bit unsigned byte)
 
-                                if(newFits.writeFits(frame.getImg(), UC8, fileName))
-                                    cout << ">> Fits saved in : " << mDataLocation << fileName << endl;
+                                switch(mDevice->mRegularOutput) {
 
-                                // Save jpeg version
-                                if(mDevice->getRegularSaveJEG() && mDevice->getAcqRegularEnabled() ||
-                                   mDevice->getScheduleSaveJEG() && mDevice->getAcqScheduleEnabled()){
+                                    case JPEG :
 
-                                    Mat temp;
-                                    frame.getImg().copyTo(temp);
-                                    Mat newMat = ImgProcessing::correctGammaOnMono8(temp, 2.2);
-                                    SaveImg::saveJPEG(newMat, mDataLocation + fileName);
+                                        {
+
+                                            Mat temp;
+                                            frame.getImg().copyTo(temp);
+                                            Mat newMat = ImgProcessing::correctGammaOnMono8(temp, 2.2);
+                                            SaveImg::saveJPEG(newMat, mDataLocation + fileName);
+
+                                        }
+
+                                        break;
+
+                                    case FITS :
+
+                                        {
+
+                                            if(newFits.writeFits(frame.getImg(), UC8, fileName))
+                                                cout << ">> Fits saved in : " << mDataLocation << fileName << endl;
+
+                                        }
+
+                                        break;
 
                                 }
 
@@ -1120,20 +1132,33 @@ bool AcqThread::runRegularAcquisition(string frameDate){
                                     }
                                 }
 
+                                switch(mDevice->mRegularOutput) {
 
-                                // Create FITS image with BITPIX = SHORT_IMG (16-bits signed integers), pixel with TSHORT (signed short)
-                                if(newFits.writeFits(newMat, S16, fileName))
-                                    cout << ">> Fits saved in : " << mDataLocation << fileName << endl;
+                                    case JPEG :
 
-                                // Save jpeg version
-                                if(mDevice->getRegularSaveJEG() && mDevice->getAcqRegularEnabled() ||
-                                   mDevice->getScheduleSaveJEG() && mDevice->getAcqScheduleEnabled()){
+                                        {
 
-                                    Mat temp;
-                                    frame.getImg().copyTo(temp);
-                                    Mat newMat = ImgProcessing::correctGammaOnMono12(temp, 2.2);
-                                    Mat newMat2 = Conversion::convertTo8UC1(newMat);
-                                    SaveImg::saveJPEG(newMat2, mDataLocation + fileName);
+                                            Mat temp;
+                                            frame.getImg().copyTo(temp);
+                                            Mat newMat = ImgProcessing::correctGammaOnMono12(temp, 2.2);
+                                            Mat newMat2 = Conversion::convertTo8UC1(newMat);
+                                            SaveImg::saveJPEG(newMat2, mDataLocation + fileName);
+
+                                        }
+
+                                        break;
+
+                                    case FITS :
+
+                                        {
+
+                                            // Create FITS image with BITPIX = SHORT_IMG (16-bits signed integers), pixel with TSHORT (signed short)
+                                            if(newFits.writeFits(newMat, S16, fileName))
+                                                cout << ">> Fits saved in : " << mDataLocation << fileName << endl;
+
+                                        }
+
+                                        break;
 
                                 }
 

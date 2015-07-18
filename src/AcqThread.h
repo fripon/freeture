@@ -48,6 +48,7 @@
 #include "Device.h"
 #include "ExposureControl.h"
 #include "ImgProcessing.h"
+#include "EImgFormat.h"
 
 using namespace cv;
 using namespace std;

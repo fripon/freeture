@@ -58,15 +58,17 @@
 
         BOOST_LOG_SEV(logger, notification) << "Cameras detected with Aravis : ";
 
-		
-        cout << endl << "************* GIGE with ARAVIS *****************" << endl << endl;
 
-		for(int i = 0; i < n_devices; i++){
+        cout << endl << "------------ GIGE CAMERAS WITH ARAVIS ----------" << endl << endl;
 
-			cout << "-> [" << i << "] " << arv_get_device_id(i)<< endl;
-			BOOST_LOG_SEV(logger, notification) << " -> [" << i << "] " << arv_get_device_id(i);
+        for(int i = 0; i < n_devices; i++){
 
-		}
+            cout << "-> [" << i << "] " << arv_get_device_id(i)<< endl;
+            BOOST_LOG_SEV(logger, notification) << " -> [" << i << "] " << arv_get_device_id(i);
+
+        }
+
+        cout << endl << "------------------------------------------------" << endl << endl;
 
         if(n_devices == 0)
             cout << "-> No cameras detected..." << endl;
@@ -75,7 +77,6 @@
 
 	bool CameraGigeSdkAravis::createDevice(int id){
 
-	    cout << "Creating device " << id << endl;
 	    BOOST_LOG_SEV(logger, notification) << "Creating device " << id;
 
 	    string deviceName;
@@ -83,14 +84,13 @@
 	    if(!getDeviceNameById(id, deviceName))
             return false;
 
-        cout << "Device : " << deviceName << endl;
+        //cout << "Device : " << deviceName << endl;
         BOOST_LOG_SEV(logger, notification) << "Device selected: " << deviceName;
 
 		camera = arv_camera_new(deviceName.c_str());
 
 		if(camera != NULL){
 
-			cout << "Connection success to the camera." << endl;
 			BOOST_LOG_SEV(logger, notification) << "Connection success to the camera.";
 			return true;
 
@@ -111,7 +111,7 @@
 
 		for(int i = 0; i< n_devices; i++){
 
-            cout << "ID : " << i << " -> " << arv_get_device_id(i) << endl;
+            //cout << "ID : " << i << " -> " << arv_get_device_id(i) << endl;
 
 			if(id == i){
 

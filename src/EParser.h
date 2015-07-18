@@ -45,6 +45,9 @@
 #include "EStackMeth.h"
 #include "ELogSeverityLevel.h"
 #include "ESmtpSecurity.h"
+#include "ERegularAcqMode.h"
+#include "EImgFormat.h"
+
 
 using namespace std;
 

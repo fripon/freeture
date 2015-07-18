@@ -75,6 +75,7 @@
 #include <boost/tokenizer.hpp>
 #include <boost/circular_buffer.hpp>
 #include "Ephemeris.h"
+#include "ERegularAcqMode.h"
 
 using namespace boost::filesystem;
 using namespace cv;
@@ -101,7 +102,7 @@ class Device {
         Camera              *cam;
         vector<AcqSchedule> mSchedule;
         bool                mScheduleEnabled;
-        bool                mScheduleSaveJPEG;
+
         string              mDataPath;
         string              mStationName;
         CamBitDepth         mBitDepth;
@@ -129,8 +130,7 @@ class Device {
         int                 mRegularGain;
         CamBitDepth         mRegularFormat;
         int                 mRegularRepetition;
-        bool                mRegularSaveJPEG;
-        bool                mDisplayVideoInInput;
+
         bool                mVideoFramesInInput;
         bool                mDetectionEnabled;
         int                 mMinExposureTime;
@@ -141,15 +141,28 @@ class Device {
         CamType             mType;
         string              mCfgPath;
         bool                mDebugEnabled;
-        double              mSunHorizonHeight;
+        double              mSunHorizon1;
+        double              mSunHorizon2;
         double              mStationLongitude;
         double              mStationLatitude;
+
+
 
     public :
 
         bool                mEphemerisUpdated;
         bool                mEphemerisEnabled;
-        string              mCurrentEphemerisDate;
+        string              mCurrentDate;
+
+        int mStartSunriseTime;
+        int mStopSunriseTime;
+        int mStartSunsetTime;
+        int mStopSunsetTime;
+        int mCurrentTime; // In seconds.
+
+        RegularAcqMode      mRegularMode;
+        ImgFormat           mRegularOutput;
+        ImgFormat           mScheduleOutput;
 
     public :
 
@@ -179,13 +192,6 @@ class Device {
         *
         */
         bool prepareDevice();
-
-        /**
-        * Update sunrise and sunset times.
-        *
-        * @return Success status.
-        */
-        bool getEphemeris();
 
         /**
         * Configure camera in order to run continuous acquisition.
@@ -223,12 +229,12 @@ class Device {
         CamBitDepth         getAcqRegularFormat()           {return mRegularFormat;};
         int                 getAcqRegularRepetition()       {return mRegularRepetition;};
         bool                getAcqScheduleEnabled()         {return mScheduleEnabled;};
-        bool                getDisplayInput()               {return mDisplayVideoInInput;};
         bool                getVideoFramesInput()           {return mVideoFramesInInput;};
         bool                getDetectionEnabled()           {return mDetectionEnabled;};
-        bool                getRegularSaveJEG()             {return mRegularSaveJPEG;};
-        bool                getScheduleSaveJEG()            {return mScheduleSaveJPEG;};
         bool                getDebugStatus()                {return mDebugEnabled;};
+
+
+        bool getSunTimes();
 
     private :
 
