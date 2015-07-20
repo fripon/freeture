@@ -1,5 +1,5 @@
 /*
-                                ERegularAcqMode.h
+                                ETimeMode.h
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 *
@@ -27,11 +27,12 @@
 
 #pragma once
 
-enum RegularAcqMode{
+enum TimeMode{
 
     DAY,
     NIGHT,
-    DAYNIGHT
+    DAYNIGHT,
+    NONE
 
 };
 

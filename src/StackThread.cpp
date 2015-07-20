@@ -172,10 +172,10 @@ bool StackThread::loadStackParameters(){
 
 }
 
-bool StackThread::buildStackDataDirectory(string date){
+bool StackThread::buildStackDataDirectory(TimeDate::Date date){
 
     namespace fs = boost::filesystem;
-    string	YYYYMMDD	= TimeDate::getYYYYMMDDfromDateString(date);
+    string	YYYYMMDD	= TimeDate::getYYYYMMDD(date);
     string	root		= DATA_PATH + STATION_NAME + "_" + YYYYMMDD +"/";
     string	subDir		= "astro/";
     string	finalPath	= root + subDir;
@@ -341,7 +341,7 @@ void StackThread::operator()(){
                         Frame newFrame = frameBuffer->back();
                         lock2.unlock();
 
-                        BOOST_LOG_SEV(logger,normal) << "New frame received by stackThread :  "<< newFrame.getNumFrame();
+                        BOOST_LOG_SEV(logger,normal) << "New frame received by stackThread :  "<< newFrame.mFrameNumber;
 
                         // Add the new frame to the stack.
                         frameStack.addFrame(newFrame);

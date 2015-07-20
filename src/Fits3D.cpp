@@ -149,8 +149,8 @@ bool Fits3D::writeKeywords(){
         9.  DATE-OBS    = 'YYYY-MM-JJT HH:MM:SS.SS'                 / acquisition date of the first frame
         10. OBS_MODE    = SINGLE                                    / observation method to get this fits file 'SINGLE' 'SUM' 'AVERAGE' ('MEDIAN')
         11. ELAPTIME    = 60                                        / end observation date - start observation date (sec.)
-        12. EXPOSURE    = 0.033                                     / integration time : 1/fps * nb_frames (sec.)
-        13. ONTIME      = 0.033                                     / frame exposure time (sec.)
+        12. EXPOSURE    = 0.033                                     / frame exp (sec). 999999 if different exposure.
+        13. ONTIME      = 0.033                                     /  total integration time, sum of each frame exp (sec)
         14. FILTER      = "NONE"
         15. TELESCOP    = "<Code station>"                          / station <stationName>
         16. OBSERVER    = "<responsable camera>"

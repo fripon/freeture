@@ -35,7 +35,7 @@
 
 #include "GlobalEvent.h"
 
-GlobalEvent::GlobalEvent(string frameDate, int frameNum, int frameHeight, int frameWidth, Scalar c){
+GlobalEvent::GlobalEvent(TimeDate::Date frameDate, int frameNum, int frameHeight, int frameWidth, Scalar c){
 
     geAge               = 0;
     geAgeLastLE         = 0;

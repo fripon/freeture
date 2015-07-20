@@ -140,35 +140,35 @@ class Camera {
         * @param format Return image format.
         * @return Success status to get format.
         */
-        virtual	bool getPixelFormat(CamBitDepth &format) {return false;};
+        virtual bool getPixelFormat(CamBitDepth &format) {return false;};
 
         /**
         * Get device's frame width.
         *
         * @return Frame's width.
         */
-        virtual	int getFrameWidth() {return 0;};
+        virtual int getFrameWidth() {return 0;};
 
         /**
         * Get device's frame height.
         *
         * @return Frame's height.
         */
-        virtual	int getFrameHeight() {return 0;};
+        virtual int getFrameHeight() {return 0;};
 
         /**
         * Get device's acquisition frequency.
         *
         * @return Device's fps.
         */
-        virtual	int getFPS() {return 0;};
+        virtual int getFPS() {return 0;};
 
         /**
         * Get device's model name.
         *
         * @return Device's model name.
         */
-        virtual	string getModelName() {return "";};
+        virtual string getModelName() {return "";};
 
         /**
         * Get device's gain value.
@@ -214,7 +214,7 @@ class Camera {
         * @param format New format.
         * @return Success status to set format.
         */
-        virtual	bool setPixelFormat(CamBitDepth format) {return false;};
+        virtual bool setPixelFormat(CamBitDepth format) {return false;};
 
         /**
         * Get data status if a set of directories or videos are used in input.

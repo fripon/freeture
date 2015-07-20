@@ -55,8 +55,8 @@ using namespace std;
     9.  DATE-OBS    = 'YYYY-MM-JJTHH:MM:SS.SS'                  / acquisition date of the first frame
     10. OBS_MODE    = SINGLE                                    / 'SINGLE' 'SUM' 'AVERAGE' ('MEDIAN')
     11. ELAPTIME    = 60                                        / end obs. date - start obs. date (sec.)
-    12. EXPOSURE    = 0.033                                     / integration time : 1/fps * nb_frames (sec.)
-    13. ONTIME      = 0.033                                     / frame exposure time (sec.)
+    12. EXPOSURE    = 0.033                                     / frame exp (sec). 999999 if different exposure.
+    13. ONTIME      = 0.033                                     / total integration time, sum of each frame exp (sec)
     14. FILTER      = "NONE"
     15. TELESCOP    = "<Code station>"                          / station <stationName>
     16. OBSERVER    = "<responsable camera>"

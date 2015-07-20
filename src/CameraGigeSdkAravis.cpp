@@ -335,10 +335,10 @@
                     buffer_data = (char *) arv_buffer_get_data (arv_buffer, &buffer_size);
 
                     //Timestamping.
-                    string acquisitionDate = TimeDate::localDateTime(microsec_clock::universal_time(),"%Y:%m:%d:%H:%M:%S");
+                    //string acquisitionDate = TimeDate::localDateTime(microsec_clock::universal_time(),"%Y:%m:%d:%H:%M:%S");
                     //BOOST_LOG_SEV(logger, normal) << "Date : " << acquisitionDate;
                     boost::posix_time::ptime time = boost::posix_time::microsec_clock::universal_time();
-                    string acqDateInMicrosec = to_iso_extended_string(time);
+                    string acquisitionDate = to_iso_extended_string(time);
                     //BOOST_LOG_SEV(logger, normal) << "Date : " << acqDateInMicrosec;
 
                     Mat image;
@@ -385,7 +385,7 @@
                     //BOOST_LOG_SEV(logger, normal) << "Creating frame object ...";
                     newFrame = Frame(image, gain, exp, acquisitionDate);
                     //BOOST_LOG_SEV(logger, normal) << "Setting date of frame ...";
-                    newFrame.setAcqDateMicro(acqDateInMicrosec);
+                    //newFrame.setAcqDateMicro(acqDateInMicrosec);
                     //BOOST_LOG_SEV(logger, normal) << "Setting fps of frame ...";
                     newFrame.setFPS(fps);
                     newFrame.setBitDepth(imgDepth);
@@ -560,9 +560,9 @@
                     buffer_data = (char *) arv_buffer_get_data (arv_buffer, &buffer_size);
 
                     //Timestamping.
-                    string acquisitionDate = TimeDate::localDateTime(microsec_clock::universal_time(),"%Y:%m:%d:%H:%M:%S");
+                    //string acquisitionDate = TimeDate::localDateTime(microsec_clock::universal_time(),"%Y:%m:%d:%H:%M:%S");
                     boost::posix_time::ptime time = boost::posix_time::microsec_clock::universal_time();
-                    string acqDateInMicrosec = to_iso_extended_string(time);
+                    string acquisitionDate = to_iso_extended_string(time);
 
                     Mat image;
 
@@ -584,8 +584,8 @@
 
                     }
 
-                    frame = Frame(image, arv_camera_get_gain(camera), arv_camera_get_exposure_time(camera), acquisitionDate);
-                    frame.setAcqDateMicro(acqDateInMicrosec);
+                    frame = Frame(image, arv_camera_get_gain(camera), arv_camera_get_exposure_time(camera), acqDateInMicrosec);
+                    //frame.setAcqDateMicro(acqDateInMicrosec);
                     frame.setFPS(arv_camera_get_frame_rate(camera));
 
                     res = true;

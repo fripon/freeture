@@ -80,6 +80,16 @@ string Conversion::floatToString(float nb){
 
 }
 
+string Conversion::doubleToString(double nb) {
+
+    std::ostringstream strs;
+    strs << nb;
+    std::string str = strs.str();
+
+    return str;
+
+}
+
 void Conversion::stringTok(list<string> &container, string const &in, const char * const delimiters  = "_"){
 
     const string::size_type len = in.length();

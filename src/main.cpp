@@ -518,7 +518,7 @@ int main(int argc, const char ** argv){
                             if(((DET_ENABLED && detThreadCreationSuccess) || !DET_ENABLED) &&           // Detection Thread enabled and succeed or not enabled
                               (((STACK_ENABLED && stackThreadCreationSuccess) || !STACK_ENABLED))){     // Stack Thread enabled and succeed or not enabled
 
-                                inputDevice = new AcqThread(	CAMERA_TYPE,
+                                inputDevice = new AcqThread(    CAMERA_TYPE,
                                                                 configPath,
                                                                 &frameBuffer,
                                                                 &frameBuffer_m,
@@ -536,7 +536,6 @@ int main(int argc, const char ** argv){
 
                                     if(!inputDevice->startThread()){
 
-                                        std::cout << "Fail to start acquisition Thread." << endl;
                                         BOOST_LOG_SEV(slg, fail) << "Fail to start acquisition Thread.";
 
                                     }else{
@@ -810,9 +809,9 @@ int main(int argc, const char ** argv){
                         /// -------------------- Capture a single frame -------------------------
 
                         Frame frame;
-                        frame.setExposure(exp);
-                        frame.setGain(gain);
-                        frame.setBitDepth(camFormat);
+                        frame.mExposure = exp;
+                        frame.mGain = gain;
+                        frame.mBitDepth = camFormat;
 
                         EParser<CamType> cam_type;
                         Device *device = new Device(cam_type.parseEnum("CAMERA_TYPE", camtype));
@@ -828,12 +827,12 @@ int main(int argc, const char ** argv){
                         /// ---------------------- Save grabbed frame --------------------------
 
                         // Save the frame in BMP.
-                        if(saveBmp && frame.getImg().data){
+                        if(saveBmp && frame.mImg.data){
 
                             cout << ">> Saving bmp file ..." << endl;
 
                             Mat temp1, newMat;
-                            frame.getImg().copyTo(temp1);
+                            frame.mImg.copyTo(temp1);
 
                             if(camFormat == MONO_12){
 
@@ -851,7 +850,7 @@ int main(int argc, const char ** argv){
                         }
 
                         // Save the frame in Fits 2D.
-                        if(saveFits2D && frame.getImg().data){
+                        if(saveFits2D && frame.mImg.data){
 
                             cout << ">> Saving fits file ..." << endl;
 
@@ -874,18 +873,17 @@ int main(int argc, const char ** argv){
                             newFits.copyKeywords(fitsHeader);
                             newFits.kGAINDB = (int)gain;
                             newFits.kONTIME = exp/1000000.0;
-                            newFits.kDATEOBS = frame.getAcqDateMicro();
+                            newFits.kDATEOBS = TimeDate::getIsoExtendedFormatDate(frame.mDate);
                             newFits.kCTYPE1 = "RA---ARC";
                             newFits.kCTYPE2 = "DEC--ARC";
                             newFits.kEQUINOX = 2000.0;
 
                             if(useCfg){
 
-                                vector<int> firstDateInt = TimeDate::getIntVectorFromDateString(frame.getAcqDateMicro());
-                                double  debObsInSeconds = firstDateInt.at(3)*3600 + firstDateInt.at(4)*60 + firstDateInt.at(5);
-                                double  julianDate      = TimeDate::gregorianToJulian(firstDateInt);
+                                double  debObsInSeconds = frame.mDate.hours*3600 + frame.mDate.minutes*60 + frame.mDate.seconds;
+                                double  julianDate      = TimeDate::gregorianToJulian(frame.mDate);
                                 double  julianCentury   = TimeDate::julianCentury(julianDate);
-                                double  sideralT        = TimeDate::localSideralTime_2(julianCentury, firstDateInt.at(3), firstDateInt.at(4), firstDateInt.at(5), fitsHeader.kSITELONG);
+                                double  sideralT        = TimeDate::localSideralTime_2(julianCentury, frame.mDate.hours, frame.mDate.minutes, (int)frame.mDate.seconds, fitsHeader.kSITELONG);
                                 newFits.kCRVAL1 = sideralT;
 
                             }
@@ -896,7 +894,7 @@ int main(int argc, const char ** argv){
 
                                     {
                                         // Create FITS image with BITPIX = BYTE_IMG (8-bits unsigned integers), pixel with TBYTE (8-bit unsigned byte)
-                                        if(newFits.writeFits(frame.getImg(), UC8, fileName + "-" + Conversion::intToString(filenum)))
+                                        if(newFits.writeFits(frame.mImg, UC8, fileName + "-" + Conversion::intToString(filenum)))
                                             cout << ">> Fits saved in : " << savePath << fileName << "-" << Conversion::intToString(filenum) << ".fit" << endl;
 
                                     }
@@ -908,7 +906,7 @@ int main(int argc, const char ** argv){
                                     {
 
                                         // Convert unsigned short type image in short type image.
-                                        Mat newMat = Mat(frame.getImg().rows, frame.getImg().cols, CV_16SC1, Scalar(0));
+                                        Mat newMat = Mat(frame.mImg.rows, frame.mImg.cols, CV_16SC1, Scalar(0));
 
                                         // Set bzero and bscale for print unsigned short value in soft visualization.
                                         double bscale = 1;
@@ -919,12 +917,12 @@ int main(int argc, const char ** argv){
                                         unsigned short * ptr;
                                         short * ptr2;
 
-                                        for(int i = 0; i < frame.getImg().rows; i++){
+                                        for(int i = 0; i < frame.mImg.rows; i++){
 
-                                            ptr = frame.getImg().ptr<unsigned short>(i);
+                                            ptr = frame.mImg.ptr<unsigned short>(i);
                                             ptr2 = newMat.ptr<short>(i);
 
-                                            for(int j = 0; j < frame.getImg().cols; j++){
+                                            for(int j = 0; j < frame.mImg.cols; j++){
 
                                                 if(ptr[j] - 32768 > 32767){
 
@@ -976,12 +974,12 @@ int main(int argc, const char ** argv){
                         /// -------------------- Display grabbed frame --------------------------
 
                         // Display the frame in an opencv window
-                        if(display && frame.getImg().data){
+                        if(display && frame.mImg.data){
 
                             cout << ">> Display single capture." << endl;
 
                             Mat temp, temp1;
-                            frame.getImg().copyTo(temp1);
+                            frame.mImg.copyTo(temp1);
 
                             if(camFormat == MONO_12){
 
@@ -1045,7 +1043,7 @@ int main(int argc, const char ** argv){
 
                     {
                         //namedWindow("Display window", WINDOW_NORMAL );
-                        Fits2D newFits("/home/fripon/data/ORSAY_20150618/astro/Orsay_20150618T024429_U.fit");
+                        /*Fits2D newFits("/home/fripon/data/ORSAY_20150618/astro/Orsay_20150618T024429_U.fit");
                         Mat resMat;
                         newFits.readFits16US(resMat);
 
@@ -1054,6 +1052,15 @@ int main(int argc, const char ** argv){
                         minMaxLoc(resMat, &min, &max);
                         cout << "min: "<<min<< endl;
                         cout << "max: "<<max<< endl;
+                        */
+                        TimeDate::Date date;
+                        date.year = 2015;
+                        date.month = 5;
+                        date.day = 10;
+                        date.hours = 0;
+                        date.minutes = 50;
+                        date.seconds = 20.333;
+                        cout << TimeDate::getIsoExtendedFormatDate(date) << endl;
 
                     }
 
@@ -1092,6 +1099,9 @@ int main(int argc, const char ** argv){
     }
 
     po::notify(vm);
+
+    cout << "PROGRAM ENDED." << endl;
+    getchar();
 
     return 0 ;
 

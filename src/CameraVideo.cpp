@@ -123,19 +123,17 @@ bool CameraVideo::grabImage(Frame &img){
 
         boost::posix_time::ptime time = boost::posix_time::microsec_clock::universal_time();
 
-        Frame f = Frame(frame, 0, 0, TimeDate::localDateTime(microsec_clock::universal_time(),"%Y:%m:%d:%H:%M:%S"));
+        Frame f = Frame(frame, 0, 0, to_iso_extended_string(time));
 
         img = f;
 
-        img.setNumFrame(mCap.get(CV_CAP_PROP_POS_FRAMES));
+        img.mFrameNumber = mCap.get(CV_CAP_PROP_POS_FRAMES);
 
-        img.setFrameRemaining(mCap.get(CV_CAP_PROP_FRAME_COUNT) - mCap .get(CV_CAP_PROP_POS_FRAMES));
+        img.mFrameRemaining = mCap.get(CV_CAP_PROP_FRAME_COUNT) - mCap .get(CV_CAP_PROP_POS_FRAMES);
 
-        img.setAcqDateMicro(to_iso_extended_string(time));
+        img.mFps = 1;
 
-        img.setFPS(1);
-
-        img.setBitDepth(MONO_8);
+        img.mBitDepth = MONO_8;
 
     }else{
 

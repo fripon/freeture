@@ -44,10 +44,11 @@ DetectionTemporal::DetectionTemporal() {
 
     mDebugEnabled = false;
     mDebugVideo = false;
-    mStaticMaskEnabled = false;
 
     mMaskToCreate = false;
     mDataSetCounter = 0;
+
+    mCapBuffer = boost::circular_buffer<Mat>(5);
 
     mListColors.push_back(Scalar(0,0,139));      // DarkRed
     mListColors.push_back(Scalar(0,0,255));      // Red
@@ -95,17 +96,6 @@ bool DetectionTemporal::initMethod(string cfgPath) {
         // Get downsample option.
         cfg.Get("DET_DOWNSAMPLE_ENABLED", mDownsampleEnabled);
         BOOST_LOG_SEV(logger, notification) << "DET_DOWNSAMPLE_ENABLED : " << mDownsampleEnabled;
-
-        cfg.Get("DET_UPDATE_MASK", mUpdateMask);
-        BOOST_LOG_SEV(logger, notification) << "DET_UPDATE_MASK : " << mUpdateMask;
-
-        cfg.Get("DEBUG_UPDATE_MASK_PATH", mDebugUpdateMaskPath);
-        BOOST_LOG_SEV(logger, notification) << "DEBUG_UPDATE_MASK_PATH : " << mDebugUpdateMaskPath;
-
-        cfg.Get("DEBUG_UPDATE_MASK", mDebugUpdateMask);
-        BOOST_LOG_SEV(logger, notification) << "DEBUG_UPDATE_MASK : " << mDebugUpdateMask;
-        if(mDebugUpdateMask)
-            mVideoDebugAutoMask = VideoWriter(mDebugUpdateMaskPath + "debug-mask.avi", CV_FOURCC('M', 'J', 'P', 'G'), 5, Size(static_cast<int>(1280), static_cast<int>(960)), true);
 
         // Get gemap option.
         cfg.Get("DET_SAVE_GEMAP", mSaveGeMap);
@@ -171,17 +161,6 @@ bool DetectionTemporal::initMethod(string cfgPath) {
         cfg.Get("DET_DEBUG_VIDEO", mDebugVideo);
         BOOST_LOG_SEV(logger, notification) << "DET_DEBUG_VIDEO : " << mDebugVideo;
 
-        cfg.Get("STATIC_MASK_OPTION", mStaticMaskEnabled);
-        BOOST_LOG_SEV(logger, notification) << "STATIC_MASK_OPTION : " << mStaticMaskEnabled;
-
-
-        cfg.Get("STATIC_MASK_INTERVAL", mStaticMaskInterval);
-        BOOST_LOG_SEV(logger, notification) << "STATIC_MASK_INTERVAL : " << mStaticMaskInterval;
-        if(mStaticMaskInterval<= 0){
-            mStaticMaskInterval = ACQ_FPS * 10;
-            BOOST_LOG_SEV(logger, fail) << "Error about STATIC_MASK_INTERVAL's value. Value changed to : " << mStaticMaskInterval;
-        }
-
         // Create directories for debugging method.
         if(mDebugEnabled)
             createDebugDirectories(true);
@@ -189,6 +168,15 @@ bool DetectionTemporal::initMethod(string cfgPath) {
         // Create debug video.
         if(mDebugVideo)
             mVideoDebug = VideoWriter(mDebugCurrentPath + "debug-video.avi", CV_FOURCC('M', 'J', 'P', 'G'), 5, Size(static_cast<int>(1280), static_cast<int>(960)), true);
+
+        
+        cfg.Get("DET_UPDATE_MASK", mUpdateMask);
+        BOOST_LOG_SEV(logger, notification) << "DET_UPDATE_MASK : " << mUpdateMask;
+
+        cfg.Get("DET_DEBUG_UPDATE_MASK", mDebugUpdateMask);
+        BOOST_LOG_SEV(logger, notification) << "DET_DEBUG_UPDATE_MASK : " << mDebugUpdateMask;
+        if(mDebugUpdateMask)
+            mVideoDebugAutoMask = VideoWriter(mDebugCurrentPath + "debug-mask.avi", CV_FOURCC('M', 'J', 'P', 'G'), 5, Size(static_cast<int>(1280), static_cast<int>(960)), true);
 
 
 	}catch(exception& e){
@@ -522,7 +510,7 @@ void DetectionTemporal::subdivideFrame(vector<Point> &sub, int n, int imgH, int 
 
 bool DetectionTemporal::run(Frame &c) {
 
-    BOOST_LOG_SEV(logger, normal) << "************************ DETECTION FRAME " << c.getNumFrame() << "************************";
+    BOOST_LOG_SEV(logger, normal) << "************************ DETECTION FRAME " << c.mFrameNumber << "************************";
 
     double mDownsampleTime  = 0;
     double absdiffTime      = 0;
@@ -536,7 +524,7 @@ bool DetectionTemporal::run(Frame &c) {
     double timeStep4        = 0;
     double timeTotal        = 0;
 
-    string pFrame0 = mDebugCurrentPath + "local/frame_" + Conversion::intToString(c.getNumFrame());
+    string pFrame0 = mDebugCurrentPath + "local/frame_" + Conversion::intToString(c.mFrameNumber);
     ofstream fileFrame;
 
     if(mDebugEnabled) {
@@ -555,13 +543,13 @@ bool DetectionTemporal::run(Frame &c) {
 
     if(mDownsampleEnabled) {
 
-        h = c.getImg().rows/2;
-        w = c.getImg().cols/2;
+        h = c.mImg.rows/2;
+        w = c.mImg.cols/2;
 
     }else {
 
-        h = c.getImg().rows;
-        w = c.getImg().cols;
+        h = c.mImg.rows;
+        w = c.mImg.cols;
 
     }
 
@@ -637,12 +625,12 @@ bool DetectionTemporal::run(Frame &c) {
 		if(mDownsampleEnabled) {
 
             mDownsampleTime = (double)getTickCount();
-			pyrDown(c.getImg(), currImg, Size(c.getImg().cols / 2, c.getImg().rows / 2));
+			pyrDown(c.mImg, currImg, Size(c.mImg.cols / 2, c.mImg.rows / 2));
 			mDownsampleTime = ((double)getTickCount() - mDownsampleTime);
 
 		}else {
 
-            c.getImg().copyTo(currImg);
+            c.mImg.copyTo(currImg);
 
         }
 
@@ -857,7 +845,7 @@ bool DetectionTemporal::run(Frame &c) {
 
             if(mDebugEnabled) {
 
-                SaveImg::saveBMP(absdiffImg, mDebugCurrentPath + "/global/absolute_difference_dilated/frame_" + Conversion::intToString(c.getNumFrame()));
+                SaveImg::saveBMP(absdiffImg, mDebugCurrentPath + "/global/absolute_difference_dilated/frame_" + Conversion::intToString(c.mFrameNumber));
                 SaveImg::saveBMP(absdiffImg, pFrame0 + "/absolute_difference_dilated");
             }
 
@@ -979,19 +967,19 @@ bool DetectionTemporal::run(Frame &c) {
 
                 }
 
-                SaveImg::saveBMP(posBinaryMap, mDebugCurrentPath + "/global/pos_difference_thresholded/frame_" + Conversion::intToString(c.getNumFrame()));
+                SaveImg::saveBMP(posBinaryMap, mDebugCurrentPath + "/global/pos_difference_thresholded/frame_" + Conversion::intToString(c.mFrameNumber));
                 SaveImg::saveBMP(posBinaryMap, pFrame0 + "/pos_difference_thresholded");
-                SaveImg::saveBMP(negBinaryMap, mDebugCurrentPath + "/global/neg_difference_thresholded/frame_" + Conversion::intToString(c.getNumFrame()));
+                SaveImg::saveBMP(negBinaryMap, mDebugCurrentPath + "/global/neg_difference_thresholded/frame_" + Conversion::intToString(c.mFrameNumber));
                 SaveImg::saveBMP(negBinaryMap, pFrame0 + "/neg_difference_thresholded");
 
-                SaveImg::saveBMP(absDiffBinaryMap, mDebugCurrentPath + "/global/absolute_difference_thresholded/frame_" + Conversion::intToString(c.getNumFrame()));
+                SaveImg::saveBMP(absDiffBinaryMap, mDebugCurrentPath + "/global/absolute_difference_thresholded/frame_" + Conversion::intToString(c.mFrameNumber));
                 SaveImg::saveBMP(absDiffBinaryMap, pFrame0 + "/absolute_difference_thresholded");
 
-                SaveImg::saveBMP(absdiffImg, mDebugCurrentPath + "/global/absolute_difference/frame_"+Conversion::intToString(c.getNumFrame()));
+                SaveImg::saveBMP(absdiffImg, mDebugCurrentPath + "/global/absolute_difference/frame_"+Conversion::intToString(c.mFrameNumber));
                 SaveImg::saveBMP(absdiffImg, pFrame0 + "/absolute_difference");
-                SaveImg::saveBMP(Conversion::convertTo8UC1(posDiffImg), mDebugCurrentPath + "/global/pos_difference/frame_" + Conversion::intToString(c.getNumFrame()));
+                SaveImg::saveBMP(Conversion::convertTo8UC1(posDiffImg), mDebugCurrentPath + "/global/pos_difference/frame_" + Conversion::intToString(c.mFrameNumber));
                 SaveImg::saveBMP(Conversion::convertTo8UC1(posDiffImg), pFrame0 + "/pos_difference");
-                SaveImg::saveBMP(Conversion::convertTo8UC1(negDiffImg), mDebugCurrentPath + "/global/neg_difference/frame_" + Conversion::intToString(c.getNumFrame()));
+                SaveImg::saveBMP(Conversion::convertTo8UC1(negDiffImg), mDebugCurrentPath + "/global/neg_difference/frame_" + Conversion::intToString(c.mFrameNumber));
                 SaveImg::saveBMP(Conversion::convertTo8UC1(negDiffImg), pFrame0 + "/neg_difference");
 
             }
@@ -1083,7 +1071,7 @@ bool DetectionTemporal::run(Frame &c) {
                                     listLocalEvents,
                                     (*itR),
                                     10,
-                                    c.getNumFrame(),
+                                    c.mFrameNumber,
                                     debugMsg);
 
                     if(mDebugEnabled)fileLe << debugMsg;
@@ -1138,7 +1126,7 @@ bool DetectionTemporal::run(Frame &c) {
                 }
                 fileLe << "---------------------------------------------------\n\n\n";
 
-                SaveImg::saveBMP(eventMap, mDebugCurrentPath + "/global/event_map_initial/frame_" + Conversion::intToString(c.getNumFrame()));
+                SaveImg::saveBMP(eventMap, mDebugCurrentPath + "/global/event_map_initial/frame_" + Conversion::intToString(c.mFrameNumber));
                 SaveImg::saveBMP(eventMap, pFrame0 + "/event_map_initial");
             }
 
@@ -1345,7 +1333,7 @@ bool DetectionTemporal::run(Frame &c) {
 
                 }
 
-                SaveImg::saveBMP(eventMapFiltered, mDebugCurrentPath + "/global/event_map_filtered/frame_" + Conversion::intToString(c.getNumFrame()));
+                SaveImg::saveBMP(eventMapFiltered, mDebugCurrentPath + "/global/event_map_filtered/frame_" + Conversion::intToString(c.mFrameNumber));
                 SaveImg::saveBMP(eventMapFiltered, pFrame0 + "/event_map_filtered");
 
                 fileLe.close();
@@ -1376,7 +1364,7 @@ bool DetectionTemporal::run(Frame &c) {
                 vector<GlobalEvent>::iterator itGESelected;
                 bool GESelected = false;
 
-			    (*itLE).setNumFrame(c.getNumFrame());
+			    (*itLE).setNumFrame(c.mFrameNumber);
 
 			    for(itGE = mListGlobalEvents.begin(); itGE != mListGlobalEvents.end(); ++itGE){
 
@@ -1435,7 +1423,7 @@ bool DetectionTemporal::run(Frame &c) {
                         //cout << "Deleting last available color ... "<< endl;
                         //availableGeColor.pop_back();
                         //cout << "Creating new GE ... "<< endl;
-                        GlobalEvent newGE(c.getAcqDateMicro(), c.getNumFrame(), currImg.rows, currImg.cols, geColor);
+                        GlobalEvent newGE(c.mDate, c.mFrameNumber, currImg.rows, currImg.cols, geColor);
                         //cout << "Adding current LE ... "<< endl;
                         newGE.addLE((*itLE));
                         //cout << "Pushing new LE to GE list  ... "<< endl;
@@ -1490,7 +1478,7 @@ bool DetectionTemporal::run(Frame &c) {
 
 			    }else{
 
-				    (*itGE).setNumLastFrame(c.getNumFrame());
+				    (*itGE).setNumLastFrame(c.mFrameNumber);
 				    (*itGE).setNewLEStatus(false);
 
 			    }
@@ -1543,7 +1531,7 @@ bool DetectionTemporal::run(Frame &c) {
 					    itGE = mListGlobalEvents.erase(itGE);
 
                     // Let the GE alive.
-				    }else if(c.getFrameRemaining() < 10 && c.getFrameRemaining() != 0){
+                    }else if(c.mFrameRemaining < 10 && c.mFrameRemaining != 0){
 
 				        if((*itGE).LEList.size() >= 5 && (*itGE).continuousGoodPos(4,msgGe) && (*itGE).ratioFramesDist(msgGe)&& (*itGE).negPosClusterFilter(msgGe)){
 
@@ -1589,7 +1577,7 @@ bool DetectionTemporal::run(Frame &c) {
 
                 }
 
-                if(mDebugEnabled) SaveImg::saveBMP(GEMAP, mDebugCurrentPath + "/GEMAP/GEMAP_"+Conversion::intToString(c.getNumFrame()));
+                if(mDebugEnabled) SaveImg::saveBMP(GEMAP, mDebugCurrentPath + "/GEMAP/GEMAP_"+Conversion::intToString(c.mFrameNumber));
 
                 Mat VIDEO               = Mat(960,1280, CV_8UC3,Scalar(255,255,255));
                 Mat VIDEO_frame         = Mat(470,630, CV_8UC3,Scalar(0,0,0));
@@ -1620,7 +1608,7 @@ bool DetectionTemporal::run(Frame &c) {
                 VIDEO_eventFrame.copyTo(VIDEO(Rect(0, 480, 640, 480)));
                 VIDEO_geFrame.copyTo(VIDEO(Rect(640, 480, 640, 480)));
 
-                string fn = Conversion::intToString(c.getNumFrame());
+                string fn = Conversion::intToString(c.mFrameNumber);
                 const char * fn_c;
                 fn_c = fn.c_str();
 

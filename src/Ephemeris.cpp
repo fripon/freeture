@@ -46,7 +46,11 @@ Ephemeris::Ephemeris(string date, double sunElevation, double longitude, double 
 
     mSunElevation = sunElevation;
     mStationLongitude = -longitude;
-    mStationLatitude = latitude;
+
+    if(latitude > -60 && latitude < 60)
+        mStationLatitude = latitude;
+    else
+        throw "Latitude must have a value between -60 and 60 degree.";
 
 }
 

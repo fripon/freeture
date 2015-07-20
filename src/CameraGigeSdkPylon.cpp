@@ -89,8 +89,8 @@ void CameraGigeSdkPylon::listGigeCameras() {
 			devices.clear();
 
 			if(pTlFactory) {
-
-                cout << "****************** BASLER GIGE ***************** " << endl << endl;
+                
+                cout << endl << "------------ GIGE CAMERAS WITH PYLON -----------" << endl << endl;
 
 				if (0 == pTlFactory->EnumerateDevices(devices)) {
 
@@ -122,6 +122,9 @@ void CameraGigeSdkPylon::listGigeCameras() {
 					}
 				}
 			}
+
+            cout << endl << "------------------------------------------------" << endl << endl;
+
 		}
 
 	}catch (GenICam::GenericException &e){
@@ -432,10 +435,7 @@ bool CameraGigeSdkPylon::grabImage(Frame &newFrame){
         if(result.Succeeded()){
 
 			//Timestamping.
-			string acquisitionDate = TimeDate::localDateTime(microsec_clock::universal_time(),"%Y:%m:%d:%H:%M:%S");
-			// Convert to form YYYY-MM-DDTHH:MM:SS,fffffffff where T is the date-time separator
 			boost::posix_time::ptime time = boost::posix_time::microsec_clock::universal_time();
-			string acqDateInMicrosec = to_iso_extended_string(time);
 
 			Mat newImg;
 
@@ -454,22 +454,21 @@ bool CameraGigeSdkPylon::grabImage(Frame &newFrame){
             newFrame = Frame(	newImg,
 								pCamera->GainRaw.GetValue(),
 								(double)pCamera->ExposureTimeAbs.GetValue(),
-								acquisitionDate);
+								to_iso_extended_string(time));
 
-			newFrame.setAcqDateMicro(acqDateInMicrosec);
-			newFrame.setFPS(pCamera->AcquisitionFrameRateAbs.GetValue());
-            newFrame.setNumFrame(mFrameCounter);
+			newFrame.mFps = pCamera->AcquisitionFrameRateAbs.GetValue();
+            newFrame.mFrameNumber = mFrameCounter;
             mFrameCounter++;
 
 			if(pCamera->PixelFormat.GetValue() == PixelFormat_Mono8){
 
-                newFrame.setBitDepth(MONO_8);
-                newFrame.setSaturatedValue(255);
+                newFrame.mBitDepth = MONO_8;
+                newFrame.mSaturatedValue = 255;
 
 			}else if(pCamera->PixelFormat.GetValue() == PixelFormat_Mono12){
 
-                newFrame.setBitDepth(MONO_12);
-                newFrame.setSaturatedValue(4095);
+                newFrame.mBitDepth = MONO_12;
+                newFrame.mSaturatedValue = 4095;
 
 			}
 
@@ -534,7 +533,7 @@ bool CameraGigeSdkPylon::grabSingleImage(Frame &frame, int camID){
 		// Access the PixelFormat enumeration type node.
         CEnumerationPtr pixelFormat(nodemap.GetNode("PixelFormat"));
 
-		if(frame.getBitDepth() == MONO_8) {
+		if(frame.mBitDepth == MONO_8) {
 
 			if(IsAvailable(pixelFormat->GetEntryByName("Mono8"))){
 				pixelFormat->FromString("Mono8");
@@ -544,7 +543,7 @@ bool CameraGigeSdkPylon::grabSingleImage(Frame &frame, int camID){
 				return false;
 			}
 
-		}else if(frame.getBitDepth() == MONO_12){
+		}else if(frame.mBitDepth == MONO_12){
 
 			if(IsAvailable(pixelFormat->GetEntryByName("Mono12"))){
 				pixelFormat->FromString("Mono12");
@@ -565,9 +564,9 @@ bool CameraGigeSdkPylon::grabSingleImage(Frame &frame, int camID){
 
         if(ExposureTimeRaw.IsValid()) {
 
-			if(frame.getExposure() >= ExposureTimeRaw->GetMin() && frame.getExposure() <= ExposureTimeRaw->GetMax()) {
+			if(frame.mExposure >= ExposureTimeRaw->GetMin() && frame.mExposure <= ExposureTimeRaw->GetMax()) {
 
-				ExposureTimeRaw->SetValue(frame.getExposure());
+				ExposureTimeRaw->SetValue(frame.mExposure);
 
 			}else {
 
@@ -587,9 +586,9 @@ bool CameraGigeSdkPylon::grabSingleImage(Frame &frame, int camID){
         CIntegerPtr gainRaw(nodemap.GetNode("GainRaw"));
         if(gainRaw.IsValid()) {
 
-			if(frame.getGain() >= gainRaw->GetMin() && frame.getGain() <= gainRaw->GetMax()) {
+			if(frame.mGain >= gainRaw->GetMin() && frame.mGain <= gainRaw->GetMax()) {
 
-				gainRaw->SetValue(frame.getGain());
+				gainRaw->SetValue(frame.mGain);
 
 			}else {
 
@@ -606,7 +605,7 @@ bool CameraGigeSdkPylon::grabSingleImage(Frame &frame, int camID){
 
         cout << ">> Acquisition in progress..." << endl;
 
-        int timeout = 1000 + frame.getExposure()/1000;
+        int timeout = 1000 + frame.mExposure/1000;
 
 		camera.GrabOne(timeout , ptrGrabResult);
 
@@ -616,13 +615,11 @@ bool CameraGigeSdkPylon::grabSingleImage(Frame &frame, int camID){
 		if(ptrGrabResult->GrabSucceeded()){
 
             //Timestamping.
-			string acquisitionDate = TimeDate::localDateTime(microsec_clock::universal_time(),"%Y:%m:%d:%H:%M:%S");
 			boost::posix_time::ptime time = boost::posix_time::microsec_clock::universal_time();
 			string acqDateInMicrosec = to_iso_extended_string(time);
 
-            frame.setAcqDate(acquisitionDate);
-            frame.setAcqDateMicro(acqDateInMicrosec);
-            frame.setFPS(0);
+            frame.mDate = TimeDate::splitIsoExtendedDate(to_iso_extended_string(time));
+            frame.mFps = 0;
 
 			if(ptrGrabResult->GetPixelType()== PixelType_Mono8) {
 	
@@ -636,7 +633,7 @@ bool CameraGigeSdkPylon::grabSingleImage(Frame &frame, int camID){
 
 			memcpy(newImg.ptr(), ptrGrabResult->GetBuffer(), ptrGrabResult->GetPayloadSize());
 
-			frame.setImg(newImg);
+            newImg.copyTo(frame.mImg);
 
 			return true;
 

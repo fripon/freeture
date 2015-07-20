@@ -43,6 +43,8 @@ Stack::Stack(int nbFrameToSum){
     fullStatus			= false;
     curFrames			= 0;
     maxFrames			= nbFrameToSum;
+    varExpTime          = false;
+    sumExpTime          = 0.0;
 
 }
 
@@ -54,39 +56,34 @@ void Stack::addFrame(Frame &i){
 
         if(curFrames == 0){
 
-            BOOST_LOG_SEV(logger, notification) << "First frame of stack received.";
-
-            stack			= Mat::zeros(i.getImg().rows, i.getImg().cols, CV_32FC1);
-            gainFirstFrame	= i.getGain();
-            expFirstFrame	= i.getExposure();
-            dateFirstFrame	= i.getAcqDateMicro();
-            fps				= i.getFPS();
-            bitdepth		= i.getFrameBitDepth();
-
-            BOOST_LOG_SEV(logger, notification) << "Gain : " << gainFirstFrame;
-            BOOST_LOG_SEV(logger, notification) << "Exposure : " << expFirstFrame;
-            BOOST_LOG_SEV(logger, notification) << "Date : " << dateFirstFrame;
-            BOOST_LOG_SEV(logger, notification) << "Fps : " << fps;
-            BOOST_LOG_SEV(logger, notification) << "Bitdepth : " << bitdepth;
+            stack			= Mat::zeros(i.mImg.rows, i.mImg.cols, CV_32FC1);
+            gainFirstFrame	= i.mGain;
+            expFirstFrame   = i.mExposure;
+            mDateFirstFrame	= i.mDate;
+            fps				= i.mFps;
+            bitdepth		= i.mBitDepth;
 
         }
 
-        Mat curr = Mat::zeros(i.getImg().rows, i.getImg().cols, CV_32FC1);
+        if(expFirstFrame != i.mExposure)
+            varExpTime = true;
+
+        sumExpTime+=i.mExposure;
+
+        Mat curr = Mat::zeros(i.mImg.rows, i.mImg.cols, CV_32FC1);
 
         cout << "> STACK : " << curFrames << " / " << maxFrames  << endl;
         BOOST_LOG_SEV(logger, normal) << "> STACK : " << curFrames << " / " << maxFrames;
 
-        i.getImg().convertTo(curr, CV_32FC1);
+        i.mImg.convertTo(curr, CV_32FC1);
         cout << "accumulate" << endl;
         accumulate(curr, stack);
         curFrames++;
-        dateLastFrame = i.getAcqDateMicro();
-        cout << "dateLastFrame: " << dateLastFrame << endl;
+        mDateLastFrame = i.mDate;
 
         if(curFrames >= maxFrames){
 
             BOOST_LOG_SEV(logger, notification) << "Last frame of stack received.";
-            BOOST_LOG_SEV(logger, notification) << "Date : " << dateLastFrame;
 
             fullStatus = true;
 
@@ -103,16 +100,12 @@ void Stack::addFrame(Frame &i){
 
 bool Stack::saveStack(Fits fitsHeader, string path, StackMeth stackMthd, string stationName, bool stackReduction){
 
-    // Vector<int> : YYYY, MM, DD, hh,mm, ss
-    vector<int> firstDateInt = TimeDate::getIntVectorFromDateString(dateFirstFrame);
-    vector<int> lastDateInt  = TimeDate::getIntVectorFromDateString(dateLastFrame);
-
-    double  debObsInSeconds = firstDateInt.at(3)*3600 + firstDateInt.at(4)*60 + firstDateInt.at(5);
-    double  endObsInSeconds = lastDateInt.at(3)*3600 + lastDateInt.at(4)*60 + lastDateInt.at(5);
+    double  debObsInSeconds = mDateFirstFrame.hours*3600 + mDateFirstFrame.minutes*60 + mDateFirstFrame.seconds;
+    double  endObsInSeconds = mDateLastFrame.hours*3600 + mDateLastFrame.minutes*60 + mDateLastFrame.seconds;
     double  elapTime        = endObsInSeconds - debObsInSeconds;
-    double  julianDate      = TimeDate::gregorianToJulian(firstDateInt);
+    double  julianDate      = TimeDate::gregorianToJulian(mDateFirstFrame);
     double  julianCentury   = TimeDate::julianCentury(julianDate);
-    double  sideralT        = TimeDate::localSideralTime_2(julianCentury, firstDateInt.at(3), firstDateInt.at(4), firstDateInt.at(5), fitsHeader.kSITELONG);
+    double  sideralT        = TimeDate::localSideralTime_2(julianCentury, mDateFirstFrame.hours,  mDateFirstFrame.minutes, (int)mDateFirstFrame.seconds, fitsHeader.kSITELONG);
 
     BOOST_LOG_SEV(logger, notification) << "Start create fits2D to save the stack.";
 
@@ -125,18 +118,19 @@ bool Stack::saveStack(Fits fitsHeader, string path, StackMeth stackMthd, string 
     BOOST_LOG_SEV(logger, notification) << "Setting Fits DATE (creation date) key : " << to_iso_extended_string(time);
     newFits.kDATE = to_iso_extended_string(time);
     // Frame exposure time (sec.)
-    BOOST_LOG_SEV(logger, notification) << "Setting fits ONTIME (Frame exposure time (sec.)) key : " << expFirstFrame/1000000.0;
-    newFits.kONTIME = expFirstFrame/1000000.0;
+    BOOST_LOG_SEV(logger, notification) << "Setting fits ONTIME (Frame exposure time (sec.)) key : " << sumExpTime/1000000.0;
+    newFits.kONTIME = sumExpTime/1000000.0;
     // Detector gain
     BOOST_LOG_SEV(logger, notification) << "Setting fits GAIN key : " << gainFirstFrame;
     newFits.kGAINDB = gainFirstFrame;
     // Acquisition date of the first frame 'YYYY-MM-JJTHH:MM:SS.SS'
-    BOOST_LOG_SEV(logger, notification) << "Setting fits DATEOBS (Acquisition date of the first frame) key : " << dateFirstFrame;
-    newFits.kDATEOBS = dateFirstFrame;
-    // Integration time : 1/fps * nb_frames (sec.)
-    BOOST_LOG_SEV(logger, notification) << "Setting fits EXPOSURE (Integration time : 1/fps * nb_frames (sec.)) key : " << (1.0f/fps)*curFrames;
-    if(fps <= 0) fps = 1;
-    newFits.kEXPOSURE = (1.0f/fps)*curFrames;
+    newFits.kDATEOBS = TimeDate::getIsoExtendedFormatDate(mDateFirstFrame);
+
+    if(varExpTime)
+        newFits.kEXPOSURE = 999999;
+    else
+        newFits.kEXPOSURE = expFirstFrame/1000000.0;
+
     // end obs. date - start obs. date (sec.)
     BOOST_LOG_SEV(logger, notification) << "Setting fits ELAPTIME (end obs. date - start obs. date (sec.)) key : " << elapTime;
     newFits.kELAPTIME = elapTime;

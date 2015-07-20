@@ -65,33 +65,29 @@ string TimeDate::getCurrentDateYYYYMMDD() {
 
 }
 
-double TimeDate::gregorianToJulian(vector<int> date){
+double TimeDate::gregorianToJulian(Date date){
 
-    int y   = date.at(0);
-    int m   = date.at(1);
-    int d   = date.at(2);
+    if(date.month == 1 || date.month == 2){
 
-    if(m == 1 || m == 2){
-
-        y = y - 1;
-        m = m + 12;
+        date.year = date.year - 1;
+        date.month = date.month + 12;
 
     }
 
     double A, A1, B, C, D;
-    double f0 = modf(y/100,&A);
+    double f0 = modf(date.year/100,&A);
     double f1 = modf(A/4,&A1);
     B = 2-A+A1;
-    double f2 = modf(365.25*y,&C);
-    double f3 = modf(30.6001*(m+1),&D);
+    double f2 = modf(365.25*date.year,&C);
+    double f3 = modf(30.6001*(date.month+1),&D);
 
     std::ostringstream strs;
-    double val = B+C+D+d+1720994.5;
+    double val = B+C+D+date.day+1720994.5;
     strs << val;
     std::string str = strs.str();
     //cout <<std::setprecision(5)<< std::fixed<< val<<endl;
 
-    return B+C+D+d+1720994.5;
+    return B+C+D+date.day+1720994.5;
 
 }
 
@@ -326,6 +322,37 @@ vector<int> TimeDate::getIntVectorFromDateString(string date){
 
 }
 
+// Input date format : YYYY-MM-DDTHH:MM:SS,fffffffff
+// Output : YYYY, MM, DD, hh, mm, ss.ss
+TimeDate::Date TimeDate::splitIsoExtendedDate(string date) {
+
+    Date res;
+    res.year = atoi(date.substr(0,4).c_str());
+    res.month = atoi(date.substr(5,2).c_str());
+    res.day = atoi(date.substr(8,2).c_str());
+    res.hours = atoi(date.substr(11,2).c_str());
+    res.minutes = atoi(date.substr(14,2).c_str());
+    res.seconds = stod(date.substr(17,string::npos).c_str());
+
+    return res;
+    
+}
+
+// Input : YYYY, MM, DD, hh, mm, ss.ss
+// Output  YYYY-MM-DDTHH:MM:SS,fffffffff
+string TimeDate::getIsoExtendedFormatDate(Date date) {
+
+    string isoExtendedDate =    Conversion::intToString(date.year) + "-" + 
+                                Conversion::numbering(2,date.month) + Conversion::intToString(date.month) + "-" + 
+                                Conversion::numbering(2,date.day) + Conversion::intToString(date.day) + "T" + 
+                                Conversion::numbering(2,date.hours) + Conversion::intToString(date.hours) + ":" + 
+                                Conversion::numbering(2,date.minutes) + Conversion::intToString(date.minutes) + ":" + 
+                                Conversion::numbering(2,(int)date.seconds) + Conversion::doubleToString(date.seconds);
+
+    return isoExtendedDate;
+
+}
+
 // Input date format : YYYY:MM:DD from YYYY-MM-DDTHH:MM:SS,fffffffff
 string TimeDate::getYYYYMMDDfromDateString(string date){
 
@@ -357,6 +384,29 @@ string TimeDate::getYYYYMMDDfromDateString(string date){
 
     return yyyymmdd;
 
+}
+
+// output : YYYYMMJJTHHMMSS
+string TimeDate::getYYYYMMDDThhmmss(Date date) {
+
+    string res =    Conversion::intToString(date.year) + 
+                    Conversion::numbering(2,date.month) + Conversion::intToString(date.month) + 
+                    Conversion::numbering(2,date.day) + Conversion::intToString(date.day) + "T" +
+                    Conversion::numbering(2,date.hours) + Conversion::intToString(date.hours) + 
+                    Conversion::numbering(2,date.minutes) + Conversion::intToString(date.minutes) + 
+                    Conversion::numbering(2,(int)date.seconds) + Conversion::intToString(date.seconds) ;
+
+    return res;
+
+}
+
+string TimeDate::getYYYYMMDD(Date date) {
+
+    string res =    Conversion::intToString(date.year) + 
+                    Conversion::numbering(2,date.month) + Conversion::intToString(date.month) + 
+                    Conversion::numbering(2,date.day) + Conversion::intToString(date.day);
+
+    return res;
 }
 
 string TimeDate::getYYYYMMDDThhmmss(string date){

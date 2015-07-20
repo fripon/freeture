@@ -89,11 +89,13 @@ class Stack {
         int             curFrames;
         int             gainFirstFrame;
         int             expFirstFrame;
-        string          dateFirstFrame;
-        string          dateLastFrame;
+        TimeDate::Date          mDateFirstFrame;
+        TimeDate::Date          mDateLastFrame;
         int             fps;
         bool            fullStatus;
         CamBitDepth     bitdepth;
+        bool            varExpTime;
+        double          sumExpTime;
 
     public :
 
@@ -128,7 +130,7 @@ class Stack {
         *
         * @return Date.
         */
-        string getDateFirstFrame(){return dateFirstFrame;};
+        TimeDate::Date getDateFirstFrame(){return mDateFirstFrame;};
 
         /**
         * Save stack.

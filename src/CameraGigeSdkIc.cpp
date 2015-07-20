@@ -1,26 +1,26 @@
 /*
-							CameraGigeSdkIc.cpp
+                            CameraGigeSdkIc.cpp
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 *
-*	This file is part of:	freeture
+*   This file is part of:   freeture
 *
-*	Copyright:		(C) 2014-2015 Yoan Audureau -- FRIPON-GEOPS-UPSUD
+*   Copyright:      (C) 2014-2015 Yoan Audureau -- FRIPON-GEOPS-UPSUD
 *
-*	License:		GNU General Public License
+*   License:        GNU General Public License
 *
-*	FreeTure is free software: you can redistribute it and/or modify
-*	it under the terms of the GNU General Public License as published by
-*	the Free Software Foundation, either version 3 of the License, or
-*	(at your option) any later version.
-*	FreeTure is distributed in the hope that it will be useful,
-*	but WITHOUT ANY WARRANTY; without even the implied warranty of
-*	MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-*	GNU General Public License for more details.
-*	You should have received a copy of the GNU General Public License
-*	along with FreeTure. If not, see <http://www.gnu.org/licenses/>.
+*   FreeTure is free software: you can redistribute it and/or modify
+*   it under the terms of the GNU General Public License as published by
+*   the Free Software Foundation, either version 3 of the License, or
+*   (at your option) any later version.
+*   FreeTure is distributed in the hope that it will be useful,
+*   but WITHOUT ANY WARRANTY; without even the implied warranty of
+*   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+*   GNU General Public License for more details.
+*   You should have received a copy of the GNU General Public License
+*   along with FreeTure. If not, see <http://www.gnu.org/licenses/>.
 *
-*	Last modified:		21/01/2015
+*   Last modified:      21/01/2015
 *
 *%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%*/
 
@@ -37,38 +37,38 @@
 
 #ifdef WINDOWS
 
-	boost::log::sources::severity_logger< LogSeverityLevel >  CameraGigeSdkIc::logger;
+    boost::log::sources::severity_logger< LogSeverityLevel >  CameraGigeSdkIc::logger;
 
-	CameraGigeSdkIc::Init CameraGigeSdkIc::initializer;
+    CameraGigeSdkIc::Init CameraGigeSdkIc::initializer;
 
-	CameraGigeSdkIc::CameraGigeSdkIc(){
+    CameraGigeSdkIc::CameraGigeSdkIc(){
 
-		if(!DShowLib::InitLibrary())
-			throw "Fail DShowLib::InitLibrary().";
-		
-		m_pGrabber = new DShowLib::Grabber();
-		mFrameCounter = 0;
-		mGain = 0;
-		mExposure = 0;
-		mFPS = 30;
-		mImgDepth = MONO_8;
-		mSaturateVal = 0;
-		mGainMin = -1;
-		mGainMax = -1;
-		mExposureMin = -1;
-		mExposureMax = -1;
-	
-	}
+        if(!DShowLib::InitLibrary())
+            throw "Fail DShowLib::InitLibrary().";
 
-	void CameraGigeSdkIc::listGigeCameras(){
+        m_pGrabber = new DShowLib::Grabber();
+        mFrameCounter = 0;
+        mGain = 0;
+        mExposure = 0;
+        mFPS = 30;
+        mImgDepth = MONO_8;
+        mSaturateVal = 0;
+        mGainMin = -1;
+        mGainMax = -1;
+        mExposureMin = -1;
+        mExposureMax = -1;
 
-		// Retrieve a list with the video capture devices connected to the computer.
-		pVidCapDevList = m_pGrabber->getAvailableVideoCaptureDevices();
+    }
 
-        cout << endl << "******************* TIS GIGE *******************" << endl << endl;
+    void CameraGigeSdkIc::listGigeCameras(){
 
-		// Print available devices.
-		for(int i = 0; i < pVidCapDevList->size(); i++) {
+        // Retrieve a list with the video capture devices connected to the computer.
+        pVidCapDevList = m_pGrabber->getAvailableVideoCaptureDevices();
+
+        cout << endl << "-------------- GIGE CAMERAS WITH TIS -----------" << endl << endl;
+
+        // Print available devices.
+        for(int i = 0; i < pVidCapDevList->size(); i++) {
 
             LARGE_INTEGER iSerNum;
             if(pVidCapDevList->at(0).getSerialNumber(iSerNum.QuadPart) == false) iSerNum.QuadPart = 0;
@@ -76,80 +76,84 @@
             ossSerNum << std::hex << iSerNum.QuadPart;
             string SerNum = ossSerNum.str();
 
-			cout << "-> ID[" << i << "]  NAME[" << pVidCapDevList->at(0).c_str() << "]  S/N[" << SerNum <<"]" << endl;
+            cout << "-> ID[" << i << "]  NAME[" << pVidCapDevList->at(0).c_str() << "]  S/N[" << SerNum <<"]" << endl;
 
         }
 
         if(pVidCapDevList->size() == 0)
             cout << "-> No cameras detected..." << endl;
-	}
 
-	// https://valelab.ucsf.edu/svn/micromanager2/branches/micromanager1.3/DeviceAdapters/TISCam/SimplePropertyAccess.cpp
-	DShowLib::tIVCDRangePropertyPtr	CameraGigeSdkIc::getPropertyRangeInterface( _DSHOWLIB_NAMESPACE::tIVCDPropertyItemsPtr& pItems, const GUID& id ){
+        cout << endl << "------------------------------------------------" << endl << endl;
 
-		GUID itemID = id;
-		GUID elemID = DShowLib::VCDElement_Value;
+    }
 
-		DShowLib::tIVCDPropertyElementPtr pFoundElement = pItems->findElement( itemID, elemID );
-		if( pFoundElement != 0 )
-		{
-			DShowLib::tIVCDRangePropertyPtr pRange;
-			if( pFoundElement->getInterfacePtr( pRange ) != 0 )
-			{
-				return pRange;
-			}
-		}
-		return 0;
-	}
+    // https://valelab.ucsf.edu/svn/micromanager2/branches/micromanager1.3/DeviceAdapters/TISCam/SimplePropertyAccess.cpp
+    DShowLib::tIVCDRangePropertyPtr	CameraGigeSdkIc::getPropertyRangeInterface( _DSHOWLIB_NAMESPACE::tIVCDPropertyItemsPtr& pItems, const GUID& id ){
 
-	bool CameraGigeSdkIc::propertyIsAvailable( const GUID& id, _DSHOWLIB_NAMESPACE::tIVCDPropertyItemsPtr m_pItemContainer ){
+        GUID itemID = id;
+        GUID elemID = DShowLib::VCDElement_Value;
 
-		return m_pItemContainer->findItem( id ) != 0;
-		
-	}
+        DShowLib::tIVCDPropertyElementPtr pFoundElement = pItems->findElement( itemID, elemID );
 
-	long CameraGigeSdkIc::getPropertyValue( const GUID& id, _DSHOWLIB_NAMESPACE::tIVCDPropertyItemsPtr m_pItemContainer ){
-	
-		long rval = 0;
-		DShowLib::tIVCDRangePropertyPtr pRange = getPropertyRangeInterface( m_pItemContainer, id );
-		if( pRange != 0 )
-		{
-			rval = pRange->getValue();
-		}
-		return rval;
-	}
+        if( pFoundElement != 0 ){
 
-	void CameraGigeSdkIc::setPropertyValue( const GUID& id, long val, _DSHOWLIB_NAMESPACE::tIVCDPropertyItemsPtr m_pItemContainer ){
+            DShowLib::tIVCDRangePropertyPtr pRange;
 
-		DShowLib::tIVCDRangePropertyPtr pRange = getPropertyRangeInterface( m_pItemContainer, id );
-		if( pRange != 0 )
-		{
-			pRange->setValue( val );
-		}
-	}
+            if( pFoundElement->getInterfacePtr( pRange ) != 0 ) {
+                return pRange;
+            }
+        }
+        return 0;
+    }
 
-	long CameraGigeSdkIc::getPropertyRangeMin( const GUID& id, _DSHOWLIB_NAMESPACE::tIVCDPropertyItemsPtr m_pItemContainer ){
+    bool CameraGigeSdkIc::propertyIsAvailable( const GUID& id, _DSHOWLIB_NAMESPACE::tIVCDPropertyItemsPtr m_pItemContainer ){
 
-		long rval = 0;
-		DShowLib::tIVCDRangePropertyPtr pRange = getPropertyRangeInterface( m_pItemContainer, id );
-		if( pRange != 0 )
-		{
-			rval = pRange->getRangeMin();
-		}
-		return rval;
-	}
+        return m_pItemContainer->findItem( id ) != 0;
 
-	long CameraGigeSdkIc::getPropertyRangeMax(const GUID& id, _DSHOWLIB_NAMESPACE::tIVCDPropertyItemsPtr m_pItemContainer){
+    }
 
-		long rval = 0;
-		DShowLib:: tIVCDRangePropertyPtr pRange = getPropertyRangeInterface( m_pItemContainer, id );
-		if( pRange != 0 )
-		{
-			rval = pRange->getRangeMax();
-		}
-		return rval;
-	}
-	
+    long CameraGigeSdkIc::getPropertyValue( const GUID& id, _DSHOWLIB_NAMESPACE::tIVCDPropertyItemsPtr m_pItemContainer ){
+
+        long rval = 0;
+        DShowLib::tIVCDRangePropertyPtr pRange = getPropertyRangeInterface( m_pItemContainer, id );
+        if( pRange != 0 ){
+            rval = pRange->getValue();
+        }
+        return rval;
+
+    }
+
+    void CameraGigeSdkIc::setPropertyValue( const GUID& id, long val, _DSHOWLIB_NAMESPACE::tIVCDPropertyItemsPtr m_pItemContainer ){
+
+        DShowLib::tIVCDRangePropertyPtr pRange = getPropertyRangeInterface( m_pItemContainer, id );
+
+        if( pRange != 0 ) {
+            pRange->setValue( val );
+        }
+    }
+
+    long CameraGigeSdkIc::getPropertyRangeMin( const GUID& id, _DSHOWLIB_NAMESPACE::tIVCDPropertyItemsPtr m_pItemContainer ){
+
+        long rval = 0;
+        DShowLib::tIVCDRangePropertyPtr pRange = getPropertyRangeInterface( m_pItemContainer, id );
+
+        if( pRange != 0 ){
+            rval = pRange->getRangeMin();
+        }
+        return rval;
+    }
+
+    long CameraGigeSdkIc::getPropertyRangeMax(const GUID& id, _DSHOWLIB_NAMESPACE::tIVCDPropertyItemsPtr m_pItemContainer){
+
+        long rval = 0;
+        DShowLib:: tIVCDRangePropertyPtr pRange = getPropertyRangeInterface( m_pItemContainer, id );
+
+        if( pRange != 0 ) {
+            rval = pRange->getRangeMax();
+        }
+        return rval;
+    }
+
 	/*bool CameraGigeSdkIc::getAvailableFormat(){
 
 		// Open device first.
@@ -178,28 +182,28 @@
 
 	}*/
 
-	bool CameraGigeSdkIc::setFPS(int value) {
+    bool CameraGigeSdkIc::setFPS(int value) {
 
-		mFPS = value;
-		cout << "set fps to : " << value << endl;
-		return m_pGrabber->setFPS((double)value);
+        mFPS = value;
+        cout << "set fps to : " << value << endl;
+        return m_pGrabber->setFPS((double)value);
+        
+    }
 
-	}
+    bool CameraGigeSdkIc::createDevice(int id){
 
-	bool CameraGigeSdkIc::createDevice(int id){
-	
-		// Open the selected video capture device.
-		m_pGrabber->openDev(pVidCapDevList->at(id));
+        // Open the selected video capture device.
+        m_pGrabber->openDev(pVidCapDevList->at(id));
 
-		if(pVidCapDevList == 0 || pVidCapDevList->empty()){
+        if(pVidCapDevList == 0 || pVidCapDevList->empty()){
 
-			cout << "No device available." << endl;
-			return false;
+            cout << "No device available." << endl;
+            return false;
 
-		}
+        }
 
-		return true;
-	}
+        return true;
+    }
 
 	bool CameraGigeSdkIc::setPixelFormat(CamBitDepth format) {
 
@@ -242,6 +246,13 @@
 
 	}
 
+    int CameraGigeSdkIc::getFPS(void){
+
+        double fps = m_pGrabber->getFPS();
+		return (int)fps;
+
+	}
+
 	void CameraGigeSdkIc::getExposureBounds(int &eMin, int &eMax) {
 
 		// Get properties.
@@ -249,8 +260,6 @@
 				
 		eMin  = (int)getPropertyRangeMin(DShowLib::VCDID_Exposure, pItems);
 		eMax  = (int)getPropertyRangeMax(DShowLib::VCDID_Exposure, pItems);
-
-		cout << "eMin : " << eMin << " eMax : " << eMax << endl;
 
 	}
 
@@ -262,9 +271,6 @@
 		gMin  = (int)getPropertyRangeMin(DShowLib::VCDID_Gain, pItems);
 		gMax  = (int)getPropertyRangeMax(DShowLib::VCDID_Gain, pItems);
 
-		cout << "gMin : " << gMin << " gMax : " << gMax << endl;
-
-	
 	}
 
 	bool CameraGigeSdkIc::setExposureTime(int value) {
@@ -281,6 +287,7 @@
 		if(value > mExposureMax || value < mExposureMin){
 
 			cout << ">> Fail to set exposure. Available range value is " << mExposureMin << " to " << mExposureMax << endl;
+            BOOST_LOG_SEV(logger,fail) << "Fail to set EXPOSURE TIME. Available range value is " << mExposureMin << " to " << mExposureMax;
 			return false;
 		}
 
@@ -303,7 +310,8 @@
 
 		if(value > mGainMax || value < mGainMin){
 
-			cout << ">> Fail to set gain. Available range value is " << mGainMin << " to " << mGainMax << endl;
+            BOOST_LOG_SEV(logger,fail) << "Fail to set GAIN. Available range value is " << mGainMin << " to " << mGainMax;
+
 			return false;
 
 		}
@@ -375,10 +383,7 @@
 		pSink->getOutputFrameType(info);
 
 		//Timestamping.
-        string acquisitionDate = TimeDate::localDateTime(microsec_clock::universal_time(),"%Y:%m:%d:%H:%M:%S");
-        //BOOST_LOG_SEV(logger, normal) << "Date : " << acquisitionDate;
         boost::posix_time::ptime time = boost::posix_time::microsec_clock::universal_time();
-        string acqDateInMicrosec = to_iso_extended_string(time);
 
 		switch(info.getBitsPerPixel()){
 					
@@ -434,19 +439,18 @@
 
 		if(newImg.data) {
 
-			newFrame = Frame(newImg, mGain, mExposure, acquisitionDate);
-			newFrame.setAcqDateMicro(acqDateInMicrosec);
-			newFrame.setFPS(mFPS);
-			newFrame.setBitDepth(mImgDepth);
-			newFrame.setSaturatedValue(mSaturateVal);
+			newFrame = Frame(newImg, mGain, mExposure, to_iso_extended_string(time));
 
-			newFrame.setNumFrame(mFrameCounter);
+			newFrame.mFps = mFPS;
+			newFrame.mBitDepth = mImgDepth;
+			newFrame.mSaturatedValue = mSaturateVal;
+
+            newFrame.mFrameNumber = mFrameCounter;
 			mFrameCounter++;
 		
 			if(mFrameCounter > 10000) {
 
 				m_pGrabber->stopLive();
-
 				m_pGrabber->closeDev();
 
 				return false;
@@ -460,66 +464,62 @@
 		
 	}
 
-	void CameraGigeSdkIc::acqStop() {
+    void CameraGigeSdkIc::acqStop() {
 
-		cout << "acqStop device" << endl;
-		m_pGrabber->stopLive();
+        m_pGrabber->stopLive();
+        m_pGrabber->closeDev();
 
-		m_pGrabber->closeDev();
+    }
 
-	}
+    void CameraGigeSdkIc::grabCleanse() {
 
-	void CameraGigeSdkIc::grabCleanse() {
+    }
 
-	}
+    bool CameraGigeSdkIc::getPixelFormat(CamBitDepth &format) {
 
-	bool CameraGigeSdkIc::getPixelFormat(CamBitDepth &format) {
+        if(m_pGrabber->getVideoFormat().getBitsPerPixel() == 8) {
 
-		if(m_pGrabber->getVideoFormat().getBitsPerPixel() == 8) {
+            format = MONO_8;
 
-			format = MONO_8;
+        }else if(m_pGrabber->getVideoFormat().getBitsPerPixel() == 16 || m_pGrabber->getVideoFormat().getBitsPerPixel() == 12) {
 
-		}else if(m_pGrabber->getVideoFormat().getBitsPerPixel() == 16 || m_pGrabber->getVideoFormat().getBitsPerPixel() == 12) {
+            format = MONO_12;
 
-			format = MONO_12;
+        }else {
 
-		}else {
+            return false;
 
-			return false;
+        }
 
-		}
+        return true;
 
-		return true;
+    }
 
-	}
-	
-	bool CameraGigeSdkIc::grabSingleImage(Frame &frame, int camID) {
+    bool CameraGigeSdkIc::grabSingleImage(Frame &frame, int camID) {
 
-		listGigeCameras();
+        listGigeCameras();
 
-        cout << endl << "************************************************" << endl << endl;
+        if(createDevice(camID)) {
 
-		if(createDevice(camID)) {
+        if(!setPixelFormat(frame.mBitDepth))
+            return false;
 
-			if(!setPixelFormat(frame.getBitDepth()))
-				return false;
-			
-			if(!setExposureTime(frame.getExposure()))
-				return false;
+        if(!setExposureTime(frame.mExposure))
+            return false;
 
-			if(!setGain(frame.getGain()))
-				return false;
+        if(!setGain(frame.mGain))
+            return false;
 
             cout << ">> Acquisition in progress..." << endl;
-								
-			// Set the sink.
-			m_pGrabber->setSinkType(pSink);
-				
-			// We use snap mode.
-			pSink->setSnapMode(true);
 
-			// Prepare the live mode, to get the output size if the sink.
-			if(!m_pGrabber->prepareLive(false)){
+            // Set the sink.
+            m_pGrabber->setSinkType(pSink);
+
+            // We use snap mode.
+            pSink->setSnapMode(true);
+
+            // Prepare the live mode, to get the output size if the sink.
+            if(!m_pGrabber->prepareLive(false)){
 
 				std::cerr << "Could not render the VideoFormat into a eY800 sink.";
 				return false;
@@ -619,14 +619,11 @@
 			m_pGrabber->closeDev();
 
 			//Timestamping.
-			string acquisitionDate = TimeDate::localDateTime(microsec_clock::universal_time(),"%Y:%m:%d:%H:%M:%S");
 			boost::posix_time::ptime time = boost::posix_time::microsec_clock::universal_time();
-			string acqDateInMicrosec = to_iso_extended_string(time);
 
-            frame.setAcqDate(acquisitionDate);
-            frame.setImg(newImg);
-            frame.setAcqDateMicro(acqDateInMicrosec);
-            frame.setFPS(0);
+            newImg.copyTo(frame.mImg);
+            frame.mDate = TimeDate::splitIsoExtendedDate(to_iso_extended_string(time));
+            frame.mFps = 0;
 
 			return true;
 			

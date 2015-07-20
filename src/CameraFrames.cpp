@@ -302,20 +302,16 @@ bool CameraFrames::grabImage(Frame &img) {
 
 		}
 
-		string acquisitionDate = TimeDate::localDateTime(microsec_clock::universal_time(),"%Y:%m:%d:%H:%M:%S");
 		boost::posix_time::ptime time = boost::posix_time::microsec_clock::universal_time();
-		string acqDateInMicrosec = to_iso_extended_string(time);
 
-		Frame f = Frame(resMat, 0, 0, acquisitionDate);
+		Frame f = Frame(resMat, 0, 0, to_iso_extended_string(time));
 
 		img = f;
 
-		img.setAcqDateMicro(acqDateInMicrosec);
-
-		img.setNumFrame(mFirstFrameNum -1 );
-		img.setFrameRemaining(mLastFrameNum - mFirstFrameNum-1);
-		img.setFPS(1);
-		img.setBitDepth(frameFormat);
+		img.mFrameNumber = mFirstFrameNum -1 ;
+        img.mFrameRemaining = mLastFrameNum - mFirstFrameNum-1;
+		img.mFps = 1;
+		img.mBitDepth = frameFormat;
 
 		//waitKey(1000);
 

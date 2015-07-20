@@ -168,7 +168,7 @@ class StackThread {
         * @param date
         * @return Success to create directory.
         */
-        bool buildStackDataDirectory(string date);
+        bool buildStackDataDirectory(TimeDate::Date date);
 
 
         /* /* if(ft.CFG_FILECOPY_ENABLED){

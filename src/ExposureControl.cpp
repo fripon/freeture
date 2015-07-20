@@ -205,7 +205,7 @@ float ExposureControl::computeMSV(){
 
 }
 
-bool ExposureControl::controlExposureTime(Device *camera, Mat image, string imageDate){
+bool ExposureControl::controlExposureTime(Device *camera, Mat image, TimeDate::Date imageDate){
 
     // Time to control exposure time.
     if(autoExposureFrameTimer == autoExposureTimeInterval){
@@ -553,7 +553,7 @@ bool ExposureControl::controlExposureTime(Device *camera, Mat image, string imag
     }
 }
 
-bool ExposureControl::checkDataLocation(string date){
+bool ExposureControl::checkDataLocation(TimeDate::Date date){
 
 
     namespace fs = boost::filesystem;
@@ -561,8 +561,8 @@ bool ExposureControl::checkDataLocation(string date){
 	// data/
 	path p(autoExposureDataLocation);
 
-    // data/STATION_YYYMMDD/
-	string sp1 = autoExposureDataLocation + stationName + "_" + TimeDate::getYYYYMMDDfromDateString(date) +"/";
+    // data/STATION_YYYYMMDD/
+	string sp1 = autoExposureDataLocation + stationName + "_" + TimeDate::getYYYYMMDD(date) +"/";
 	path p1(sp1);
 
     // data/STATION_YYYMMDD/exposure/

@@ -73,7 +73,6 @@ void Device::initialization() {
     mCamID                  = 0;
     mMaskEnabled            = false;
     mMaskPath               = "./";
-    mDayAcqEnabled          = false;
     mEphemerisEnabled       = true;
     mExpCtrlSaveImg         = false;
     mExpCtrlSaveInfos       = false;
@@ -238,10 +237,6 @@ bool Device::prepareDevice() {
                 cfg.Get("ACQ_NIGHT_GAIN", mNightGain);
                 BOOST_LOG_SEV(logger, notification) << "ACQ_NIGHT_GAIN : " << mNightGain;
 
-                // Get day option.
-                cfg.Get("ACQ_DAY_ENABLED", mDayAcqEnabled);
-                BOOST_LOG_SEV(logger, notification) << "ACQ_DAY_ENABLED : " << mDayAcqEnabled;
-
                 // Get day exposure time.
                 cfg.Get("ACQ_DAY_EXPOSURE", mDayExposure);
                 BOOST_LOG_SEV(logger, notification) << "ACQ_DAY_EXPOSURE : " << mDayExposure;
@@ -250,6 +245,20 @@ bool Device::prepareDevice() {
                 cfg.Get("ACQ_DAY_GAIN", mDayGain);
                 BOOST_LOG_SEV(logger, notification) << "ACQ_DAY_GAIN : " << mDayGain;
 
+                // Get detection mode.
+                string detection_mode;
+                cfg.Get("DET_MODE", detection_mode);
+                BOOST_LOG_SEV(logger, notification) << "DET_MODE : " << detection_mode;
+                EParser<TimeMode> detMode;
+                mDetectionMode = detMode.parseEnum("DET_MODE", detection_mode);
+
+                // Get stack mode.
+                string stack_mode;
+                cfg.Get("STACK_MODE", stack_mode);
+                BOOST_LOG_SEV(logger, notification) << "STACK_MODE : " << stack_mode;
+                EParser<TimeMode> stackMode;
+                mStackMode = stackMode.parseEnum("STACK_MODE", stack_mode);
+
                 // Get schedule option status.
                 cfg.Get("ACQ_SCHEDULE_ENABLED", mScheduleEnabled);
                 BOOST_LOG_SEV(logger, notification) << "ACQ_SCHEDULE_ENABLED : " << mScheduleEnabled;
@@ -257,11 +266,9 @@ bool Device::prepareDevice() {
                 // Get schedule acquisition ouput type.
                 string sOutput;
                 cfg.Get("ACQ_SCHEDULE_OUTPUT", sOutput);
-                 cout << "schedule output :" << sOutput << endl;
                 BOOST_LOG_SEV(logger, notification) << "ACQ_SCHEDULE_OUTPUT : " << sOutput;
                 EParser<ImgFormat> sOutput1;
                 mScheduleOutput = sOutput1.parseEnum("ACQ_SCHEDULE_OUTPUT", sOutput);
-
 
                  // Get regular acquisition option status.
                 cfg.Get("ACQ_REGULAR_ENABLED", mRegularAcqEnabled);
@@ -269,7 +276,7 @@ bool Device::prepareDevice() {
 
                 if(mScheduleEnabled && mRegularAcqEnabled){
 
-                    throw "\nCheck configuration file : \n \"You can enable ACQ_SCHEDULE_ENABLED or ACQ_REGULAR_ENABLED (not both)\"\n";
+                    throw "Check configuration file : \n \"You can enable ACQ_SCHEDULE_ENABLED or ACQ_REGULAR_ENABLED (not both)\"\n";
 
                 }
 
@@ -277,14 +284,12 @@ bool Device::prepareDevice() {
                 string regular_mode;
                 cfg.Get("ACQ_REGULAR_MODE", regular_mode);
                 BOOST_LOG_SEV(logger, notification) << "ACQ_REGULAR_MODE : " << regular_mode;
-                EParser<RegularAcqMode> regMode;
+                EParser<TimeMode> regMode;
                 mRegularMode = regMode.parseEnum("ACQ_REGULAR_MODE", regular_mode);
-                cout << "regular mode :" << mRegularMode << endl;
 
                 string regAcqParam;
                 cfg.Get("ACQ_REGULAR_CFG", regAcqParam);
                 std::transform(regAcqParam.begin(), regAcqParam.end(),regAcqParam.begin(), ::toupper);
-                //00h15m00s10000000e300g8f1n
 
                 typedef boost::tokenizer<boost::char_separator<char> > tokenizer1;
                 boost::char_separator<char> sep1("HMSEGFN");
@@ -295,7 +300,6 @@ bool Device::prepareDevice() {
                 for(tokenizer1::iterator tokIter = tokens1.begin();tokIter != tokens1.end(); ++tokIter){
 
                     res1.push_back(*tokIter);
-                    cout <<  *tokIter << endl;
 
                 }
 
@@ -303,25 +307,33 @@ bool Device::prepareDevice() {
 
                     // Get regular acquisition time interval.
                     mRegularInterval = atoi(res1.at(0).c_str()) * 3600 + atoi(res1.at(1).c_str()) * 60 + atoi(res1.at(2).c_str());
-                    BOOST_LOG_SEV(logger, notification) << "ACQ_REGULAR_INTERVAL : " << mRegularInterval;
-
+                    
                     // Get regular acquisition exposure time.
                     mRegularExposure = atoi(res1.at(3).c_str());
-                    BOOST_LOG_SEV(logger, notification) << "ACQ_REGULAR_EXPOSURE : " << mRegularExposure;
 
                     // Get regular acquisition gain.
                     mRegularGain = atoi(res1.at(4).c_str());
-                    BOOST_LOG_SEV(logger, notification) << "ACQ_REGULAR_GAIN : " << mRegularGain;
-
+                    
                     // Get regular acquisition repetition.
                     mRegularRepetition = atoi(res1.at(6).c_str());
-                    BOOST_LOG_SEV(logger, notification) << "ACQ_REGULAR_REPETITION : " << mRegularRepetition;
 
                     // Get regular acquisition format.
+                    EParser<CamBitDepth> format;
                     Conversion::intBitDepthToCamBitDepthEnum(atoi(res1.at(5).c_str()), mRegularFormat);
-                    BOOST_LOG_SEV(logger, notification) << "ACQ_REGULAR_FORMAT : " << res1.at(5);
+                    
+                    cout << "ACQ REGULAR : " << endl;
+                    cout << "  - Each " << mRegularInterval << " seconds." << endl;
+                    cout << "  - " << mRegularExposure << " exposure time." << endl;
+                    cout << "  - " << mRegularGain << " gain." << endl;
+                    cout << "  - " << mRegularRepetition << " repetition." << endl;
+                    cout << "  - " << format.getStringEnum(mRegularFormat) << " format." << endl << endl;
 
-
+                    BOOST_LOG_SEV(logger, notification) << "ACQ REGULAR : ";
+                    BOOST_LOG_SEV(logger, notification) << "  - Each : " << mRegularInterval << " seconds.";
+                    BOOST_LOG_SEV(logger, notification) << "  - " << mRegularExposure << " exposure time.";
+                    BOOST_LOG_SEV(logger, notification) << "  - " << mRegularGain << " gain.";
+                    BOOST_LOG_SEV(logger, notification) << "  - " << mRegularRepetition << " repetition.";
+                    BOOST_LOG_SEV(logger, notification) << "  - " << format.getStringEnum(mRegularFormat) << " format.";
 
                 }
 
@@ -331,7 +343,6 @@ bool Device::prepareDevice() {
                 BOOST_LOG_SEV(logger, notification) << "ACQ_REGULAR_OUTPUT : " << rOutput;
                 EParser<ImgFormat> rOutput1;
                 mRegularOutput = rOutput1.parseEnum("ACQ_REGULAR_OUTPUT", rOutput);
-                cout << "regular output :" << mRegularOutput << endl;
 
                 // Get ephemeris option.
                 cfg.Get("EPHEMERIS_ENABLED", mEphemerisEnabled);
@@ -602,7 +613,6 @@ bool Device::getSunTimes() {
 
         }
 
-
         sunsetStartH = mSunsetTime.at(0);
         sunsetStartM = mSunsetTime.at(1);
 
@@ -643,12 +653,9 @@ bool Device::getSunTimes() {
 
             }
 
-
             sunsetStopM = intpart4;
 
         }
-
-
 
     }
 
@@ -671,7 +678,7 @@ void Device::runContinuousAcquisition(){
     cam->listGigeCameras();
 
     /// Create camera according to its ID.
-    BOOST_LOG_SEV(logger, notification) << "Creating Device according ID " << mCamID << " ...";
+    BOOST_LOG_SEV(logger, notification) << "Create device with ID  : " << mCamID;
     if(!cam->createDevice(mCamID))
         throw "Fail to create device.";
 
@@ -680,10 +687,11 @@ void Device::runContinuousAcquisition(){
     if(!cam->setPixelFormat(mBitDepth))
         throw "Fail to set Format.";
 
-
     cam->getExposureBounds(mMinExposureTime, mMaxExposureTime);
+    BOOST_LOG_SEV(logger, notification) << "Get camera exposure bounds : " << mMinExposureTime << " - " << mMaxExposureTime;
 
     cam->getGainBounds(mMinGain, mMaxGain);
+    BOOST_LOG_SEV(logger, notification) << "Get camera gain bounds : " << mMinGain << " - " << mMaxGain;
 
     // Sunrise start/stop, Sunset start/stop.
     getSunTimes();
@@ -691,60 +699,52 @@ void Device::runContinuousAcquisition(){
     // Check sunrise and sunset time.
     if((mCurrentTime > mStopSunriseTime && mCurrentTime < mStartSunsetTime)){
 
-        cout << "DAYTIME         :  YES" << endl;
-        cout << "AUTO EXPOSURE   :  NO" << endl;
-        cout << "EXPOSURE TIME   :  " << mDayExposure << endl;
+        BOOST_LOG_SEV(logger, notification) << "DAYTIME         :  YES";
+        BOOST_LOG_SEV(logger, notification) << "AUTO EXPOSURE   :  NO";
+        BOOST_LOG_SEV(logger, notification) << "EXPOSURE TIME   :  " << mDayExposure;
+        BOOST_LOG_SEV(logger, notification) << "GAIN            :  " << mDayGain;
 
         /// Set camera exposure time.
-        BOOST_LOG_SEV(logger, notification) << "Setting day exposure time to " << mDayExposure << "...";
         if(!cam->setExposureTime(mDayExposure))
             throw "Fail to set Night Exposure.";
 
-        cout << "GAIN            :  " << mDayGain << endl;
-
         /// Set camera gain.
-        BOOST_LOG_SEV(logger, notification) << "Setting day gain to " << mDayGain << "...";
         if(!cam->setGain(mDayGain))
             throw "Fail to set Night Gain.";
 
     }else if((mCurrentTime > mStopSunsetTime) || (mCurrentTime < mStartSunriseTime) ){
 
-        cout << "DAYTIME         :  NO" << endl;
-        cout << "AUTO EXPOSURE   :  NO" << endl;
-        cout << "EXPOSURE TIME   :  " << mNightExposure << endl;
+        BOOST_LOG_SEV(logger, notification) << "DAYTIME         :  NO";
+        BOOST_LOG_SEV(logger, notification) << "AUTO EXPOSURE   :  NO";
+        BOOST_LOG_SEV(logger, notification) << "EXPOSURE TIME   :  " << mNightExposure;
+        BOOST_LOG_SEV(logger, notification) << "GAIN            :  " << mNightGain;
 
         /// Set camera exposure time.
-        BOOST_LOG_SEV(logger, notification) << "Setting night exposure time to " << mNightExposure << "...";
         if(!cam->setExposureTime(mNightExposure))
             throw "Fail to set Day Exposure.";
 
-        cout << "GAIN            :  " << mNightGain << endl;
-
         /// Set camera gain.
-        BOOST_LOG_SEV(logger, notification) << "Setting night gain to " << mNightGain << "...";
         if(!cam->setGain(mNightGain))
             throw "Fail to set Day Gain.";
 
     }else{
 
-        cout << "DAYTIME         :  NO" << endl;
-        cout << "AUTO EXPOSURE   :  YES" << endl;
-        cout << "EXPOSURE TIME   :  Minimum (" << mMinExposureTime << ")"<< mNightExposure << endl;
+        BOOST_LOG_SEV(logger, notification) << "DAYTIME         :  NO";
+        BOOST_LOG_SEV(logger, notification) << "AUTO EXPOSURE   :  YES";
+        BOOST_LOG_SEV(logger, notification) << "EXPOSURE TIME   :  Minimum (" << mMinExposureTime << ")"<< mNightExposure;
+        BOOST_LOG_SEV(logger, notification) << "GAIN            :  Minimum (" << mMinGain << ")";
 
         if(!cam->setExposureTime(mMinExposureTime))
             throw "Fail to set Day Exposure.";
 
-        cout << "GAIN            :  Minimum (" << mMinGain << ")" << endl;
-
         /// Set camera gain.
-        BOOST_LOG_SEV(logger, notification) << "Setting night gain to " << mMinGain << "...";
         if(!cam->setGain(mMinGain))
             throw "Fail to set Day Gain.";
 
     }
 
     /// Set camera fps.
-    BOOST_LOG_SEV(logger, notification) << "Setting fps...";
+    BOOST_LOG_SEV(logger, notification) << "Setting fps to " << mFPS;
     if(!cam->setFPS(mFPS))
         throw "Fail to set Fps.";
 

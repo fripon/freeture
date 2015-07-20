@@ -3,24 +3,25 @@
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 *
-*	This file is part of:	freeture
+*   This file is part of:   freeture
 *
-*	Copyright:		(C) 2014-2015 Yoan Audureau -- FRIPON-GEOPS-UPSUD
+*   Copyright:      (C) 2014-2015 Yoan Audureau
+*                               FRIPON-GEOPS-UPSUD-CNRS
 *
-*	License:		GNU General Public License
+*   License:        GNU General Public License
 *
-*	FreeTure is free software: you can redistribute it and/or modify
-*	it under the terms of the GNU General Public License as published by
-*	the Free Software Foundation, either version 3 of the License, or
-*	(at your option) any later version.
-*	FreeTure is distributed in the hope that it will be useful,
-*	but WITHOUT ANY WARRANTY; without even the implied warranty of
-*	MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-*	GNU General Public License for more details.
-*	You should have received a copy of the GNU General Public License
-*	along with FreeTure. If not, see <http://www.gnu.org/licenses/>.
+*   FreeTure is free software: you can redistribute it and/or modify
+*   it under the terms of the GNU General Public License as published by
+*   the Free Software Foundation, either version 3 of the License, or
+*   (at your option) any later version.
+*   FreeTure is distributed in the hope that it will be useful,
+*   but WITHOUT ANY WARRANTY; without even the implied warranty of
+*   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+*   GNU General Public License for more details.
+*   You should have received a copy of the GNU General Public License
+*   along with FreeTure. If not, see <http://www.gnu.org/licenses/>.
 *
-*	Last modified:		20/10/2014
+*   Last modified:      20/10/2014
 *
 *%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%*/
 
@@ -118,8 +119,6 @@ class DetectionTemporal : public Detection {
         bool                            mDebugVideo;            // Create a video for debugging (parameter from configuration file).
         string                          mMaskPath;              // Location of the mask to use  (parameter from configuration file).
         bool                            mMaskEnabled;
-        bool                            mStaticMaskEnabled;
-        int                             mStaticMaskInterval;
         VideoWriter                     mVideoDebug;            // Video debug container.
         int                             mRoiSize[2];
         int                             mImgNum;                // Current frame number.
@@ -133,9 +132,8 @@ class DetectionTemporal : public Detection {
         int                             mDataSetCounter;
         bool                            mUpdateMask;
         bool                            mDebugUpdateMask;
-        string mDebugUpdateMaskPath;
 
-        boost::circular_buffer<Mat>     mCapBuffer = boost::circular_buffer<Mat>(5) ;
+        boost::circular_buffer<Mat>     mCapBuffer;
 
         //boost::circular_buffer<Frame> frameBuffer(ACQ_BUFFER_SIZE * ACQ_FPS);
         int                             mCapCounter;
@@ -201,7 +199,7 @@ class DetectionTemporal : public Detection {
         *
         * @return Date of the event : YYYY-MM-DDTHH:MM:SS,fffffffff
         */
-        string getDateEvent() {return (*mGeToSave).getDate();};
+        TimeDate::Date getDateEvent() {return (*mGeToSave).getDate();};
 
         /**
         * Get frame's number (in frame buffer) of the last frame which belongs to the detected event.

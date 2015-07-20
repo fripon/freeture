@@ -86,7 +86,6 @@ class AcqThread {
         StackThread         *pStack;                // Pointer on stack thread.
         string              mDataLocation;          // Complete dynamic location where to save data.
         ExposureControl     *pExpCtrl;              // Pointer on exposure time adjustment object.
-        bool                mStackThreadStatus;     // Enable (night) or disable (day) stackThread.
         string              mCfgPath;               // Configuration file path.
 
 
@@ -170,22 +169,6 @@ class AcqThread {
     private :
 
         /**
-         * Run scheduled acquisition.
-         *
-         * @param task Scheduled acquisition.
-         * @return Success to run single acquisition.
-         */
-        bool runScheduledAcquisition(AcqSchedule task);
-
-        /**
-         * Run regular acquisition.
-         *
-         * @param frameDate Single acquisition date.
-         * @return Success to run single acquisition.
-         */
-        bool runRegularAcquisition(string frameDate);
-
-        /**
          * Build single acquisition directory.
          *
          * @param YYYYMMDD Acquisition date.
@@ -203,7 +186,11 @@ class AcqThread {
          * Select next scheduled acquisition.
          *
          */
-        void selectNextAcquisitionSchedule();
+        void selectNextAcquisitionSchedule(TimeDate::Date date);
+
+        void saveImageCaptured(Frame &img, int imgNum, ImgFormat outputType);
+
+        void runImageCapture(int imgNumber, int imgExposure, int imgGain, CamBitDepth imgFormat, ImgFormat imgOutput);
 
 };
 

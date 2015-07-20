@@ -1,26 +1,26 @@
 /*
-								AcqThread.cpp
+                            AcqThread.cpp
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 *
-*	This file is part of:	freeture
+*   This file is part of:   freeture
 *
-*	Copyright:		(C) 2014-2015 Yoan Audureau -- FRIPON-GEOPS-UPSUD
+*   Copyright:      (C) 2014-2015 Yoan Audureau -- FRIPON-GEOPS-UPSUD
 *
-*	License:		GNU General Public License
+*   License:        GNU General Public License
 *
-*	FreeTure is free software: you can redistribute it and/or modify
-*	it under the terms of the GNU General Public License as published by
-*	the Free Software Foundation, either version 3 of the License, or
-*	(at your option) any later version.
-*	FreeTure is distributed in the hope that it will be useful,
-*	but WITHOUT ANY WARRANTY; without even the implied warranty of
-*	MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-*	GNU General Public License for more details.
-*	You should have received a copy of the GNU General Public License
-*	along with FreeTure. If not, see <http://www.gnu.org/licenses/>.
+*   FreeTure is free software: you can redistribute it and/or modify
+*   it under the terms of the GNU General Public License as published by
+*   the Free Software Foundation, either version 3 of the License, or
+*   (at your option) any later version.
+*   FreeTure is distributed in the hope that it will be useful,
+*   but WITHOUT ANY WARRANTY; without even the implied warranty of
+*   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+*   GNU General Public License for more details.
+*   You should have received a copy of the GNU General Public License
+*   along with FreeTure. If not, see <http://www.gnu.org/licenses/>.
 *
-*	Last modified:		21/01/2015
+*   Last modified:      21/01/2015
 *
 *%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%*/
 
@@ -57,7 +57,7 @@ AcqThread::AcqThread(   CamType                             camType,
                         stackSignal_condition(sSignal_c), detSignal(dSignal), detSignal_mutex(dSignal_m),
                         detSignal_condition(dSignal_c), pDetection(detection), pStack(stack), mThread(NULL),
                         mMustStop(false), mDevice(NULL), mNbGrabFail(0), mNbGrabSuccess(0), mThreadEndStatus(false),
-                        mNextAcqIndex(0), pExpCtrl(NULL), mStackThreadStatus(false){
+                        mNextAcqIndex(0), pExpCtrl(NULL) {
 
 }
 
@@ -81,7 +81,6 @@ void AcqThread::stopThread(){
     mMustStop = true;
     mMustStopMutex.unlock();
 
-    // Wait for the thread to finish.
     if(mThread != NULL){
 
         while(mThread->timed_join(boost::posix_time::seconds(2)) == false){
@@ -105,7 +104,7 @@ bool AcqThread::startThread(){
 
     }
 
-    BOOST_LOG_SEV(logger,normal) << "Sucess to prepare device.";
+    BOOST_LOG_SEV(logger,normal) << "Success to prepare device.";
     BOOST_LOG_SEV(logger,normal) << "Create acquisition thread.";
 
     mThread = new boost::thread(boost::ref(*this));
@@ -123,20 +122,22 @@ bool AcqThread::getThreadEndStatus(){
 void AcqThread::operator()(){
 
     bool stop = false;
-    vector<string> frameDate;   // Date in string vector : YYYY  MM  DD  hh  mm  ss
-    string accurateFrameDate;   // Date in string : YYYY-MM-DDTHH:MM:SS,fffffffff
 
     BOOST_LOG_SCOPED_THREAD_TAG("LogName", "ACQ_THREAD");
     BOOST_LOG_SEV(logger,notification) << "\n";
     BOOST_LOG_SEV(logger,notification) << "==============================================";
-    BOOST_LOG_SEV(logger,notification) << "========== Start acquisition thread ==========";
+    BOOST_LOG_SEV(logger,notification) << "========== START ACQUISITION THREAD ==========";
     BOOST_LOG_SEV(logger,notification) << "==============================================";
 
     /// Prepare scheduled long acquisition.
 
     mAcqScheduledList = mDevice->getSchedule();     // Get acquisition schedule.
     sortAcquisitionSchedule();                      // Order schedule times.
-    selectNextAcquisitionSchedule();                // Search next acquisition according to the current time.
+
+    boost::posix_time::ptime time = boost::posix_time::microsec_clock::universal_time();
+
+    // Search next acquisition according to the current time.
+    selectNextAcquisitionSchedule(TimeDate::splitIsoExtendedDate(to_iso_extended_string(time))); 
 
     bool scheduleTaskStatus = false;
     bool scheduleTaskActive = false;
@@ -146,8 +147,9 @@ void AcqThread::operator()(){
     int regularAcqFrameInterval = 0;
     int regularAcqFrameCounter = 0;
 
-    if(mDevice->getAcqRegularEnabled())
+    if(mDevice->getAcqRegularEnabled()) {
         regularAcqFrameInterval = mDevice->getAcqRegularTimeInterval() * mDevice->getCam()->getFPS();
+    }
 
     /// Exposure adjustment variables.
 
@@ -155,20 +157,16 @@ void AcqThread::operator()(){
     bool exposureControlActive = false;
     bool cleanStatus = false;
 
-    if(mDevice->getAcqDayEnabled())
+    if(!mDevice->getVideoFramesInput()) {
 
         pExpCtrl = new ExposureControl( mDevice->getExposureControlFrequency(),
                                         mDevice->getExposureControlSaveImage(),
                                         mDevice->getExposureControlSaveInfos(),
                                         mDevice->getDataPath(),
                                         mDevice->getStationName());
+    }
 
-    /// Enable or disable stack thread in daytime.
-
-    if(pStack != NULL)
-        mStackThreadStatus = true;
-    else
-        mStackThreadStatus = false;
+    TimeMode previousTimeMode = NONE;
 
     /// Acquisition process.
 
@@ -176,220 +174,277 @@ void AcqThread::operator()(){
 
         do {
 
-            // Load videos file or frames directory if input type is : FRAMES or VIDEO
+            // Location of a video or frames if input type is FRAMES or VIDEO.
             string location = "";
+
+            // Load videos file or frames directory if input type is FRAMES or VIDEO
             if(!mDevice->getCam()->loadNextDataSet(location)) break;
 
             if(pDetection != NULL) pDetection->setCurrentDataSet(location);
 
             do {
 
+                // Container for the grabbed image.
                 Frame newFrame;
-                bool grabStatus = false;
 
+                // Time counter of grabbing a frame.
                 double tacq = (double)getTickCount();
+          
+                // Grab a frame.
+                if(mDevice->getCam()->grabImage(newFrame)) {
 
-                if(mDevice->getCam()->grabImage(newFrame)){
-
+                    BOOST_LOG_SEV(logger, normal)   << "============= FRAME " << newFrame.mFrameNumber << " ============= ";
+                    cout                            << "============= FRAME " << newFrame.mFrameNumber << " ============= " << endl;
+                    
+                    // Camera type in input is FRAMES or VIDEO.
                     if(mDevice->getVideoFramesInput()) {
+
+                        // Push the new frame in the framebuffer.
+                        boost::mutex::scoped_lock lock(*frameBuffer_mutex);
+                        frameBuffer->push_back(newFrame);
+                        lock.unlock();
+
+                        // Notify detection thread.
+                        if(pDetection != NULL) {
+
+                            boost::mutex::scoped_lock lock2(*detSignal_mutex);
+                            *detSignal = true;
+                            detSignal_condition->notify_one();
+                            lock2.unlock();
+
+                        }
+
+                        // Slow down the time in order to give more time to the detection process.
 
                         #ifdef WINDOWS
                             Sleep(1000);
                         #else
                             #ifdef LINUX
-                            sleep(1);
+                                sleep(1);
                             #endif
                         #endif
 
-                    }
+                    }else {
 
-                    grabStatus = true;
+                        // Get current time in seconds.
+                        int currentTimeInSec = newFrame.mDate.hours * 3600 + newFrame.mDate.minutes * 60 + (int)newFrame.mDate.seconds;
 
-                    BOOST_LOG_SEV(logger, normal) << "============= FRAME " << newFrame.getNumFrame() << " ============= ";
-                    cout << "============= FRAME " << newFrame.getNumFrame() << " ============= " << endl;
+                        // Detect day or night status.
+                        TimeMode currentTimeMode = NONE;
 
-                    // Get date.
-                    frameDate = newFrame.getDateString();
-                    accurateFrameDate = newFrame.getAcqDateMicro();
-
-                    // Check if exposure control is active.
-                    if(!exposureControlStatus){
-
-                        // Exposure control is not active, the new frame can be shared with others threads.
-
-                        boost::mutex::scoped_lock lock(*frameBuffer_mutex);
-                        frameBuffer->push_back(newFrame);
-                        lock.unlock();
-
-                        boost::mutex::scoped_lock lock2(*detSignal_mutex);
-                        *detSignal = true;
-                        detSignal_condition->notify_one();
-                        lock2.unlock();
-
-                        if(mStackThreadStatus){
-
-                            boost::mutex::scoped_lock lock3(*stackSignal_mutex);
-                            *stackSignal = true;
-                            stackSignal_condition->notify_one();
-                            lock3.unlock();
-
+                        if((currentTimeInSec > mDevice->mStopSunsetTime) || (currentTimeInSec < mDevice->mStartSunriseTime)) {
+                            currentTimeMode = NIGHT;
+                        }else if((currentTimeInSec > mDevice->mStartSunriseTime) && (currentTimeInSec < mDevice->mStopSunsetTime)) {
+                            currentTimeMode = DAY;
                         }
 
-                        cleanStatus = false;
+                        // If exposure control is not active, the new frame can be shared with others threads.
+                        if(!exposureControlStatus) {
 
-                    }else{
-
-                        // Exposure control is active, the new frame can't be shared with others threads.
-                        if(!cleanStatus){
-
-                            // If stack process exists.
-                            if(pStack != NULL){
-
-                                boost::mutex::scoped_lock lock(*stackSignal_mutex);
-                                *stackSignal = false;
-                                lock.unlock();
-
-                                // Force interruption.
-                                cout << "Send interruption signal to stack " << endl;
-                                pStack->interruptThread();
-
-                            }
-
-                            // If detection process exists
-                            if(pDetection != NULL){
-
-                                boost::mutex::scoped_lock lock(*detSignal_mutex);
-                                *detSignal = false;
-                                lock.unlock();
-                                cout << "Sending interruption signal to detection process... " << endl;
-                                pDetection->interruptThread();
-
-                            }
-
-                            // Reset framebuffer.
-                            cout << "Cleaning frameBuffer..." << endl;
+                            // Push the new frame in the framebuffer.
                             boost::mutex::scoped_lock lock(*frameBuffer_mutex);
-                            frameBuffer->clear();
+                            frameBuffer->push_back(newFrame);
                             lock.unlock();
 
-                            cleanStatus = true;
+                            // Notify detection thread.
+                            if(pDetection != NULL) {
+
+                                if(previousTimeMode != NONE && previousTimeMode != currentTimeMode && mDevice->mDetectionMode != DAYNIGHT) {
+
+                                    BOOST_LOG_SEV(logger, notification) << "TimeMode has changed ! ";
+                                    boost::mutex::scoped_lock lock(*detSignal_mutex);
+                                    *detSignal = false;
+                                    lock.unlock();
+                                    cout << "Send interruption signal to detection process " << endl;
+                                    pDetection->interruptThread();
+                                    
+                                }else if(mDevice->mDetectionMode == currentTimeMode || mDevice->mDetectionMode == DAYNIGHT) {
+
+                                    boost::mutex::scoped_lock lock2(*detSignal_mutex);
+                                    *detSignal = true;
+                                    detSignal_condition->notify_one();
+                                    lock2.unlock();
+                                
+                                }
+                            }
+
+                            // Notify stack thread.
+                            if(pStack != NULL) {
+
+                                // TimeMode has changed.
+                                if(previousTimeMode != NONE && previousTimeMode != currentTimeMode && mDevice->mStackMode != DAYNIGHT) {
+
+                                    BOOST_LOG_SEV(logger, notification) << "TimeMode has changed ! ";
+                                    boost::mutex::scoped_lock lock(*stackSignal_mutex);
+                                    *stackSignal = false;
+                                    lock.unlock();
+
+                                    // Force interruption.
+                                    cout << "Send interruption signal to stack " << endl;
+                                    pStack->interruptThread();
+                                    
+                                }else if(mDevice->mStackMode == currentTimeMode || mDevice->mStackMode == DAYNIGHT) {
+
+                                    boost::mutex::scoped_lock lock3(*stackSignal_mutex);
+                                    *stackSignal = true;
+                                    stackSignal_condition->notify_one();
+                                    lock3.unlock();
+
+                                }
+                            }
+
+                            cleanStatus = false;
+
+                        }else {
+
+                            // Exposure control is active, the new frame can't be shared with others threads.
+                            if(!cleanStatus) {
+
+                                // If stack process exists.
+                                if(pStack != NULL) {
+
+                                    boost::mutex::scoped_lock lock(*stackSignal_mutex);
+                                    *stackSignal = false;
+                                    lock.unlock();
+
+                                    // Force interruption.
+                                    cout << "Send interruption signal to stack " << endl;
+                                    pStack->interruptThread();
+
+                                }
+
+                                // If detection process exists
+                                if(pDetection != NULL) {
+
+                                    boost::mutex::scoped_lock lock(*detSignal_mutex);
+                                    *detSignal = false;
+                                    lock.unlock();
+                                    cout << "Sending interruption signal to detection process... " << endl;
+                                    pDetection->interruptThread();
+
+                                }
+
+                                // Reset framebuffer.
+                                cout << "Cleaning frameBuffer..." << endl;
+                                boost::mutex::scoped_lock lock(*frameBuffer_mutex);
+                                frameBuffer->clear();
+                                lock.unlock();
+
+                                cleanStatus = true;
+
+                            }
 
                         }
 
-                    }
+                        previousTimeMode = currentTimeMode;
+                        
+                        // Adjust exposure time.
+                        if(pExpCtrl != NULL && exposureControlActive)
+                            exposureControlStatus = pExpCtrl->controlExposureTime(mDevice, newFrame.mImg, newFrame.mDate);
 
-                    if(pExpCtrl != NULL && exposureControlActive)
-                        exposureControlStatus = pExpCtrl->controlExposureTime(mDevice, newFrame.getImg(), accurateFrameDate);
+                        // Get current date YYYYMMDD.
+                        string currentFrameDate =   TimeDate::getYYYYMMDD(newFrame.mDate);
 
-                }else{
+                        // If the date has changed, sun ephemeris must be updated.
+                        if(currentFrameDate != mDevice->mCurrentDate) {
 
-                    BOOST_LOG_SEV(logger, notification) << ">> Fail to grab frame";
-                    mNbGrabFail++;
+                            BOOST_LOG_SEV(logger, notification) << "Date has changed. Former Date is " << mDevice->mCurrentDate << ". New Date is " << currentFrameDate << "." ;
+                            mDevice->getSunTimes();
 
-                }
+                        }
 
-                if(grabStatus && !mDevice->getVideoFramesInput()){
+                        // Acquisition at regular time interval is enabled.
+                        if(mDevice->getAcqRegularEnabled()) {
 
+                            // Current time is after the sunset stop and before the sunrise start = NIGHT
+                            if((currentTimeMode == NIGHT) && (mDevice->mRegularMode == NIGHT || mDevice->mRegularMode == DAYNIGHT)) {
 
-                    //! CHECK IF EPHEMERIS NEED TO BE UPDATED.
+                                // Check it's time to run a regular capture.
+                                if(regularAcqFrameCounter >= regularAcqFrameInterval) {
 
-                    string currentFrameDate = frameDate.at(0) + frameDate.at(1) + frameDate.at(2);
+                                    BOOST_LOG_SEV(logger, notification) << "Run regular acquisition.";
 
-                    // If the date has evolved, ephemeris must be updated.
-                    if(currentFrameDate != mDevice->mCurrentDate) {
+                                    runImageCapture(    mDevice->getAcqRegularRepetition(), 
+                                                        mDevice->getAcqRegularExposure(),
+                                                        mDevice->getAcqRegularGain(),
+                                                        mDevice->getAcqRegularFormat(),
+                                                        mDevice->mRegularOutput);
 
-                        BOOST_LOG_SEV(logger, notification) << "Date has changed. Former Date is " << mDevice->mCurrentDate << ". New Date is " << currentFrameDate << "." ;
+                                    regularAcqFrameCounter = 0;
 
-                        mDevice->getSunTimes();
+                                }else {
 
-                    }
+                                    cout << "Next regular acquisition in : " << regularAcqFrameInterval - regularAcqFrameCounter << " frames." << endl;
+                                    regularAcqFrameCounter++;
 
-                    //! CHECK IF IT'S TIME TO RUN REGULAR / SCHEDULED CAPTURES.
+                                }
 
-                    int currentTimeInSec = atoi(frameDate.at(3).c_str()) * 3600 + atoi(frameDate.at(4).c_str()) * 60 + atoi(frameDate.at(5).c_str());
+                            // Current time is between sunrise start and sunset stop = DAY
+                            }else if(currentTimeMode == DAY && (mDevice->mRegularMode == DAY || mDevice->mRegularMode == DAYNIGHT)) {
 
-                    // If acquisition at regular time interval is enabled.
-                    if(mDevice->getAcqRegularEnabled()) {
+                                // Check if it's time to run a regular capture.
+                                if(regularAcqFrameCounter >= regularAcqFrameInterval) {
 
-                        // Current time is after the sunset stop and before the sunrise start.
-                        if(((currentTimeInSec > mDevice->mStopSunsetTime) || (currentTimeInSec < mDevice->mStartSunriseTime)) &&
-                            (mDevice->mRegularMode == NIGHT || mDevice->mRegularMode == DAYNIGHT)) {
+                                    saveImageCaptured(newFrame, 0, mDevice->mRegularOutput);
+                                    regularAcqFrameCounter = 0;
 
-                            // Check it's time to run a regular capture.
-                            if(regularAcqFrameCounter >= regularAcqFrameInterval) {
+                                }else {
 
-                                BOOST_LOG_SEV(logger, notification) << "Run regular acquisition.";
-                                runRegularAcquisition(accurateFrameDate);
+                                    cout << "Next regular acquisition in : " << regularAcqFrameInterval - regularAcqFrameCounter << " frames." << endl;
+                                    regularAcqFrameCounter++;
 
-                                #ifdef LINUX
-                                    sleep(1);
-                                #else
-                                    #ifdef WINDOWS
-                                        Sleep(1000);
-                                    #endif
-                                #endif
+                                }
+
+                            }else{
 
                                 regularAcqFrameCounter = 0;
 
-                            }else {
-
-                                cout << "Next regular acquisition in : " << regularAcqFrameInterval - regularAcqFrameCounter << " frames." << endl;
-                                regularAcqFrameCounter++;
-
                             }
-
-                        //}else if() {
-
-
-
-                        }else{
-
-                            regularAcqFrameCounter = 0;
 
                         }
 
-                    }
+                        // Acquisiton at scheduled time is enabled.
+                        if(mAcqScheduledList.size() != 0 && mDevice->getAcqScheduleEnabled()) {
 
-                    // Check schedule for long exposure time captures.
-                    if(mAcqScheduledList.size() != 0 && mDevice->getAcqScheduleEnabled()){
+                            // It's time to run scheduled acquisition.
+                            if( mNextAcq.getH() == newFrame.mDate.hours && 
+                                mNextAcq.getM() == newFrame.mDate.minutes && 
+                                (int)newFrame.mDate.seconds == mNextAcq.getS()) {
 
-                        // Time for a long exposure time acquisition.
-                        if(mNextAcq.getH() == atoi(frameDate.at(3).c_str()) && mNextAcq.getM() == atoi(frameDate.at(4).c_str()) && atoi(frameDate.at(5).c_str()) == mNextAcq.getS()){
+                                mNextAcq.setDate(TimeDate::getIsoExtendedFormatDate(newFrame.mDate));
 
-                            mNextAcq.setDate(accurateFrameDate);
+                                CamBitDepth format;
+                                Conversion::intBitDepthToCamBitDepthEnum(mNextAcq.getF(), format);
 
-                            // Launch single acquisition
-                            bool result = runScheduledAcquisition(mNextAcq);
+                                runImageCapture(    mNextAcq.getN(),
+                                                    mNextAcq.getE(),
+                                                    mNextAcq.getG(),
+                                                    format,
+                                                    mDevice->mScheduleOutput);
 
-                            #ifdef LINUX
-                                sleep(1);
-                            #else
-                                #ifdef LINUX
-                                    Sleep(1);
-                                #endif
-                            #endif
+                                // Update mNextAcq
+                                selectNextAcquisitionSchedule(newFrame.mDate);
 
-                            // Update mNextAcq
-                            selectNextAcquisitionSchedule();
+                            }else {
 
-                        }else{
+                                // The current time has elapsed.
+                                if(newFrame.mDate.hours > mNextAcq.getH()) {
 
-                            // The current time elapsed.
-                            if(atoi(frameDate.at(3).c_str()) > mNextAcq.getH()){
+                                   selectNextAcquisitionSchedule(newFrame.mDate);
 
-                               selectNextAcquisitionSchedule();
+                                }else if(newFrame.mDate.hours == mNextAcq.getH()) {
 
-                            }else if(atoi(frameDate.at(3).c_str()) == mNextAcq.getH()){
+                                    if(newFrame.mDate.minutes > mNextAcq.getM()) {
 
-                                if(atoi(frameDate.at(4).c_str()) > mNextAcq.getM()){
+                                        selectNextAcquisitionSchedule(newFrame.mDate);
 
-                                    selectNextAcquisitionSchedule();
+                                    }else if(newFrame.mDate.minutes == mNextAcq.getM()) {
 
-                                }else if(atoi(frameDate.at(4).c_str()) == mNextAcq.getM()){
+                                        if(newFrame.mDate.seconds > mNextAcq.getS()) {
 
-                                    if(atoi(frameDate.at(5).c_str()) > mNextAcq.getS()){
+                                            selectNextAcquisitionSchedule(newFrame.mDate);
 
-                                        selectNextAcquisitionSchedule();
+                                        }
 
                                     }
 
@@ -399,60 +454,56 @@ void AcqThread::operator()(){
 
                         }
 
-                    }
-
-                    //! CHECK IF IT'S DAYTIME OR NOT IN ORDER TO APPLY THE CORRECT GAIN AND EXPOSURE VALUES.
-
-                    // If day acquisition enabled, enable or disable exposure control if it's sunset or sunrise.
-                    if(mDevice->getAcqDayEnabled()){
-
                         // Check sunrise and sunset time.
                         if( ((currentTimeInSec > mDevice->mStartSunriseTime && currentTimeInSec < mDevice->mStopSunriseTime) ||
-                            (currentTimeInSec > mDevice->mStartSunsetTime && currentTimeInSec < mDevice->mStopSunsetTime)) &&
-                            mDevice->mStartSunriseTime != 0 && mDevice->mStopSunriseTime != 0 && mDevice->mStartSunsetTime != 0 && mDevice->mStopSunsetTime !=0){
+                            (currentTimeInSec > mDevice->mStartSunsetTime && currentTimeInSec < mDevice->mStopSunsetTime))) {
 
                             exposureControlActive = true;
-                            cout << "SUNSET or SUNRISE ! "<< endl;
-                            BOOST_LOG_SEV(logger, notification) << "SUNSET or SUNRISE ! ";
 
-                        }else{
+                            BOOST_LOG_SEV(logger, notification) << "SUNSET or SUNRISE detected. ";
 
-                            if(exposureControlActive){
+                        }else {
 
+                            if(exposureControlActive) {
+
+                                // In DAYTIME : Apply minimum available exposure time.
                                 if((currentTimeInSec >= mDevice->mStopSunriseTime && currentTimeInSec < mDevice->mStartSunsetTime)){
 
-                                    cout << "DAYTIME ! "<< endl;
-                                    BOOST_LOG_SEV(logger, notification) << "Apply day exposure time.";
-                                    cout << mDevice->getDayExposureTime()<< endl;
+                                    BOOST_LOG_SEV(logger, notification) << "Apply day exposure time : " << mDevice->getDayExposureTime();
                                     mDevice->getCam()->setExposureTime(mDevice->getDayExposureTime());
-                                    cout << mDevice->getDayGain()<< endl;
+                                    BOOST_LOG_SEV(logger, notification) << "Apply day exposure time : " << mDevice->getDayGain();
                                     mDevice->getCam()->setGain(mDevice->getDayGain());
-
-
+                                    
+                                // In NIGHTTIME : Apply maximum available exposure time.
                                 }else if((currentTimeInSec >= mDevice->mStopSunsetTime) || (currentTimeInSec < mDevice->mStartSunriseTime)){
 
-                                    cout << "NIGHT ! "<< endl;
-                                    BOOST_LOG_SEV(logger, notification) << "Apply night exposure time.";
-                                    cout << mDevice->getNightExposureTime()<< endl;
+                                    BOOST_LOG_SEV(logger, notification) << "Apply night exposure time." << mDevice->getNightExposureTime();
                                     mDevice->getCam()->setExposureTime(mDevice->getNightExposureTime());
-                                    cout << mDevice->getNightGain()<< endl;
+                                    BOOST_LOG_SEV(logger, notification) << "Apply night exposure time." << mDevice->getNightGain();
                                     mDevice->getCam()->setGain(mDevice->getNightGain());
-                                }
 
+                                }
                             }
 
                             exposureControlActive = false;
                             exposureControlStatus = false;
 
                         }
+                        
                     }
 
+                }else {
+
+                    mNbGrabFail++;
 
                 }
 
                 tacq = (((double)getTickCount() - tacq)/getTickFrequency())*1000;
                 std::cout << " [ TIME ACQ ] : " << tacq << " ms" << endl;
                 BOOST_LOG_SEV(logger, normal) << " [ TIME ACQ ] : " << tacq << " ms";
+
+                if(!mDevice->getVideoFramesInput() && tacq > 60.0)
+                    BOOST_LOG_SEV(logger, warning) << "FRAME " << newFrame.mFrameNumber << "  [ TIME ACQ ] : " << tacq << " ms";
 
                 mMustStopMutex.lock();
                 stop = mMustStop;
@@ -463,7 +514,6 @@ void AcqThread::operator()(){
             // Reset detection process to prepare the analyse of a new data set.
             if(pDetection != NULL) {
 
-                BOOST_LOG_SEV(logger, normal) << " RESET DETECTION";
                 pDetection->getDetMethod()->resetDetection(true);
                 pDetection->getDetMethod()->resetMask();
                 pDetection->updateDetectionReport();
@@ -496,66 +546,40 @@ void AcqThread::operator()(){
 
     mThreadEndStatus = true;
 
-    std::cout << "Acquisition Thread terminated." << endl;
+    std::cout << "Acquisition Thread TERMINATED." << endl;
     BOOST_LOG_SEV(logger,notification) << "Acquisition Thread TERMINATED";
 
 }
 
-void AcqThread::selectNextAcquisitionSchedule(){
+void AcqThread::selectNextAcquisitionSchedule(TimeDate::Date date){
 
     if(mAcqScheduledList.size() != 0){
-
-        /// Search next acquisition according to the current date
-        // Get current date.
-        string currentDate = TimeDate::localDateTime(microsec_clock::universal_time(),"%Y:%m:%d:%H:%M:%S");
-        cout << endl << "current date : " << currentDate << endl;
-        vector<string> currentDateSplit;
-
-        // Split date
-        typedef boost::tokenizer<boost::char_separator<char> > tokenizer;
-        boost::char_separator<char> sep(":");
-        tokenizer tokens(currentDate, sep);
-        for (tokenizer::iterator tok_iter = tokens.begin();tok_iter != tokens.end(); ++tok_iter){
-            currentDateSplit.push_back(*tok_iter);
-        }
-
-        // Get current Hour.
-        int currentH = atoi(currentDateSplit.at(3).c_str());
-
-        // Get current Minutes.
-        int currentM = atoi(currentDateSplit.at(4).c_str());
-
-        // Get current Seconds.
-        int currentS = atoi(currentDateSplit.at(5).c_str());
 
         // Search next acquisition
         for(int i = 0; i < mAcqScheduledList.size(); i++){
 
-            if(currentH < mAcqScheduledList.at(i).getH()){
+            if(date.hours < mAcqScheduledList.at(i).getH()){
 
                mNextAcqIndex = i;
                break;
 
-            }else if(currentH == mAcqScheduledList.at(i).getH()){
+            }else if(date.hours == mAcqScheduledList.at(i).getH()){
 
-                if(currentM < mAcqScheduledList.at(i).getM()){
+                if(date.minutes < mAcqScheduledList.at(i).getM()){
 
                     mNextAcqIndex = i;
                     break;
 
-                }else if(currentM == mAcqScheduledList.at(i).getM()){
+                }else if(date.minutes == mAcqScheduledList.at(i).getM()){
 
-                    if(currentS < mAcqScheduledList.at(i).getS()){
+                    if(date.seconds < mAcqScheduledList.at(i).getS()){
 
                         mNextAcqIndex = i;
                         break;
 
                     }
-
                 }
-
             }
-
         }
 
         mNextAcq = mAcqScheduledList.at(mNextAcqIndex);
@@ -662,19 +686,19 @@ bool AcqThread::buildAcquisitionDirectory(string YYYYMMDD){
         // If DATA_PATH/STATI ON_YYYYMMDD/ exists
         if(fs::exists(p1)){
 
-            // If DATA_PATH/STATION_YYYYMMDD/astro/ doesn't exists
+            // If DATA_PATH/STATION_YYYYMMDD/captures/ doesn't exists
             if(!fs::exists(p2)){
 
-                // If fail to create DATA_PATH/STATION_YYYYMMDD/astro/
+                // If fail to create DATA_PATH/STATION_YYYYMMDD/captures/
                 if(!fs::create_directory(p2)){
 
-                    BOOST_LOG_SEV(logger,critical) << "Unable to create astro directory : " << p2.string();
+                    BOOST_LOG_SEV(logger,critical) << "Unable to create captures directory : " << p2.string();
                     return false;
 
-                // If success to create DATA_PATH/STATION_YYYYMMDD/astro/
+                // If success to create DATA_PATH/STATION_YYYYMMDD/captures/
                 }else{
 
-                   BOOST_LOG_SEV(logger,notification) << "Success to create astro directory : " << p2.string();
+                   BOOST_LOG_SEV(logger,notification) << "Success to create captures directory : " << p2.string();
                    return true;
 
                 }
@@ -697,13 +721,13 @@ bool AcqThread::buildAcquisitionDirectory(string YYYYMMDD){
                 // If fail to create DATA_PATH/STATION_YYYYMMDD/astro/
                 if(!fs::create_directory(p2)){
 
-                    BOOST_LOG_SEV(logger,critical) << "Unable to create astro directory : " << p2.string();
+                    BOOST_LOG_SEV(logger,critical) << "Unable to create captures directory : " << p2.string();
                     return false;
 
                 // If success to create DATA_PATH/STATION_YYYYMMDD/astro/
                 }else{
 
-                    BOOST_LOG_SEV(logger,notification) << "Success to create astro directory : " << p2.string();
+                    BOOST_LOG_SEV(logger,notification) << "Success to create captures directory : " << p2.string();
                     return true;
 
                 }
@@ -735,16 +759,16 @@ bool AcqThread::buildAcquisitionDirectory(string YYYYMMDD){
 
                 BOOST_LOG_SEV(logger,notification) << "Success to create STATION_YYYYMMDD directory : " << p1.string();
 
-                // If fail to create DATA_PATH/STATION_YYYYMMDD/astro/
+                // If fail to create DATA_PATH/STATION_YYYYMMDD/captures/
                 if(!fs::create_directory(p2)){
 
-                    BOOST_LOG_SEV(logger,critical) << "Unable to create astro directory : " << p2.string();
+                    BOOST_LOG_SEV(logger,critical) << "Unable to create captures directory : " << p2.string();
                     return false;
 
-                // If success to create DATA_PATH/STATION_YYYYMMDD/astro/
+                // If success to create DATA_PATH/STATION_YYYYMMDD/captures/
                 }else{
 
-                    BOOST_LOG_SEV(logger,notification) << "Success to create astro directory : " << p2.string();
+                    BOOST_LOG_SEV(logger,notification) << "Success to create captures directory : " << p2.string();
                     return true;
 
                 }
@@ -753,432 +777,208 @@ bool AcqThread::buildAcquisitionDirectory(string YYYYMMDD){
     }
 }
 
-bool AcqThread::runScheduledAcquisition(AcqSchedule task){
+void AcqThread::runImageCapture(int imgNumber, int imgExposure, int imgGain, CamBitDepth imgFormat, ImgFormat imgOutput) {
 
     // Stop camera
-    cout << "Stopping camera..." << endl;
+    BOOST_LOG_SEV(logger, notification) << "Stopping camera...";
     mDevice->getCam()->acqStop();
     mDevice->getCam()->grabCleanse();
 
-    // If stack process exists.
-    if(pStack != NULL && mStackThreadStatus){
+    // Stop stack process.
+    if(pStack != NULL){
 
         boost::mutex::scoped_lock lock(*stackSignal_mutex);
         *stackSignal = false;
         lock.unlock();
 
         // Force interruption.
-        cout << "Send interruption signal to stack " << endl;
+        BOOST_LOG_SEV(logger, notification) << "Send reset signal to stack. ";
         pStack->interruptThread();
-
 
     }
 
-    // If detection process exists
+    // Stop detection process.
     if(pDetection != NULL){
 
         boost::mutex::scoped_lock lock(*detSignal_mutex);
         *detSignal = false;
         lock.unlock();
-        cout << "Sending interruption signal to detection process " << endl;
+        BOOST_LOG_SEV(logger, notification) << "Send reset signal to detection process. ";
         pDetection->interruptThread();
 
     }
 
     // Reset framebuffer.
-    cout << "Cleaning frameBuffer..." << endl;
+    BOOST_LOG_SEV(logger, notification) << "Cleaning frameBuffer...";
     boost::mutex::scoped_lock lock(*frameBuffer_mutex);
     frameBuffer->clear();
     lock.unlock();
 
-    for(int i = 0; i < task.getN(); i++){
+    for(int i = 0; i < imgNumber; i++) {
 
-        // Configuration pour single capture
+        BOOST_LOG_SEV(logger, notification) << "Prepare capture n° " << i;
+
+        // Configuration for single capture.
         Frame frame;
-        cout << "Exposure : " << task.getE() << endl;
-        frame.setExposure(task.getE());
-        cout << "Gain : " << task.getG() << endl;
-        frame.setGain(task.getG());
-        CamBitDepth camFormat;
-        cout << "Format : " << task.getF() << endl;
-        Conversion::intBitDepthToCamBitDepthEnum(task.getF(), camFormat);
-        frame.setBitDepth(camFormat);
+        BOOST_LOG_SEV(logger, notification) << "Exposure time : " << imgExposure;
+        frame.mExposure  = imgExposure;
+        BOOST_LOG_SEV(logger, notification) << "Gain : " << imgGain;
+        frame.mGain = imgGain;
+        EParser<CamBitDepth> format;
+        BOOST_LOG_SEV(logger, notification) << "Format : " << format.getStringEnum(imgFormat);
+        frame.mBitDepth = imgFormat;
 
-        // Single capture.
-        if(mDevice->getCam()->grabSingleImage(frame, mDevice->getCameraId())){
+        // Run single capture.
+        BOOST_LOG_SEV(logger, notification) << "Run single capture.";
+        if(mDevice->getCam()->grabSingleImage(frame, mDevice->getCameraId())) {
 
-            cout << endl << "Single capture succeed !" << endl;
-
-            /// ---------------------- Save grabbed frame --------------------------
-
-            // Save the frame in Fits 2D.
-            if(frame.getImg().data){
-
-                string YYYYMMDD = TimeDate::getYYYYMMDDfromDateString(task.getDate());
-                cout << "YYYYMMDD : " << YYYYMMDD << endl;
-                if(buildAcquisitionDirectory(YYYYMMDD)){
-
-                    cout << "Saving fits file ..." << endl;
-
-                    Fits2D newFits(mDataLocation);
-                    newFits.copyKeywords(mDevice->getFitsHeader());
-                    newFits.kGAINDB = task.getG();
-                    newFits.kONTIME = task.getE()/1000000.0;
-                    newFits.kDATEOBS = frame.getAcqDateMicro();
-
-                    vector<int> firstDateInt = TimeDate::getIntVectorFromDateString(task.getDate());
-                    double  debObsInSeconds = firstDateInt.at(3)*3600 + firstDateInt.at(4)*60 + firstDateInt.at(5);
-                    double  julianDate      = TimeDate::gregorianToJulian(firstDateInt);
-                    double  julianCentury   = TimeDate::julianCentury(julianDate);
-
-                    // Sideral time.
-                    newFits.kCRVAL1 = TimeDate::localSideralTime_2(julianCentury, firstDateInt.at(3), firstDateInt.at(4), firstDateInt.at(5), mDevice->getFitsHeader().kSITELONG);
-                    newFits.kCTYPE1 = "RA---ARC";
-                    newFits.kCTYPE2 = "DEC--ARC";
-                    newFits.kEQUINOX = 2000.0;
-
-                    string HHMMSS = Conversion::numbering(2, task.getH()) + Conversion::intToString(task.getH()) +
-                                    Conversion::numbering(2, task.getM()) + Conversion::intToString(task.getM()) +
-                                    Conversion::numbering(2, task.getS()) + Conversion::intToString(task.getS());
-
-                    string fileName = "CAP_" + YYYYMMDD + "T" + HHMMSS + "_UT-" + Conversion::intToString(i);
-
-                    switch(camFormat){
-
-                        case MONO_8 :
-
-                            {
-                                // Create FITS image with BITPIX = BYTE_IMG (8-bits unsigned integers), pixel with TBYTE (8-bit unsigned byte)
-
-                                switch(mDevice->mScheduleOutput) {
-
-                                    case JPEG :
-
-                                        {
-
-                                            Mat temp;
-                                            frame.getImg().copyTo(temp);
-                                            Mat newMat = ImgProcessing::correctGammaOnMono8(temp, 2.2);
-                                            SaveImg::saveJPEG(newMat, mDataLocation + fileName);
-
-                                        }
-
-                                        break;
-
-                                    case FITS :
-
-                                        {
-
-                                            if(newFits.writeFits(frame.getImg(), UC8, fileName))
-                                                cout << ">> Fits saved in : " << mDataLocation << fileName << endl;
-
-                                        }
-
-                                        break;
-
-                                }
-
-                            }
-
-                            break;
-
-                        case MONO_12 :
-
-                            {
-
-                                // Convert unsigned short type image in short type image.
-                                Mat newMat = Mat(frame.getImg().rows, frame.getImg().cols, CV_16SC1, Scalar(0));
-
-                                // Set bzero and bscale for print unsigned short value in soft visualization.
-                                double bscale = 1;
-                                double bzero  = 32768;
-                                newFits.kBZERO = bzero;
-                                newFits.kBSCALE = bscale;
-
-                                unsigned short * ptr;
-                                short * ptr2;
-
-                                for(int i = 0; i < frame.getImg().rows; i++){
-
-                                    ptr = frame.getImg().ptr<unsigned short>(i);
-                                    ptr2 = newMat.ptr<short>(i);
-
-                                    for(int j = 0; j < frame.getImg().cols; j++){
-
-                                        if(ptr[j] - 32768 > 32767){
-
-                                            ptr2[j] = 32767;
-
-                                        }else{
-
-                                            ptr2[j] = ptr[j] - 32768;
-                                        }
-                                    }
-                                }
-
-                                switch(mDevice->mRegularOutput) {
-
-                                    case JPEG :
-
-                                        {
-
-                                            Mat temp;
-                                            frame.getImg().copyTo(temp);
-                                            Mat newMat = ImgProcessing::correctGammaOnMono12(temp, 2.2);
-                                            Mat newMat2 = Conversion::convertTo8UC1(newMat);
-                                            SaveImg::saveJPEG(newMat2, mDataLocation + fileName);
-
-                                        }
-
-                                        break;
-
-                                    case FITS :
-
-                                        {
-
-                                            // Create FITS image with BITPIX = SHORT_IMG (16-bits signed integers), pixel with TSHORT (signed short)
-                                            if(newFits.writeFits(newMat, S16, fileName))
-                                                cout << ">> Fits saved in : " << mDataLocation << fileName << endl;
-
-                                        }
-
-                                        break;
-
-                                }
-
-                            }
-                    }
-                }
-
-            }
-
-
+            BOOST_LOG_SEV(logger, notification) << "Single capture succeed !";
+            saveImageCaptured(frame, i, imgOutput);
 
         }else{
 
-            cout << endl << "Single capture failed !" << endl;
-
-        }
-
-
-    }
-
-    cout<< "Restarting camera in continuous mode..." << endl;
-    mDevice->runContinuousAcquisition();
-
-    return true;
-}
-
-bool AcqThread::runRegularAcquisition(string frameDate){
-
-    // Stop camera
-    cout << "Stopping camera..." << endl;
-    mDevice->getCam()->acqStop();
-    mDevice->getCam()->grabCleanse();
-
-    // If stack process exists.
-    if(pStack != NULL && mStackThreadStatus){
-
-        boost::mutex::scoped_lock lock(*stackSignal_mutex);
-        *stackSignal = false;
-        lock.unlock();
-
-        // Force interruption.
-        cout << "Send interruption signal to stack " << endl;
-        pStack->interruptThread();
-
-
-    }
-
-    // If detection process exists
-    if(pDetection != NULL){
-
-        boost::mutex::scoped_lock lock(*detSignal_mutex);
-        *detSignal = false;
-        lock.unlock();
-        cout << "Send interruption signal to detection process " << endl;
-        pDetection->interruptThread();
-
-    }
-
-    // Reset framebuffer.
-    cout << "Cleaning frameBuffer..." << endl;
-    boost::mutex::scoped_lock lock(*frameBuffer_mutex);
-    frameBuffer->clear();
-    lock.unlock();
-
-    for(int i = 0; i < mDevice->getAcqRegularRepetition(); i++){
-
-        // Configuration pour single capture
-        Frame frame;
-        cout << "Exposure : " << mDevice->getAcqRegularExposure() << endl;
-        frame.setExposure(mDevice->getAcqRegularExposure());
-        cout << "Gain : " << mDevice->getAcqRegularGain() << endl;
-        frame.setGain(mDevice->getAcqRegularGain());
-        cout << "Format : " << mDevice->getAcqRegularFormat() << endl;
-        frame.setBitDepth(mDevice->getAcqRegularFormat());
-
-        // Single capture.
-        if(mDevice->getCam()->grabSingleImage(frame, mDevice->getCameraId())){
-
-            cout << endl << "Single capture succeed !" << endl;
-
-            /// ---------------------- Save grabbed frame --------------------------
-
-            // Save the frame in Fits 2D.
-            if(frame.getImg().data){
-
-                string	YYYYMMDD = TimeDate::getYYYYMMDDfromDateString(frameDate);
-                cout << "YYYYMMDD : " << YYYYMMDD << endl;
-                if(buildAcquisitionDirectory(YYYYMMDD)){
-
-                    cout << "Saving fits file ..." << endl;
-
-                    cout << "mDataLocation : " << mDataLocation << endl;
-
-                    Fits2D newFits(mDataLocation);
-                    newFits.copyKeywords(mDevice->getFitsHeader());
-                    newFits.kGAINDB = mDevice->getAcqRegularGain();
-                    newFits.kONTIME = mDevice->getAcqRegularExposure()/1000000.0;
-                    newFits.kDATEOBS = frame.getAcqDateMicro();
-
-                    vector<int> firstDateInt = TimeDate::getIntVectorFromDateString(frameDate);
-                    double  debObsInSeconds = firstDateInt.at(3)*3600 + firstDateInt.at(4)*60 + firstDateInt.at(5);
-                    double  julianDate      = TimeDate::gregorianToJulian(firstDateInt);
-                    double  julianCentury   = TimeDate::julianCentury(julianDate);
-
-                    newFits.kCRVAL1 = TimeDate::localSideralTime_2(julianCentury, firstDateInt.at(3), firstDateInt.at(4), firstDateInt.at(5), mDevice->getFitsHeader().kSITELONG);
-
-                    newFits.kCTYPE1 = "RA---ARC";
-                    newFits.kCTYPE2 = "DEC--ARC";
-                    newFits.kEQUINOX = 2000.0;
-
-                    string HHMMSS = Conversion::numbering(2, firstDateInt.at(3)) + Conversion::intToString(firstDateInt.at(3)) +
-                                    Conversion::numbering(2, firstDateInt.at(4)) + Conversion::intToString(firstDateInt.at(4)) +
-                                    Conversion::numbering(2, firstDateInt.at(5)) + Conversion::intToString(firstDateInt.at(5));
-
-                    string fileName = "CAP_" + YYYYMMDD + "T" + HHMMSS + "_UT-" + Conversion::intToString(i);
-
-                    cout << "fileName : " << fileName << endl;
-
-                    switch(mDevice->getAcqRegularFormat()){
-
-                        case MONO_8 :
-
-                            {
-                                // Create FITS image with BITPIX = BYTE_IMG (8-bits unsigned integers), pixel with TBYTE (8-bit unsigned byte)
-
-                                switch(mDevice->mRegularOutput) {
-
-                                    case JPEG :
-
-                                        {
-
-                                            Mat temp;
-                                            frame.getImg().copyTo(temp);
-                                            Mat newMat = ImgProcessing::correctGammaOnMono8(temp, 2.2);
-                                            SaveImg::saveJPEG(newMat, mDataLocation + fileName);
-
-                                        }
-
-                                        break;
-
-                                    case FITS :
-
-                                        {
-
-                                            if(newFits.writeFits(frame.getImg(), UC8, fileName))
-                                                cout << ">> Fits saved in : " << mDataLocation << fileName << endl;
-
-                                        }
-
-                                        break;
-
-                                }
-
-                            }
-
-                            break;
-
-                        case MONO_12 :
-
-                            {
-
-                                // Convert unsigned short type image in short type image.
-                                Mat newMat = Mat(frame.getImg().rows, frame.getImg().cols, CV_16SC1, Scalar(0));
-
-                                // Set bzero and bscale for print unsigned short value in soft visualization.
-                                newFits.kBZERO = 1;
-                                newFits.kBSCALE = 32768;
-
-                                unsigned short * ptr;
-                                short * ptr2;
-
-                                for(int i = 0; i < frame.getImg().rows; i++){
-
-                                    ptr = frame.getImg().ptr<unsigned short>(i);
-                                    ptr2 = newMat.ptr<short>(i);
-
-                                    for(int j = 0; j < frame.getImg().cols; j++){
-
-                                        if(ptr[j] - 32768 > 32767){
-
-                                            ptr2[j] = 32767;
-
-                                        }else{
-
-                                            ptr2[j] = ptr[j] - 32768;
-                                        }
-                                    }
-                                }
-
-                                switch(mDevice->mRegularOutput) {
-
-                                    case JPEG :
-
-                                        {
-
-                                            Mat temp;
-                                            frame.getImg().copyTo(temp);
-                                            Mat newMat = ImgProcessing::correctGammaOnMono12(temp, 2.2);
-                                            Mat newMat2 = Conversion::convertTo8UC1(newMat);
-                                            SaveImg::saveJPEG(newMat2, mDataLocation + fileName);
-
-                                        }
-
-                                        break;
-
-                                    case FITS :
-
-                                        {
-
-                                            // Create FITS image with BITPIX = SHORT_IMG (16-bits signed integers), pixel with TSHORT (signed short)
-                                            if(newFits.writeFits(newMat, S16, fileName))
-                                                cout << ">> Fits saved in : " << mDataLocation << fileName << endl;
-
-                                        }
-
-                                        break;
-
-                                }
-
-                          }
-                    }
-                }
-            }
-
-        }else{
-
-            cout << endl << "Single capture failed !" << endl;
+            BOOST_LOG_SEV(logger, fail) << "Single capture failed !";
 
         }
     }
 
-    cout<< "Restarting camera in continuous mode..." << endl;
+    BOOST_LOG_SEV(logger, notification) << "Restarting camera in continuous mode...";
     mDevice->runContinuousAcquisition();
-
-	return true;
 
 }
 
+void AcqThread::saveImageCaptured(Frame &img, int imgNum, ImgFormat outputType) {
+
+    if(img.mImg.data) {
+
+        string  YYYYMMDD = TimeDate::getYYYYMMDD(img.mDate);
+
+        if(buildAcquisitionDirectory(YYYYMMDD)) {
+
+            string fileName = "CAP_" + TimeDate::getYYYYMMDDThhmmss(img.mDate) + "_UT-" + Conversion::intToString(imgNum);
+
+            switch(outputType) {
+
+                case JPEG :
+
+                    {
+
+                        switch(img.mBitDepth) {
+
+                            case MONO_8 :
+
+                                {
+                           
+                                    Mat temp;
+                                    img.mImg.copyTo(temp);
+                                    Mat newMat = ImgProcessing::correctGammaOnMono8(temp, 2.2);
+                                    SaveImg::saveJPEG(newMat, mDataLocation + fileName);
+
+                                }
+
+                                break;
+
+                            case MONO_12 :
+
+                                {
+
+                                    Mat temp;
+                                    img.mImg.copyTo(temp);
+                                    Mat newMat = ImgProcessing::correctGammaOnMono12(temp, 2.2);
+                                    Mat newMat2 = Conversion::convertTo8UC1(newMat);
+                                    SaveImg::saveJPEG(newMat2, mDataLocation + fileName);
+
+                                }
+
+                                break;
+                        }
+                    }
+
+                    break;
+
+                case FITS :
+
+                    {
+
+                        Fits2D newFits(mDataLocation);
+                        newFits.copyKeywords(mDevice->getFitsHeader());
+                        newFits.kGAINDB = img.mGain;
+                        newFits.kEXPOSURE = img.mExposure/1000000.0;
+                        newFits.kONTIME = img.mExposure/1000000.0;
+                        newFits.kELAPTIME = img.mExposure/1000000.0;
+                        newFits.kDATEOBS = TimeDate::getIsoExtendedFormatDate(img.mDate);
+
+                        double  debObsInSeconds = img.mDate.hours*3600 + img.mDate.minutes*60 + img.mDate.seconds;
+                        double  julianDate      = TimeDate::gregorianToJulian(img.mDate);
+                        double  julianCentury   = TimeDate::julianCentury(julianDate);
+
+                        newFits.kCRVAL1 = TimeDate::localSideralTime_2(julianCentury, img.mDate.hours, img.mDate.minutes, (int)img.mDate.seconds, mDevice->getFitsHeader().kSITELONG);
+                        newFits.kCTYPE1 = "RA---ARC";
+                        newFits.kCTYPE2 = "DEC--ARC";
+                        newFits.kEQUINOX = 2000.0;
+
+                        switch(img.mBitDepth) {
+
+                            case MONO_8 :
+
+                                {
+                           
+                                   if(newFits.writeFits(img.mImg, UC8, fileName))
+                                        cout << ">> Fits saved in : " << mDataLocation << fileName << endl;
+
+                                }
+
+                                break;
+
+                            case MONO_12 :
+
+                                {
+
+                                    // Convert unsigned short type image in short type image.
+                                    Mat newMat = Mat(img.mImg.rows, img.mImg.cols, CV_16SC1, Scalar(0));
+
+                                    // Set bzero and bscale for print unsigned short value in soft visualization.
+                                    newFits.kBZERO = 32768;
+                                    newFits.kBSCALE = 1;
+
+                                    unsigned short * ptr;
+                                    short * ptr2;
+
+                                    for(int i = 0; i < img.mImg.rows; i++){
+
+                                        ptr = img.mImg.ptr<unsigned short>(i);
+                                        ptr2 = newMat.ptr<short>(i);
+
+                                        for(int j = 0; j < img.mImg.cols; j++){
+
+                                            if(ptr[j] - 32768 > 32767){
+
+                                                ptr2[j] = 32767;
+
+                                            }else{
+
+                                                ptr2[j] = ptr[j] - 32768;
+                                            }
+                                        }
+                                    }
+                                    
+                                    // Create FITS image with BITPIX = SHORT_IMG (16-bits signed integers), pixel with TSHORT (signed short)
+                                    if(newFits.writeFits(newMat, S16, fileName))
+                                        cout << ">> Fits saved in : " << mDataLocation << fileName << endl;
+
+                                }
+
+                                break;
+                        }
+
+                    }
+
+                    break;
+
+            }
+
+        }
+    }
+
+}
 

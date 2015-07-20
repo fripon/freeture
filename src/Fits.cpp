@@ -94,8 +94,8 @@ Fits::Fits() {
     cDATEOBS    = "acquisition date of the first frame";
     cOBSMODE    = "'SINGLE' 'SUM' 'AVERAGE' ('MEDIAN')";
     cELAPTIME   = "end obs. date - start obs. date (sec.)";
-    cEXPOSURE   = "integration time : 1/fps * nb_frames (sec.)";
-    cONTIME     = "frame exposure time (sec.)";
+    cEXPOSURE   = "frame exp (sec). 999999 if different exposure.";
+    cONTIME     = "total integration time, sum of each frame exp (sec)";
     cFILTER     = "";
     cTELESCOP   = "station " + STATION;
     cOBSERVER   = "";

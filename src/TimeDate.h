@@ -51,6 +51,17 @@ class TimeDate {
 
     public :
 
+        struct Date {
+
+            int     year;
+            int     month;
+            int     day;
+            int     hours;
+            int     minutes;
+            double  seconds;
+
+        };
+
         /**
         * Get local date time in UT
         *
@@ -73,7 +84,7 @@ class TimeDate {
         * @param date Vector of date : YYYY, MM, DD, hh, mm, ss.
         * @return Julian date.
         */
-        static double gregorianToJulian(vector<int> date);
+        static double gregorianToJulian(Date date);
 
         /**
         * Get julian century from julian date.
@@ -140,6 +151,9 @@ class TimeDate {
         */
         static string getYYYYMMDDfromDateString(string date);
 
+        // output : YYYYMMDD
+        static string getYYYYMMDD(Date date);
+
         /**
         * Get year, month, date, hours, minutes and seconds from date string.
         *
@@ -155,6 +169,18 @@ class TimeDate {
         * @return YYYYMMJJTHHMMSS.
         */
         static string getYYYYMMDDThhmmss(string date);
+
+        /**
+        * Get YYYYMMJJTHHMMSS date.
+        *
+        * @param date YYYYMMJJTHHMMSS.fffffffff
+        * @return YYYYMMJJTHHMMSS.
+        */
+        static string getYYYYMMDDThhmmss(Date date);
+
+        static Date splitIsoExtendedDate(string date);
+
+        static string getIsoExtendedFormatDate(Date date);
 
 };
 

@@ -43,7 +43,7 @@ freeture_SOURCES	= EImgBitDepth.h ECamType.h EParser.h EParser.cpp \
 			DetThread.cpp Fits.cpp Fits2D.cpp Fits3D.cpp Logger.h \
 			Frame.cpp GlobalEvent.cpp Histogram.cpp AcqSchedule.h AcqSchedule.cpp \
 			LocalEvent.cpp main.cpp HistogramRGB.h HistogramRGB.cpp EImgFormat.h \
-			TimeDate.cpp ExposureControl.cpp ExposureControl.h ERegularAcqMode.h \
+			TimeDate.cpp ExposureControl.cpp ExposureControl.h ETimeMode.h \
 			SaveImg.cpp ELogSeverityLevel.h ImgProcessing.cpp ImgProcessing.h
 
 DATE=`date +"%Y-%m-%d"`

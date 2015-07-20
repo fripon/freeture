@@ -44,6 +44,7 @@
 #include "Frame.h"
 #include "LocalEvent.h"
 #include "SaveImg.h"
+#include "TimeDate.h"
 
 using namespace cv;
 using namespace std;
@@ -54,7 +55,7 @@ class GlobalEvent {
 
         int     geAge;
         int     geAgeLastLE;
-        string  geDate;
+        TimeDate::Date  geDate;
         Mat     geMap;
         int     geFirstFrameNum;
         int     geLastFrameNum;
@@ -90,7 +91,7 @@ class GlobalEvent {
         vector<bool>         clusterNegPos;
 
 
-        GlobalEvent(string frameDate, int frameNum, int frameHeight, int frameWidth, Scalar c);
+        GlobalEvent(TimeDate::Date frameDate, int frameNum, int frameHeight, int frameWidth, Scalar c);
 
         ~GlobalEvent();
 
@@ -98,7 +99,7 @@ class GlobalEvent {
         Mat getDirMap() {return geDirMap;};
         int getAge() {return geAge;};
         int getAgeLastElem() {return geAgeLastLE;};
-        string getDate() {return geDate;};
+        TimeDate::Date getDate() {return geDate;};
         bool getLinearStatus() {return geLinear;};
         float getVelocity() {return geShifting;};
         bool getNewLEStatus() {return newLeAdded;};

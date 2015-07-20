@@ -84,11 +84,12 @@ template<> EParser<LogSeverityLevel>::EParser() {
 
 }
 
-template<> EParser<RegularAcqMode>::EParser() {
+template<> EParser<TimeMode>::EParser() {
 
     enumMap["DAY"]          = DAY;
     enumMap["NIGHT"]        = NIGHT;
     enumMap["DAYNIGHT"]     = DAYNIGHT;
+    enumMap["NONE"]         = NONE;
 
 }
 
