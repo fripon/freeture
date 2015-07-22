@@ -124,7 +124,7 @@
             * List connected GigE devices.
             *
             */
-            void listGigeCameras();
+            bool listGigeCameras();
 
             /**
             * Configure the correct camera to use and grab a frame by single acquisition.
@@ -237,6 +237,13 @@
             * @return Success status to get format.
             */
             bool getPixelFormat(CamBitDepth &format);
+
+            /**
+            * Get device's exposure time value.
+            *
+            * @return Device's exposure time.
+            */
+            int getExposureTime();
 
     };
 

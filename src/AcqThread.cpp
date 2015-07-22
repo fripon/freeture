@@ -5,7 +5,8 @@
 *
 *   This file is part of:   freeture
 *
-*   Copyright:      (C) 2014-2015 Yoan Audureau -- FRIPON-GEOPS-UPSUD
+*   Copyright:      (C) 2014-2015 Yoan Audureau
+*                               FRIPON-GEOPS-UPSUD-CNRS
 *
 *   License:        GNU General Public License
 *
@@ -20,7 +21,7 @@
 *   You should have received a copy of the GNU General Public License
 *   along with FreeTure. If not, see <http://www.gnu.org/licenses/>.
 *
-*   Last modified:      21/01/2015
+*   Last modified:      20/07/2015
 *
 *%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%*/
 
@@ -49,8 +50,8 @@ AcqThread::AcqThread(   CamType                             camType,
                         bool                                *dSignal,
                         boost::mutex                        *dSignal_m,
                         boost::condition_variable           *dSignal_c,
-                        DetThread	                        *detection,
-                        StackThread	                        *stack):
+                        DetThread                           *detection,
+                        StackThread                         *stack):
 
                         mCameraType(camType), mCfgPath(cfg), frameBuffer(fb), frameBuffer_mutex(fb_m),
                         frameBuffer_condition(fb_c), stackSignal(sSignal), stackSignal_mutex(sSignal_m),
@@ -129,48 +130,61 @@ void AcqThread::operator()(){
     BOOST_LOG_SEV(logger,notification) << "========== START ACQUISITION THREAD ==========";
     BOOST_LOG_SEV(logger,notification) << "==============================================";
 
-    /// Prepare scheduled long acquisition.
-
-    mAcqScheduledList = mDevice->getSchedule();     // Get acquisition schedule.
-    sortAcquisitionSchedule();                      // Order schedule times.
-
-    boost::posix_time::ptime time = boost::posix_time::microsec_clock::universal_time();
-
-    // Search next acquisition according to the current time.
-    selectNextAcquisitionSchedule(TimeDate::splitIsoExtendedDate(to_iso_extended_string(time))); 
-
-    bool scheduleTaskStatus = false;
-    bool scheduleTaskActive = false;
-
-    /// Prepare acquisition at regular time interval.
-
-    int regularAcqFrameInterval = 0;
-    int regularAcqFrameCounter = 0;
-
-    if(mDevice->getAcqRegularEnabled()) {
-        regularAcqFrameInterval = mDevice->getAcqRegularTimeInterval() * mDevice->getCam()->getFPS();
-    }
-
-    /// Exposure adjustment variables.
-
-    bool exposureControlStatus = false;
-    bool exposureControlActive = false;
-    bool cleanStatus = false;
-
-    if(!mDevice->getVideoFramesInput()) {
-
-        pExpCtrl = new ExposureControl( mDevice->getExposureControlFrequency(),
-                                        mDevice->getExposureControlSaveImage(),
-                                        mDevice->getExposureControlSaveInfos(),
-                                        mDevice->getDataPath(),
-                                        mDevice->getStationName());
-    }
-
-    TimeMode previousTimeMode = NONE;
-
-    /// Acquisition process.
-
     try {
+
+        /// Prepare scheduled long acquisition.
+
+        mAcqScheduledList = mDevice->getSchedule();     // Get acquisition schedule.
+        sortAcquisitionSchedule();                      // Order schedule times.
+
+        boost::posix_time::ptime time = boost::posix_time::microsec_clock::universal_time();
+
+        // Search next acquisition according to the current time.
+        selectNextAcquisitionSchedule(TimeDate::splitIsoExtendedDate(to_iso_extended_string(time))); 
+
+        bool scheduleTaskStatus = false;
+        bool scheduleTaskActive = false;
+
+        /// Prepare acquisition at regular time interval.
+
+        int regularAcqFrameInterval = 0;
+        int regularAcqFrameCounter = 0;
+
+        if(mDevice->getAcqRegularEnabled()) {
+
+            int fps = mDevice->getCam()->getFPS();
+
+            if(fps>0){
+
+                regularAcqFrameInterval = mDevice->getAcqRegularTimeInterval() * fps;
+
+            }else{
+
+                BOOST_LOG_SEV(logger, critical) << "Error : Camera fps value is " << fps;
+                throw ">> Error on fps value.";
+
+            }
+
+        }
+
+        /// Exposure adjustment variables.
+
+        bool exposureControlStatus = false;
+        bool exposureControlActive = false;
+        bool cleanStatus = false;
+
+        if(!mDevice->getVideoFramesInput()) {
+
+            pExpCtrl = new ExposureControl( mDevice->getExposureControlFrequency(),
+                                            mDevice->getExposureControlSaveImage(),
+                                            mDevice->getExposureControlSaveInfos(),
+                                            mDevice->getDataPath(),
+                                            mDevice->getStationName());
+        }
+
+        TimeMode previousTimeMode = NONE;
+
+        /// Acquisition process.
 
         do {
 
@@ -237,6 +251,9 @@ void AcqThread::operator()(){
                         }else if((currentTimeInSec > mDevice->mStartSunriseTime) && (currentTimeInSec < mDevice->mStopSunsetTime)) {
                             currentTimeMode = DAY;
                         }
+
+                        EParser<TimeMode> mode;
+                        cout << "MODE : " << mode.getStringEnum(currentTimeMode) << endl;
 
                         // If exposure control is not active, the new frame can be shared with others threads.
                         if(!exposureControlStatus) {
@@ -374,7 +391,7 @@ void AcqThread::operator()(){
 
                                 }else {
 
-                                    cout << "Next regular acquisition in : " << regularAcqFrameInterval - regularAcqFrameCounter << " frames." << endl;
+                                    //cout << "Next regular acquisition in : " << regularAcqFrameInterval - regularAcqFrameCounter << " frames." << endl;
                                     regularAcqFrameCounter++;
 
                                 }
@@ -384,13 +401,13 @@ void AcqThread::operator()(){
 
                                 // Check if it's time to run a regular capture.
                                 if(regularAcqFrameCounter >= regularAcqFrameInterval) {
-
+                                     cout << "Run regular acquisition." << endl;
                                     saveImageCaptured(newFrame, 0, mDevice->mRegularOutput);
                                     regularAcqFrameCounter = 0;
 
                                 }else {
 
-                                    cout << "Next regular acquisition in : " << regularAcqFrameInterval - regularAcqFrameCounter << " frames." << endl;
+                                    //cout << "Next regular acquisition in : " << regularAcqFrameInterval - regularAcqFrameCounter << " frames." << endl;
                                     regularAcqFrameCounter++;
 
                                 }
@@ -460,7 +477,7 @@ void AcqThread::operator()(){
 
                             exposureControlActive = true;
 
-                            BOOST_LOG_SEV(logger, notification) << "SUNSET or SUNRISE detected. ";
+                            //BOOST_LOG_SEV(logger, notification) << "SUNSET or SUNRISE detected. ";
 
                         }else {
 
@@ -494,6 +511,7 @@ void AcqThread::operator()(){
 
                 }else {
 
+                    BOOST_LOG_SEV(logger, fail) << "Fail to grab frame " << newFrame.mFrameNumber;
                     mNbGrabFail++;
 
                 }
@@ -538,6 +556,10 @@ void AcqThread::operator()(){
 
         cout << "An exception occured : " << e.what() << endl;
         BOOST_LOG_SEV(logger, critical) << "An exception occured : " << e.what();
+
+    }catch(const char * msg) {
+
+        cout << endl << msg << endl;
 
     }
 

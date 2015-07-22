@@ -114,7 +114,7 @@
             * List connected GigE devices.
             *
             */
-            void listGigeCameras();
+            bool listGigeCameras();
 
             /**
             * Open/create a device.
@@ -256,6 +256,13 @@
             * @return Success status to set format.
             */
             bool setPixelFormat(CamBitDepth format);
+
+            /**
+            * Get device's exposure time value.
+            *
+            * @return Device's exposure time.
+            */
+            int getExposureTime();
 
     };
 

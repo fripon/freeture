@@ -5,25 +5,25 @@
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 *
-*	This file is part of:	freeture
+*   This file is part of:   freeture
 *
-*	Copyright:		(C) 2014-2015 Yoan Audureau
+*   Copyright:      (C) 2014-2015 Yoan Audureau
 *                               FRIPON-GEOPS-UPSUD-CNRS
 *
-*	License:		GNU General Public License
+*   License:        GNU General Public License
 *
-*	FreeTure is free software: you can redistribute it and/or modify
-*	it under the terms of the GNU General Public License as published by
-*	the Free Software Foundation, either version 3 of the License, or
-*	(at your option) any later version.
-*	FreeTure is distributed in the hope that it will be useful,
-*	but WITHOUT ANY WARRANTY; without even the implied warranty of
-*	MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-*	GNU General Public License for more details.
-*	You should have received a copy of the GNU General Public License
-*	along with FreeTure. If not, see <http://www.gnu.org/licenses/>.
+*   FreeTure is free software: you can redistribute it and/or modify
+*   it under the terms of the GNU General Public License as published by
+*   the Free Software Foundation, either version 3 of the License, or
+*   (at your option) any later version.
+*   FreeTure is distributed in the hope that it will be useful,
+*   but WITHOUT ANY WARRANTY; without even the implied warranty of
+*   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+*   GNU General Public License for more details.
+*   You should have received a copy of the GNU General Public License
+*   along with FreeTure. If not, see <http://www.gnu.org/licenses/>.
 *
-*	Last modified:		20/10/2014
+*   Last modified:      20/07/2015
 *
 *%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%*/
 
@@ -321,13 +321,13 @@ bool Device::prepareDevice() {
                     EParser<CamBitDepth> format;
                     Conversion::intBitDepthToCamBitDepthEnum(atoi(res1.at(5).c_str()), mRegularFormat);
                     
-                    cout << "ACQ REGULAR : " << endl;
-                    cout << "  - Each " << mRegularInterval << " seconds." << endl;
-                    cout << "  - " << mRegularExposure << " exposure time." << endl;
-                    cout << "  - " << mRegularGain << " gain." << endl;
-                    cout << "  - " << mRegularRepetition << " repetition." << endl;
-                    cout << "  - " << format.getStringEnum(mRegularFormat) << " format." << endl << endl;
-
+                    /*cout << "ACQ REGULAR : [each " << mRegularInterval << " sec.] [" 
+                         << mRegularExposure << " exp.] " 
+                         << endl << "              ["  
+                         << mRegularGain << " gain] [" 
+                         << mRegularRepetition << " rep.] [" 
+                         << format.getStringEnum(mRegularFormat) << " format]" << endl;
+                         */
                     BOOST_LOG_SEV(logger, notification) << "ACQ REGULAR : ";
                     BOOST_LOG_SEV(logger, notification) << "  - Each : " << mRegularInterval << " seconds.";
                     BOOST_LOG_SEV(logger, notification) << "  - " << mRegularExposure << " exposure time.";
@@ -349,12 +349,12 @@ bool Device::prepareDevice() {
 
                 if(mEphemerisEnabled) {
 
-                    cout << "EPHEMERIS   :  ON" << endl;
+                    //cout << "EPHEMERIS   :  ON" << endl;
                     BOOST_LOG_SEV(logger, notification) << "EPHEMERIS_ENABLED : ON";
 
                 }else {
 
-                    cout << "EPHEMERIS   :  OFF" << endl;
+                    //cout << "EPHEMERIS   :  OFF" << endl;
                     BOOST_LOG_SEV(logger, notification) << "EPHEMERIS_ENABLED : OFF";
 
                 }
@@ -675,17 +675,25 @@ void Device::runContinuousAcquisition(){
 
     /// List Gige Camera to check the ID.
     BOOST_LOG_SEV(logger, notification) << "Printing Connected Gige Camera...";
-    cam->listGigeCameras();
+    if(!cam->listGigeCameras()){
+        BOOST_LOG_SEV(logger, fail) << "No cameras.";
+        throw "";
+    }
 
     /// Create camera according to its ID.
     BOOST_LOG_SEV(logger, notification) << "Create device with ID  : " << mCamID;
-    if(!cam->createDevice(mCamID))
-        throw "Fail to create device.";
+    if(!cam->createDevice(mCamID)){
+        BOOST_LOG_SEV(logger, fail) << "Fail to create device with ID  : " << mCamID;
+        cam->grabCleanse();
+        throw ">> Fail to create device.";
+    }
 
     /// Set camera format.
     BOOST_LOG_SEV(logger, notification) << "Setting acquisition format...";
-    if(!cam->setPixelFormat(mBitDepth))
-        throw "Fail to set Format.";
+    if(!cam->setPixelFormat(mBitDepth)){
+        cam->grabCleanse();
+        throw ">> Fail to set Format.";
+    }
 
     cam->getExposureBounds(mMinExposureTime, mMaxExposureTime);
     BOOST_LOG_SEV(logger, notification) << "Get camera exposure bounds : " << mMinExposureTime << " - " << mMaxExposureTime;
@@ -697,22 +705,7 @@ void Device::runContinuousAcquisition(){
     getSunTimes();
 
     // Check sunrise and sunset time.
-    if((mCurrentTime > mStopSunriseTime && mCurrentTime < mStartSunsetTime)){
-
-        BOOST_LOG_SEV(logger, notification) << "DAYTIME         :  YES";
-        BOOST_LOG_SEV(logger, notification) << "AUTO EXPOSURE   :  NO";
-        BOOST_LOG_SEV(logger, notification) << "EXPOSURE TIME   :  " << mDayExposure;
-        BOOST_LOG_SEV(logger, notification) << "GAIN            :  " << mDayGain;
-
-        /// Set camera exposure time.
-        if(!cam->setExposureTime(mDayExposure))
-            throw "Fail to set Night Exposure.";
-
-        /// Set camera gain.
-        if(!cam->setGain(mDayGain))
-            throw "Fail to set Night Gain.";
-
-    }else if((mCurrentTime > mStopSunsetTime) || (mCurrentTime < mStartSunriseTime) ){
+    if((mCurrentTime > mStopSunsetTime) || (mCurrentTime < mStartSunriseTime)){
 
         BOOST_LOG_SEV(logger, notification) << "DAYTIME         :  NO";
         BOOST_LOG_SEV(logger, notification) << "AUTO EXPOSURE   :  NO";
@@ -720,12 +713,34 @@ void Device::runContinuousAcquisition(){
         BOOST_LOG_SEV(logger, notification) << "GAIN            :  " << mNightGain;
 
         /// Set camera exposure time.
-        if(!cam->setExposureTime(mNightExposure))
-            throw "Fail to set Day Exposure.";
+        if(!cam->setExposureTime(mNightExposure)){
+            cam->grabCleanse();
+            throw ">> Fail to set Night Exposure.";
+        }
+        /// Set camera gain.
+        if(!cam->setGain(mNightGain)){
+            cam->grabCleanse();
+            throw ">> Fail to set Night Gain.";
+        }
+        
+    }else if((mCurrentTime > mStopSunriseTime && mCurrentTime < mStartSunsetTime)){
+
+        BOOST_LOG_SEV(logger, notification) << "DAYTIME         :  YES";
+        BOOST_LOG_SEV(logger, notification) << "AUTO EXPOSURE   :  NO";
+        BOOST_LOG_SEV(logger, notification) << "EXPOSURE TIME   :  " << mDayExposure;
+        BOOST_LOG_SEV(logger, notification) << "GAIN            :  " << mDayGain;
+
+        /// Set camera exposure time.
+        if(!cam->setExposureTime(mDayExposure)){
+            cam->grabCleanse();
+            throw ">> Fail to set Day Exposure.";
+        }
 
         /// Set camera gain.
-        if(!cam->setGain(mNightGain))
-            throw "Fail to set Day Gain.";
+        if(!cam->setGain(mDayGain)){
+            cam->grabCleanse();
+            throw ">> Fail to set Day Gain.";
+        }
 
     }else{
 
@@ -734,24 +749,32 @@ void Device::runContinuousAcquisition(){
         BOOST_LOG_SEV(logger, notification) << "EXPOSURE TIME   :  Minimum (" << mMinExposureTime << ")"<< mNightExposure;
         BOOST_LOG_SEV(logger, notification) << "GAIN            :  Minimum (" << mMinGain << ")";
 
-        if(!cam->setExposureTime(mMinExposureTime))
-            throw "Fail to set Day Exposure.";
+        if(!cam->setExposureTime(mMinExposureTime)){
+            cam->grabCleanse();
+            throw ">> Fail to set Day Exposure.";
+        }
 
         /// Set camera gain.
-        if(!cam->setGain(mMinGain))
-            throw "Fail to set Day Gain.";
+        if(!cam->setGain(mMinGain)){
+            cam->grabCleanse();
+            throw ">> Fail to set Day Gain.";
+        }
 
     }
 
     /// Set camera fps.
     BOOST_LOG_SEV(logger, notification) << "Setting fps to " << mFPS;
-    if(!cam->setFPS(mFPS))
-        throw "Fail to set Fps.";
+    if(!cam->setFPS(mFPS)){
+        cam->grabCleanse();
+        throw ">> Fail to set Fps.";
+    }
 
     /// Prepare grabbing.
     BOOST_LOG_SEV(logger, notification) << "Preparing camera to continuous acquisition...";
-    if(!cam->grabInitialization())
-        throw "Fail to start grab.";
+    if(!cam->grabInitialization()){
+        cam->grabCleanse();
+        throw ">> Fail to prepare acquisition.";
+    }
 
     /// Start acquisition.
     BOOST_LOG_SEV(logger, notification) << "Starting acquisition...";

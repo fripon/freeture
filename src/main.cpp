@@ -1,26 +1,27 @@
 /*
-								main.cpp
+                                main.cpp
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 *
-*	This file is part of:	freeture
+*   This file is part of:   freeture
 *
-*	Copyright:		(C) 2014-2015 Yoan Audureau -- FRIPON-GEOPS-UPSUD
+*   Copyright:      (C) 2014-2015 Yoan Audureau
+*                               FRIPON-GEOPS-UPSUD-CNRS
 *
-*	License:		GNU General Public License
+*   License:        GNU General Public License
 *
-*	FreeTure is free software: you can redistribute it and/or modify
-*	it under the terms of the GNU General Public License as published by
-*	the Free Software Foundation, either version 3 of the License, or
-*	(at your option) any later version.
-*	FreeTure is distributed in the hope that it will be useful,
-*	but WITHOUT ANY WARRANTY; without even the implied warranty of
-*	MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-*	GNU General Public License for more details.
-*	You should have received a copy of the GNU General Public License
-*	along with FreeTure. If not, see <http://www.gnu.org/licenses/>.
+*   FreeTure is free software: you can redistribute it and/or modify
+*   it under the terms of the GNU General Public License as published by
+*   the Free Software Foundation, either version 3 of the License, or
+*   (at your option) any later version.
+*   FreeTure is distributed in the hope that it will be useful,
+*   but WITHOUT ANY WARRANTY; without even the implied warranty of
+*   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+*   GNU General Public License for more details.
+*   You should have received a copy of the GNU General Public License
+*   along with FreeTure. If not, see <http://www.gnu.org/licenses/>.
 *
-*	Last modified:		02/03/2015
+*   Last modified:      20/07/2015
 *
 *%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%*/
 
@@ -314,8 +315,6 @@ int main(int argc, const char ** argv){
                                 delete device;
                             }
 
-                            cout << endl << "************************************************" << endl;
-
                         #else
 
                             Device *device = new Device(cam_type.parseEnum("CAMERA_TYPE", camtype));
@@ -544,7 +543,7 @@ int main(int argc, const char ** argv){
 
                                         #ifdef WINDOWS
 
-                                             std::cout << "This is the process : " << (unsigned long)_getpid() << endl;
+                                             BOOST_LOG_SEV(slg, notification) << "This is the process : " << (unsigned long)_getpid();
 
                                         #elif defined LINUX
 
@@ -872,6 +871,8 @@ int main(int argc, const char ** argv){
                             Fits2D newFits(savePath);
                             newFits.copyKeywords(fitsHeader);
                             newFits.kGAINDB = (int)gain;
+                            newFits.kELAPTIME = exp/1000000.0;
+                            newFits.kEXPOSURE = exp/1000000.0;
                             newFits.kONTIME = exp/1000000.0;
                             newFits.kDATEOBS = TimeDate::getIsoExtendedFormatDate(frame.mDate);
                             newFits.kCTYPE1 = "RA---ARC";
@@ -1053,15 +1054,7 @@ int main(int argc, const char ** argv){
                         cout << "min: "<<min<< endl;
                         cout << "max: "<<max<< endl;
                         */
-                        TimeDate::Date date;
-                        date.year = 2015;
-                        date.month = 5;
-                        date.day = 10;
-                        date.hours = 0;
-                        date.minutes = 50;
-                        date.seconds = 20.333;
-                        cout << TimeDate::getIsoExtendedFormatDate(date) << endl;
-
+    
                     }
 
                     break;
@@ -1100,7 +1093,7 @@ int main(int argc, const char ** argv){
 
     po::notify(vm);
 
-    cout << "PROGRAM ENDED." << endl;
+    cout << endl << "PROGRAM ENDED." << endl;
     getchar();
 
     return 0 ;

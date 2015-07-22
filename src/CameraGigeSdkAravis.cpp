@@ -1,26 +1,27 @@
 /*
-							CameraGigeSdkAravis.cpp
+                        CameraGigeSdkAravis.cpp
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 *
-*	This file is part of:	freeture
+*   This file is part of:   freeture
 *
-*	Copyright:		(C) 2014-2015 Yoan Audureau -- FRIPON-GEOPS-UPSUD
+*   Copyright:      (C) 2014-2015 Yoan Audureau
+*                               FRIPON-GEOPS-UPSUD-CNRS
 *
-*	License:		GNU General Public License
+*   License:        GNU General Public License
 *
-*	FreeTure is free software: you can redistribute it and/or modify
-*	it under the terms of the GNU General Public License as published by
-*	the Free Software Foundation, either version 3 of the License, or
-*	(at your option) any later version.
-*	FreeTure is distributed in the hope that it will be useful,
-*	but WITHOUT ANY WARRANTY; without even the implied warranty of
-*	MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-*	GNU General Public License for more details.
-*	You should have received a copy of the GNU General Public License
-*	along with FreeTure. If not, see <http://www.gnu.org/licenses/>.
+*   FreeTure is free software: you can redistribute it and/or modify
+*   it under the terms of the GNU General Public License as published by
+*   the Free Software Foundation, either version 3 of the License, or
+*   (at your option) any later version.
+*   FreeTure is distributed in the hope that it will be useful,
+*   but WITHOUT ANY WARRANTY; without even the implied warranty of
+*   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+*   GNU General Public License for more details.
+*   You should have received a copy of the GNU General Public License
+*   along with FreeTure. If not, see <http://www.gnu.org/licenses/>.
 *
-*	Last modified:		21/01/2015
+*   Last modified:      20/07/2015
 *
 *%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%*/
 
@@ -37,24 +38,24 @@
 
 #ifdef LINUX
 
-	boost::log::sources::severity_logger< LogSeverityLevel >  CameraGigeSdkAravis::logger;
-	CameraGigeSdkAravis::Init CameraGigeSdkAravis::initializer;
+    boost::log::sources::severity_logger< LogSeverityLevel >  CameraGigeSdkAravis::logger;
+    CameraGigeSdkAravis::Init CameraGigeSdkAravis::initializer;
 
-	CameraGigeSdkAravis::CameraGigeSdkAravis(bool shift){
-	    shiftBitsImage = shift;
+    CameraGigeSdkAravis::CameraGigeSdkAravis(bool shift){
+        shiftBitsImage = shift;
     }
 
-	CameraGigeSdkAravis::CameraGigeSdkAravis(){
-	    shiftBitsImage = false;
+    CameraGigeSdkAravis::CameraGigeSdkAravis(){
+        shiftBitsImage = false;
     }
 
-	CameraGigeSdkAravis::~CameraGigeSdkAravis(){}
+    CameraGigeSdkAravis::~CameraGigeSdkAravis(){}
 
-	void CameraGigeSdkAravis::listGigeCameras(){
+    bool CameraGigeSdkAravis::listGigeCameras(){
 
-		arv_update_device_list();
+        arv_update_device_list();
 
-		int n_devices = arv_get_n_devices();
+        int n_devices = arv_get_n_devices();
 
         BOOST_LOG_SEV(logger, notification) << "Cameras detected with Aravis : ";
 
@@ -70,209 +71,213 @@
 
         cout << endl << "------------------------------------------------" << endl << endl;
 
-        if(n_devices == 0)
+        if(n_devices == 0) {
             cout << "-> No cameras detected..." << endl;
+            return false;
+        }
 
-	}
+        return true;
 
-	bool CameraGigeSdkAravis::createDevice(int id){
+    }
 
-	    BOOST_LOG_SEV(logger, notification) << "Creating device " << id;
+    bool CameraGigeSdkAravis::createDevice(int id){
 
-	    string deviceName;
+        BOOST_LOG_SEV(logger, notification) << "Creating device " << id;
 
-	    if(!getDeviceNameById(id, deviceName))
+        string deviceName;
+
+        if(!getDeviceNameById(id, deviceName))
             return false;
 
         //cout << "Device : " << deviceName << endl;
         BOOST_LOG_SEV(logger, notification) << "Device selected: " << deviceName;
 
-		camera = arv_camera_new(deviceName.c_str());
+        camera = arv_camera_new(deviceName.c_str());
 
-		if(camera != NULL){
+        if(camera != NULL){
 
-			BOOST_LOG_SEV(logger, notification) << "Connection success to the camera.";
-			return true;
+            BOOST_LOG_SEV(logger, notification) << "Connection success to the camera.";
+            return true;
 
-		}else{
+        }else{
 
-			cout << "Connection fail to the camera." << endl;
-			BOOST_LOG_SEV(logger, fail) << "Connection fail to the camera.";
-			return false;
+            cout << "Connection fail to the camera." << endl;
+            BOOST_LOG_SEV(logger, fail) << "Connection fail to the camera.";
+            return false;
 
-		}
-	}
+        }
+    }
 
-	bool CameraGigeSdkAravis::getDeviceNameById(int id, string &device){
+    bool CameraGigeSdkAravis::getDeviceNameById(int id, string &device){
 
-		arv_update_device_list();
+        arv_update_device_list();
 
-		int n_devices = arv_get_n_devices();
+        int n_devices = arv_get_n_devices();
 
-		for(int i = 0; i< n_devices; i++){
+        for(int i = 0; i< n_devices; i++){
 
             //cout << "ID : " << i << " -> " << arv_get_device_id(i) << endl;
 
-			if(id == i){
+            if(id == i){
 
-				device = arv_get_device_id(i);
-				return true;
+                device = arv_get_device_id(i);
+                return true;
 
-			}
-		}
+            }
+        }
 
-		return false;
+        return false;
 
-	}
+    }
 
-	bool CameraGigeSdkAravis::grabInitialization(){
+    bool CameraGigeSdkAravis::grabInitialization(){
 
-	    frameCounter = 0;
+        frameCounter = 0;
 
-		int sensor_width, sensor_height;
+        int sensor_width, sensor_height;
 
-		arv_camera_get_sensor_size(camera, &sensor_width, &sensor_height);
-		BOOST_LOG_SEV(logger, notification) << "Camera sensor size : " << sensor_width << "x" << sensor_height;
+        arv_camera_get_sensor_size(camera, &sensor_width, &sensor_height);
+        BOOST_LOG_SEV(logger, notification) << "Camera sensor size : " << sensor_width << "x" << sensor_height;
 
-		arv_camera_set_region(camera, 0, 0,sensor_width,sensor_height);
+        arv_camera_set_region(camera, 0, 0,sensor_width,sensor_height);
 
-		arv_camera_get_region (camera, NULL, NULL, &width, &height);
-		BOOST_LOG_SEV(logger, notification) << "Camera region size : " << width << "x" << height;
+        arv_camera_get_region (camera, NULL, NULL, &width, &height);
+        BOOST_LOG_SEV(logger, notification) << "Camera region size : " << width << "x" << height;
 
-		payload = arv_camera_get_payload (camera);
-		BOOST_LOG_SEV(logger, notification) << "Camera payload : " << payload;
+        payload = arv_camera_get_payload (camera);
+        BOOST_LOG_SEV(logger, notification) << "Camera payload : " << payload;
 
-		pixFormat = arv_camera_get_pixel_format(camera);
+        pixFormat = arv_camera_get_pixel_format(camera);
 
-		arv_camera_get_exposure_time_bounds (camera, &exposureMin, &exposureMax);
-		BOOST_LOG_SEV(logger, notification) << "Camera exposure bound min : " << exposureMin;
-		BOOST_LOG_SEV(logger, notification) << "Camera exposure bound max : " << exposureMax;
+        arv_camera_get_exposure_time_bounds (camera, &exposureMin, &exposureMax);
+        BOOST_LOG_SEV(logger, notification) << "Camera exposure bound min : " << exposureMin;
+        BOOST_LOG_SEV(logger, notification) << "Camera exposure bound max : " << exposureMax;
 
-		arv_camera_get_gain_bounds (camera, &gainMin, &gainMax);
-		BOOST_LOG_SEV(logger, notification) << "Camera gain bound min : " << gainMin;
-		BOOST_LOG_SEV(logger, notification) << "Camera gain bound max : " << gainMax;
+        arv_camera_get_gain_bounds (camera, &gainMin, &gainMax);
+        BOOST_LOG_SEV(logger, notification) << "Camera gain bound min : " << gainMin;
+        BOOST_LOG_SEV(logger, notification) << "Camera gain bound max : " << gainMax;
 
-		arv_camera_set_frame_rate(camera, 30);
+        arv_camera_set_frame_rate(camera, 30);
 
-		fps = arv_camera_get_frame_rate(camera);
-		BOOST_LOG_SEV(logger, notification) << "Camera frame rate : " << fps;
+        fps = arv_camera_get_frame_rate(camera);
+        BOOST_LOG_SEV(logger, notification) << "Camera frame rate : " << fps;
 
-		capsString = arv_pixel_format_to_gst_caps_string(pixFormat);
-		BOOST_LOG_SEV(logger, notification) << "Camera format : " << capsString;
+        capsString = arv_pixel_format_to_gst_caps_string(pixFormat);
+        BOOST_LOG_SEV(logger, notification) << "Camera format : " << capsString;
 
-		gain = arv_camera_get_gain(camera);
-		BOOST_LOG_SEV(logger, notification) << "Camera gain : " << gain;
+        gain = arv_camera_get_gain(camera);
+        BOOST_LOG_SEV(logger, notification) << "Camera gain : " << gain;
 
-		exp = arv_camera_get_exposure_time(camera);
-		BOOST_LOG_SEV(logger, notification) << "Camera exposure : " << exp;
+        exp = arv_camera_get_exposure_time(camera);
+        BOOST_LOG_SEV(logger, notification) << "Camera exposure : " << exp;
 
-		cout << endl;
+        cout << endl;
 
-		cout << "DEVICE SELECTED : " << arv_camera_get_device_id(camera)    << endl;
-		cout << "DEVICE NAME     : " << arv_camera_get_model_name(camera)   << endl;
-		cout << "DEVICE VENDOR   : " << arv_camera_get_vendor_name(camera)  << endl;
-		cout << "PAYLOAD         : " << payload                             << endl;
-		cout << "Width           : " << width                               << endl
-			 << "Height          : " << height                              << endl;
-		cout << "Exp Range       : [" << exposureMin    << " - " << exposureMax   << "]"  << endl;
-		cout << "Exp             : " << exp                                 << endl;
-		cout << "Gain Range      : [" << gainMin        << " - " << gainMax       << "]"  << endl;
-		cout << "Gain            : " << gain                                << endl;
-		cout << "Fps             : " << fps                                 << endl;
-		cout << "Type            : " << capsString                         << endl;
+        cout << "DEVICE SELECTED : " << arv_camera_get_device_id(camera)    << endl;
+        cout << "DEVICE NAME     : " << arv_camera_get_model_name(camera)   << endl;
+        cout << "DEVICE VENDOR   : " << arv_camera_get_vendor_name(camera)  << endl;
+        cout << "PAYLOAD         : " << payload                             << endl;
+        cout << "Width           : " << width                               << endl
+		        << "Height          : " << height                              << endl;
+        cout << "Exp Range       : [" << exposureMin    << " - " << exposureMax   << "]"  << endl;
+        cout << "Exp             : " << exp                                 << endl;
+        cout << "Gain Range      : [" << gainMin        << " - " << gainMax       << "]"  << endl;
+        cout << "Gain            : " << gain                                << endl;
+        cout << "Fps             : " << fps                                 << endl;
+        cout << "Type            : " << capsString                         << endl;
 
-		cout << endl;
+        cout << endl;
 
-		// Create a new stream object. Open stream on Camera.
-		stream = arv_camera_create_stream(camera, NULL, NULL);
+        // Create a new stream object. Open stream on Camera.
+        stream = arv_camera_create_stream(camera, NULL, NULL);
 
-		if(stream == NULL){
+        if(stream == NULL){
 
-			BOOST_LOG_SEV(logger, critical) << "Fail to create stream with arv_camera_create_stream()";
-			return false;
+            BOOST_LOG_SEV(logger, critical) << "Fail to create stream with arv_camera_create_stream()";
+            return false;
 
         }
 
-		if (ARV_IS_GV_STREAM(stream)){
+        if (ARV_IS_GV_STREAM(stream)){
 
-			bool            arv_option_auto_socket_buffer   = true;
-			bool            arv_option_no_packet_resend     = true;
-			unsigned int    arv_option_packet_timeout       = 20;
-			unsigned int    arv_option_frame_retention      = 100;
+            bool            arv_option_auto_socket_buffer   = true;
+            bool            arv_option_no_packet_resend     = true;
+            unsigned int    arv_option_packet_timeout       = 20;
+            unsigned int    arv_option_frame_retention      = 100;
 
-			if(arv_option_auto_socket_buffer){
+            if(arv_option_auto_socket_buffer){
 
-				g_object_set(stream,
-							 // ARV_GV_STREAM_SOCKET_BUFFER_FIXED : socket buffer is set to a given fixed value.
-							 // ARV_GV_STREAM_SOCKET_BUFFER_AUTO: socket buffer is set with respect to the payload size.
-							 "socket-buffer", ARV_GV_STREAM_SOCKET_BUFFER_AUTO,
-							 // Socket buffer size, in bytes.
-							 // Allowed values: >= G_MAXULONG
-							 // Default value: 0
-							 "socket-buffer-size", 0, NULL);
+                g_object_set(stream,
+                            // ARV_GV_STREAM_SOCKET_BUFFER_FIXED : socket buffer is set to a given fixed value.
+                            // ARV_GV_STREAM_SOCKET_BUFFER_AUTO: socket buffer is set with respect to the payload size.
+                            "socket-buffer", ARV_GV_STREAM_SOCKET_BUFFER_AUTO,
+                            // Socket buffer size, in bytes.
+                            // Allowed values: >= G_MAXULONG
+                            // Default value: 0
+                            "socket-buffer-size", 0, NULL);
 
-			}
+            }
 
-			if(arv_option_no_packet_resend){
+            if(arv_option_no_packet_resend){
 
-				// # packet-resend : Enables or disables the packet resend mechanism
+                // # packet-resend : Enables or disables the packet resend mechanism
 
-				// If packet resend is disabled and a packet has been lost during transmission,
-				// the grab result for the returned buffer holding the image will indicate that
-				// the grab failed and the image will be incomplete.
-				//
-				// If packet resend is enabled and a packet has been lost during transmission,
-				// a request is sent to the camera. If the camera still has the packet in its
-				// buffer, it will resend the packet. If there are several lost packets in a
-				// row, the resend requests will be combined.
+                // If packet resend is disabled and a packet has been lost during transmission,
+                // the grab result for the returned buffer holding the image will indicate that
+                // the grab failed and the image will be incomplete.
+                //
+                // If packet resend is enabled and a packet has been lost during transmission,
+                // a request is sent to the camera. If the camera still has the packet in its
+                // buffer, it will resend the packet. If there are several lost packets in a
+                // row, the resend requests will be combined.
 
-				g_object_set(stream,
-							 // ARV_GV_STREAM_PACKET_RESEND_NEVER: never request a packet resend
-							 // ARV_GV_STREAM_PACKET_RESEND_ALWAYS: request a packet resend if a packet was missing
-							 // Default value: ARV_GV_STREAM_PACKET_RESEND_ALWAYS
-							 "packet-resend", ARV_GV_STREAM_PACKET_RESEND_NEVER, NULL);
+                g_object_set(stream,
+                            // ARV_GV_STREAM_PACKET_RESEND_NEVER: never request a packet resend
+                            // ARV_GV_STREAM_PACKET_RESEND_ALWAYS: request a packet resend if a packet was missing
+                            // Default value: ARV_GV_STREAM_PACKET_RESEND_ALWAYS
+                            "packet-resend", ARV_GV_STREAM_PACKET_RESEND_NEVER, NULL);
 
-			}
+            }
 
-			g_object_set(stream,
-						 // # packet-timeout
+            g_object_set(stream,
+                        // # packet-timeout
 
-						 // The Packet Timeout parameter defines how long (in milliseconds) we will wait for
-						 // the next expected packet before it initiates a resend request.
+                        // The Packet Timeout parameter defines how long (in milliseconds) we will wait for
+                        // the next expected packet before it initiates a resend request.
 
-						 // Packet timeout, in µs.
-						 // Allowed values: [1000,10000000]
-						 // Default value: 40000
-						 "packet-timeout",/* (unsigned) arv_option_packet_timeout * 1000*/(unsigned)40000,
-						 // # frame-retention
+                        // Packet timeout, in µs.
+                        // Allowed values: [1000,10000000]
+                        // Default value: 40000
+                        "packet-timeout",/* (unsigned) arv_option_packet_timeout * 1000*/(unsigned)40000,
+                        // # frame-retention
 
-						 // The Frame Retention parameter sets the timeout (in milliseconds) for the
-						 // frame retention timer. Whenever detection of the leader is made for a frame,
-						 // the frame retention timer starts. The timer resets after each packet in the
-						 // frame is received and will timeout after the last packet is received. If the
-						 // timer times out at any time before the last packet is received, the buffer for
-						 // the frame will be released and will be indicated as an unsuccessful grab.
+                        // The Frame Retention parameter sets the timeout (in milliseconds) for the
+                        // frame retention timer. Whenever detection of the leader is made for a frame,
+                        // the frame retention timer starts. The timer resets after each packet in the
+                        // frame is received and will timeout after the last packet is received. If the
+                        // timer times out at any time before the last packet is received, the buffer for
+                        // the frame will be released and will be indicated as an unsuccessful grab.
 
-						 // Packet retention, in µs.
-						 // Allowed values: [1000,10000000]
-						 // Default value: 200000
-						 "frame-retention", /*(unsigned) arv_option_frame_retention * 1000*/(unsigned) 200000,NULL);
+                        // Packet retention, in µs.
+                        // Allowed values: [1000,10000000]
+                        // Default value: 200000
+                        "frame-retention", /*(unsigned) arv_option_frame_retention * 1000*/(unsigned) 200000,NULL);
 
-		}else
+        }else
             return false;
 
-		// Push 50 buffer in the stream input buffer queue.
-		for (int i = 0; i < 50; i++)
-			arv_stream_push_buffer(stream, arv_buffer_new(payload, NULL));
+        // Push 50 buffer in the stream input buffer queue.
+        for (int i = 0; i < 50; i++)
+            arv_stream_push_buffer(stream, arv_buffer_new(payload, NULL));
 
-		return true;
+        return true;
 
-	}
+    }
 
 
-	void CameraGigeSdkAravis::grabCleanse(){}
+    void CameraGigeSdkAravis::grabCleanse(){}
 
-	void CameraGigeSdkAravis::acqStart(){
+    void CameraGigeSdkAravis::acqStart(){
 
         BOOST_LOG_SEV(logger, notification) << "Set camera to CONTINUOUS MODE";
         arv_camera_set_acquisition_mode(camera, ARV_ACQUISITION_MODE_CONTINUOUS);
@@ -281,52 +286,52 @@
         arv_device_set_string_feature_value(arv_camera_get_device (camera), "TriggerMode" , "Off");
 
         BOOST_LOG_SEV(logger, notification) << "Start acquisition on camera";
-		arv_camera_start_acquisition(camera);
+        arv_camera_start_acquisition(camera);
 
-	}
+    }
 
-	void CameraGigeSdkAravis::acqStop(){
+    void CameraGigeSdkAravis::acqStop(){
 
-		arv_stream_get_statistics(stream, &nbCompletedBuffers, &nbFailures, &nbUnderruns);
+        arv_stream_get_statistics(stream, &nbCompletedBuffers, &nbFailures, &nbUnderruns);
 
-		cout << "Completed buffers = " << (unsigned long long) nbCompletedBuffers	<< endl;
-		cout << "Failures          = " << (unsigned long long) nbFailures           << endl;
-		cout << "Underruns         = " << (unsigned long long) nbUnderruns          << endl;
+        cout << "Completed buffers = " << (unsigned long long) nbCompletedBuffers	<< endl;
+        cout << "Failures          = " << (unsigned long long) nbFailures           << endl;
+        cout << "Underruns         = " << (unsigned long long) nbUnderruns          << endl;
 
-		BOOST_LOG_SEV(logger, notification) << "Completed buffers = " << (unsigned long long) nbCompletedBuffers;
-		BOOST_LOG_SEV(logger, notification) << "Failures          = " << (unsigned long long) nbFailures;
-		BOOST_LOG_SEV(logger, notification) << "Underruns         = " << (unsigned long long) nbUnderruns;
+        BOOST_LOG_SEV(logger, notification) << "Completed buffers = " << (unsigned long long) nbCompletedBuffers;
+        BOOST_LOG_SEV(logger, notification) << "Failures          = " << (unsigned long long) nbFailures;
+        BOOST_LOG_SEV(logger, notification) << "Underruns         = " << (unsigned long long) nbUnderruns;
 
         BOOST_LOG_SEV(logger, notification) << "Stop acquisition on camera";
         cout << "Stop acquisition on camera" << endl;
-		arv_camera_stop_acquisition(camera);
-		cout << "Acquisition on camera stopped " << endl;
+        arv_camera_stop_acquisition(camera);
+        cout << "Acquisition on camera stopped " << endl;
 
         cout << "unref stream" << endl;
-		g_object_unref(stream);
+        g_object_unref(stream);
 
-		cout << "unref camera" << endl;
-		g_object_unref(camera);
+        cout << "unref camera" << endl;
+        g_object_unref(camera);
 
-	}
+    }
 
-	bool CameraGigeSdkAravis::grabImage(Frame &newFrame){
+    bool CameraGigeSdkAravis::grabImage(Frame &newFrame){
 
-		ArvBuffer *arv_buffer;
-		//exp = arv_camera_get_exposure_time(camera);
+        ArvBuffer *arv_buffer;
+        //exp = arv_camera_get_exposure_time(camera);
 
-		arv_buffer = arv_stream_timeout_pop_buffer(stream,2000000); //us
+        arv_buffer = arv_stream_timeout_pop_buffer(stream,2000000); //us
         char *buffer_data;
         size_t buffer_size;
 
-		if(arv_buffer == NULL){
+        if(arv_buffer == NULL){
 
-			 throw runtime_error("arv_buffer is NULL");
-			 return false;
+            throw runtime_error("arv_buffer is NULL");
+            return false;
 
-		}else{
+        }else{
 
-		    try{
+            try{
 
                 if(arv_buffer_get_status(arv_buffer) == ARV_BUFFER_STATUS_SUCCESS){
 
@@ -444,11 +449,11 @@
 
             }
         }
-	}
+    }
 
-	bool CameraGigeSdkAravis::grabSingleImage(Frame &frame, int camID){
+    bool CameraGigeSdkAravis::grabSingleImage(Frame &frame, int camID){
 
-	    bool res = false;
+        bool res = false;
 
         if(!createDevice(camID))
             return false;
@@ -462,55 +467,55 @@
         if(!setGain(frame.getGain()))
             return false;
 
-		int sensor_width, sensor_height;
+        int sensor_width, sensor_height;
 
-		arv_camera_get_sensor_size(camera, &sensor_width, &sensor_height);
+        arv_camera_get_sensor_size(camera, &sensor_width, &sensor_height);
 
         // Use maximum sensor size.
-		arv_camera_set_region(camera, 0, 0,sensor_width,sensor_height);
+        arv_camera_set_region(camera, 0, 0,sensor_width,sensor_height);
 
-		arv_camera_get_region (camera, NULL, NULL, &width, &height);
+        arv_camera_get_region (camera, NULL, NULL, &width, &height);
 
-		payload = arv_camera_get_payload (camera);
+        payload = arv_camera_get_payload (camera);
 
-		pixFormat = arv_camera_get_pixel_format (camera);
+        pixFormat = arv_camera_get_pixel_format (camera);
 
-		arv_camera_get_exposure_time_bounds (camera, &exposureMin, &exposureMax);
+        arv_camera_get_exposure_time_bounds (camera, &exposureMin, &exposureMax);
 
-		arv_camera_get_gain_bounds (camera, &gainMin, &gainMax);
+        arv_camera_get_gain_bounds (camera, &gainMin, &gainMax);
 
-		arv_camera_set_frame_rate(camera, 1);
+        arv_camera_set_frame_rate(camera, 1);
 
-		fps = arv_camera_get_frame_rate(camera);
+        fps = arv_camera_get_frame_rate(camera);
 
-		capsString = arv_pixel_format_to_gst_caps_string(pixFormat);
+        capsString = arv_pixel_format_to_gst_caps_string(pixFormat);
 
-		gain    = arv_camera_get_gain(camera);
-		exp     = arv_camera_get_exposure_time(camera);
+        gain    = arv_camera_get_gain(camera);
+        exp     = arv_camera_get_exposure_time(camera);
 
-		cout << endl;
+        cout << endl;
 
-		cout << "DEVICE SELECTED : " << arv_camera_get_device_id(camera)    << endl;
-		cout << "DEVICE NAME     : " << arv_camera_get_model_name(camera)   << endl;
-		cout << "DEVICE VENDOR   : " << arv_camera_get_vendor_name(camera)  << endl;
-		cout << "PAYLOAD         : " << payload                             << endl;
-		cout << "Width           : " << width                               << endl
-			 << "Height          : " << height                              << endl;
-		cout << "Exp Range       : [" << exposureMin    << " - " << exposureMax   << "]"  << endl;
-		cout << "Exp             : " << exp                                 << endl;
-		cout << "Gain Range      : [" << gainMin        << " - " << gainMax       << "]"  << endl;
-		cout << "Gain            : " << gain                                << endl;
-		cout << "Fps             : " << fps                                 << endl;
-		cout << "Type            : " << capsString                         << endl;
+        cout << "DEVICE SELECTED : " << arv_camera_get_device_id(camera)    << endl;
+        cout << "DEVICE NAME     : " << arv_camera_get_model_name(camera)   << endl;
+        cout << "DEVICE VENDOR   : " << arv_camera_get_vendor_name(camera)  << endl;
+        cout << "PAYLOAD         : " << payload                             << endl;
+        cout << "Width           : " << width                               << endl
+             << "Height          : " << height                              << endl;
+        cout << "Exp Range       : [" << exposureMin    << " - " << exposureMax   << "]"  << endl;
+        cout << "Exp             : " << exp                                 << endl;
+        cout << "Gain Range      : [" << gainMin        << " - " << gainMax       << "]"  << endl;
+        cout << "Gain            : " << gain                                << endl;
+        cout << "Fps             : " << fps                                 << endl;
+        cout << "Type            : " << capsString                         << endl;
 
-		cout << endl;
+        cout << endl;
 
-		// Create a new stream object. Open stream on Camera.
-		stream = arv_camera_create_stream(camera, NULL, NULL);
+        // Create a new stream object. Open stream on Camera.
+        stream = arv_camera_create_stream(camera, NULL, NULL);
 
         cout << "shiftBits status : " << shiftBitsImage << endl;
 
-		if(stream != NULL){
+        if(stream != NULL){
 
             if(ARV_IS_GV_STREAM(stream)){
 
@@ -552,6 +557,8 @@
 
             char *buffer_data;
             size_t buffer_size;
+
+            cout << ">> Acquisition in progress... (Please wait)" << endl;
 
             if (arv_buffer != NULL){
 
@@ -670,13 +677,13 @@
             g_object_unref(stream);
             g_object_unref(camera);
 
-		}
+        }
 
-		return res;
+        return res;
 
-	}
+    }
 
-	void CameraGigeSdkAravis::saveGenicamXml(string p){
+    void CameraGigeSdkAravis::saveGenicamXml(string p){
 
         const char *xml;
 
@@ -694,191 +701,191 @@
 
         }
 
-	}
+    }
 
-	void CameraGigeSdkAravis::getExposureBounds(int &eMin, int &eMax){
+    void CameraGigeSdkAravis::getExposureBounds(int &eMin, int &eMax){
 
-		double exposureMin = 0.0;
-		double exposureMax = 0.0;
+        double exposureMin = 0.0;
+        double exposureMax = 0.0;
 
-		arv_camera_get_exposure_time_bounds(camera, &exposureMin, &exposureMax);
+        arv_camera_get_exposure_time_bounds(camera, &exposureMin, &exposureMax);
 
-		eMin = exposureMin;
-		eMax = exposureMax;
+        eMin = exposureMin;
+        eMax = exposureMax;
 
-	}
+    }
 
-	int CameraGigeSdkAravis::getExposureTime(){
+    int CameraGigeSdkAravis::getExposureTime(){
 
         return arv_camera_get_exposure_time(camera);
 
-	}
+    }
 
-	void CameraGigeSdkAravis::getGainBounds(int &gMin, int &gMax){
+    void CameraGigeSdkAravis::getGainBounds(int &gMin, int &gMax){
 
-		double gainMin = 0.0;
-		double gainMax = 0.0;
+        double gainMin = 0.0;
+        double gainMax = 0.0;
 
-		arv_camera_get_gain_bounds(camera, &gainMin, &gainMax);
+        arv_camera_get_gain_bounds(camera, &gainMin, &gainMax);
 
-		gMin = gainMin;
-		gMax = gainMax;
+        gMin = gainMin;
+        gMax = gainMax;
 
-	}
+    }
 
-	bool CameraGigeSdkAravis::getPixelFormat(CamBitDepth &format){
+    bool CameraGigeSdkAravis::getPixelFormat(CamBitDepth &format){
 
-		ArvPixelFormat pixFormat = arv_camera_get_pixel_format(camera);
+        ArvPixelFormat pixFormat = arv_camera_get_pixel_format(camera);
 
-		switch(pixFormat){
+        switch(pixFormat){
 
-			case ARV_PIXEL_FORMAT_MONO_8 :
+            case ARV_PIXEL_FORMAT_MONO_8 :
 
-					format = MONO_8;
+                format = MONO_8;
 
-				break;
+                break;
 
-			case ARV_PIXEL_FORMAT_MONO_12 :
+            case ARV_PIXEL_FORMAT_MONO_12 :
 
-					format = MONO_12;
+                format = MONO_12;
 
-				break;
+                break;
 
-			default :
+            default :
 
-					return false;
+                return false;
 
-				break;
+                break;
 
-		}
+        }
 
-		return true;
-	}
+        return true;
+    }
 
-	int CameraGigeSdkAravis::getFrameWidth(){
+    int CameraGigeSdkAravis::getFrameWidth(){
 
-		int w = 0, h = 0;
+        int w = 0, h = 0;
 
-		arv_camera_get_region(camera, NULL, NULL, &w, &h);
+        arv_camera_get_region(camera, NULL, NULL, &w, &h);
 
-		return w;
+        return w;
 
-	}
+    }
 
-	int CameraGigeSdkAravis::getFrameHeight(){
+    int CameraGigeSdkAravis::getFrameHeight(){
 
-		int w = 0, h = 0;
+        int w = 0, h = 0;
 
-		arv_camera_get_region(camera, NULL, NULL, &w, &h);
+        arv_camera_get_region(camera, NULL, NULL, &w, &h);
 
-		return h;
+        return h;
 
-	}
+    }
 
-	int CameraGigeSdkAravis::getFPS(void){
+    int CameraGigeSdkAravis::getFPS(void){
 
-		return (int)arv_camera_get_frame_rate(camera);
+        return (int)arv_camera_get_frame_rate(camera);
 
-	}
+    }
 
-	string CameraGigeSdkAravis::getModelName(){
+    string CameraGigeSdkAravis::getModelName(){
 
-		return arv_camera_get_model_name(camera);
+        return arv_camera_get_model_name(camera);
 
-	}
+    }
 
-	bool CameraGigeSdkAravis::setExposureTime(int val){
+    bool CameraGigeSdkAravis::setExposureTime(int val){
 
-		double expMin, expMax;
+        double expMin, expMax;
 
-		arv_camera_get_exposure_time_bounds(camera, &expMin, &expMax);
+        arv_camera_get_exposure_time_bounds(camera, &expMin, &expMax);
 
-		if (camera != NULL){
+        if(camera != NULL){
 
-			if((double)val >= expMin && (double)val <= expMax)
+            if((double)val >= expMin && (double)val <= expMax)
 
-				arv_camera_set_exposure_time(camera, (double)val);
+            arv_camera_set_exposure_time(camera, (double)val);
 
-			else{
+            else{
 
-				cout << "> Exposure value (" << val << ") is not in range [ " << expMin << " - " << expMax << " ]" << endl;
-				return false;
+                cout << "> Exposure value (" << val << ") is not in range [ " << expMin << " - " << expMax << " ]" << endl;
+                return false;
 
-			}
+            }
 
-			return true;
+            return true;
 
-		}
+        }
 
-		return false;
-	}
+        return false;
+    }
 
-	bool CameraGigeSdkAravis::setGain(int val){
+    bool CameraGigeSdkAravis::setGain(int val){
 
-		double gMin, gMax;
+        double gMin, gMax;
 
-		arv_camera_get_gain_bounds (camera, &gMin, &gMax);
+        arv_camera_get_gain_bounds (camera, &gMin, &gMax);
 
-		if (camera != NULL){
+        if (camera != NULL){
 
-			if((double)val >= gMin && (double)val <= gMax)
+            if((double)val >= gMin && (double)val <= gMax)
 
-				arv_camera_set_gain (camera, (double)val);
+                arv_camera_set_gain (camera, (double)val);
 
-			else{
+            else{
 
-				cout << "> Gain value (" << val << ") is not in range [ " << gMin << " - " << gMax << " ]" << endl;
-				return false;
+                cout << "> Gain value (" << val << ") is not in range [ " << gMin << " - " << gMax << " ]" << endl;
+                return false;
 
-			}
+            }
 
-			return true;
+        return true;
 
-		}
+        }
 
-		return false;
+        return false;
 
-	}
+    }
 
-	bool CameraGigeSdkAravis::setFPS(int fps){
+    bool CameraGigeSdkAravis::setFPS(int fps){
 
-		if (camera != NULL){
+        if (camera != NULL){
 
-			arv_camera_set_frame_rate(camera, fps);
+            arv_camera_set_frame_rate(camera, fps);
 
-			return true;
+            return true;
 
-		}
+        }
 
-		return false;
+        return false;
 
-	}
+    }
 
-	bool CameraGigeSdkAravis::setPixelFormat(CamBitDepth depth){
+    bool CameraGigeSdkAravis::setPixelFormat(CamBitDepth depth){
 
-		if (camera != NULL){
+        if (camera != NULL){
 
-			switch(depth){
+            switch(depth){
 
-				case MONO_8 :
+                case MONO_8 :
 
-					arv_camera_set_pixel_format(camera, ARV_PIXEL_FORMAT_MONO_8);
+                    arv_camera_set_pixel_format(camera, ARV_PIXEL_FORMAT_MONO_8);
 
-					break;
+                    break;
 
-				case MONO_12 :
+                case MONO_12 :
 
-					arv_camera_set_pixel_format(camera, ARV_PIXEL_FORMAT_MONO_12);
+                    arv_camera_set_pixel_format(camera, ARV_PIXEL_FORMAT_MONO_12);
 
-					break;
+                    break;
 
-			}
+            }
 
-			return true;
-		}
+            return true;
+        }
 
-		return false;
+        return false;
 
-	}
+    }
 
 #endif

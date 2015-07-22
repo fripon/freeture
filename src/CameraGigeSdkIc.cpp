@@ -60,7 +60,7 @@
 
     }
 
-    void CameraGigeSdkIc::listGigeCameras(){
+    bool CameraGigeSdkIc::listGigeCameras(){
 
         // Retrieve a list with the video capture devices connected to the computer.
         pVidCapDevList = m_pGrabber->getAvailableVideoCaptureDevices();
@@ -80,15 +80,20 @@
 
         }
 
-        if(pVidCapDevList->size() == 0)
+        if(pVidCapDevList->size() == 0) {
             cout << "-> No cameras detected..." << endl;
+            cout << endl << "------------------------------------------------" << endl << endl;
+            return false;
+        }
 
         cout << endl << "------------------------------------------------" << endl << endl;
+
+        return true;
 
     }
 
     // https://valelab.ucsf.edu/svn/micromanager2/branches/micromanager1.3/DeviceAdapters/TISCam/SimplePropertyAccess.cpp
-    DShowLib::tIVCDRangePropertyPtr	CameraGigeSdkIc::getPropertyRangeInterface( _DSHOWLIB_NAMESPACE::tIVCDPropertyItemsPtr& pItems, const GUID& id ){
+    DShowLib::tIVCDRangePropertyPtr CameraGigeSdkIc::getPropertyRangeInterface( _DSHOWLIB_NAMESPACE::tIVCDPropertyItemsPtr& pItems, const GUID& id ){
 
         GUID itemID = id;
         GUID elemID = DShowLib::VCDElement_Value;
@@ -154,315 +159,304 @@
         return rval;
     }
 
-	/*bool CameraGigeSdkIc::getAvailableFormat(){
+    /*bool CameraGigeSdkIc::getAvailableFormat(){
 
-		// Open device first.
+        // Open device first.
 
-		// Query for all available video formats.
-		DShowLib::Grabber::tVidFmtListPtr pVidFmtList = m_pGrabber->getAvailableVideoFormats();
+        // Query for all available video formats.
+        DShowLib::Grabber::tVidFmtListPtr pVidFmtList = m_pGrabber->getAvailableVideoFormats();
 
-		if(pVidFmtList == 0){
+        if(pVidFmtList == 0){
 
-			std::cerr << "Error: " << m_pGrabber->getLastError().toString() << std::endl;
-			return false;
+            std::cerr << "Error: " << m_pGrabber->getLastError().toString() << std::endl;
+            return false;
 
-		}else{
+        }else{
 
-			unsigned int counter = 0;
-			// List the available video formats.
-			for(DShowLib::Grabber::tVidFmtList::iterator it = pVidFmtList->begin(); it != pVidFmtList->end();++it){
-				std::cout << "\t[" << counter++ << "] " << it->toString() << std::endl;
-			}
+            unsigned int counter = 0;
+            // List the available video formats.
+            for(DShowLib::Grabber::tVidFmtList::iterator it = pVidFmtList->begin(); it != pVidFmtList->end();++it){
+	            std::cout << "\t[" << counter++ << "] " << it->toString() << std::endl;
+            }
 
-			return true;
+            return true;
 
-		}
+        }
 
-		// Close device.
+        // Close device.
 
-	}*/
+    }*/
 
     bool CameraGigeSdkIc::setFPS(int value) {
 
         mFPS = value;
-        cout << "set fps to : " << value << endl;
         return m_pGrabber->setFPS((double)value);
         
     }
 
     bool CameraGigeSdkIc::createDevice(int id){
 
-        // Open the selected video capture device.
-        m_pGrabber->openDev(pVidCapDevList->at(id));
-
         if(pVidCapDevList == 0 || pVidCapDevList->empty()){
 
-            cout << "No device available." << endl;
+            BOOST_LOG_SEV(logger,fail) << "No device available.";
             return false;
 
+        }else {
+
+            // Open the selected video capture device.
+            m_pGrabber->openDev(pVidCapDevList->at(id));
+            return true;
+
+        }
+    }
+
+    bool CameraGigeSdkIc::setPixelFormat(CamBitDepth format) {
+
+        mImgDepth = format;
+
+        switch(format){
+
+            case MONO_8 :
+
+                m_pGrabber->setVideoFormat("Y8 (1280x960-1280x960)");
+
+                // Set the image buffer format to eY800. eY800 means monochrome, 8 bits (1 byte) per pixel.
+                // Let the sink create a matching MemBufferCollection with 1 buffer.
+                pSink = DShowLib::FrameHandlerSink::create( DShowLib::eY800, NUMBER_OF_BUFFERS );
+
+                break;
+
+            case MONO_12 :
+
+                m_pGrabber->setVideoFormat("Y16 (1280x960-1280x960)");
+
+                // Disable overlay.
+                // http://www.theimagingsourceforums.com/archive/index.php/t-319880.html
+                m_pGrabber->setOverlayBitmapPathPosition(DShowLib::ePP_NONE);
+
+                // Set the image buffer format to eY16. eY16 means monochrome, 16 bits (2 byte) per pixel.
+                // Let the sink create a matching MemBufferCollection with 1 buffer.
+                pSink = DShowLib::FrameHandlerSink::create( DShowLib::eY16, NUMBER_OF_BUFFERS );
+
+                break;
+
+            default:
+
+                return false;
+
+                break;
         }
 
         return true;
+
     }
-
-	bool CameraGigeSdkIc::setPixelFormat(CamBitDepth format) {
-
-		mImgDepth = format;
-
-		switch(format){
-					
-			case MONO_8 :
-
-				m_pGrabber->setVideoFormat("Y8 (1280x960-1280x960)");
-
-				// Set the image buffer format to eY800. eY800 means monochrome, 8 bits (1 byte) per pixel.
-				// Let the sink create a matching MemBufferCollection with 1 buffer.
-				pSink = DShowLib::FrameHandlerSink::create( DShowLib::eY800, NUMBER_OF_BUFFERS );
-
-				break;
-
-			case MONO_12 :
-				
-				m_pGrabber->setVideoFormat("Y16 (1280x960-1280x960)");
-
-				// Disable overlay.
-				// http://www.theimagingsourceforums.com/archive/index.php/t-319880.html
-				m_pGrabber->setOverlayBitmapPathPosition(DShowLib::ePP_NONE);
-
-				// Set the image buffer format to eY16. eY16 means monochrome, 16 bits (2 byte) per pixel.
-				// Let the sink create a matching MemBufferCollection with 1 buffer.
-				pSink = DShowLib::FrameHandlerSink::create( DShowLib::eY16, NUMBER_OF_BUFFERS );
-
-				break;
-						
-			default:
-												
-				return false;
-
-				break;
-		}
-
-		return true;
-
-	}
 
     int CameraGigeSdkIc::getFPS(void){
 
         double fps = m_pGrabber->getFPS();
-		return (int)fps;
+        return (int)fps;
 
-	}
+    }
 
-	void CameraGigeSdkIc::getExposureBounds(int &eMin, int &eMax) {
+    void CameraGigeSdkIc::getExposureBounds(int &eMin, int &eMax) {
 
-		// Get properties.
-		_DSHOWLIB_NAMESPACE::tIVCDPropertyItemsPtr pItems = m_pGrabber->getAvailableVCDProperties();
-				
-		eMin  = (int)getPropertyRangeMin(DShowLib::VCDID_Exposure, pItems);
-		eMax  = (int)getPropertyRangeMax(DShowLib::VCDID_Exposure, pItems);
+        // Get properties.
+        _DSHOWLIB_NAMESPACE::tIVCDPropertyItemsPtr pItems = m_pGrabber->getAvailableVCDProperties();
 
-	}
+        eMin  = (int)getPropertyRangeMin(DShowLib::VCDID_Exposure, pItems);
+        eMax  = (int)getPropertyRangeMax(DShowLib::VCDID_Exposure, pItems);
 
-	void CameraGigeSdkIc::getGainBounds(int &gMin, int &gMax) {
+    }
 
-		// Get properties.
-		_DSHOWLIB_NAMESPACE::tIVCDPropertyItemsPtr pItems = m_pGrabber->getAvailableVCDProperties();
-									
-		gMin  = (int)getPropertyRangeMin(DShowLib::VCDID_Gain, pItems);
-		gMax  = (int)getPropertyRangeMax(DShowLib::VCDID_Gain, pItems);
+    void CameraGigeSdkIc::getGainBounds(int &gMin, int &gMax) {
 
-	}
+        // Get properties.
+        _DSHOWLIB_NAMESPACE::tIVCDPropertyItemsPtr pItems = m_pGrabber->getAvailableVCDProperties();
 
-	bool CameraGigeSdkIc::setExposureTime(int value) {
+        gMin  = (int)getPropertyRangeMin(DShowLib::VCDID_Gain, pItems);
+        gMax  = (int)getPropertyRangeMax(DShowLib::VCDID_Gain, pItems);
 
-		_DSHOWLIB_NAMESPACE::tIVCDPropertyItemsPtr pItems = m_pGrabber->getAvailableVCDProperties();
+    }
 
-		if(mExposureMin == -1 && mExposureMax == -1) {
+    bool CameraGigeSdkIc::setExposureTime(int value) {
 
-			mExposureMin = (int)getPropertyRangeMin(DShowLib::VCDID_Exposure, pItems);
-			mExposureMax = (int)getPropertyRangeMax(DShowLib::VCDID_Exposure, pItems);		
-			
-		}
+        _DSHOWLIB_NAMESPACE::tIVCDPropertyItemsPtr pItems = m_pGrabber->getAvailableVCDProperties();
 
-		if(value > mExposureMax || value < mExposureMin){
+        if(mExposureMin == -1 && mExposureMax == -1) {
 
-			cout << ">> Fail to set exposure. Available range value is " << mExposureMin << " to " << mExposureMax << endl;
+            mExposureMin = (int)getPropertyRangeMin(DShowLib::VCDID_Exposure, pItems);
+            mExposureMax = (int)getPropertyRangeMax(DShowLib::VCDID_Exposure, pItems);
+
+    }
+
+        if(value > mExposureMax || value < mExposureMin){
+
+            cout << endl << ">> Fail to set exposure. Available range value is " << mExposureMin << " to " << mExposureMax << endl;
             BOOST_LOG_SEV(logger,fail) << "Fail to set EXPOSURE TIME. Available range value is " << mExposureMin << " to " << mExposureMax;
-			return false;
-		}
+            return false;
+        }
 
-		setPropertyValue(DShowLib::VCDID_Exposure, (long)value, pItems);
-		mExposure = value;
-		return true;
+        setPropertyValue(DShowLib::VCDID_Exposure, (long)value, pItems);
+        mExposure = value;
+        return true;
 
-	}
+    }
 
-	bool CameraGigeSdkIc::setGain(int value) {
+    bool CameraGigeSdkIc::setGain(int value) {
 
-		_DSHOWLIB_NAMESPACE::tIVCDPropertyItemsPtr pItems = m_pGrabber->getAvailableVCDProperties();
+        _DSHOWLIB_NAMESPACE::tIVCDPropertyItemsPtr pItems = m_pGrabber->getAvailableVCDProperties();
 
-		if(mGainMin == -1 && mGainMax == -1) {
+        if(mGainMin == -1 && mGainMax == -1) {
 
-			mGainMin  = (int)getPropertyRangeMin(DShowLib::VCDID_Gain, pItems);
-			mGainMax  = (int)getPropertyRangeMax(DShowLib::VCDID_Gain, pItems);			
-			
-		}
+            mGainMin  = (int)getPropertyRangeMin(DShowLib::VCDID_Gain, pItems);
+            mGainMax  = (int)getPropertyRangeMax(DShowLib::VCDID_Gain, pItems);
 
-		if(value > mGainMax || value < mGainMin){
+        }
+
+        if(value > mGainMax || value < mGainMin){
 
             BOOST_LOG_SEV(logger,fail) << "Fail to set GAIN. Available range value is " << mGainMin << " to " << mGainMax;
+            cout << endl << ">> Fail to set GAIN. Available range value is " << mGainMin << " to " << mGainMax << endl;
 
-			return false;
+            return false;
 
-		}
+        }
 
-		setPropertyValue(DShowLib::VCDID_Gain, (long)value, pItems);
-		mGain = value;
-		return true;
+        setPropertyValue(DShowLib::VCDID_Gain, (long)value, pItems);
+        mGain = value;
+        return true;
 
-	}
+    }
 
-	bool CameraGigeSdkIc::grabInitialization() {
+    bool CameraGigeSdkIc::grabInitialization() {
 
-		// Set the sink.
-		m_pGrabber->setSinkType(pSink);
-				
-		// We use snap mode.
-		pSink->setSnapMode(true);
+        // Set the sink.
+        m_pGrabber->setSinkType(pSink);
 
-		// Prepare the live mode, to get the output size if the sink.
-		if(!m_pGrabber->prepareLive(false)){
+        // We use snap mode.
+        pSink->setSnapMode(true);
 
-			std::cerr << "Could not render the VideoFormat into a eY800 sink.";
-			return false;
-		}
+        // Prepare the live mode, to get the output size if the sink.
+        if(!m_pGrabber->prepareLive(false)){
 
-		// Retrieve the output type and dimension of the handler sink.
-		// The dimension of the sink could be different from the VideoFormat, when
-		// you use filters.
-		DShowLib::FrameTypeInfo info;
-		pSink->getOutputFrameType(info);
+            std::cerr << "Could not render the VideoFormat into a eY800 sink.";
+            return false;
+        }
 
-		// Allocate NUMBER_OF_BUFFERS image buffers of the above (info) buffer size.
-		for (int ii = 0; ii < NUMBER_OF_BUFFERS; ++ii)
-		{
-			pBuf[ii] = new BYTE[info.buffersize];
-			assert(pBuf[ii]);
-		}
+        // Retrieve the output type and dimension of the handler sink.
+        // The dimension of the sink could be different from the VideoFormat, when
+        // you use filters.
+        DShowLib::FrameTypeInfo info;
+        pSink->getOutputFrameType(info);
 
-		// Create a new MemBuffer collection that uses our own image buffers.
-		pCollection = DShowLib::MemBufferCollection::create(info, NUMBER_OF_BUFFERS, pBuf);
-		if (pCollection == 0) return false;
-		if (!pSink->setMemBufferCollection(pCollection)) return false;
+        // Allocate NUMBER_OF_BUFFERS image buffers of the above (info) buffer size.
+        for (int ii = 0; ii < NUMBER_OF_BUFFERS; ++ii) {
+            pBuf[ii] = new BYTE[info.buffersize];
+            assert(pBuf[ii]);
+        }
+
+        // Create a new MemBuffer collection that uses our own image buffers.
+        pCollection = DShowLib::MemBufferCollection::create(info, NUMBER_OF_BUFFERS, pBuf);
+        if (pCollection == 0) return false;
+        if (!pSink->setMemBufferCollection(pCollection)) return false;
  
-		if (!m_pGrabber->startLive(false)) return false;
+        if (!m_pGrabber->startLive(false)) return false;
 
 
-	}
+    }
 
-	void CameraGigeSdkIc::acqStart() {
+    void CameraGigeSdkIc::acqStart() {
 
-		if (!m_pGrabber->isLive()) {
+    if (!m_pGrabber->isLive()) {
 
-			m_pGrabber->startLive(false);
+        m_pGrabber->startLive(false);
 
-		}
+    }
 
-		pSink->snapImages(1,(DWORD)-1);
+    pSink->snapImages(1,(DWORD)-1);
 
-	}
+    }
 
-	bool CameraGigeSdkIc::grabImage(Frame &newFrame) {
+    bool CameraGigeSdkIc::grabImage(Frame &newFrame) {
 
-		Mat newImg;
+        Mat newImg;
 
-		// Retrieve the output type and dimension of the handler sink.
-		// The dimension of the sink could be different from the VideoFormat, when
-		// you use filters.
-		DShowLib::FrameTypeInfo info;
-		pSink->getOutputFrameType(info);
+        // Retrieve the output type and dimension of the handler sink.
+        // The dimension of the sink could be different from the VideoFormat, when
+        // you use filters.
+        DShowLib::FrameTypeInfo info;
+        pSink->getOutputFrameType(info);
 
-		//Timestamping.
+        //Timestamping.
         boost::posix_time::ptime time = boost::posix_time::microsec_clock::universal_time();
 
-		switch(info.getBitsPerPixel()){
-					
-			case 8 :
+        switch(info.getBitsPerPixel()){
 
-				{
-			
-					newImg = Mat(info.dim.cy, info.dim.cx, CV_8UC1, Scalar(0));
-					
-					pSink->snapImages(1,(DWORD)-1);
-					
-					memcpy(newImg.ptr(), pBuf[0], info.buffersize);
+            case 8 :
 
-				}
+                {
 
-				break;
+                    newImg = Mat(info.dim.cy, info.dim.cx, CV_8UC1, Scalar(0));
+                    pSink->snapImages(1,(DWORD)-1);
+                    memcpy(newImg.ptr(), pBuf[0], info.buffersize);
 
-			case 16 :
+                }
 
-				{
+                break;
 
-					newImg = Mat(info.dim.cy, info.dim.cx, CV_16UC1, Scalar(0));
-				
-					pSink->snapImages(1,(DWORD)-1);
+            case 16 :
 
-					memcpy(newImg.ptr(), pBuf[0], info.buffersize);
-				
-					unsigned short * ptr;
+                {
 
-					double t = (double)getTickCount();
+                    newImg = Mat(info.dim.cy, info.dim.cx, CV_16UC1, Scalar(0));
 
-					for(int i = 0; i < newImg.rows; i++){
+                    pSink->snapImages(1,(DWORD)-1);
 
-						ptr = newImg.ptr<unsigned short>(i);
+                    memcpy(newImg.ptr(), pBuf[0], info.buffersize);
 
-						for(int j = 0; j < newImg.cols; j++){
+                    unsigned short * ptr;
+                   
+                    double t = (double)getTickCount();
 
-							ptr[j] = ptr[j] >> 4;
+                    for(int i = 0; i < newImg.rows; i++){
 
-						}
-					}	
+                        ptr = newImg.ptr<unsigned short>(i);
 
-				}
+                        for(int j = 0; j < newImg.cols; j++){
 
-				break;
-						
-			default:
-												
-				return false;
+                            ptr[j] = ptr[j] >> 4;
 
-				break;
-		}
+                        }
+                    }
+                }
 
-		if(newImg.data) {
+                break;
 
-			newFrame = Frame(newImg, mGain, mExposure, to_iso_extended_string(time));
+            default:
 
-			newFrame.mFps = mFPS;
-			newFrame.mBitDepth = mImgDepth;
-			newFrame.mSaturatedValue = mSaturateVal;
+                    return false;
+
+                break;
+        }
+
+        if(newImg.data) {
+            
+            newFrame = Frame(newImg, mGain, mExposure, to_iso_extended_string(time));
+
+            newFrame.mFps = mFPS;
+            newFrame.mBitDepth = mImgDepth;
+            newFrame.mSaturatedValue = mSaturateVal;
 
             newFrame.mFrameNumber = mFrameCounter;
-			mFrameCounter++;
-		
-			if(mFrameCounter > 10000) {
+            mFrameCounter++;
 
-				m_pGrabber->stopLive();
-				m_pGrabber->closeDev();
+            return true;
 
-				return false;
-			}
+        }
 
-			return true;
+        return false;
 
-		}
-
-		return false;
-		
-	}
+    }
 
     void CameraGigeSdkIc::acqStop() {
 
@@ -472,6 +466,17 @@
     }
 
     void CameraGigeSdkIc::grabCleanse() {
+
+        if(m_pGrabber!=NULL)
+            m_pGrabber->closeDev();
+
+    }
+
+    int CameraGigeSdkIc::getExposureTime() {
+
+        _DSHOWLIB_NAMESPACE::tIVCDPropertyItemsPtr pItems = m_pGrabber->getAvailableVCDProperties();
+
+        return (int)getPropertyValue(DShowLib::VCDID_Exposure,pItems);
 
     }
 
@@ -510,7 +515,7 @@
         if(!setGain(frame.mGain))
             return false;
 
-            cout << ">> Acquisition in progress..." << endl;
+            cout << ">> Acquisition in progress... (Please wait)" << endl;
 
             // Set the sink.
             m_pGrabber->setSinkType(pSink);
@@ -521,121 +526,120 @@
             // Prepare the live mode, to get the output size if the sink.
             if(!m_pGrabber->prepareLive(false)){
 
-				std::cerr << "Could not render the VideoFormat into a eY800 sink.";
-				return false;
-			}
+                std::cerr << "Could not render the VideoFormat into a eY800 sink.";
+                return false;
+            }
 
-			// Retrieve the output type and dimension of the handler sink.
-			// The dimension of the sink could be different from the VideoFormat, when
-			// you use filters.
-			DShowLib::FrameTypeInfo info;
-			pSink->getOutputFrameType(info);
+            // Retrieve the output type and dimension of the handler sink.
+            // The dimension of the sink could be different from the VideoFormat, when
+            // you use filters.
+            DShowLib::FrameTypeInfo info;
+            pSink->getOutputFrameType(info);
 
-			Mat newImg;
-		
-			switch(info.getBitsPerPixel()){
-					
-				case 8 :
+            Mat newImg;
 
-					{
-	
-						newImg = Mat(info.dim.cy, info.dim.cx, CV_8UC1, Scalar(0));
-						//BYTE* pBuf[1];
-						// Allocate image buffers of the above calculate buffer size.
-						pBuf[0] = new BYTE[info.buffersize];
+            switch(info.getBitsPerPixel()){
 
-						// Create a new MemBuffer collection that uses our own image buffers.
-						pCollection = DShowLib::MemBufferCollection::create( info, 1, pBuf );
-						if( pCollection == 0 || !pSink->setMemBufferCollection(pCollection)){
+                case 8 :
 
-							std::cerr << "Could not set the new MemBufferCollection, because types do not match.";
-							return false;
+                    {
 
-						}
+                        newImg = Mat(info.dim.cy, info.dim.cx, CV_8UC1, Scalar(0));
+                        //BYTE* pBuf[1];
+                        // Allocate image buffers of the above calculate buffer size.
+                        pBuf[0] = new BYTE[info.buffersize];
 
-						m_pGrabber->startLive(false);
+                        // Create a new MemBuffer collection that uses our own image buffers.
+                        pCollection = DShowLib::MemBufferCollection::create( info, 1, pBuf );
+                        if( pCollection == 0 || !pSink->setMemBufferCollection(pCollection)){
 
-						pSink->snapImages(1);
-					
-						memcpy(newImg.ptr(), pBuf[0], info.buffersize);
+                            std::cerr << "Could not set the new MemBufferCollection, because types do not match.";
+                            return false;
 
-					}
+                        }
 
-					break;
+                        m_pGrabber->startLive(false);
 
-				case 16 :
+                        pSink->snapImages(1);
 
-					{
-		
-						newImg = Mat(info.dim.cy, info.dim.cx, CV_16UC1, Scalar(0));
-						BYTE * pBuf[1];
-						// Allocate image buffers of the above calculate buffer size.
-						pBuf[0] = new BYTE[info.buffersize];
+                        memcpy(newImg.ptr(), pBuf[0], info.buffersize);
 
-						// Create a new MemBuffer collection that uses our own image buffers.
-						pCollection = DShowLib::MemBufferCollection::create(info, 1, pBuf);
-						if(pCollection == 0 || !pSink->setMemBufferCollection(pCollection)){
+                    }
 
-							std::cerr << "Could not set the new MemBufferCollection, because types do not match.";
-							return false;
+                    break;
 
-						}
+                case 16 :
 
-						m_pGrabber->startLive(false);
+                    {
 
-						pSink->snapImages(1);
+                        newImg = Mat(info.dim.cy, info.dim.cx, CV_16UC1, Scalar(0));
+                        BYTE * pBuf[1];
+                        // Allocate image buffers of the above calculate buffer size.
+                        pBuf[0] = new BYTE[info.buffersize];
 
-						memcpy(newImg.ptr(), pBuf[0], info.buffersize);
+                        // Create a new MemBuffer collection that uses our own image buffers.
+                        pCollection = DShowLib::MemBufferCollection::create(info, 1, pBuf);
+                        if(pCollection == 0 || !pSink->setMemBufferCollection(pCollection)){
 
-							
-						unsigned short * ptr;
+                            std::cerr << "Could not set the new MemBufferCollection, because types do not match.";
+                            return false;
 
-						double t = (double)getTickCount();
+                        }
 
-						for(int i = 0; i < newImg.rows; i++){
+                        m_pGrabber->startLive(false);
 
-							ptr = newImg.ptr<unsigned short>(i);
+                        pSink->snapImages(1);
 
-							for(int j = 0; j < newImg.cols; j++){
+                        memcpy(newImg.ptr(), pBuf[0], info.buffersize);
 
-								ptr[j] = ptr[j] >> 4;
+                        unsigned short * ptr;
 
-							}
-						}	
+                        double t = (double)getTickCount();
 
-					}
+                        for(int i = 0; i < newImg.rows; i++){
 
-					break;
-						
-				default:
-												
-					return false;
+                            ptr = newImg.ptr<unsigned short>(i);
 
-					break;
-			}
+                            for(int j = 0; j < newImg.cols; j++){
 
-			m_pGrabber->stopLive();
+                                ptr[j] = ptr[j] >> 4;
 
-			m_pGrabber->closeDev();
+                            }
+                        }
 
-			//Timestamping.
-			boost::posix_time::ptime time = boost::posix_time::microsec_clock::universal_time();
+                    }
+
+                    break;
+
+                default:
+
+                        return false;
+
+                    break;
+            }
+
+            m_pGrabber->stopLive();
+
+            m_pGrabber->closeDev();
+
+            //Timestamping.
+            boost::posix_time::ptime time = boost::posix_time::microsec_clock::universal_time();
 
             newImg.copyTo(frame.mImg);
             frame.mDate = TimeDate::splitIsoExtendedDate(to_iso_extended_string(time));
             frame.mFps = 0;
 
-			return true;
-			
-		}
+            return true;
 
-		return false;
-	}
+        }
 
-	CameraGigeSdkIc::~CameraGigeSdkIc(){
+        return false;
+    }
 
-		 delete m_pGrabber;
+    CameraGigeSdkIc::~CameraGigeSdkIc(){
 
-	}
+         delete m_pGrabber;
+
+    }
 
 #endif

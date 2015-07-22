@@ -51,7 +51,7 @@ class Camera {
         * List connected GigE devices.
         *
         */
-        virtual void listGigeCameras() {};
+        virtual bool listGigeCameras() {return false;};
 
         /**
         * Open/create a device.
