@@ -392,12 +392,12 @@
                     //BOOST_LOG_SEV(logger, normal) << "Setting date of frame ...";
                     //newFrame.setAcqDateMicro(acqDateInMicrosec);
                     //BOOST_LOG_SEV(logger, normal) << "Setting fps of frame ...";
-                    newFrame.setFPS(fps);
-                    newFrame.setBitDepth(imgDepth);
+                    newFrame.mFps = fps;
+                    newFrame.mBitDepth = imgDepth;
                     //BOOST_LOG_SEV(logger, normal) << "Setting saturated value of frame ...";
-                    newFrame.setSaturatedValue(saturateVal);
+                    newFrame.mSaturatedValue = saturateVal;
 
-                    newFrame.setNumFrame(frameCounter);
+                    newFrame.mFrameNumber = frameCounter;
                     frameCounter++;
 
                     //BOOST_LOG_SEV(logger, normal) << "Re-pushing arv buffer in stream ...";
@@ -458,13 +458,13 @@
         if(!createDevice(camID))
             return false;
 
-        if(!setPixelFormat(frame.getBitDepth()))
+        if(!setPixelFormat(frame.mBitDepth))
             return false;
 
-        if(!setExposureTime(frame.getExposure()))
+        if(!setExposureTime(frame.mExposure))
             return false;
 
-        if(!setGain(frame.getGain()))
+        if(!setGain(frame.mGain))
             return false;
 
         int sensor_width, sensor_height;
@@ -553,7 +553,7 @@
             arv_camera_start_acquisition(camera);
 
             // Get image buffer.
-            ArvBuffer *arv_buffer = arv_stream_timeout_pop_buffer(stream, frame.getExposure() + 5000000); //us
+            ArvBuffer *arv_buffer = arv_stream_timeout_pop_buffer(stream, frame.mExposure + 5000000); //us
 
             char *buffer_data;
             size_t buffer_size;
@@ -567,9 +567,7 @@
                     buffer_data = (char *) arv_buffer_get_data (arv_buffer, &buffer_size);
 
                     //Timestamping.
-                    //string acquisitionDate = TimeDate::localDateTime(microsec_clock::universal_time(),"%Y:%m:%d:%H:%M:%S");
                     boost::posix_time::ptime time = boost::posix_time::microsec_clock::universal_time();
-                    string acquisitionDate = to_iso_extended_string(time);
 
                     Mat image;
 
@@ -591,9 +589,8 @@
 
                     }
 
-                    frame = Frame(image, arv_camera_get_gain(camera), arv_camera_get_exposure_time(camera), acqDateInMicrosec);
-                    //frame.setAcqDateMicro(acqDateInMicrosec);
-                    frame.setFPS(arv_camera_get_frame_rate(camera));
+                    frame = Frame(image, arv_camera_get_gain(camera), arv_camera_get_exposure_time(camera), to_iso_extended_string(time));
+                    frame.mFps = arv_camera_get_frame_rate(camera);
 
                     res = true;
 

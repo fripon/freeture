@@ -102,12 +102,12 @@
 #define BOOST_NO_SCOPED_ENUMS
 
 namespace po        = boost::program_options;
-namespace logging	= boost::log;
-namespace sinks		= boost::log::sinks;
-namespace attrs		= boost::log::attributes;
-namespace src		= boost::log::sources;
-namespace expr		= boost::log::expressions;
-namespace keywords	= boost::log::keywords;
+namespace logging   = boost::log;
+namespace sinks     = boost::log::sinks;
+namespace attrs     = boost::log::attributes;
+namespace src       = boost::log::sources;
+namespace expr      = boost::log::expressions;
+namespace keywords  = boost::log::keywords;
 
 using boost::shared_ptr;
 using namespace std;
@@ -582,18 +582,21 @@ int main(int argc, const char ** argv){
                                             // At 00h00, check logs once.
                                             if(acq_int.at(3) == 0 && acq_int.at(4) == 0 && waitLogTime) {
 
-                                                logSystem.mDate = acq_int;
-                                                logSystem.archiveLog();
-                                                logSystem.cleanLogArchives();
+                                                #ifdef WINDOWS
+                                                    logSystem.mDate = acq_int;
+                                                    logSystem.archiveLog();
+                                                    logSystem.cleanLogArchives();
+                                                #endif;
+
                                                 waitLogTime = false;
 
                                             }else{
 
                                                 unsigned long long  f_size = 0;
                                                 logSystem.getFoldersize(LOG_PATH, f_size);
-                                                if((f_size/1024.0)/1024.0 > LOG_SIZE_LIMIT) 
+                                                if((f_size/1024.0)/1024.0 > LOG_SIZE_LIMIT)
                                                     logSystem.cleanAll();
-                                                
+
                                             }
 
                                             // Reset log ckeck for the next time.
@@ -1052,18 +1055,8 @@ int main(int argc, const char ** argv){
                 case 6:
 
                     {
-                        //namedWindow("Display window", WINDOW_NORMAL );
-                        Fits2D newFits("D:/FreeTure/Orsay_20150727T011717_UT.fit");
-                        Mat resMat;
-                        newFits.readFits32F(resMat);
 
 
-                        double min, max;
-                        minMaxLoc(resMat, &min, &max);
-                        cout << "min: "<<min<< endl;
-                        cout << "max: "<<max<< endl;
-                        
-    
                     }
 
                     break;

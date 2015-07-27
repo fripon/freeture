@@ -42,7 +42,6 @@
 #include <boost/bind.hpp>
 #include <boost/iterator/transform_iterator.hpp>
 
-
 class Logger {
 
     private :
@@ -64,7 +63,7 @@ class Logger {
         Logger(string logPath, int timeLimit):mLogPath(logPath), mTimeLimit(timeLimit) {
 
         }
-        
+
         void  getFoldersize(string rootFolder,unsigned long long & f_size) {
 
            path folderPath(rootFolder);
@@ -80,7 +79,7 @@ class Logger {
                     try{
 
                         if (!is_directory(dirIte->status()) ){
-                            f_size = f_size + file_size(filePath);                      
+                            f_size = f_size + file_size(filePath);
                         }else{
                             getFoldersize(filePath.string(),f_size);
                         }
@@ -177,6 +176,7 @@ class Logger {
                         path pppp(newArchive + logFile.at(i));
                         // Not works with boost 1.55 and c++11
 
+                        // https://svn.boost.org/trac/boost/ticket/6779
                         boost::filesystem::copy_file(logToCopy.at(i), pppp);
                         boost::filesystem::remove(logToCopy.at(i));
 
