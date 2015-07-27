@@ -402,6 +402,7 @@ int main(int argc, const char ** argv){
                         // Get log path.
                         string LOG_PATH; cfg.Get("LOG_PATH", LOG_PATH);
                         int LOG_ARCHIVE_DAY; cfg.Get("LOG_ARCHIVE_DAY", LOG_ARCHIVE_DAY);
+                        int LOG_SIZE_LIMIT; cfg.Get("LOG_SIZE_LIMIT", LOG_SIZE_LIMIT);
                         Logger logSystem(LOG_PATH, LOG_ARCHIVE_DAY);
 
                         // Get log severity.
@@ -461,11 +462,11 @@ int main(int argc, const char ** argv){
                             /// ---------- CREATE THREADS -----------
                             /// -------------------------------------
 
-                            AcqThread	*inputDevice		= NULL;
-                            DetThread	*detection			= NULL;
-                            StackThread	*stack				= NULL;
-                            bool stackThreadCreationSuccess	= true;
-                            bool detThreadCreationSuccess	= true;
+                            AcqThread   *inputDevice        = NULL;
+                            DetThread   *detection          = NULL;
+                            StackThread *stack              = NULL;
+                            bool stackThreadCreationSuccess = true;
+                            bool detThreadCreationSuccess   = true;
 
                             /// Create detection thread.
                             if(DET_ENABLED){
@@ -581,14 +582,22 @@ int main(int argc, const char ** argv){
                                             // At 00h00, check logs once.
                                             if(acq_int.at(3) == 0 && acq_int.at(4) == 0 && waitLogTime) {
 
+                                                logSystem.mDate = acq_int;
                                                 logSystem.archiveLog();
                                                 logSystem.cleanLogArchives();
                                                 waitLogTime = false;
 
+                                            }else{
+
+                                                unsigned long long  f_size = 0;
+                                                logSystem.getFoldersize(LOG_PATH, f_size);
+                                                if((f_size/1024.0)/1024.0 > LOG_SIZE_LIMIT) 
+                                                    logSystem.cleanAll();
+                                                
                                             }
 
                                             // Reset log ckeck for the next time.
-                                            if(acq_int.at(3) == 0 && acq_int.at(4) == 1) {
+                                            if(acq_int.at(3) == 0 && acq_int.at(4) >0 && !waitLogTime) {
 
                                                 waitLogTime = true;
 
@@ -1044,16 +1053,16 @@ int main(int argc, const char ** argv){
 
                     {
                         //namedWindow("Display window", WINDOW_NORMAL );
-                        /*Fits2D newFits("/home/fripon/data/ORSAY_20150618/astro/Orsay_20150618T024429_U.fit");
+                        Fits2D newFits("D:/FreeTure/Orsay_20150727T011717_UT.fit");
                         Mat resMat;
-                        newFits.readFits16US(resMat);
+                        newFits.readFits32F(resMat);
 
 
                         double min, max;
                         minMaxLoc(resMat, &min, &max);
                         cout << "min: "<<min<< endl;
                         cout << "max: "<<max<< endl;
-                        */
+                        
     
                     }
 

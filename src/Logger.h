@@ -36,8 +36,12 @@
 
 #include <boost/filesystem.hpp>
 #include <string>
+#include <numeric>
 #include "TimeDate.h"
 #include <boost/date_time/gregorian/greg_date.hpp>
+#include <boost/bind.hpp>
+#include <boost/iterator/transform_iterator.hpp>
+
 
 class Logger {
 
@@ -46,6 +50,9 @@ class Logger {
         string mLogPath;
         // The archives timestamped from now to this nummber of day in the past are kept. The others are removed.
         int mTimeLimit;
+
+    public :
+
         vector<int> mDate;
 
     public :
@@ -57,15 +64,37 @@ class Logger {
         Logger(string logPath, int timeLimit):mLogPath(logPath), mTimeLimit(timeLimit) {
 
         }
+        
+        void  getFoldersize(string rootFolder,unsigned long long & f_size) {
+
+           path folderPath(rootFolder);
+
+           if (exists(folderPath)) {
+
+                directory_iterator end_itr;
+
+                for (directory_iterator dirIte(rootFolder); dirIte != end_itr; ++dirIte ) {
+
+                    path filePath(complete (dirIte->path(), folderPath));
+
+                    try{
+
+                        if (!is_directory(dirIte->status()) ){
+                            f_size = f_size + file_size(filePath);                      
+                        }else{
+                            getFoldersize(filePath.string(),f_size);
+                        }
+
+                    }catch(exception& e){  cout << e.what() << endl; }
+                }
+            }
+        }
 
         /**
         * Archive log files.
         *
         */
         void archiveLog() {
-
-            // Get current date.
-            mDate = TimeDate::splitStringToInt(TimeDate::localDateTime(microsec_clock::universal_time(),"%Y:%m:%d:%H:%M:%S"));
 
             path pp(mLogPath);
 
@@ -148,7 +177,7 @@ class Logger {
                         path pppp(newArchive + logFile.at(i));
                         // Not works with boost 1.55 and c++11
 
-                        //boost::filesystem::copy_file(logToCopy.at(i), pppp);
+                        boost::filesystem::copy_file(logToCopy.at(i), pppp);
                         boost::filesystem::remove(logToCopy.at(i));
 
                     }
@@ -169,8 +198,6 @@ class Logger {
             path pp(mLogPath);
 
             vector<string> fileToRemove;
-
-            int timeLimit = 5;
 
             // Search old logs archives in the log directory.
             for(directory_iterator file(pp); file!= directory_iterator(); ++file) {
@@ -198,7 +225,7 @@ class Logger {
                     date a( year, month, day );
                     date b(mDate.at(0), mDate.at(1), mDate.at(2));
 
-                    if((b-a).days() > timeLimit) {
+                    if((b-a).days() > mTimeLimit) {
 
                         fileToRemove.push_back(dirName);
 
@@ -218,4 +245,10 @@ class Logger {
 
         }
 
+        void cleanAll() {
+
+            path p(mLogPath);
+            boost::filesystem::remove_all(p);
+
+        }
 };

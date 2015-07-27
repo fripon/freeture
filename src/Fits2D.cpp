@@ -1493,13 +1493,13 @@ bool Fits2D::readFits16S(Mat &img){
     const char * filename;
 
     filename = mFitsPath.c_str();
-
+    cout << "open" << endl;
     if(fits_open_file(&fptr, filename, READONLY, &status)){
 
         printerror(status);
         return false;
     }
-
+    cout << "read naxis" << endl;
     // Read the NAXIS1 and NAXIS2 keyword to get image size.
     if(fits_read_keys_lng(fptr, "NAXIS", 1, 2, naxes, &nfound, &status)){
 
@@ -1514,7 +1514,7 @@ bool Fits2D::readFits16S(Mat &img){
     nullval  = 0;                           // don't check for null values in the image
 
     nbuffer = npixels;
-
+    cout << "read img" << endl;
    // short  buffer[npixels];
     short* buffer = new short[npixels];
     if(fits_read_img(fptr, TSHORT, fpixel, nbuffer, &nullval,buffer, &anynull, &status)){
@@ -1523,7 +1523,7 @@ bool Fits2D::readFits16S(Mat &img){
         delete buffer;
         return false;
     }
-
+    cout << "end read img" << endl;
     memcpy(image.ptr(), buffer, npixels * 2);
 
     Mat loadImg = Mat::zeros( naxes[1],naxes[0], CV_16UC1 );
