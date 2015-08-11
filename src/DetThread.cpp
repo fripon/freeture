@@ -718,7 +718,7 @@ bool DetThread::saveEventData(int firstEvPosInFB, int lastEvPosInFB){
         if((*it).mFrameNumber == numFirstFrameToSave && mSaveFits3D){
 
             fits3d.kDATEOBS = TimeDate::getIsoExtendedFormatDate((*it).mDate);
-                        
+
             // Gain.
             fits3d.kGAINDB = (*it).mGain;
             // Saturation.
@@ -786,9 +786,9 @@ bool DetThread::saveEventData(int firstEvPosInFB, int lastEvPosInFB){
                 double  julianCentury   = TimeDate::julianCentury(julianDate);
                 double  sideralT        = TimeDate::localSideralTime_2(julianCentury, (*it).mDate.hours, (*it).mDate.minutes, (*it).mDate.seconds, mFitsHeader.kSITELONG);
                 newFits.kCRVAL1 = sideralT;
-                
+
                 newFits.kEXPOSURE = (*it).mExposure/1000000.0;
-       
+
                 // Projection and reference system
                 newFits.kCTYPE1 = "RA---ARC";
                 newFits.kCTYPE2 = "DEC--ARC";
@@ -813,7 +813,7 @@ bool DetThread::saveEventData(int firstEvPosInFB, int lastEvPosInFB){
 
             // Add a frame to fits cube.
             if(mSaveFits3D) {
-                
+
                 if(firstExpTime != (*it).mExposure)
                     varExpTime = true;
 
@@ -837,7 +837,7 @@ bool DetThread::saveEventData(int firstEvPosInFB, int lastEvPosInFB){
     // Write fits cube.
     if(mSaveFits3D) {
 
-        // Exposure time of a single frame. 
+        // Exposure time of a single frame.
         if(varExpTime)
             fits3d.kEXPOSURE = 999999;
         else
@@ -867,7 +867,7 @@ bool DetThread::saveEventData(int firstEvPosInFB, int lastEvPosInFB){
                                 mMailSmtpPassword,
                                 "freeture@" + mStationName +".fr",
                                 mMailRecipients,
-                                "Detection by " + mStationName  + "'s station - " + TimeDate::getYYYYMMDDThhmmss(mEventDate),
+                                mStationName  + "-" + TimeDate::getYYYYMMDDThhmmss(mEventDate),
                                 mStationName + "\n" + mEventPath,
                                 mailAttachments,
                                 mSmtpSecurity);

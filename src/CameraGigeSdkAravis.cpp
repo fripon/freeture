@@ -589,7 +589,8 @@
 
                     }
 
-                    frame = Frame(image, arv_camera_get_gain(camera), arv_camera_get_exposure_time(camera), to_iso_extended_string(time));
+                    image.copyTo(frame.mImg);
+                    frame.mDate = TimeDate::splitIsoExtendedDate(to_iso_extended_string(time));
                     frame.mFps = arv_camera_get_frame_rate(camera);
 
                     res = true;

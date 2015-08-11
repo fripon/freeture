@@ -247,8 +247,22 @@ class Logger {
 
         void cleanAll() {
 
-            path p(mLogPath);
-            boost::filesystem::remove_all(p);
+            path file1(mLogPath + "/DET_THREAD.log");
+            path file2(mLogPath + "/ACQ_THREAD.log");
+            path file3(mLogPath + "/STACK_THREAD.log");
+            path file4(mLogPath + "/MAIN_THREAD.log");
+
+            if(boost::filesystem::exists(file1))
+                boost::filesystem::remove(file1);
+
+            if(boost::filesystem::exists(file2))
+                boost::filesystem::remove(file2);
+
+            if(boost::filesystem::exists(file3))
+                boost::filesystem::remove(file3);
+
+            if(boost::filesystem::exists(file4))
+                boost::filesystem::remove(file4);
 
         }
 };

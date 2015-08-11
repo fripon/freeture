@@ -191,7 +191,7 @@
 
         mFPS = value;
         return m_pGrabber->setFPS((double)value);
-        
+
     }
 
     bool CameraGigeSdkIc::createDevice(int id){
@@ -359,7 +359,7 @@
         pCollection = DShowLib::MemBufferCollection::create(info, NUMBER_OF_BUFFERS, pBuf);
         if (pCollection == 0) return false;
         if (!pSink->setMemBufferCollection(pCollection)) return false;
- 
+
         if (!m_pGrabber->startLive(false)) return false;
 
 
@@ -415,7 +415,7 @@
                     memcpy(newImg.ptr(), pBuf[0], info.buffersize);
 
                     unsigned short * ptr;
-                   
+
                     double t = (double)getTickCount();
 
                     for(int i = 0; i < newImg.rows; i++){
@@ -440,7 +440,7 @@
         }
 
         if(newImg.data) {
-            
+
             newFrame = Frame(newImg, mGain, mExposure, to_iso_extended_string(time));
 
             newFrame.mFps = mFPS;
