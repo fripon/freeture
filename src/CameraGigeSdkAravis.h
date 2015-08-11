@@ -106,7 +106,7 @@
             guint64         nbUnderruns;
             int             frameCounter;           // Counter of success received frames.
 
-        public:
+        public :
 
             /**
              * Constructor.
