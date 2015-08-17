@@ -115,7 +115,7 @@ void Device::initialization() {
 
                 #ifdef WINDOWS
                     BOOST_LOG_SEV(logger, normal) << "INPUT : DMK_GIGE -> Use Imaging Source";
-                    cam = new CameraGigeSdkIc();
+                    cam = new CameraGigeTis();
                 #else
                     #ifdef LINUX
                         BOOST_LOG_SEV(logger, normal) << "INPUT : DMK_GIGE -> Use Aravis";

@@ -1,4 +1,4 @@
-/*                          CameraGigeSdkIc.h
+/*                          CameraGigeTis.h
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 *
@@ -24,7 +24,7 @@
 *%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%*/
 
 /**
-* \file    CameraGigeSdkIc.h
+* \file    CameraGigeTis.h
 * \author  Yoan Audureau -- FRIPON-GEOPS-UPSUD
 * \version 1.0
 * \date    21/01/2015
@@ -64,7 +64,7 @@
     using namespace cv;
     using namespace std;
 
-    class CameraGigeSdkIc: public Camera {
+    class CameraGigeTis: public Camera {
 
         private:
 
@@ -76,7 +76,7 @@
 
                     Init() {
 
-                        logger.add_attribute("ClassName", boost::log::attributes::constant<std::string>("CameraGigeSdkIc"));
+                        logger.add_attribute("ClassName", boost::log::attributes::constant<std::string>("CameraGigeTis"));
 
                     }
 
@@ -112,13 +112,13 @@
             * Constructor.
             *
             */
-            CameraGigeSdkIc();
+            CameraGigeTis();
 
             /**
             * Destructor.
             *
             */
-            ~CameraGigeSdkIc();
+            ~CameraGigeTis();
 
             /**
             * List connected GigE devices.

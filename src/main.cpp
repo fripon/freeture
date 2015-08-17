@@ -87,17 +87,10 @@
 #include "DetThread.h"
 #include "StackThread.h"
 #include "AcqThread.h"
-#include "CameraGigeSdkIc.h"
+#include "CameraGigeTis.h"
 #include "ImgProcessing.h"
 #include <boost/filesystem.hpp>
-#include "Logger.h"/*
-#include <fstream>
-#include <iostream>
-
-#include <boost/iostreams/filtering_stream.hpp>
-#include <boost/iostreams/filtering_streambuf.hpp>
-#include <boost/iostreams/copy.hpp>
-#include <boost/iostreams/filter/gzip.hpp>*/
+#include "Logger.h"
 
 #define BOOST_NO_SCOPED_ENUMS
 

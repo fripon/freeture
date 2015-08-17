@@ -62,7 +62,7 @@
 #include "Camera.h"
 #include "CameraGigeAravis.h"
 #include "CameraGigeSdkPylon.h"
-#include "CameraGigeSdkIc.h"
+#include "CameraGigeTis.h"
 #include "CameraVideo.h"
 #include "CameraFrames.h"
 #include "AcqSchedule.h"

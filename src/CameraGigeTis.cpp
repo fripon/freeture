@@ -1,5 +1,5 @@
 /*
-                            CameraGigeSdkIc.cpp
+                            CameraGigeTis.cpp
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 *
@@ -25,7 +25,7 @@
 *%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%*/
 
 /**
-* \file    CameraGigeSdkIc.cpp
+* \file    CameraGigeTis.cpp
 * \author  Yoan Audureau -- FRIPON-GEOPS-UPSUD
 * \version 1.0
 * \date    21/01/2015
@@ -33,15 +33,15 @@
 *          https://wiki.gnome.org/action/show/Projects/Aravis?action=show&redirect=Aravis
 */
 
-#include "CameraGigeSdkIc.h"
+#include "CameraGigeTis.h"
 
 #ifdef WINDOWS
 
-    boost::log::sources::severity_logger< LogSeverityLevel >  CameraGigeSdkIc::logger;
+    boost::log::sources::severity_logger< LogSeverityLevel >  CameraGigeTis::logger;
 
-    CameraGigeSdkIc::Init CameraGigeSdkIc::initializer;
+    CameraGigeTis::Init CameraGigeTis::initializer;
 
-    CameraGigeSdkIc::CameraGigeSdkIc(){
+    CameraGigeTis::CameraGigeTis(){
 
         if(!DShowLib::InitLibrary())
             throw "Fail DShowLib::InitLibrary().";
@@ -60,7 +60,7 @@
 
     }
 
-    bool CameraGigeSdkIc::listGigeCameras(){
+    bool CameraGigeTis::listGigeCameras(){
 
         // Retrieve a list with the video capture devices connected to the computer.
         pVidCapDevList = m_pGrabber->getAvailableVideoCaptureDevices();
@@ -93,7 +93,7 @@
     }
 
     // https://valelab.ucsf.edu/svn/micromanager2/branches/micromanager1.3/DeviceAdapters/TISCam/SimplePropertyAccess.cpp
-    DShowLib::tIVCDRangePropertyPtr CameraGigeSdkIc::getPropertyRangeInterface( _DSHOWLIB_NAMESPACE::tIVCDPropertyItemsPtr& pItems, const GUID& id ){
+    DShowLib::tIVCDRangePropertyPtr CameraGigeTis::getPropertyRangeInterface( _DSHOWLIB_NAMESPACE::tIVCDPropertyItemsPtr& pItems, const GUID& id ){
 
         GUID itemID = id;
         GUID elemID = DShowLib::VCDElement_Value;
@@ -111,13 +111,13 @@
         return 0;
     }
 
-    bool CameraGigeSdkIc::propertyIsAvailable( const GUID& id, _DSHOWLIB_NAMESPACE::tIVCDPropertyItemsPtr m_pItemContainer ){
+    bool CameraGigeTis::propertyIsAvailable( const GUID& id, _DSHOWLIB_NAMESPACE::tIVCDPropertyItemsPtr m_pItemContainer ){
 
         return m_pItemContainer->findItem( id ) != 0;
 
     }
 
-    long CameraGigeSdkIc::getPropertyValue( const GUID& id, _DSHOWLIB_NAMESPACE::tIVCDPropertyItemsPtr m_pItemContainer ){
+    long CameraGigeTis::getPropertyValue( const GUID& id, _DSHOWLIB_NAMESPACE::tIVCDPropertyItemsPtr m_pItemContainer ){
 
         long rval = 0;
         DShowLib::tIVCDRangePropertyPtr pRange = getPropertyRangeInterface( m_pItemContainer, id );
@@ -128,7 +128,7 @@
 
     }
 
-    void CameraGigeSdkIc::setPropertyValue( const GUID& id, long val, _DSHOWLIB_NAMESPACE::tIVCDPropertyItemsPtr m_pItemContainer ){
+    void CameraGigeTis::setPropertyValue( const GUID& id, long val, _DSHOWLIB_NAMESPACE::tIVCDPropertyItemsPtr m_pItemContainer ){
 
         DShowLib::tIVCDRangePropertyPtr pRange = getPropertyRangeInterface( m_pItemContainer, id );
 
@@ -137,7 +137,7 @@
         }
     }
 
-    long CameraGigeSdkIc::getPropertyRangeMin( const GUID& id, _DSHOWLIB_NAMESPACE::tIVCDPropertyItemsPtr m_pItemContainer ){
+    long CameraGigeTis::getPropertyRangeMin( const GUID& id, _DSHOWLIB_NAMESPACE::tIVCDPropertyItemsPtr m_pItemContainer ){
 
         long rval = 0;
         DShowLib::tIVCDRangePropertyPtr pRange = getPropertyRangeInterface( m_pItemContainer, id );
@@ -148,7 +148,7 @@
         return rval;
     }
 
-    long CameraGigeSdkIc::getPropertyRangeMax(const GUID& id, _DSHOWLIB_NAMESPACE::tIVCDPropertyItemsPtr m_pItemContainer){
+    long CameraGigeTis::getPropertyRangeMax(const GUID& id, _DSHOWLIB_NAMESPACE::tIVCDPropertyItemsPtr m_pItemContainer){
 
         long rval = 0;
         DShowLib:: tIVCDRangePropertyPtr pRange = getPropertyRangeInterface( m_pItemContainer, id );
@@ -159,7 +159,7 @@
         return rval;
     }
 
-    /*bool CameraGigeSdkIc::getAvailableFormat(){
+    /*bool CameraGigeTis::getAvailableFormat(){
 
         // Open device first.
 
@@ -187,14 +187,14 @@
 
     }*/
 
-    bool CameraGigeSdkIc::setFPS(int value) {
+    bool CameraGigeTis::setFPS(int value) {
 
         mFPS = value;
         return m_pGrabber->setFPS((double)value);
 
     }
 
-    bool CameraGigeSdkIc::createDevice(int id){
+    bool CameraGigeTis::createDevice(int id){
 
         if(pVidCapDevList == 0 || pVidCapDevList->empty()){
 
@@ -210,7 +210,7 @@
         }
     }
 
-    bool CameraGigeSdkIc::setPixelFormat(CamBitDepth format) {
+    bool CameraGigeTis::setPixelFormat(CamBitDepth format) {
 
         mImgDepth = format;
 
@@ -251,14 +251,14 @@
 
     }
 
-    int CameraGigeSdkIc::getFPS(void){
+    int CameraGigeTis::getFPS(void){
 
         double fps = m_pGrabber->getFPS();
         return (int)fps;
 
     }
 
-    void CameraGigeSdkIc::getExposureBounds(int &eMin, int &eMax) {
+    void CameraGigeTis::getExposureBounds(int &eMin, int &eMax) {
 
         // Get properties.
         _DSHOWLIB_NAMESPACE::tIVCDPropertyItemsPtr pItems = m_pGrabber->getAvailableVCDProperties();
@@ -268,7 +268,7 @@
 
     }
 
-    void CameraGigeSdkIc::getGainBounds(int &gMin, int &gMax) {
+    void CameraGigeTis::getGainBounds(int &gMin, int &gMax) {
 
         // Get properties.
         _DSHOWLIB_NAMESPACE::tIVCDPropertyItemsPtr pItems = m_pGrabber->getAvailableVCDProperties();
@@ -278,7 +278,7 @@
 
     }
 
-    bool CameraGigeSdkIc::setExposureTime(int value) {
+    bool CameraGigeTis::setExposureTime(int value) {
 
         _DSHOWLIB_NAMESPACE::tIVCDPropertyItemsPtr pItems = m_pGrabber->getAvailableVCDProperties();
 
@@ -302,7 +302,7 @@
 
     }
 
-    bool CameraGigeSdkIc::setGain(int value) {
+    bool CameraGigeTis::setGain(int value) {
 
         _DSHOWLIB_NAMESPACE::tIVCDPropertyItemsPtr pItems = m_pGrabber->getAvailableVCDProperties();
 
@@ -328,7 +328,7 @@
 
     }
 
-    bool CameraGigeSdkIc::grabInitialization() {
+    bool CameraGigeTis::grabInitialization() {
 
         // Set the sink.
         m_pGrabber->setSinkType(pSink);
@@ -365,7 +365,7 @@
 
     }
 
-    void CameraGigeSdkIc::acqStart() {
+    void CameraGigeTis::acqStart() {
 
     if (!m_pGrabber->isLive()) {
 
@@ -377,7 +377,7 @@
 
     }
 
-    bool CameraGigeSdkIc::grabImage(Frame &newFrame) {
+    bool CameraGigeTis::grabImage(Frame &newFrame) {
 
         Mat newImg;
 
@@ -458,21 +458,21 @@
 
     }
 
-    void CameraGigeSdkIc::acqStop() {
+    void CameraGigeTis::acqStop() {
 
         m_pGrabber->stopLive();
         m_pGrabber->closeDev();
 
     }
 
-    void CameraGigeSdkIc::grabCleanse() {
+    void CameraGigeTis::grabCleanse() {
 
         if(m_pGrabber!=NULL)
             m_pGrabber->closeDev();
 
     }
 
-    int CameraGigeSdkIc::getExposureTime() {
+    int CameraGigeTis::getExposureTime() {
 
         _DSHOWLIB_NAMESPACE::tIVCDPropertyItemsPtr pItems = m_pGrabber->getAvailableVCDProperties();
 
@@ -480,7 +480,7 @@
 
     }
 
-    bool CameraGigeSdkIc::getPixelFormat(CamBitDepth &format) {
+    bool CameraGigeTis::getPixelFormat(CamBitDepth &format) {
 
         if(m_pGrabber->getVideoFormat().getBitsPerPixel() == 8) {
 
@@ -500,7 +500,7 @@
 
     }
 
-    bool CameraGigeSdkIc::grabSingleImage(Frame &frame, int camID) {
+    bool CameraGigeTis::grabSingleImage(Frame &frame, int camID) {
 
         listGigeCameras();
 
@@ -636,7 +636,7 @@
         return false;
     }
 
-    CameraGigeSdkIc::~CameraGigeSdkIc(){
+    CameraGigeTis::~CameraGigeTis(){
 
          delete m_pGrabber;
 
