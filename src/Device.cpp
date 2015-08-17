@@ -98,7 +98,7 @@ void Device::initialization() {
             {
                 #ifdef USE_PYLON
                     BOOST_LOG_SEV(logger, normal) << "INPUT : BASLER_GIGE -> Use Pylon";
-                    cam = new CameraGigeSdkPylon();
+                    cam = new CameraGigePylon();
                 #else
                     #ifdef LINUX
                         BOOST_LOG_SEV(logger, normal) << "INPUT : BASLER_GIGE -> Use Aravis";
