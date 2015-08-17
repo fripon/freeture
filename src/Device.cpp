@@ -102,7 +102,7 @@ void Device::initialization() {
                 #else
                     #ifdef LINUX
                         BOOST_LOG_SEV(logger, normal) << "INPUT : BASLER_GIGE -> Use Aravis";
-                        cam = new CameraGigeSdkAravis();
+                        cam = new CameraGigeAravis();
                     #endif
                 #endif
             }
@@ -119,7 +119,7 @@ void Device::initialization() {
                 #else
                     #ifdef LINUX
                         BOOST_LOG_SEV(logger, normal) << "INPUT : DMK_GIGE -> Use Aravis";
-                        cam = new CameraGigeSdkAravis(true);
+                        cam = new CameraGigeAravis(true);
                     #endif
                 #endif
 
@@ -307,25 +307,25 @@ bool Device::prepareDevice() {
 
                     // Get regular acquisition time interval.
                     mRegularInterval = atoi(res1.at(0).c_str()) * 3600 + atoi(res1.at(1).c_str()) * 60 + atoi(res1.at(2).c_str());
-                    
+
                     // Get regular acquisition exposure time.
                     mRegularExposure = atoi(res1.at(3).c_str());
 
                     // Get regular acquisition gain.
                     mRegularGain = atoi(res1.at(4).c_str());
-                    
+
                     // Get regular acquisition repetition.
                     mRegularRepetition = atoi(res1.at(6).c_str());
 
                     // Get regular acquisition format.
                     EParser<CamBitDepth> format;
                     Conversion::intBitDepthToCamBitDepthEnum(atoi(res1.at(5).c_str()), mRegularFormat);
-                    
-                    /*cout << "ACQ REGULAR : [each " << mRegularInterval << " sec.] [" 
-                         << mRegularExposure << " exp.] " 
-                         << endl << "              ["  
-                         << mRegularGain << " gain] [" 
-                         << mRegularRepetition << " rep.] [" 
+
+                    /*cout << "ACQ REGULAR : [each " << mRegularInterval << " sec.] ["
+                         << mRegularExposure << " exp.] "
+                         << endl << "              ["
+                         << mRegularGain << " gain] ["
+                         << mRegularRepetition << " rep.] ["
                          << format.getStringEnum(mRegularFormat) << " format]" << endl;
                          */
                     BOOST_LOG_SEV(logger, notification) << "ACQ REGULAR : ";
@@ -722,7 +722,7 @@ void Device::runContinuousAcquisition(){
             cam->grabCleanse();
             throw ">> Fail to set Night Gain.";
         }
-        
+
     }else if((mCurrentTime > mStopSunriseTime && mCurrentTime < mStartSunsetTime)){
 
         BOOST_LOG_SEV(logger, notification) << "DAYTIME         :  YES";

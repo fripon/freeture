@@ -60,7 +60,7 @@
 #include "Conversion.h"
 #include "ECamType.h"
 #include "Camera.h"
-#include "CameraGigeSdkAravis.h"
+#include "CameraGigeAravis.h"
 #include "CameraGigeSdkPylon.h"
 #include "CameraGigeSdkIc.h"
 #include "CameraVideo.h"
@@ -116,7 +116,7 @@ class Device {
         Mat                 mMask;
         bool                mMaskEnabled;
         string              mMaskPath;
-        
+
         bool                mExpCtrlSaveImg;
         bool                mExpCtrlSaveInfos;
         int                 mExpCtrlFrequency;
