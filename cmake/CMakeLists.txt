@@ -1,9 +1,9 @@
 cmake_minimum_required(VERSION 2.6)
 #------------------------------------------------
-# Project name. 
+# Project name.
 project(freeture)
 #------------------------------------------------
-# The version number. 
+# The version number.
 set(VERSION 0.6)
 # Configuration file default path
 set(CFG_PATH /usr/local/share/freeture/ )
@@ -11,7 +11,7 @@ set(CFG_PATH /usr/local/share/freeture/ )
 # Executable name.
 set(EXE_NAME FreeTure)
 #------------------------------------------------
-# Sources. 
+# Sources.
 file(
 	GLOB_RECURSE
 	SRC_FILES
@@ -34,7 +34,7 @@ IF(${CMAKE_SYSTEM_NAME} MATCHES "Linux")
 	OPTION(LINUX "Linux system" ON)
 	OPTION(WINDOWS "Windows system" OFF)
 	#SET(SRC_FILES ${SRC_FILES} src/CameraSDKAravis.h src/CameraSDKAravis.cpp)
-	message("> System name : " 
+	message("> System name : "
 			${CMAKE_SYSTEM_NAME} " --> Linux")
     SET(OperatingSystem "Linux")
 ELSE(${CMAKE_SYSTEM_NAME} MATCHES "Linux")
@@ -42,9 +42,9 @@ ELSE(${CMAKE_SYSTEM_NAME} MATCHES "Linux")
 		OPTION(USE_PYLON "Include Pylon for Basler Cameras on Windows" ON)
 		OPTION(LINUX "Linux system" OFF)
 		OPTION(WINDOWS "Windows system" ON)
-	
+
 		#SET(SRC_FILES ${SRC_FILES} src/CameraSDKPylon.h src/CameraSDKPylon.cpp)
-		message("> System name : " 
+		message("> System name : "
 				${CMAKE_SYSTEM_NAME} " --> Windows")
 		SET(OperatingSystem "Windows")
 	ENDIF(${CMAKE_SYSTEM_NAME} MATCHES "Windows")
@@ -117,7 +117,7 @@ IF(${OperatingSystem} MATCHES "Windows")
 
 	include(FindBoost)
 	SET(Boost_USE_STATIC_LIBS ON)
-	find_package(	Boost 
+	find_package(	Boost
 					1.55.0
 					COMPONENTS
 					thread
@@ -178,7 +178,7 @@ IF(${OperatingSystem} MATCHES "Windows")
 	include_directories(${TIS_INCLUDE_DIR})
 	#link_directories(${TIS_LIBRARY})
 	target_link_libraries( ${EXE_NAME} ${TIS_LIBRARIES} )
-	
+
 	# OPENSSL
 	message("> Searching openssl...")
 	find_package( OPENSSL )
@@ -192,11 +192,11 @@ IF(${OperatingSystem} MATCHES "Windows")
 
 ELSE(${OperatingSystem} MATCHES "Windows")
 	IF(${OperatingSystem} MATCHES "Linux")
-	
-	
+
+
 	# Not include Pylon for Basler Cameras on Windows.
 	#OPTION(USE_PYLON "Include Pylon for Basler Cameras on Windows" OFF)
-	
+
 	# Boost Library.
 	# http://www.cmake.org/cmake/help/v3.0/module/FindBoost.html
 	message("> Searching boost...")
@@ -204,7 +204,7 @@ ELSE(${OperatingSystem} MATCHES "Windows")
 	include(FindBoost)
 	#SET(Boost_USE_STATIC_LIBS ON)
 	#ADD_DEFINITIONS(-DBOOST_LOG_DYN_LINK)
-	find_package(	Boost 
+	find_package(	Boost
 					1.55.0
 					COMPONENTS
 					thread
@@ -230,13 +230,13 @@ ELSE(${OperatingSystem} MATCHES "Windows")
 	else(NOT Boost_FOUND)
 		message("> Fail to find boost")
 	endif(Boost_FOUND)
-	
+
 	# Thread library of the system (pthread for linux)
 	# http://www.cmake.org/cmake/help/v3.0/module/FindThreads.html
 	find_package( Threads REQUIRED )
 	message("CMAKE_THREAD_LIBS_INIT : " ${CMAKE_THREAD_LIBS_INIT})
 	target_link_libraries(${EXE_NAME} ${CMAKE_THREAD_LIBS_INIT})
-	
+
 	# glib-2.0
 	find_package( GLIB2 REQUIRED)
 	message ("GLIB2_INCLUDE_DIR  : " ${GLIB2_INCLUDE_DIR})
@@ -253,7 +253,7 @@ ELSE(${OperatingSystem} MATCHES "Windows")
 	include_directories(${GOBJECT_INCLUDE_DIR})
 	#link_directories(${GOBJECT_LIBRARY_DIRS})
 	target_link_libraries(${EXE_NAME} ${GOBJECT_LIBRARIES})
-	
+
 	# Aravis
 	# https://code.google.com/p/tiy/source/browse/trunk/src/Findaravis.cmake
 	find_package( aravis REQUIRED)
@@ -275,7 +275,18 @@ ELSE(${OperatingSystem} MATCHES "Windows")
 	include_directories(${OPENSSL_INCLUDE_DIR})
 	#link_directories(${OPENSSL_LIBRARY_DIRS})
 	target_link_libraries(${EXE_NAME} ${OPENSSL_LIBRARIES})
-	
+
+	# V4L2
+	include(FindV4L2)
+	find_package( V4L2 REQUIRED)
+	message ("V4L2_FOUND : " ${V4L2_FOUND})
+	message ("V4L2_INCLUDE_DIR : " ${V4L2_INCLUDE_DIR})
+	message ("V4L2_LIBRARIES : " ${V4L2_LIBRARIES})
+	message ("V4L2_LIBRARY : " ${V4L2_LIBRARY})
+	include_directories(${V4L2_INCLUDE_DIR})
+	#link_directories(${OPENSSL_LIBRARY_DIRS})
+	target_link_libraries(${EXE_NAME} ${V4L2_LIBRARIES})
+
 	ENDIF(${OperatingSystem} MATCHES "Linux")
 ENDIF(${OperatingSystem} MATCHES "Windows")
 
