@@ -865,6 +865,14 @@ void AcqThread::runImageCapture(int imgNumber, int imgExposure, int imgGain, Cam
         }
     }
 
+    #ifdef WINDOWS
+        Sleep(1000);
+    #else
+        #ifdef LINUX
+            sleep(1);
+        #endif
+    #endif
+
     BOOST_LOG_SEV(logger, notification) << "Restarting camera in continuous mode...";
     mDevice->runContinuousAcquisition();
 
