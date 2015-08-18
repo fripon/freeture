@@ -582,7 +582,7 @@ int main(int argc, const char ** argv){
                                                     logSystem.mDate = acq_int;
                                                     logSystem.archiveLog();
                                                     logSystem.cleanLogArchives();
-                                                #endif;
+                                                #endif
 
                                                 waitLogTime = false;
 

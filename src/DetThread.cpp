@@ -247,7 +247,12 @@ bool DetThread::loadDetThreadParameters(){
 
                 {
 
-
+                    cout << "TEMPLATE_MTHD" << endl;
+                    pDetMthd = new DetectionTemplate();
+                    if(!pDetMthd->initMethod(mCfgPath)){
+                        BOOST_LOG_SEV(logger, fail) << "Fail to init temporal detection method.";
+                        throw "Fail to init temporal detection method.";
+                    }
 
                 }
 

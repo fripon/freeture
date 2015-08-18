@@ -97,29 +97,60 @@ void Device::initialization() {
 
             {
                 #ifdef USE_PYLON
+
                     BOOST_LOG_SEV(logger, normal) << "INPUT : BASLER_GIGE -> Use Pylon";
                     cam = new CameraGigePylon();
+
                 #else
                     #ifdef LINUX
+
                         BOOST_LOG_SEV(logger, normal) << "INPUT : BASLER_GIGE -> Use Aravis";
                         cam = new CameraGigeAravis();
+
                     #endif
                 #endif
             }
 
             break;
 
-        case DMK_GIGE:
+        case DMK_GIGE :
 
             {
 
                 #ifdef WINDOWS
+
                     BOOST_LOG_SEV(logger, normal) << "INPUT : DMK_GIGE -> Use Imaging Source";
                     cam = new CameraGigeTis();
+
                 #else
                     #ifdef LINUX
+
                         BOOST_LOG_SEV(logger, normal) << "INPUT : DMK_GIGE -> Use Aravis";
                         cam = new CameraGigeAravis(true);
+
+                    #endif
+                #endif
+
+            }
+
+            break;
+
+        case TYTEA_USB :
+
+            {
+
+                #ifdef WINDOWS
+
+                    cout << "TYTEA is not supported on Windows." << endl;
+
+                #else
+                    #ifdef LINUX
+
+                        //BOOST_LOG_SEV(logger, normal) << "INPUT : TYTEA_USB -> Use V4L2";
+                        //cam = new CameraV4l2();
+                        cout << "TYTEA is not supported on Linux." << endl;
+                        cam = NULL;
+
                     #endif
                 #endif
 
@@ -129,6 +160,7 @@ void Device::initialization() {
 
         default :
 
+            cout << "Type of camera not supported." << endl;
             cam = NULL;
 
     }
@@ -511,7 +543,10 @@ bool Device::prepareDevice() {
                 BOOST_LOG_SEV(logger, notification) << "Loading fits keywords...";
                 mFitsHeader.loadKeywordsFromConfigFile(mCfgPath);
 
-                runContinuousAcquisition();
+                if(cam != NULL)
+                    runContinuousAcquisition();
+                else
+                    return false;
 
         }
 

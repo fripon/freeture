@@ -33,11 +33,8 @@
 
 enum DetMeth{
 
-    HOUGH_MTHD,      /*!< Lines detection using standard hough transform.*/
     TEMPORAL_MTHD,   /*!< Detection using lists of globals and locals events.*/
-    DAYTIME_MTHD,
-    TEMPLATE_MTHD,
-    TEMPORAL_MTHD_
+    TEMPLATE_MTHD
 
 };
 

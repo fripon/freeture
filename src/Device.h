@@ -64,6 +64,7 @@
 #include "CameraGigePylon.h"
 #include "CameraGigeTis.h"
 #include "CameraVideo.h"
+#include "CameraV4l2.h"
 #include "CameraFrames.h"
 #include "AcqSchedule.h"
 #include "Fits.h"

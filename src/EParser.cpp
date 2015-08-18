@@ -70,7 +70,7 @@ template<> EParser<StackMeth>::EParser() {
 template<> EParser<DetMeth>::EParser() {
 
     enumMap["TEMPORAL_MTHD"]    = TEMPORAL_MTHD;
-    enumMap["TEMPLATE_MTHD"]    = TEMPORAL_MTHD;
+    enumMap["TEMPLATE_MTHD"]    = TEMPLATE_MTHD;
 
 }
 
