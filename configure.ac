@@ -96,6 +96,9 @@ PKG_CHECK_MODULES(UDEV, libudev, [LIBS="$UDEV_LIBS $LIBS"]
 PKG_CHECK_MODULES(CRYPTO, libcrypto, [LIBS="$CRYPTO_LIBS $LIBS"]
 				      [AM_CPPFLAGS="$AM_CPPFLAGS $CRYPTO_CFLAGS"],
 				      [AC_MSG_ERROR([$CRYPTO_ERROR Exiting.])])
+PKG_CHECK_MODULES(V4L2, libv4l2, [LIBS="$V4L2_LIBS $LIBS"]
+				      [AM_CPPFLAGS="$AM_CPPFLAGS $V4L2_CFLAGS"],
+				      [AC_MSG_ERROR([$V4L2_ERROR Exiting.])])
 
 # Provide special options for PYLON SDK (Basler Camera)
 AC_MSG_CHECKING([whether we should use the Pylon SDK for Basler Camera])
@@ -134,6 +137,14 @@ AC_ARG_WITH(openssl-libdir,
 AC_ARG_WITH(openssl-incdir,
         [AS_HELP_STRING([--with-openssl-incdir=<OPENSSL include dir>],
         [Alternative directory for OPENSSL include files])])
+
+# Provide special options for V4L2
+AC_ARG_WITH(v4l2-libdir,
+        [AS_HELP_STRING([--with-v4l2-libdir=<V4L2 library path>],
+        [Alternative directory for the V4L2 library])])
+AC_ARG_WITH(v4l2-incdir,
+        [AS_HELP_STRING([--with-v4l2-incdir=<V4L2 include dir>],
+        [Alternative directory for V4L2 include files])])
 
 # Provide special options for CFITSIO
 AC_ARG_WITH(cfitsio-libdir,
