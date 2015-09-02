@@ -80,9 +80,145 @@
 
     CameraV4l2::~CameraV4l2(){}
 
-    bool CameraV4l2::listGigeCameras(){
+    bool CameraV4l2::listCameras(){
 
-        return true;
+        bool loop = true;
+        bool res = true;
+        int deviceNumber = 0;
+
+        cout << endl << "------------ USB2 CAMERAS WITH V4L2 ----------" << endl << endl;
+
+        do {
+
+            string devicePathStr = "/dev/video" + Conversion::intToString(deviceNumber);
+
+            // http://stackoverflow.com/questions/230062/whats-the-best-way-to-check-if-a-file-exists-in-c-cross-platform
+
+            if(access(devicePathStr.c_str(), F_OK) != -1 ) {
+
+                // file exists
+
+                // http://stackoverflow.com/questions/4290834/how-to-get-a-list-of-video-capture-devices-web-cameras-on-linux-ubuntu-c
+
+                int fd;
+
+                if((fd = open(devicePathStr.c_str(), O_RDONLY)) == -1){
+                    perror("Can't open device");
+                    res = false;
+                }else {
+
+                    struct v4l2_capability caps = {};
+
+                    if (-1 == xioctl(fd, VIDIOC_QUERYCAP, &caps)) {
+                        perror("Querying Capabilities");
+                        res = false;
+                    }else {
+
+                        cout << "-> [" << deviceNumber << "] " << caps.card << endl;
+
+                        /*printf( "Driver Caps:\n"
+                        "  Driver: \"%s\"\n"
+                        "  Card: \"%s\"\n"
+                        "  Bus: \"%s\"\n"
+                        "  Version: %d.%d\n"
+                        "  Capabilities: %08x\n",
+                        caps.driver,
+                        caps.card,
+                        caps.bus_info,
+                        (caps.version>>16)&&0xff,
+                        (caps.version>>24)&&0xff,
+                        caps.capabilities);*/
+
+                    }
+/*
+                    struct v4l2_cropcap cropcap = {0};
+                    cropcap.type = V4L2_BUF_TYPE_VIDEO_CAPTURE;
+                    if (-1 == xioctl (fd, VIDIOC_CROPCAP, &cropcap)) {
+                        perror("Querying Cropping Capabilities");
+                        res = false;
+                    }else {
+
+                        printf( "Camera Cropping:\n"
+                                "  Bounds: %dx%d+%d+%d\n"
+                                "  Default: %dx%d+%d+%d\n"
+                                "  Aspect: %d/%d\n",
+                                cropcap.bounds.width, cropcap.bounds.height, cropcap.bounds.left, cropcap.bounds.top,
+                                cropcap.defrect.width, cropcap.defrect.height, cropcap.defrect.left, cropcap.defrect.top,
+                                cropcap.pixelaspect.numerator, cropcap.pixelaspect.denominator);
+
+                    }
+
+                    int support_grbg10 = 0;
+
+                    struct v4l2_fmtdesc fmtdesc = {0};
+                    fmtdesc.type = V4L2_BUF_TYPE_VIDEO_CAPTURE;
+                    char fourcc[5] = {0};
+                    char c, e;
+                    printf("  FMT : CE Desc\n--------------------\n");
+                    while (0 == xioctl(fd, VIDIOC_ENUM_FMT, &fmtdesc))
+                    {
+                            strncpy(fourcc, (char *)&fmtdesc.pixelformat, 4);
+                            if (fmtdesc.pixelformat == V4L2_PIX_FMT_SGRBG10)
+                                support_grbg10 = 1;
+                            c = fmtdesc.flags & 1? 'C' : ' ';
+                            e = fmtdesc.flags & 2? 'E' : ' ';
+                            printf("  %s: %c%c %s\n", fourcc, c, e, fmtdesc.description);
+                            fmtdesc.index++;
+                    }
+                    /*
+                    if (!support_grbg10)
+                    {
+                        printf("Doesn't support GRBG10.\n");
+                        return 1;
+                    }*/
+/*
+                    struct v4l2_format fmt = {0};
+                    fmt.type = V4L2_BUF_TYPE_VIDEO_CAPTURE;
+                    fmt.fmt.pix.width = 640;
+                    fmt.fmt.pix.height = 480;
+                    //fmt.fmt.pix.pixelformat = V4L2_PIX_FMT_BGR24;
+                    //fmt.fmt.pix.pixelformat = V4L2_PIX_FMT_GREY;
+                    fmt.fmt.pix.pixelformat = V4L2_PIX_FMT_MJPEG;
+                    fmt.fmt.pix.field = V4L2_FIELD_NONE;
+
+                    if (-1 == xioctl(fd, VIDIOC_S_FMT, &fmt))
+                    {
+                        perror("Setting Pixel Format");
+                        res = false;
+                    }else {
+
+                        strncpy(fourcc, (char *)&fmt.fmt.pix.pixelformat, 4);
+                        printf( "Selected Camera Mode:\n"
+                                "  Width: %d\n"
+                                "  Height: %d\n"
+                                "  PixFmt: %s\n"
+                                "  Field: %d\n",
+                                fmt.fmt.pix.width,
+                                fmt.fmt.pix.height,
+                                fourcc,
+                                fmt.fmt.pix.field);
+                    }
+*/
+                }
+
+                close(fd);
+
+                deviceNumber++;
+
+            } else {
+
+                // file doesn't exist
+                if(deviceNumber == 0)
+                    cout << "-> No cameras detected ..." << endl;
+                loop = false;
+
+            }
+
+        }while(loop);
+
+        cout << endl << "------------------------------------------------" << endl << endl;
+
+        return res;
 
     }
 
