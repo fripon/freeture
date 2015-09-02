@@ -103,6 +103,9 @@
 
             }initializer;
 
+            const char* deviceName;
+            int fd;
+
         public :
 
              void init_userp (unsigned int buffer_size);
@@ -123,6 +126,12 @@
              *
              */
             ~CameraV4l2();
+
+            /**
+            * Get device's informations.
+            *
+            */
+            bool getInfos();
 
             /**
             * List connected GigE devices.

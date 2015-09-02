@@ -53,9 +53,8 @@
 
     struct v4l2_buffer buf;
 
-    char            dev_name[1024];
     enum io_method   io = IO_METHOD_MMAP;
-    int              fd = -1;
+
     struct buffer          *buffers;
     unsigned int     n_buffers;
     int              out_buf = 1;
@@ -80,7 +79,85 @@
 
     CameraV4l2::~CameraV4l2(){}
 
-    bool CameraV4l2::listCameras(){
+    bool CameraV4l2::getInfos() {
+
+        struct v4l2_capability caps = {};
+
+        // http://linuxtv.org/downloads/v4l-dvb-apis/vidioc-querycap.html
+
+        if (-1 == xioctl(fd, VIDIOC_QUERYCAP, &caps)) {
+            perror("Querying Capabilities");
+            return false;
+        }
+
+        cout << "Driver name     : " << caps.driver << endl;
+        cout << "Device name     : " << caps.card << endl;
+        cout << "Device location : " << caps.bus_info << endl;
+        printf ("Driver version  : %u.%u.%u\n",(caps.version >> 16) & 0xFF, (caps.version >> 8) & 0xFF, caps.version & 0xFF);
+        cout << "Capabilities    : " << caps.capabilities << endl;
+
+        struct v4l2_cropcap cropcap = {0};
+        cropcap.type = V4L2_BUF_TYPE_VIDEO_CAPTURE;
+        if (-1 == xioctl (fd, VIDIOC_CROPCAP, &cropcap)) {
+            perror("Querying Cropping Capabilities");
+            return false;
+        }
+
+        printf( "Camera Cropping :\n"
+                "  Bounds: %dx%d+%d+%d\n"
+                "  Default: %dx%d+%d+%d\n"
+                "  Aspect: %d/%d\n",
+                cropcap.bounds.width, cropcap.bounds.height, cropcap.bounds.left, cropcap.bounds.top,
+                cropcap.defrect.width, cropcap.defrect.height, cropcap.defrect.left, cropcap.defrect.top,
+                cropcap.pixelaspect.numerator, cropcap.pixelaspect.denominator);
+
+        int support_grbg10 = 0;
+
+        struct v4l2_fmtdesc fmtdesc = {0};
+        fmtdesc.type = V4L2_BUF_TYPE_VIDEO_CAPTURE;
+        char fourcc[5] = {0};
+        char c, e;
+        printf("  FMT : CE Desc\n--------------------\n");
+        while (0 == xioctl(fd, VIDIOC_ENUM_FMT, &fmtdesc)) {
+            strncpy(fourcc, (char *)&fmtdesc.pixelformat, 4);
+            if (fmtdesc.pixelformat == V4L2_PIX_FMT_SGRBG10)
+                support_grbg10 = 1;
+            c = fmtdesc.flags & 1? 'C' : ' ';
+            e = fmtdesc.flags & 2? 'E' : ' ';
+            printf("  %s: %c%c %s\n", fourcc, c, e, fmtdesc.description);
+            fmtdesc.index++;
+        }
+
+        struct v4l2_format fmt = {0};
+        fmt.type = V4L2_BUF_TYPE_VIDEO_CAPTURE;
+        fmt.fmt.pix.width = 640;
+        fmt.fmt.pix.height = 480;
+        //fmt.fmt.pix.pixelformat = V4L2_PIX_FMT_BGR24;
+        //fmt.fmt.pix.pixelformat = V4L2_PIX_FMT_GREY;
+        fmt.fmt.pix.pixelformat = V4L2_PIX_FMT_MJPEG;
+        fmt.fmt.pix.field = V4L2_FIELD_NONE;
+
+        if (-1 == xioctl(fd, VIDIOC_S_FMT, &fmt)) {
+            perror("Setting Pixel Format");
+            return false;
+        }
+
+        strncpy(fourcc, (char *)&fmt.fmt.pix.pixelformat, 4);
+        printf( "Selected Camera Mode:\n"
+                "  Width: %d\n"
+                "  Height: %d\n"
+                "  PixFmt: %s\n"
+                "  Field: %d\n",
+                fmt.fmt.pix.width,
+                fmt.fmt.pix.height,
+                fourcc,
+                fmt.fmt.pix.field);
+
+        return true;
+
+    };
+
+    bool CameraV4l2::listCameras() {
 
         bool loop = true;
         bool res = true;
@@ -116,89 +193,7 @@
 
                         cout << "-> [" << deviceNumber << "] " << caps.card << endl;
 
-                        /*printf( "Driver Caps:\n"
-                        "  Driver: \"%s\"\n"
-                        "  Card: \"%s\"\n"
-                        "  Bus: \"%s\"\n"
-                        "  Version: %d.%d\n"
-                        "  Capabilities: %08x\n",
-                        caps.driver,
-                        caps.card,
-                        caps.bus_info,
-                        (caps.version>>16)&&0xff,
-                        (caps.version>>24)&&0xff,
-                        caps.capabilities);*/
-
                     }
-/*
-                    struct v4l2_cropcap cropcap = {0};
-                    cropcap.type = V4L2_BUF_TYPE_VIDEO_CAPTURE;
-                    if (-1 == xioctl (fd, VIDIOC_CROPCAP, &cropcap)) {
-                        perror("Querying Cropping Capabilities");
-                        res = false;
-                    }else {
-
-                        printf( "Camera Cropping:\n"
-                                "  Bounds: %dx%d+%d+%d\n"
-                                "  Default: %dx%d+%d+%d\n"
-                                "  Aspect: %d/%d\n",
-                                cropcap.bounds.width, cropcap.bounds.height, cropcap.bounds.left, cropcap.bounds.top,
-                                cropcap.defrect.width, cropcap.defrect.height, cropcap.defrect.left, cropcap.defrect.top,
-                                cropcap.pixelaspect.numerator, cropcap.pixelaspect.denominator);
-
-                    }
-
-                    int support_grbg10 = 0;
-
-                    struct v4l2_fmtdesc fmtdesc = {0};
-                    fmtdesc.type = V4L2_BUF_TYPE_VIDEO_CAPTURE;
-                    char fourcc[5] = {0};
-                    char c, e;
-                    printf("  FMT : CE Desc\n--------------------\n");
-                    while (0 == xioctl(fd, VIDIOC_ENUM_FMT, &fmtdesc))
-                    {
-                            strncpy(fourcc, (char *)&fmtdesc.pixelformat, 4);
-                            if (fmtdesc.pixelformat == V4L2_PIX_FMT_SGRBG10)
-                                support_grbg10 = 1;
-                            c = fmtdesc.flags & 1? 'C' : ' ';
-                            e = fmtdesc.flags & 2? 'E' : ' ';
-                            printf("  %s: %c%c %s\n", fourcc, c, e, fmtdesc.description);
-                            fmtdesc.index++;
-                    }
-                    /*
-                    if (!support_grbg10)
-                    {
-                        printf("Doesn't support GRBG10.\n");
-                        return 1;
-                    }*/
-/*
-                    struct v4l2_format fmt = {0};
-                    fmt.type = V4L2_BUF_TYPE_VIDEO_CAPTURE;
-                    fmt.fmt.pix.width = 640;
-                    fmt.fmt.pix.height = 480;
-                    //fmt.fmt.pix.pixelformat = V4L2_PIX_FMT_BGR24;
-                    //fmt.fmt.pix.pixelformat = V4L2_PIX_FMT_GREY;
-                    fmt.fmt.pix.pixelformat = V4L2_PIX_FMT_MJPEG;
-                    fmt.fmt.pix.field = V4L2_FIELD_NONE;
-
-                    if (-1 == xioctl(fd, VIDIOC_S_FMT, &fmt))
-                    {
-                        perror("Setting Pixel Format");
-                        res = false;
-                    }else {
-
-                        strncpy(fourcc, (char *)&fmt.fmt.pix.pixelformat, 4);
-                        printf( "Selected Camera Mode:\n"
-                                "  Width: %d\n"
-                                "  Height: %d\n"
-                                "  PixFmt: %s\n"
-                                "  Field: %d\n",
-                                fmt.fmt.pix.width,
-                                fmt.fmt.pix.height,
-                                fourcc,
-                                fmt.fmt.pix.field);
-                    }
-*/
                 }
 
                 close(fd);
@@ -224,29 +219,29 @@
 
     bool CameraV4l2::createDevice(int id){
 
-        char* devicename = "/dev/video0";
+        string deviceNameStr = "/dev/video" + Conversion::intToString(id);
+        deviceName = deviceNameStr.c_str();
 
         struct stat st;
-        strcpy( dev_name,devicename);
 
-        if (-1 == stat(dev_name, &st)) {
+        if (-1 == stat(deviceName, &st)) {
             fprintf(stderr, "Cannot identify '%s': %d, %s\n",
-                    dev_name, errno, strerror(errno));
+                    deviceName, errno, strerror(errno));
             return false;
             exit(EXIT_FAILURE);
         }
 
         if (!S_ISCHR(st.st_mode)) {
-            fprintf(stderr, "%s is no device\n", dev_name);
+            fprintf(stderr, "%s is no device\n", deviceName);
             return false;
             exit(EXIT_FAILURE);
         }
 
-        fd = open(dev_name, O_RDWR /* required */ | O_NONBLOCK, 0);
+        fd = open(deviceName, O_RDWR /* required */ | O_NONBLOCK, 0);
 
         if (-1 == fd) {
             fprintf(stderr, "Cannot open '%s': %d, %s\n",
-                    dev_name, errno, strerror(errno));
+                    deviceName, errno, strerror(errno));
             return false;
             exit(EXIT_FAILURE);
         }
@@ -286,7 +281,7 @@
             {
                 fprintf(stderr,
                         "%s is no V4L2 device\n",
-                        dev_name);
+                        deviceName);
                 exit(EXIT_FAILURE);
             }
             else
@@ -299,7 +294,7 @@
         {
             fprintf(stderr,
                     "%s is no video capture device\n",
-                    dev_name);
+                    deviceName);
             exit(EXIT_FAILURE);
         }
 
@@ -311,7 +306,7 @@
                 {
                     fprintf(stderr,
                             "%s does not support read i/o\n",
-                            dev_name);
+                            deviceName);
                     exit(EXIT_FAILURE);
                 }
                 break;
@@ -322,7 +317,7 @@
                 if (!(cap.capabilities & V4L2_CAP_STREAMING))
                 {
                     fprintf(stderr, "%s does not support streaming i/o\n",
-                            dev_name);
+                            deviceName);
                     exit(EXIT_FAILURE);
                 }
                 break;
@@ -849,7 +844,7 @@
             if (EINVAL == errno)
             {
                 fprintf(stderr, "%s does not support "
-                        "memory mapping\n", dev_name);
+                        "memory mapping\n", deviceName);
                 exit(EXIT_FAILURE);
             }
             else
@@ -861,7 +856,7 @@
         if (req.count < 2)                          \
         {
             fprintf(stderr, "Insufficient buffer memory on %s\n",
-                    dev_name);
+                    deviceName);
             exit(EXIT_FAILURE);
         }
 
@@ -916,7 +911,7 @@
             if (EINVAL == errno)
             {
                 fprintf(stderr, "%s does not support "
-                        "user pointer i/o\n", dev_name);
+                        "user pointer i/o\n", deviceName);
                 exit(EXIT_FAILURE);
             }
             else
