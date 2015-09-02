@@ -60,7 +60,7 @@
 
     }
 
-    bool CameraGigeTis::listGigeCameras(){
+    bool CameraGigeTis::listCameras(){
 
         // Retrieve a list with the video capture devices connected to the computer.
         pVidCapDevList = m_pGrabber->getAvailableVideoCaptureDevices();
@@ -502,7 +502,7 @@
 
     bool CameraGigeTis::grabSingleImage(Frame &frame, int camID) {
 
-        listGigeCameras();
+        listCameras();
 
         if(createDevice(camID)) {
 

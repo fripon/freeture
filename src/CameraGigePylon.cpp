@@ -66,7 +66,7 @@ CameraGigePylon::~CameraGigePylon(void){
 
 }
 
-bool CameraGigePylon::listGigeCameras() {
+bool CameraGigePylon::listCameras() {
 
     try {
 

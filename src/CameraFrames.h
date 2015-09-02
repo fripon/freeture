@@ -103,7 +103,7 @@ class CameraFrames: public Camera {
          */
         ~CameraFrames();
 
-        bool listGigeCameras() {return true;};
+        bool listCameras() {return true;};
 
         /**
         * Prepare acquisition on the first directory of fits frames.

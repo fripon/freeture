@@ -51,7 +51,7 @@
 
     CameraGigeAravis::~CameraGigeAravis(){}
 
-    bool CameraGigeAravis::listGigeCameras(){
+    bool CameraGigeAravis::listCameras(){
 
         arv_update_device_list();
 

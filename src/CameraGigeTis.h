@@ -124,7 +124,7 @@
             * List connected GigE devices.
             *
             */
-            bool listGigeCameras();
+            bool listCameras();
 
             /**
             * Configure the correct camera to use and grab a frame by single acquisition.

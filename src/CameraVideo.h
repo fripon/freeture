@@ -108,7 +108,7 @@ class CameraVideo : public Camera{
          */
         ~CameraVideo(void);
 
-        bool listGigeCameras() {return true;};
+        bool listCameras() {return true;};
 
         /**
         * Read the next frame in the current video.

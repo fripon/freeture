@@ -114,7 +114,7 @@
             * List connected GigE devices.
             *
             */
-            bool listGigeCameras();
+            bool listCameras();
 
             /**
             * Open/create a device.
