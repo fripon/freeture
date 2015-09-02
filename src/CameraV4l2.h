@@ -105,7 +105,8 @@
 
             const char* deviceName;
             int fd;
-
+            int expMin, expMax;
+            int gainMin, gainMax;
         public :
 
              void init_userp (unsigned int buffer_size);

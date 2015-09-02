@@ -74,6 +74,10 @@
         force_format = 1;
         frame_count = 10;
         frame_number = 0;
+        expMin = 0;
+        expMax = 0;
+        gainMin = 0;
+        gainMax = 0;
 
     }
 
@@ -104,9 +108,9 @@
         }
 
         printf( "Camera Cropping :\n"
-                "  Bounds: %dx%d+%d+%d\n"
-                "  Default: %dx%d+%d+%d\n"
-                "  Aspect: %d/%d\n",
+                "  Bounds  : %dx%d+%d+%d\n"
+                "  Default : %dx%d+%d+%d\n"
+                "  Aspect  : %d/%d\n",
                 cropcap.bounds.width, cropcap.bounds.height, cropcap.bounds.left, cropcap.bounds.top,
                 cropcap.defrect.width, cropcap.defrect.height, cropcap.defrect.left, cropcap.defrect.top,
                 cropcap.pixelaspect.numerator, cropcap.pixelaspect.denominator);
@@ -117,18 +121,18 @@
         fmtdesc.type = V4L2_BUF_TYPE_VIDEO_CAPTURE;
         char fourcc[5] = {0};
         char c, e;
-        printf("  FMT : CE Desc\n--------------------\n");
+        printf( "  FMT    : CE Desc\n");
         while (0 == xioctl(fd, VIDIOC_ENUM_FMT, &fmtdesc)) {
             strncpy(fourcc, (char *)&fmtdesc.pixelformat, 4);
             if (fmtdesc.pixelformat == V4L2_PIX_FMT_SGRBG10)
                 support_grbg10 = 1;
             c = fmtdesc.flags & 1? 'C' : ' ';
             e = fmtdesc.flags & 2? 'E' : ' ';
-            printf("  %s: %c%c %s\n", fourcc, c, e, fmtdesc.description);
+            printf("  %s : %c%c %s\n", fourcc, c, e, fmtdesc.description);
             fmtdesc.index++;
         }
 
-        struct v4l2_format fmt = {0};
+        /*struct v4l2_format fmt = {0};
         fmt.type = V4L2_BUF_TYPE_VIDEO_CAPTURE;
         fmt.fmt.pix.width = 640;
         fmt.fmt.pix.height = 480;
@@ -143,15 +147,24 @@
         }
 
         strncpy(fourcc, (char *)&fmt.fmt.pix.pixelformat, 4);
-        printf( "Selected Camera Mode:\n"
-                "  Width: %d\n"
-                "  Height: %d\n"
-                "  PixFmt: %s\n"
-                "  Field: %d\n",
+        printf( "Selected mode   :\n"
+                "  Width  : %d\n"
+                "  Height : %d\n"
+                "  PixFmt : %s\n"
+                "  Field  : %d\n",
                 fmt.fmt.pix.width,
                 fmt.fmt.pix.height,
                 fourcc,
-                fmt.fmt.pix.field);
+                fmt.fmt.pix.field);*/
+
+        int eMin, eMax, gMin, gMax;
+        getExposureBounds(eMin, eMax);
+        cout << "Min exposure    : " << eMin << endl;
+        cout << "Max exposure    : " << eMax << endl;
+
+        getGainBounds(gMin, gMax);
+        cout << "Min gain        : " << gMin << endl;
+        cout << "Max gain        : " << gMax << endl;
 
         return true;
 
@@ -225,26 +238,24 @@
         struct stat st;
 
         if (-1 == stat(deviceName, &st)) {
-            fprintf(stderr, "Cannot identify '%s': %d, %s\n",
-                    deviceName, errno, strerror(errno));
+            fprintf(stderr, "Cannot identify '%s': %d, %s\n", deviceName, errno, strerror(errno));
             return false;
-            exit(EXIT_FAILURE);
         }
 
         if (!S_ISCHR(st.st_mode)) {
             fprintf(stderr, "%s is no device\n", deviceName);
             return false;
-            exit(EXIT_FAILURE);
         }
 
         fd = open(deviceName, O_RDWR /* required */ | O_NONBLOCK, 0);
 
         if (-1 == fd) {
-            fprintf(stderr, "Cannot open '%s': %d, %s\n",
-                    deviceName, errno, strerror(errno));
+            fprintf(stderr, "Cannot open '%s': %d, %s\n", deviceName, errno, strerror(errno));
             return false;
-            exit(EXIT_FAILURE);
         }
+
+        getExposureBounds(expMin, expMax);
+        getGainBounds(gainMin, gainMax);
 
         return true;
 
@@ -265,7 +276,6 @@
         struct v4l2_cropcap cropcap;
         struct v4l2_crop crop;
         struct v4l2_format fmt;
-
 
         /*struct v4l2_streamparm setfps;
         setfps.type = V4L2_BUF_TYPE_VIDEO_CAPTURE;
@@ -602,10 +612,59 @@
 
     void CameraV4l2::getExposureBounds(int &eMin, int &eMax){
 
+        struct v4l2_queryctrl queryctrl;
+        memset(&queryctrl, 0, sizeof(queryctrl));
+        queryctrl.id = V4L2_CID_EXPOSURE_ABSOLUTE;
+
+        if (-1 == ioctl(fd, VIDIOC_QUERYCTRL, &queryctrl)) {
+
+            if (errno != EINVAL) {
+
+                perror("VIDIOC_QUERYCTRL");
+                exit(EXIT_FAILURE);
+
+            } else {
+
+                printf("V4L2_CID_EXPOSURE_ABSOLUTE is not supported\n");
+
+            }
+
+        } else if (queryctrl.flags & V4L2_CTRL_FLAG_DISABLED) {
+
+            printf("V4L2_CID_EXPOSURE_ABSOLUTE is not supported\n");
+
+        } else {
+
+            /*cout << "Name    : " << queryctrl.name << endl;
+            cout << "Min     : " << queryctrl.minimum << endl;
+            cout << "Max     : " << queryctrl.maximum << endl;
+            cout << "Step    : " << queryctrl.step << endl;
+            cout << "Default : " << queryctrl.default_value << endl;
+            cout << "Flags   : " << queryctrl.flags << endl;*/
+
+            eMin = queryctrl.minimum;
+            eMax = queryctrl.maximum;
+
+        }
 
     }
 
     int CameraV4l2::getExposureTime(){
+
+        struct v4l2_control control;
+        memset(&control, 0, sizeof(control));
+        control.id = V4L2_CID_EXPOSURE_ABSOLUTE;
+
+        if(0 == ioctl(fd, VIDIOC_G_CTRL, &control)) {
+
+            return control.value * 100;
+
+        // Ignore if V4L2_CID_CONTRAST is unsupported
+        } else if (errno != EINVAL) {
+
+            perror("VIDIOC_G_CTRL");
+
+        }
 
         return 0;
 
@@ -613,12 +672,40 @@
 
     void CameraV4l2::getGainBounds(int &gMin, int &gMax){
 
-        double gainMin = 0.0;
-        double gainMax = 0.0;
+        struct v4l2_queryctrl queryctrl;
+        memset(&queryctrl, 0, sizeof(queryctrl));
+        queryctrl.id = V4L2_CID_GAIN;
 
+        if (-1 == ioctl(fd, VIDIOC_QUERYCTRL, &queryctrl)) {
 
-        //gMin = gainMin;
-        //gMax = gainMax;
+            if (errno != EINVAL) {
+
+                perror("VIDIOC_QUERYCTRL");
+                exit(EXIT_FAILURE);
+
+            } else {
+
+                printf("V4L2_CID_GAIN is not supported\n");
+
+            }
+
+        } else if (queryctrl.flags & V4L2_CTRL_FLAG_DISABLED) {
+
+            printf("V4L2_CID_GAIN is not supported\n");
+
+        } else {
+
+            /*cout << "Name    : " << queryctrl.name << endl;
+            cout << "Min     : " << queryctrl.minimum << endl;
+            cout << "Max     : " << queryctrl.maximum << endl;
+            cout << "Step    : " << queryctrl.step << endl;
+            cout << "Default : " << queryctrl.default_value << endl;
+            cout << "Flags   : " << queryctrl.flags << endl;*/
+
+            gMin = queryctrl.minimum;
+            gMax = queryctrl.maximum;
+
+        }
 
     }
 
@@ -656,16 +743,114 @@
         return "";
 
     }
+
     bool CameraV4l2::setExposureTime(int val){
 
-        double expMin, expMax;
+        if(expMax != 0 && expMin != 0 && val >= expMin && val <= expMax) {
+
+            struct v4l2_queryctrl queryctrl;
+            struct v4l2_control control;
+            memset(&queryctrl, 0, sizeof(queryctrl));
+            queryctrl.id = V4L2_CID_EXPOSURE_ABSOLUTE;
+
+            if(-1 == ioctl(fd, VIDIOC_QUERYCTRL, &queryctrl)) {
+
+                if(errno != EINVAL) {
+
+                    perror("VIDIOC_QUERYCTRL");
+                    return false;
+
+                }else {
+
+                    printf("V4L2_CID_EXPOSURE_ABSOLUTE is not supported\n");
+
+                }
+
+            }else if (queryctrl.flags & V4L2_CTRL_FLAG_DISABLED) {
+
+                printf("V4L2_CID_EXPOSURE_ABSOLUTE is not supported\n");
+
+            }else {
+
+                memset(&control, 0, sizeof (control));
+                control.id = V4L2_CID_EXPOSURE_ABSOLUTE;
+
+                /*
+
+                V4L2_CID_EXPOSURE_ABSOLUTE 	integer
+                Determines the exposure time of the camera sensor.
+                The exposure time is limited by the frame interval.
+                Drivers should interpret the values as 100 µs units, w
+                here the value 1 stands for 1/10000th of a second, 10000
+                for 1 second and 100000 for 10 seconds.
+
+                */
+                control.value = val/100;
+
+                if (-1 == ioctl(fd, VIDIOC_S_CTRL, &control)) {
+                    perror("VIDIOC_S_CTRL");
+                    return false;
+                }
+
+            }
+
+            return true;
+
+        }else {
+
+            cout << "> Exposure value (" << val << ") is not in range [ " << expMin << " - " << expMax << " ]" << endl;
+
+        }
 
         return false;
     }
 
     bool CameraV4l2::setGain(int val){
 
-        double gMin, gMax;
+        if(gainMax != 0 && gainMin != 0 && val >= gainMin && val <= gainMax) {
+
+            struct v4l2_queryctrl queryctrl;
+            struct v4l2_control control;
+            memset(&queryctrl, 0, sizeof(queryctrl));
+            queryctrl.id = V4L2_CID_GAIN;
+
+            if(-1 == ioctl(fd, VIDIOC_QUERYCTRL, &queryctrl)) {
+
+                if(errno != EINVAL) {
+
+                    perror("VIDIOC_QUERYCTRL");
+                    return false;
+
+                }else {
+
+                    printf("V4L2_CID_GAIN is not supported\n");
+
+                }
+
+            }else if (queryctrl.flags & V4L2_CTRL_FLAG_DISABLED) {
+
+                printf("V4L2_CID_GAIN is not supported\n");
+
+            }else {
+
+                memset(&control, 0, sizeof (control));
+                control.id = V4L2_CID_GAIN;
+                control.value = val;
+
+                if (-1 == ioctl(fd, VIDIOC_S_CTRL, &control)) {
+                    perror("VIDIOC_S_CTRL");
+                    return false;
+                }
+
+            }
+
+            return true;
+
+        }else {
+
+            cout << "> Gain value (" << val << ") is not in range [ " << gainMin << " - " << gainMax << " ]" << endl;
+
+        }
 
         return false;
 
