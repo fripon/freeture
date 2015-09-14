@@ -171,7 +171,7 @@
             *
             * @return Device's fps.
             */
-            int getFPS();
+            bool getFPS(double &value);
 
             /**
             * Set device's exposure time value.

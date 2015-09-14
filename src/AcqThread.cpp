@@ -152,7 +152,8 @@ void AcqThread::operator()(){
 
         if(mDevice->getAcqRegularEnabled()) {
 
-            int fps = mDevice->getCam()->getFPS();
+            double fps = 0.0;
+            mDevice->getCam()->getFPS(fps);
 
             if(fps>0){
 

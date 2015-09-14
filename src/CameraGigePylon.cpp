@@ -757,13 +757,16 @@ int CameraGigePylon::getFrameHeight(){
 
 }
 
-int CameraGigePylon::getFPS(){
+bool CameraGigePylon::getFPS(double &value){
 
     if(pCamera!=NULL){
 
-        return (int)pCamera->AcquisitionFrameRateAbs.GetValue();
-    }else
-        return 0;
+        value = pCamera->AcquisitionFrameRateAbs.GetValue();
+        return true;
+    }
+
+    value = 0;
+    return false;
 
 }
 

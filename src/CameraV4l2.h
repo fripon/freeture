@@ -108,6 +108,7 @@
             int expMin, expMax;
             int gainMin, gainMax;
             int width, height;
+            int frameCounter;
         public :
 
              void init_userp (unsigned int buffer_size);
@@ -240,9 +241,17 @@
             /**
             * Get device's acquisition frequency.
             *
-            * @return Device's fps.
+            * @param Returned fps value.
+            * @return Success to get fps.
             */
-            int getFPS();
+            bool getFPS(double &value);
+
+            /**
+            * Get FPS enumeration values.
+            *
+            * @return Success to find enumeration.
+            */
+            bool getFpsEnum(vector<double> &values);
 
             /**
             * Get device's model name.

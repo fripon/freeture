@@ -797,9 +797,16 @@
 
     }
 
-    int CameraGigeAravis::getFPS(void){
+    bool CameraGigeAravis::getFPS(double &value){
 
-        return (int)arv_camera_get_frame_rate(camera);
+        if(camera != NULL) {
+
+            value = arv_camera_get_frame_rate(camera);
+            return true;
+
+        }
+
+        return false;
 
     }
 

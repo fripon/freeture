@@ -167,7 +167,14 @@ class Camera {
         *
         * @return Device's fps.
         */
-        virtual int getFPS() {return 0;};
+        virtual bool getFPS(double &value) {return false;};
+
+        /**
+        * Get FPS enumeration values.
+        *
+        * @return Possible fps values.
+        */
+        virtual bool getFpsEnum(vector<double> &values) {return false;};
 
         /**
         * Get device's model name.

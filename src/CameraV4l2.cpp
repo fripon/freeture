@@ -78,7 +78,7 @@
         expMax = 0;
         gainMin = 0;
         gainMax = 0;
-
+        frameCounter = 0;
         width = 1024;
         height = 768;
 
@@ -277,12 +277,6 @@
         struct v4l2_cropcap cropcap;
         struct v4l2_crop crop;
         struct v4l2_format fmt;
-
-        /*struct v4l2_streamparm setfps;
-        setfps.type = V4L2_BUF_TYPE_VIDEO_CAPTURE;
-        setfps.parm.capture.timeperframe.numerator = 4;
-        setfps.parm.capture.timeperframe.denominator = 15;
-        ioctl(fd, VIDIOC_S_PARM, &setfps);*/
 
         unsigned int min;
 
@@ -593,7 +587,8 @@
                 //newFrame.mFps = fps;
                 newFrame.mBitDepth = MONO_8;
                 newFrame.mSaturatedValue = 255;
-                //newFrame.mFrameNumber = frameCounter;
+                newFrame.mFrameNumber = frameCounter;
+                frameCounter++;
 
                 return true;
 
@@ -606,7 +601,6 @@
     }
 
     bool CameraV4l2::grabSingleImage(Frame &frame, int camID){
-
 
         createDevice(camID);
         getInfos();
@@ -815,10 +809,62 @@
 
     }
 
-    int CameraV4l2::getFPS(void){
+    bool CameraV4l2::getFpsEnum(vector<double> &values){
 
-        return 0;
+        bool res = false;
 
+        struct v4l2_frmivalenum temp;
+        memset(&temp, 0, sizeof(temp));
+        temp.pixel_format = V4L2_PIX_FMT_GREY;
+        temp.width = width;
+        temp.height = height;
+
+        ioctl(fd, VIDIOC_ENUM_FRAMEINTERVALS, &temp);
+        if (temp.type == V4L2_FRMIVAL_TYPE_DISCRETE) {
+            while (ioctl(fd, VIDIOC_ENUM_FRAMEINTERVALS, &temp) != -1) {
+                values.push_back(float(temp.discrete.denominator)/temp.discrete.numerator);
+                cout << values.back() << " fps" << endl;
+                temp.index += 1;
+                res = true;
+            }
+        }
+        float stepval = 0;
+        if (temp.type == V4L2_FRMIVAL_TYPE_CONTINUOUS) {
+            stepval = 1;
+        }
+        if (temp.type == V4L2_FRMIVAL_TYPE_STEPWISE || temp.type == V4L2_FRMIVAL_TYPE_CONTINUOUS) {
+            float minval = float(temp.stepwise.min.numerator)/temp.stepwise.min.denominator;
+            float maxval = float(temp.stepwise.max.numerator)/temp.stepwise.max.denominator;
+            if (stepval == 0) {
+                stepval = float(temp.stepwise.step.numerator)/temp.stepwise.step.denominator;
+            }
+            for (float cval = minval; cval <= maxval; cval += stepval) {
+                cout << 1/cval << " fps" << endl;
+                values.push_back(1.0/cval);
+                res = true;
+            }
+        }
+
+        return res;
+
+    }
+
+    bool CameraV4l2::getFPS(double &value) {
+
+        struct v4l2_streamparm streamparm;
+        struct v4l2_fract *tpf;
+
+        streamparm.type = V4L2_BUF_TYPE_VIDEO_CAPTURE;
+        if (-1 == ioctl(fd, VIDIOC_G_PARM, &streamparm)) {
+            cout << "Fail to read fps value." << endl;
+            return false;
+        }
+
+        tpf = &streamparm.parm.capture.timeperframe;
+
+        value = (double)tpf->denominator / (double)tpf->numerator;
+
+        return true;
     }
 
     string CameraV4l2::getModelName(){
@@ -941,13 +987,84 @@
 
     bool CameraV4l2::setFPS(int fps){
 
-        return false;
+       /* struct v4l2_streamparm caps = {};
+
+        // http://linuxtv.org/downloads/v4l-dvb-apis/vidioc-querycap.html
+
+        if (-1 == xioctl(fd, VIDIOC_G_PARAM, &caps)) {
+            perror("Querying Capabilities");
+            return false;
+        }
+
+        struct v4l2_fract *tp;
+        tp = caps.parm.capture.timeperframe;
+        cout << tp->numerator << "/" <<  tp->denominator<< endl;*/
+
+        struct v4l2_streamparm setfps;
+        struct v4l2_fract *tpf;
+        memset (&setfps, 0, sizeof (setfps));
+        setfps.type = V4L2_BUF_TYPE_VIDEO_CAPTURE;
+        tpf = &setfps.parm.capture.timeperframe;
+        tpf->numerator = 30;
+        tpf->denominator = 1;//cvRound(fps);
+        //retval=1;
+        if (ioctl(fd, VIDIOC_S_PARM, &setfps) < 0) {
+            cout << "Failed to set camera FPS:"  << strerror(errno) << endl;
+            //retval=0;
+            return false;
+        }
+
+        return true;
 
     }
 
     bool CameraV4l2::setPixelFormat(CamBitDepth depth){
 
-        return false;
+        int support_grbg10 = 0;
+        struct v4l2_fmtdesc fmtdesc = {0};
+        fmtdesc.type = V4L2_BUF_TYPE_VIDEO_CAPTURE;
+        char fourcc[5] = {0};
+        char c, e;
+        printf( "  FMT    : CE Desc\n");
+        while (0 == xioctl(fd, VIDIOC_ENUM_FMT, &fmtdesc)) {
+            strncpy(fourcc, (char *)&fmtdesc.pixelformat, 4);
+            if (fmtdesc.pixelformat == V4L2_PIX_FMT_SGRBG10)
+                support_grbg10 = 1;
+            c = fmtdesc.flags & 1? 'C' : ' ';
+            e = fmtdesc.flags & 2? 'E' : ' ';
+            printf("  %s : %c%c %s\n", fourcc, c, e, fmtdesc.description);
+            fmtdesc.index++;
+        }
+
+        struct v4l2_format fmt = {0};
+        fmt.type = V4L2_BUF_TYPE_VIDEO_CAPTURE;
+        fmt.fmt.pix.width = width;
+        fmt.fmt.pix.height = height;
+        //fmt.fmt.pix.pixelformat = V4L2_PIX_FMT_BGR24;
+
+        if(depth == MONO_8)
+            fmt.fmt.pix.pixelformat = V4L2_PIX_FMT_GREY;
+        //fmt.fmt.pix.pixelformat = V4L2_PIX_FMT_MJPEG;
+        fmt.fmt.pix.field = V4L2_FIELD_NONE;
+
+        if (-1 == xioctl(fd, VIDIOC_S_FMT, &fmt)) {
+            perror("Setting Pixel Format");
+            return false;
+        }
+
+        strncpy(fourcc, (char *)&fmt.fmt.pix.pixelformat, 4);
+        printf( "Selected mode   :\n"
+                "  Width  : %d\n"
+                "  Height : %d\n"
+                "  PixFmt : %s\n"
+                "  Field  : %d\n",
+                fmt.fmt.pix.width,
+                fmt.fmt.pix.height,
+                fourcc,
+                fmt.fmt.pix.field);
+
+
+        return true;
 
     }
 

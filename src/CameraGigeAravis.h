@@ -234,7 +234,7 @@
             *
             * @return Device's fps.
             */
-            int getFPS();
+            bool getFPS(double &value);
 
             /**
             * Get device's model name.

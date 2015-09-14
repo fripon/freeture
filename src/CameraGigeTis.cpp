@@ -251,10 +251,10 @@
 
     }
 
-    int CameraGigeTis::getFPS(void){
+    bool CameraGigeTis::getFPS(double &value){
 
-        double fps = m_pGrabber->getFPS();
-        return (int)fps;
+        value = m_pGrabber->getFPS();
+        return true;
 
     }
 

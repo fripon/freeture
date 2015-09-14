@@ -258,7 +258,8 @@ bool ExposureControl::controlExposureTime(Device *camera, Mat image, TimeDate::D
                     // Get minimum exposure time.
                     minCameraExposureValue = camera->getMinExposureTime();
                     // Get acquisition frequency.
-                    int fps = camera->getCam()->getFPS();
+                    double fps = 0.0;
+                    camera->getCam()->getFPS(fps);
                     // Set maximum exposure time (us) in respect of fps.
                     if(fps != 0)
                         maxCameraExposureValue = (int)((1.0/fps) * 1000000.0);
