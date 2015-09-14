@@ -107,6 +107,7 @@
             int fd;
             int expMin, expMax;
             int gainMin, gainMax;
+            int width, height;
         public :
 
              void init_userp (unsigned int buffer_size);

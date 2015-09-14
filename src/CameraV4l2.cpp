@@ -79,6 +79,10 @@
         gainMin = 0;
         gainMax = 0;
 
+        width = 1024;
+        height = 768;
+
+
     }
 
     CameraV4l2::~CameraV4l2(){}
@@ -268,9 +272,6 @@
     }
 
     bool CameraV4l2::grabInitialization(){
-
-        int width = 1024;
-        int height = 768;
 
         struct v4l2_capability cap;
         struct v4l2_cropcap cropcap;
@@ -540,8 +541,8 @@
 
         unsigned char* ImageBuffer = NULL;
 
-        Mat img = Mat(768,1024,CV_8UC1, Scalar(0));
-        size_t s = 1024*768;
+        Mat img = Mat(height,width,CV_8UC1, Scalar(0));
+        size_t s = width*height;
 
         bool grabSuccess = false;
 
@@ -606,7 +607,89 @@
 
     bool CameraV4l2::grabSingleImage(Frame &frame, int camID){
 
-        return false;
+
+        createDevice(camID);
+        getInfos();
+
+        setExposureTime(frame.mExposure);
+        setGain(frame.mGain);
+
+        grabInitialization();
+        acqStart();
+
+        unsigned char* ImageBuffer = NULL;
+
+        Mat img = Mat(height,width,CV_8UC1, Scalar(0));
+        size_t s = width*height;
+
+        bool grabSuccess = false;
+
+        for(;;) {
+
+            fd_set fds;
+            struct timeval tv;
+            int r;
+
+            FD_ZERO(&fds);
+            FD_SET(fd, &fds);
+
+            /* Timeout. */
+            int timeout = 2;
+
+            if(frame.mExposure/1000000 > 1)
+                timeout = timeout + (int)(frame.mExposure/1000000);
+
+            tv.tv_sec = timeout;
+            tv.tv_usec = 0;
+
+            r = select(fd + 1, &fds, NULL, NULL, &tv);
+
+            if(-1 == r) {
+              if (EINTR == errno)
+              continue;
+              errno_exit("select");
+            }
+
+            if(0 == r) {
+              fprintf(stderr, "select timeout\n");
+              exit(EXIT_FAILURE);
+            }
+
+            if(read_frame()) {
+                grabSuccess = true;
+                break;
+            }
+            /* EAGAIN - continue select loop. */
+        }
+
+        if(grabSuccess) {
+
+            ImageBuffer = (unsigned char*)buffers[buf.index].start;
+
+            if(ImageBuffer != NULL) {
+
+                memcpy(img.ptr(), ImageBuffer, s);
+
+                boost::posix_time::ptime time = boost::posix_time::microsec_clock::universal_time();
+
+                img.copyTo(frame.mImg);
+                frame.mDate = TimeDate::splitIsoExtendedDate(to_iso_extended_string(time));
+                //newFrame.mFps = fps;
+                frame.mBitDepth = MONO_8;
+                frame.mSaturatedValue = 255;
+                //newFrame.mFrameNumber = frameCounter;
+
+            }
+
+        }
+
+        acqStop();
+        grabCleanse();
+
+        if(grabSuccess)
+            return true;
+        else
+            return false;
 
     }
 
@@ -1067,7 +1150,7 @@
                 errno_exit("VIDIOC_QUERYBUF");
 
             buffers[n_buffers].length = buf.length;
-            printf("buf.length: %d",buf.length);
+
             buffers[n_buffers].start =
                 mmap(NULL /* start anywhere */,
                      buf.length,

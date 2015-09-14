@@ -146,10 +146,10 @@ void Device::initialization() {
                 #else
                     #ifdef LINUX
 
-                        //BOOST_LOG_SEV(logger, normal) << "INPUT : TYTEA_USB -> Use V4L2";
-                        //cam = new CameraV4l2();
-                        cout << "TYTEA is not supported on Linux." << endl;
-                        cam = NULL;
+                        BOOST_LOG_SEV(logger, normal) << "INPUT : TYTEA_USB -> Use V4L2";
+                        cam = new CameraV4l2();
+                        //cout << "TYTEA is not supported on Linux." << endl;
+                        //cam = NULL;
 
                     #endif
                 #endif
@@ -710,7 +710,7 @@ void Device::runContinuousAcquisition(){
 
     /// List Gige Camera to check the ID.
     BOOST_LOG_SEV(logger, notification) << "Printing Connected Gige Camera...";
-    if(!cam->listGigeCameras()){
+    if(!cam->listCameras()){
         BOOST_LOG_SEV(logger, fail) << "No cameras.";
         throw "";
     }
