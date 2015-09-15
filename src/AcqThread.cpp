@@ -862,6 +862,8 @@ void AcqThread::runImageCapture(int imgNumber, int imgExposure, int imgGain, Cam
         }else{
 
             BOOST_LOG_SEV(logger, fail) << "Single capture failed !";
+            mDevice->getCam()->acqStop();
+            mDevice->getCam()->grabCleanse();
 
         }
     }

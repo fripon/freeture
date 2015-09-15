@@ -323,7 +323,6 @@
             }
         }
 
-
         // Select video input, video standard and tune here.
 
         memset(&cropcap, 0, sizeof(cropcap));
