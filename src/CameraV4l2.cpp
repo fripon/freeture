@@ -788,6 +788,34 @@
 
     bool CameraV4l2::getPixelFormat(CamBitDepth &format){
 
+        char fourcc[5] = {0};
+
+        struct v4l2_format fmt = {0};
+        fmt.type = V4L2_BUF_TYPE_VIDEO_CAPTURE;
+        fmt.fmt.pix.width = width;
+        fmt.fmt.pix.height = height;
+        fmt.fmt.pix.field = V4L2_FIELD_NONE;
+
+        if (-1 == xioctl(fd, VIDIOC_G_FMT, &fmt)) {
+            perror("Getting Pixel Format");
+            return false;
+        }
+
+        // http://linuxtv.org/downloads/v4l-dvb-apis/V4L2-PIX-FMT-GREY.html
+        if(fmt.fmt.pix.pixelformat == V4L2_PIX_FMT_GREY) {
+
+            strncpy(fourcc, (char *)&fmt.fmt.pix.pixelformat, 4);
+            cout << "Pixel format : V4L2_PIX_FMT_GREY" << endl;
+            format = MONO_8;
+
+        // http://linuxtv.org/downloads/v4l-dvb-apis/V4L2-PIX-FMT-Y12.html
+        }else if(fmt.fmt.pix.pixelformat == V4L2_PIX_FMT_Y12) {
+
+            strncpy(fourcc, (char *)&fmt.fmt.pix.pixelformat, 4);
+            cout << "Pixel format : V4L2_PIX_FMT_Y12" << endl;
+            format = MONO_12;
+
+        }
 
         return true;
     }
@@ -1010,9 +1038,9 @@
                     tpf = &setfps.parm.capture.timeperframe;
 
                     tpf->numerator = temp.discrete.numerator;
-                    cout << "numerator : " << tpf->numerator << endl;
+                    //cout << "numerator : " << tpf->numerator << endl;
                     tpf->denominator = temp.discrete.denominator;//cvRound(fps);
-                    cout << "denominator : " << tpf->denominator << endl;
+                    //cout << "denominator : " << tpf->denominator << endl;
                     //retval=1;
                     if (ioctl(fd, VIDIOC_S_PARM, &setfps) < 0) {
                         cout << "Failed to set camera FPS:"  << strerror(errno) << endl;
