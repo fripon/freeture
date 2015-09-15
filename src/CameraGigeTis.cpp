@@ -187,7 +187,7 @@
 
     }*/
 
-    bool CameraGigeTis::setFPS(int value) {
+    bool CameraGigeTis::setFPS(double value) {
 
         mFPS = value;
         return m_pGrabber->setFPS((double)value);

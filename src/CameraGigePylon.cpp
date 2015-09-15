@@ -833,7 +833,7 @@ bool CameraGigePylon::setGain(int gain){
 
 }
 
-bool CameraGigePylon::setFPS(int fps){
+bool CameraGigePylon::setFPS(double fps){
 
     pCamera->AcquisitionFrameRateAbs = fps;
     return true;

@@ -219,7 +219,7 @@ class Camera {
         * @param value New fps value.
         * @return Success status to set fps.
         */
-        virtual bool setFPS(int value) {return false;};
+        virtual bool setFPS(double value) {return false;};
 
         /**
         * Set device's format.

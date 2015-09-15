@@ -985,36 +985,68 @@
 
     }
 
-    bool CameraV4l2::setFPS(int fps){
+    bool CameraV4l2::setFPS(double fps){
 
-       /* struct v4l2_streamparm caps = {};
+        bool res = false;
+        struct v4l2_frmivalenum temp;
+        memset(&temp, 0, sizeof(temp));
+        temp.pixel_format = V4L2_PIX_FMT_GREY;
+        temp.width = width;
+        temp.height = height;
 
-        // http://linuxtv.org/downloads/v4l-dvb-apis/vidioc-querycap.html
+        ioctl(fd, VIDIOC_ENUM_FRAMEINTERVALS, &temp);
+        if (temp.type == V4L2_FRMIVAL_TYPE_DISCRETE) {
+            vector<double> frameIntervals;
+            while (ioctl(fd, VIDIOC_ENUM_FRAMEINTERVALS, &temp) != -1) {
 
-        if (-1 == xioctl(fd, VIDIOC_G_PARAM, &caps)) {
-            perror("Querying Capabilities");
-            return false;
+                if(fps == (float(temp.discrete.denominator)/temp.discrete.numerator)) {
+
+                    cout << "Set fps value to "<< fps << " fps" << endl;
+
+                    struct v4l2_streamparm setfps;
+                    struct v4l2_fract *tpf;
+                    memset (&setfps, 0, sizeof (setfps));
+                    setfps.type = V4L2_BUF_TYPE_VIDEO_CAPTURE;
+                    tpf = &setfps.parm.capture.timeperframe;
+
+                    tpf->numerator = temp.discrete.numerator;
+                    cout << "numerator : " << tpf->numerator << endl;
+                    tpf->denominator = temp.discrete.denominator;//cvRound(fps);
+                    cout << "denominator : " << tpf->denominator << endl;
+                    //retval=1;
+                    if (ioctl(fd, VIDIOC_S_PARM, &setfps) < 0) {
+                        cout << "Failed to set camera FPS:"  << strerror(errno) << endl;
+                        break;
+                    }
+
+                    res = true;
+                    break;
+
+                }
+
+                temp.index += 1;
+
+            }
+        }
+        float stepval = 0;
+        if (temp.type == V4L2_FRMIVAL_TYPE_CONTINUOUS) {
+            stepval = 1;
+            res = true;
+        }
+        if (temp.type == V4L2_FRMIVAL_TYPE_STEPWISE || temp.type == V4L2_FRMIVAL_TYPE_CONTINUOUS) {
+            float minval = float(temp.stepwise.min.numerator)/temp.stepwise.min.denominator;
+            float maxval = float(temp.stepwise.max.numerator)/temp.stepwise.max.denominator;
+            if (stepval == 0) {
+                stepval = float(temp.stepwise.step.numerator)/temp.stepwise.step.denominator;
+            }
+            for (float cval = minval; cval <= maxval; cval += stepval) {
+                cout << 1/cval << " fps" << endl;
+
+                res = true;
+            }
         }
 
-        struct v4l2_fract *tp;
-        tp = caps.parm.capture.timeperframe;
-        cout << tp->numerator << "/" <<  tp->denominator<< endl;*/
-
-        struct v4l2_streamparm setfps;
-        struct v4l2_fract *tpf;
-        memset (&setfps, 0, sizeof (setfps));
-        setfps.type = V4L2_BUF_TYPE_VIDEO_CAPTURE;
-        tpf = &setfps.parm.capture.timeperframe;
-        tpf->numerator = 30;
-        tpf->denominator = 1;//cvRound(fps);
-        //retval=1;
-        if (ioctl(fd, VIDIOC_S_PARM, &setfps) < 0) {
-            cout << "Failed to set camera FPS:"  << strerror(errno) << endl;
-            //retval=0;
-            return false;
-        }
-
-        return true;
+        return res;
 
     }
 

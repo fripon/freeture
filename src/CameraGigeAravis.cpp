@@ -869,7 +869,7 @@
 
     }
 
-    bool CameraGigeAravis::setFPS(int fps){
+    bool CameraGigeAravis::setFPS(double fps){
 
         if (camera != NULL){
 

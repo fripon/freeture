@@ -247,7 +247,7 @@
             * @param fps New fps value.
             * @return Success status to set fps.
             */
-            bool setFPS(int fps);
+            bool setFPS(double fps);
 
             /**
             * Set device's format.
