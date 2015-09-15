@@ -36,10 +36,7 @@
 
 #ifdef LINUX
 
-    #define CLEAR(x) memset(&(x), 0, sizeof(x))
-
-    enum io_method
-    {
+    enum io_method {
         IO_METHOD_READ,
         IO_METHOD_MMAP,
         IO_METHOD_USERPTR,
@@ -55,10 +52,9 @@
 
     enum io_method   io = IO_METHOD_MMAP;
 
-    struct buffer          *buffers;
+    struct buffer    *buffers;
     unsigned int     n_buffers;
     int              out_buf = 1;
-    int              force_format = 1;
     int              frame_count = 10;
     int              frame_number = 0;
 
@@ -71,7 +67,6 @@
         io_method io = IO_METHOD_MMAP;
         fd = -1;
         out_buf = 1;
-        force_format = 1;
         frame_count = 10;
         frame_number = 0;
         expMin = 0;
@@ -81,7 +76,7 @@
         frameCounter = 0;
         width = 1024;
         height = 768;
-
+        memset(&mFormat, 0, sizeof(mFormat));
 
     }
 
@@ -276,7 +271,6 @@
         struct v4l2_capability cap;
         struct v4l2_cropcap cropcap;
         struct v4l2_crop crop;
-        struct v4l2_format fmt;
 
         unsigned int min;
 
@@ -330,10 +324,9 @@
         }
 
 
-        /* Select video input, video standard and tune here. */
+        // Select video input, video standard and tune here.
 
-
-        CLEAR(cropcap);
+        memset(&cropcap, 0, sizeof(cropcap));
 
         cropcap.type = V4L2_BUF_TYPE_VIDEO_CAPTURE;
 
@@ -347,64 +340,76 @@
                 switch (errno)
                 {
                     case EINVAL:
-                        /* Cropping not supported. */
+                        // Cropping not supported.
                         break;
                     default:
-                        /* Errors ignored. */
+                        // Errors ignored.
                         break;
                 }
             }
         }
         else
         {
-            /* Errors ignored. */
+            // Errors ignored.
         }
 
+        // Preserve original settings as set by v4l2-ctl for example
+        //if (-1 == xioctl(fd, VIDIOC_G_FMT, &mFormat))
+        //    errno_exit("VIDIOC_G_FMT");
 
-        CLEAR(fmt);
+        // Set maximum image size
 
-        fmt.type = V4L2_BUF_TYPE_VIDEO_CAPTURE;
-        if (force_format)
-        {
-            fmt.fmt.pix.width       = width;
-            fmt.fmt.pix.height      = height;
-            fmt.fmt.pix.pixelformat = V4L2_PIX_FMT_GREY;
-            fmt.fmt.pix.field       = V4L2_FIELD_NONE;
+        struct v4l2_frmsizeenum frmsize;
+        memset(&frmsize, 0, sizeof(frmsize));
+        frmsize.pixel_format = mFormat.fmt.pix.pixelformat;
 
-            if (-1 == xioctl(fd, VIDIOC_S_FMT, &fmt))
-                errno_exit("VIDIOC_S_FMT");
+        int maxH = 0;
+        int maxW = 0;
+        bool initFrameSize = false;
 
-            /* Note VIDIOC_S_FMT may change width and height. */
+        while(ioctl(fd, VIDIOC_ENUM_FRAMESIZES, &frmsize) == 0) {
+
+            switch(frmsize.type) {
+
+                case V4L2_FRMSIZE_TYPE_DISCRETE :
+
+                    if(frmsize.discrete.height > maxH ) maxH = frmsize.discrete.height;
+                    if(frmsize.discrete.width > maxW ) maxW = frmsize.discrete.width;
+
+                    initFrameSize = true;
+
+                case V4L2_FRMSIZE_TYPE_CONTINUOUS :
+
+                    break;
+
+                case V4L2_FRMSIZE_TYPE_STEPWISE :
+
+                    maxW = frmsize.stepwise.max_width;
+                    maxH = frmsize.stepwise.max_height;
+                    initFrameSize = true;
+
+            }
+
+            frmsize.index++;
+
         }
-        else
-        {
-            /* Preserve original settings as set by v4l2-ctl for example */
-            if (-1 == xioctl(fd, VIDIOC_G_FMT, &fmt))
-                errno_exit("VIDIOC_G_FMT");
+
+        if(!initFrameSize && maxH == 0 && maxW == 0){
+
+            return false;
+
         }
+
+        mFormat.fmt.pix.height = maxH;
+        mFormat.fmt.pix.width = maxW;
 
         /* Buggy driver paranoia. */
-        min = fmt.fmt.pix.width * 2;
-        if (fmt.fmt.pix.bytesperline < min)
-            fmt.fmt.pix.bytesperline = min;
-        min = fmt.fmt.pix.bytesperline * fmt.fmt.pix.height;
-        if (fmt.fmt.pix.sizeimage < min)
-            fmt.fmt.pix.sizeimage = min;
-
-        switch (io)
-        {
-            case IO_METHOD_READ:
-                init_read(fmt.fmt.pix.sizeimage);
-                break;
-
-            case IO_METHOD_MMAP:
-                init_mmap();
-                break;
-
-            case IO_METHOD_USERPTR:
-                init_userp(fmt.fmt.pix.sizeimage);
-                break;
-        }
+        min = mFormat.fmt.pix.width * 2;
+        if (mFormat.fmt.pix.bytesperline < min)
+            mFormat.fmt.pix.bytesperline = min;
+        min = mFormat.fmt.pix.bytesperline * mFormat.fmt.pix.height;
+        if (mFormat.fmt.pix.sizeimage < min)
+            mFormat.fmt.pix.sizeimage = min;
 
         return true;
 
@@ -450,6 +455,20 @@
         unsigned int i;
         enum v4l2_buf_type type;
 
+        switch (io) {
+            case IO_METHOD_READ:
+                init_read(mFormat.fmt.pix.sizeimage);
+                break;
+
+            case IO_METHOD_MMAP:
+                init_mmap();
+                break;
+
+            case IO_METHOD_USERPTR:
+                init_userp(mFormat.fmt.pix.sizeimage);
+                break;
+        }
+
         switch (io)
         {
             case IO_METHOD_READ:
@@ -463,7 +482,7 @@
                 {
                     struct v4l2_buffer buf;
 
-                    CLEAR(buf);
+                    memset(&buf, 0, sizeof(buf));
                     buf.type = V4L2_BUF_TYPE_VIDEO_CAPTURE;
                     buf.memory = V4L2_MEMORY_MMAP;
                     buf.index = i;
@@ -486,7 +505,7 @@
                 {
                     struct v4l2_buffer buf;
 
-                    CLEAR(buf);
+                    memset(&buf, 0, sizeof(buf));
                     buf.type = V4L2_BUF_TYPE_VIDEO_CAPTURE;
                     buf.memory = V4L2_MEMORY_USERPTR;
                     buf.index = i;
@@ -820,20 +839,69 @@
         return true;
     }
 
-    int CameraV4l2::getFrameWidth(){
+    bool CameraV4l2::getFrameSizeEnum() {
 
-        int w = 0, h = 0;
+        bool res = false;
 
-        return w;
+        struct v4l2_frmsizeenum frmsize;
+        memset(&frmsize, 0, sizeof(frmsize));
+        frmsize.pixel_format = V4L2_PIX_FMT_GREY;
+
+        while(ioctl(fd, VIDIOC_ENUM_FRAMESIZES, &frmsize) == 0) {
+
+            switch(frmsize.type) {
+
+                case V4L2_FRMSIZE_TYPE_DISCRETE :
+
+                    cout << "[" << frmsize.index << "] : " << frmsize.discrete.width << "x" << frmsize.discrete.height << endl;
+                    res = true;
+
+                    break;
+
+                case V4L2_FRMSIZE_TYPE_CONTINUOUS :
+
+                    break;
+
+                case V4L2_FRMSIZE_TYPE_STEPWISE :
+
+                    cout << "Min width : " << frmsize.stepwise.min_width << endl;
+                    cout << "Max width : " << frmsize.stepwise.max_width << endl;
+                    cout << "Step width : " << frmsize.stepwise.step_width << endl;
+
+                    cout << "Min height : " << frmsize.stepwise.min_height << endl;
+                    cout << "Max height : " << frmsize.stepwise.max_height << endl;
+                    cout << "Step height : " << frmsize.stepwise.step_height << endl;
+
+                    break;
+
+            }
+
+            frmsize.index++;
+
+        }
+
+        return res;
 
     }
 
-    int CameraV4l2::getFrameHeight(){
+    bool CameraV4l2::getFrameSize(int &w, int &h) {
 
-        int w = 0, h = 0;
+        w = 0;
+        h = 0;
 
+        struct v4l2_format fmt = {0};
+        fmt.type = V4L2_BUF_TYPE_VIDEO_CAPTURE;
+        fmt.fmt.pix.field = V4L2_FIELD_NONE;
 
-        return h;
+        if (-1 == xioctl(fd, VIDIOC_G_FMT, &fmt)) {
+            perror("Getting Pixel Format");
+            return false;
+        }
+
+        h = fmt.fmt.pix.height;
+        w = fmt.fmt.pix.width;
+
+        return true;
 
     }
 
@@ -1108,6 +1176,7 @@
                 fmt.fmt.pix.height = height;
                 fmt.fmt.pix.pixelformat = V4L2_PIX_FMT_GREY;
                 fmt.fmt.pix.field = V4L2_FIELD_NONE;
+                mFormat.fmt.pix.pixelformat = V4L2_PIX_FMT_GREY;
 
                 if (-1 == xioctl(fd, VIDIOC_S_FMT, &fmt)) {
                     perror("Setting Pixel Format");
@@ -1127,6 +1196,7 @@
                 fmt.fmt.pix.height = height;
                 fmt.fmt.pix.pixelformat = V4L2_PIX_FMT_Y12;
                 fmt.fmt.pix.field = V4L2_FIELD_NONE;
+                mFormat.fmt.pix.pixelformat = V4L2_PIX_FMT_Y12;
 
                 if (-1 == xioctl(fd, VIDIOC_S_FMT, &fmt)) {
                     perror("Setting Pixel Format");
@@ -1199,8 +1269,7 @@
             {
                 printf("IO_METHOD_MMAP\n");
 
-                CLEAR(buf);
-
+                memset(&buf, 0, sizeof(buf));
                 buf.type = V4L2_BUF_TYPE_VIDEO_CAPTURE;
                 buf.memory = V4L2_MEMORY_MMAP;
 
@@ -1232,8 +1301,8 @@
             {
 
                 printf("IO_METHOD_USERPTR\n");
-                CLEAR(buf);
 
+                memset(&buf, 0, sizeof(buf));
                 buf.type = V4L2_BUF_TYPE_VIDEO_CAPTURE;
                 buf.memory = V4L2_MEMORY_USERPTR;
 
@@ -1299,7 +1368,7 @@
     void CameraV4l2::init_mmap (void) {
         struct v4l2_requestbuffers req;
 
-        CLEAR(req);
+        memset(&req, 0, sizeof(req));
 
         req.count = 4;
         req.type = V4L2_BUF_TYPE_VIDEO_CAPTURE;
@@ -1338,7 +1407,7 @@
         {
             struct v4l2_buffer buf;
 
-            CLEAR(buf);
+            memset(&buf, 0, sizeof(buf));
 
             buf.type        = V4L2_BUF_TYPE_VIDEO_CAPTURE;
             buf.memory      = V4L2_MEMORY_MMAP;
@@ -1366,7 +1435,7 @@
 
         struct v4l2_requestbuffers req;
 
-        CLEAR(req);
+        memset(&req, 0, sizeof(req));
 
         req.count  = 4;
         req.type   = V4L2_BUF_TYPE_VIDEO_CAPTURE;

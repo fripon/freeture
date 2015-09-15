@@ -149,18 +149,13 @@ class Camera {
         virtual bool getPixelFormat(CamBitDepth &format) {return false;};
 
         /**
-        * Get device's frame width.
+        * Get device's frame size.
         *
-        * @return Frame's width.
+        * @param frame's width
+        * @param frame's height
+        * @return Success to get frame'size.
         */
-        virtual int getFrameWidth() {return 0;};
-
-        /**
-        * Get device's frame height.
-        *
-        * @return Frame's height.
-        */
-        virtual int getFrameHeight() {return 0;};
+        virtual bool getFrameSize(int &w, int &h) {return false;};
 
         /**
         * Get device's acquisition frequency.

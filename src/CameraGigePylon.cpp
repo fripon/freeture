@@ -696,9 +696,7 @@ bool CameraGigePylon::getPixelFormat(CamBitDepth &format){
 
 }
 
-int CameraGigePylon::getFrameWidth(){
-
-    int imgW = 0;
+bool CameraGigePylon::getFrameSize(int &w , int &h) {
 
     if(pCamera){
 
@@ -706,7 +704,8 @@ int CameraGigePylon::getFrameWidth(){
 
             if (pCamera->IsAttached() && pCamera->IsOpen()){
 
-                imgW = pCamera->Width.GetValue();
+                w = pCamera->Width.GetValue();
+                h = pCamera->Height.GetValue();
 
             }else{
 
@@ -721,39 +720,6 @@ int CameraGigePylon::getFrameWidth(){
 
         }
     }
-
-    return imgW;
-
-}
-
-int CameraGigePylon::getFrameHeight(){
-
-    int imgH = 0;
-
-    if(pCamera){
-
-        try{
-
-            if(pCamera->IsAttached() && pCamera->IsOpen()){
-
-                imgH = pCamera->Height.GetValue();
-
-            }else{
-
-                BOOST_LOG_SEV(logger,fail) << "Can't access height image. Camera not opened or not attached." << endl;
-
-            }
-
-        }catch(GenICam::GenericException &e){
-
-            // Error handling
-            BOOST_LOG_SEV(logger,fail) << "An exception occurred." << e.GetDescription();
-            cout << endl << ">> " << e.GetDescription() << endl;
-
-        }
-    }
-
-    return imgH;
 
 }
 

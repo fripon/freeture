@@ -199,18 +199,13 @@
             bool getPixelFormat(CamBitDepth &format);
 
             /**
-            * Get device's frame width.
+            * Get device's frame size.
             *
-            * @return Frame's width.
+            * @param frame's width
+            * @param frame's height
+            * @return Success to get frame'size.
             */
-            int getFrameWidth();
-
-            /**
-            * Get device's frame height.
-            *
-            * @return Frame's height.
-            */
-            int getFrameHeight();
+            bool getFrameSize(int &w, int &h);
 
             /**
             * Get device's acquisition frequency.

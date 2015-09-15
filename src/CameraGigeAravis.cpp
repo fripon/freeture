@@ -777,23 +777,18 @@
         return true;
     }
 
-    int CameraGigeAravis::getFrameWidth(){
+    bool CameraGigeAravis::getFrameSize(int &w, int &h) {
 
-        int w = 0, h = 0;
+        if(camera != NULL) {
 
-        arv_camera_get_region(camera, NULL, NULL, &w, &h);
+            int ww, hh;
+            arv_camera_get_region(camera, NULL, NULL, &ww, &h);
+            w = ww;
+            h = hh;
 
-        return w;
+        }
 
-    }
-
-    int CameraGigeAravis::getFrameHeight(){
-
-        int w = 0, h = 0;
-
-        arv_camera_get_region(camera, NULL, NULL, &w, &h);
-
-        return h;
+        return false;
 
     }
 

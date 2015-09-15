@@ -109,6 +109,8 @@
             int gainMin, gainMax;
             int width, height;
             int frameCounter;
+            struct v4l2_format mFormat;
+
         public :
 
              void init_userp (unsigned int buffer_size);
@@ -225,18 +227,20 @@
             bool getPixelFormat(CamBitDepth &format);
 
             /**
-            * Get device's frame width.
+            * Get device's frame size.
             *
-            * @return Frame's width.
+            * @param frame's width
+            * @param frame's height
+            * @return Success to get frame'size.
             */
-            int getFrameWidth();
+            bool getFrameSize(int &w, int &h);
 
             /**
-            * Get device's frame height.
+            * Print device's frame size enumeration.
             *
-            * @return Frame's height.
+            * @return Success to get frame'size enumeration.
             */
-            int getFrameHeight();
+            bool getFrameSizeEnum();
 
             /**
             * Get device's acquisition frequency.
