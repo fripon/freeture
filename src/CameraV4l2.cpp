@@ -897,7 +897,16 @@
 
     string CameraV4l2::getModelName(){
 
-        return "";
+        struct v4l2_capability caps = {};
+
+        // http://linuxtv.org/downloads/v4l-dvb-apis/vidioc-querycap.html
+
+        if (-1 == xioctl(fd, VIDIOC_QUERYCAP, &caps)) {
+            perror("Querying device's name");
+            return false;
+        }
+
+        return (char*)caps.card;
 
     }
 
@@ -1083,8 +1092,8 @@
         struct v4l2_fmtdesc fmtdesc = {0};
         fmtdesc.type = V4L2_BUF_TYPE_VIDEO_CAPTURE;
         char fourcc[5] = {0};
-        char c, e;
-        printf( "  FMT    : CE Desc\n");
+        //char c, e;
+        //printf( "  FMT    : CE Desc\n");
 
         while (0 == xioctl(fd, VIDIOC_ENUM_FMT, &fmtdesc)) {
 
@@ -1130,9 +1139,9 @@
 
             }
 
-            c = fmtdesc.flags & 1? 'C' : ' ';
-            e = fmtdesc.flags & 2? 'E' : ' ';
-            printf("  %s : %c%c %s\n", fourcc, c, e, fmtdesc.description);
+            //c = fmtdesc.flags & 1? 'C' : ' ';
+            //e = fmtdesc.flags & 2? 'E' : ' ';
+            //printf("  %s : %c%c %s\n", fourcc, c, e, fmtdesc.description);
             fmtdesc.index++;
         }
 
