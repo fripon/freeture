@@ -1080,49 +1080,61 @@
 
     bool CameraV4l2::setPixelFormat(CamBitDepth depth){
 
-        int support_grbg10 = 0;
         struct v4l2_fmtdesc fmtdesc = {0};
         fmtdesc.type = V4L2_BUF_TYPE_VIDEO_CAPTURE;
         char fourcc[5] = {0};
         char c, e;
         printf( "  FMT    : CE Desc\n");
+
         while (0 == xioctl(fd, VIDIOC_ENUM_FMT, &fmtdesc)) {
+
             strncpy(fourcc, (char *)&fmtdesc.pixelformat, 4);
-            if (fmtdesc.pixelformat == V4L2_PIX_FMT_SGRBG10)
-                support_grbg10 = 1;
+
+            if(depth == MONO_8 && fmtdesc.pixelformat == V4L2_PIX_FMT_GREY) {
+
+                char fourccc[5] = {0};
+                struct v4l2_format fmt = {0};
+                fmt.type = V4L2_BUF_TYPE_VIDEO_CAPTURE;
+                fmt.fmt.pix.width = width;
+                fmt.fmt.pix.height = height;
+                fmt.fmt.pix.pixelformat = V4L2_PIX_FMT_GREY;
+                fmt.fmt.pix.field = V4L2_FIELD_NONE;
+
+                if (-1 == xioctl(fd, VIDIOC_S_FMT, &fmt)) {
+                    perror("Setting Pixel Format");
+                    return false;
+                }
+
+                strncpy(fourccc, (char *)&fmt.fmt.pix.pixelformat, 4);
+                cout << "Pixel format setted to " << fourccc << endl;
+                break;
+
+            }else if(depth == MONO_12 && fmtdesc.pixelformat == V4L2_PIX_FMT_Y12) {
+
+                char fourccc[5] = {0};
+                struct v4l2_format fmt = {0};
+                fmt.type = V4L2_BUF_TYPE_VIDEO_CAPTURE;
+                fmt.fmt.pix.width = width;
+                fmt.fmt.pix.height = height;
+                fmt.fmt.pix.pixelformat = V4L2_PIX_FMT_Y12;
+                fmt.fmt.pix.field = V4L2_FIELD_NONE;
+
+                if (-1 == xioctl(fd, VIDIOC_S_FMT, &fmt)) {
+                    perror("Setting Pixel Format");
+                    return false;
+                }
+
+                strncpy(fourccc, (char *)&fmt.fmt.pix.pixelformat, 4);
+                cout << "Pixel format setted to " << fourccc << endl;
+                break;
+
+            }
+
             c = fmtdesc.flags & 1? 'C' : ' ';
             e = fmtdesc.flags & 2? 'E' : ' ';
             printf("  %s : %c%c %s\n", fourcc, c, e, fmtdesc.description);
             fmtdesc.index++;
         }
-
-        struct v4l2_format fmt = {0};
-        fmt.type = V4L2_BUF_TYPE_VIDEO_CAPTURE;
-        fmt.fmt.pix.width = width;
-        fmt.fmt.pix.height = height;
-        //fmt.fmt.pix.pixelformat = V4L2_PIX_FMT_BGR24;
-
-        if(depth == MONO_8)
-            fmt.fmt.pix.pixelformat = V4L2_PIX_FMT_GREY;
-        //fmt.fmt.pix.pixelformat = V4L2_PIX_FMT_MJPEG;
-        fmt.fmt.pix.field = V4L2_FIELD_NONE;
-
-        if (-1 == xioctl(fd, VIDIOC_S_FMT, &fmt)) {
-            perror("Setting Pixel Format");
-            return false;
-        }
-
-        strncpy(fourcc, (char *)&fmt.fmt.pix.pixelformat, 4);
-        printf( "Selected mode   :\n"
-                "  Width  : %d\n"
-                "  Height : %d\n"
-                "  PixFmt : %s\n"
-                "  Field  : %d\n",
-                fmt.fmt.pix.width,
-                fmt.fmt.pix.height,
-                fourcc,
-                fmt.fmt.pix.field);
-
 
         return true;
 
