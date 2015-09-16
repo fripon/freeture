@@ -799,7 +799,7 @@ bool AcqThread::buildAcquisitionDirectory(string YYYYMMDD){
         }
     }
 
-    return false;
+    return true;
 }
 
 void AcqThread::runImageCapture(int imgNumber, int imgExposure, int imgGain, CamBitDepth imgFormat, ImgFormat imgOutput) {

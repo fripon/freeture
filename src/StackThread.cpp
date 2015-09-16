@@ -286,7 +286,7 @@ bool StackThread::buildStackDataDirectory(TimeDate::Date date){
         }
     }
 
-    return false;
+    return true;
 }
 
 bool StackThread::getRunStatus(){

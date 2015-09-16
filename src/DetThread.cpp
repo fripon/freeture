@@ -628,7 +628,7 @@ bool DetThread::buildEventDataDirectory(){
         }
     }
 
-    return false;
+    return true;
 }
 
 bool DetThread::saveEventData(int firstEvPosInFB, int lastEvPosInFB){
