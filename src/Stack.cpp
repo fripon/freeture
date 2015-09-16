@@ -211,8 +211,8 @@ bool Stack::saveStack(Fits fitsHeader, string path, StackMeth stackMthd, string 
                             newFits.kSATURATE = 4095;
 
 
-                            float * ptr;
-                            short * ptr2;
+                            float *ptr = NULL;
+                            short *ptr2 = NULL;
 
                             for(int i = 0; i < stack.rows; i++){
 

@@ -145,6 +145,6 @@ class CameraVideo : public Camera{
         *
         * @return Success status to load next data set.
         */
-        bool loadNextDataSet();
+        bool loadNextDataSet(string &location);
 };
 

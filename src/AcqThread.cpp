@@ -798,6 +798,8 @@ bool AcqThread::buildAcquisitionDirectory(string YYYYMMDD){
             }
         }
     }
+
+    return false;
 }
 
 void AcqThread::runImageCapture(int imgNumber, int imgExposure, int imgGain, CamBitDepth imgFormat, ImgFormat imgOutput) {
@@ -862,10 +864,11 @@ void AcqThread::runImageCapture(int imgNumber, int imgExposure, int imgGain, Cam
         }else{
 
             BOOST_LOG_SEV(logger, fail) << "Single capture failed !";
-            mDevice->getCam()->acqStop();
-            mDevice->getCam()->grabCleanse();
 
         }
+
+        mDevice->getCam()->acqStop();
+        mDevice->getCam()->grabCleanse();
     }
 
     #ifdef WINDOWS
@@ -975,8 +978,8 @@ void AcqThread::saveImageCaptured(Frame &img, int imgNum, ImgFormat outputType) 
                                     newFits.kBZERO = 32768;
                                     newFits.kBSCALE = 1;
 
-                                    unsigned short * ptr;
-                                    short * ptr2;
+                                    unsigned short *ptr = NULL;
+                                    short *ptr2 = NULL;
 
                                     for(int i = 0; i < img.mImg.rows; i++){
 

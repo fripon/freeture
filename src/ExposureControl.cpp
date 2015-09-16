@@ -109,7 +109,7 @@ bool ExposureControl::calculate(Mat& image, Mat &mask){
 
             {
 
-                unsigned short * ptr;
+                unsigned short * ptr = NULL;
 
                 // Loop pixel's region.
                 for(int i = 0; i < image.rows; i++){
@@ -154,7 +154,7 @@ bool ExposureControl::calculate(Mat& image, Mat &mask){
 
             {
 
-                unsigned char * ptr;
+                unsigned char * ptr = NULL;
 
                 // Loop pixel's region.
                 for(int i = 0; i < image.rows; i++){
@@ -559,18 +559,18 @@ bool ExposureControl::checkDataLocation(TimeDate::Date date){
 
     namespace fs = boost::filesystem;
 
-	// data/
-	path p(autoExposureDataLocation);
+    // data/
+    path p(autoExposureDataLocation);
 
     // data/STATION_YYYYMMDD/
-	string sp1 = autoExposureDataLocation + stationName + "_" + TimeDate::getYYYYMMDD(date) +"/";
-	path p1(sp1);
+    string sp1 = autoExposureDataLocation + stationName + "_" + TimeDate::getYYYYMMDD(date) +"/";
+    path p1(sp1);
 
     // data/STATION_YYYMMDD/exposure/
     string sp2 = sp1 + "exposure/";
-	path p2(sp2);
+    path p2(sp2);
 
-	finalDataLocation = sp2;
+    finalDataLocation = sp2;
 
     // If data/ exists
     if(fs::exists(p)){
@@ -667,4 +667,6 @@ bool ExposureControl::checkDataLocation(TimeDate::Date date){
             }
         }
     }
+
+    return false;
 }

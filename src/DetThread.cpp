@@ -685,7 +685,7 @@ bool DetThread::saveEventData(int firstEvPosInFB, int lastEvPosInFB){
     BOOST_LOG_SEV(logger,notification) << "> Total frames to save : " << nbTotalFramesToSave;
     BOOST_LOG_SEV(logger,notification) << "> Total digit          : " << nbDigitOnNbTotalFramesToSave;
 
-    TimeDate::Date dateFirstFrame;
+    TimeDate::Date dateFirstFrame = {0, 0, 0, 0, 0, 0.0};
 
     int c = 0;
 
@@ -798,7 +798,8 @@ bool DetThread::saveEventData(int firstEvPosInFB, int lastEvPosInFB){
 
                 if(!fs::exists(p)) {
 
-                    fs::create_directory(p);
+                    if(fs::create_directory(p))
+                        cout << "Success to create directory." << endl;
 
                 }
 

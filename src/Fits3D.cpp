@@ -55,6 +55,8 @@ Fits3D::Fits3D(CamBitDepth depth, int imgHeight, int imgWidth, int numberOfImage
     imgSize     = imgHeight*imgWidth;
     imgDepth    = depth;
     n           = 0;
+    array3D_MONO_8 = NULL;
+    array3D_MONO_12 = NULL;
 
     if(depth == MONO_8){
 
@@ -737,7 +739,7 @@ bool Fits3D::writeKeywords(){
     char * ctype3 = new char[cCTYPE3.length()+1];
     strcpy(ctype3,cCTYPE3.c_str());
 
-    char * ktype3 = new char[kCTYPE2.length()+1];
+    char * ktype3 = new char[kCTYPE3.length()+1];
     strcpy(ktype2,kCTYPE3.c_str());
 
     if(fits_write_key(fptr,TSTRING,"CTYPE3",ktype3,ctype3,&status)){
@@ -760,7 +762,7 @@ bool Fits3D::writeKeywords(){
     char * ktimeunit = new char[kTIMEUNIT.length()+1];
     strcpy(ktimeunit,kTIMEUNIT.c_str());
 
-    if(fits_write_key(fptr,TSTRING,"TIMEUNIT",ktimeunit,ctype2,&status)){
+    if(fits_write_key(fptr,TSTRING,"TIMEUNIT",ktimeunit,ctimeunit,&status)){
 
         delete ctimeunit;
         delete ktimeunit;
@@ -1018,7 +1020,8 @@ bool Fits3D::writeKeywords(){
 
 bool Fits3D::writeFits3D(){
 
-    remove(mFileName);
+    if(remove(mFileName)!=0)
+        return false;
 
     if(fits_create_file(&fptr, mFileName, &status)){
 

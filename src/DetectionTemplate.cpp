@@ -296,7 +296,7 @@ int DetectionTemplate::getNumFirstEventFrame() {
 
 TimeDate::Date DetectionTemplate::getDateEvent() {
 
-    TimeDate::Date d;
+    TimeDate::Date d = {0, 0, 0, 0, 0, 0.0};
     return d;
 
 }

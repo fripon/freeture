@@ -39,7 +39,8 @@ Mat ImgProcessing::correctGammaOnMono8(Mat& img, double gamma) {
     double gammaInverse = 1.0 / gamma;
 
     Mat lutMatrix(1, 256, CV_8UC1 );
-    uchar * ptr = lutMatrix.ptr();
+    uchar * ptr = NULL;
+    ptr = lutMatrix.ptr();
     for( int i = 0; i < 256; i++ )
     ptr[i] = (int)( pow( (double) i / 255.0, gammaInverse ) * 255.0 );
 
@@ -56,8 +57,8 @@ Mat ImgProcessing::correctGammaOnMono12(Mat& img, double gamma) {
 
     Mat result = Mat(img.rows, img.cols, CV_16UC1, Scalar(0));
 
-    unsigned short * ptr;
-    unsigned short * ptr2;
+    unsigned short * ptr = NULL;
+    unsigned short * ptr2 = NULL;
 
     for(int i = 0; i < img.rows; i++){
 

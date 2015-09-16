@@ -44,14 +44,14 @@
     CameraGigeAravis::CameraGigeAravis(bool shift):
     camera(NULL), width(0), height(0), fps(0), gainMin(0.0), gainMax(0.0),
     payload(0), exposureMin(0), exposureMax(0), gain(0), exp(0), nbCompletedBuffers(0),
-    nbFailures(0), nbUnderruns(0), frameCounter(0), shiftBitsImage(shift){
+    nbFailures(0), nbUnderruns(0), frameCounter(0), shiftBitsImage(shift), stream(NULL) {
 
     }
 
     CameraGigeAravis::CameraGigeAravis():
     camera(NULL), width(0), height(0), fps(0), gainMin(0.0), gainMax(0.0),
     payload(0), exposureMin(0), exposureMax(0), gain(0), exp(0), nbCompletedBuffers(0),
-    nbFailures(0), nbUnderruns(0), frameCounter(0), shiftBitsImage(false) {
+    nbFailures(0), nbUnderruns(0), frameCounter(0), shiftBitsImage(false), stream(NULL) {
 
     }
 
@@ -352,7 +352,7 @@
                     //BOOST_LOG_SEV(logger, normal) << "Date : " << acqDateInMicrosec;
 
                     Mat image;
-                    CamBitDepth imgDepth;
+                    CamBitDepth imgDepth = MONO_8;
                     int saturateVal = 0;
 
                     if(pixFormat == ARV_PIXEL_FORMAT_MONO_8){
@@ -786,7 +786,7 @@
 
         if(camera != NULL) {
 
-            int ww, hh;
+            int ww = 0, hh = 0;
             arv_camera_get_region(camera, NULL, NULL, &ww, &h);
             w = ww;
             h = hh;

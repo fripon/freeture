@@ -271,7 +271,7 @@ bool CameraFrames::grabImage(Frame &img) {
         /// Read the frame.
 
         Mat resMat;
-        CamBitDepth frameFormat;
+        CamBitDepth frameFormat = MONO_8;
 
         switch(bitpix){
 

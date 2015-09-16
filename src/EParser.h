@@ -112,6 +112,8 @@ template<typename T> class EParser {
                 if(type == it->second)
                     return it->first;
             }
+
+            return "";
         }
 
     };

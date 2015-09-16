@@ -236,6 +236,6 @@ class Camera {
         *
         * @return Success status to load next data set.
         */
-        virtual bool loadNextDataSet(string &location) {return true; location = "";};
+        virtual bool loadNextDataSet(string &location) {location = ""; return true; };
 
 };

@@ -971,7 +971,7 @@
 
         if (-1 == xioctl(fd, VIDIOC_QUERYCAP, &caps)) {
             perror("Querying device's name");
-            return false;
+            return "";
         }
 
         return (char*)caps.card;

@@ -81,7 +81,7 @@ bool CameraVideo::getDataSetStatus(){
         return true;
 }
 
-bool CameraVideo::loadNextDataSet(){
+bool CameraVideo::loadNextDataSet(string &location){
 
     if(mVideoID != 0){
 
