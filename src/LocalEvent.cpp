@@ -36,7 +36,7 @@
 #include "LocalEvent.h"
 
 LocalEvent::LocalEvent( Scalar color, Point roiPos, int frameHeight, int frameWidth, const int *roiSize):
-                        mLeColor(color), mFrameHeight(frameHeight), mFrameWidth(frameWidth) {
+                        mLeColor(color), mFrameHeight(frameHeight), mFrameWidth(frameWidth), mLeNumFrame(0), index(0) {
 
     mPosMassCenter = Point(0,0);
     mNegMassCenter = Point(0,0);
@@ -52,7 +52,7 @@ LocalEvent::LocalEvent( Scalar color, Point roiPos, int frameHeight, int frameWi
 
     // Create LE map.
     mLeMap = Mat::zeros(frameHeight, frameWidth, CV_8UC1);
-    
+
     // Add first ROI in the LE map.
     Mat roi(roiSize[1],roiSize[0],CV_8UC1,Scalar(255));
     roi.copyTo(mLeMap(Rect(roiPos.x-roiSize[0]/2,roiPos.y-roiSize[1]/2,roiSize[0],roiSize[1])));
@@ -194,21 +194,21 @@ bool LocalEvent::localEventIsValid() {
         Circle neg(mNegMassCenter, mNegRadius);
 
         float surfaceCircle1 = 0.0, surfaceCircle2 = 0.0, intersectedSurface = 0.0;
-             
+
         // Intersection ?
         bool res = pos.computeDiskSurfaceIntersection(neg,surfaceCircle1, surfaceCircle2, intersectedSurface, false, "");
-        
+
         if(!res) {
-            
+
             // Le is valid.
             return true;
 
         }else {
-           
-            if( surfaceCircle1 != 0 && 
+
+            if( surfaceCircle1 != 0 &&
                 intersectedSurface != 0 &&
                 surfaceCircle2 != 0 ) {
-                
+
                 // One of the two circles is intersected more than 50% of its surface.
                 if((intersectedSurface * 100)/surfaceCircle1 > 50 || (intersectedSurface * 100)/surfaceCircle2 > 50) {
 
@@ -219,14 +219,14 @@ bool LocalEvent::localEventIsValid() {
                     // Le is valid.
                     return true;
 
-                }      
+                }
 
             }else {
 
                 return false; // Le is not valid.
 
             }
-                            
+
         }
 
     }
@@ -242,7 +242,7 @@ Mat LocalEvent::createPosNegAbsMap() {
     vector<Point>::iterator it;
 
     for(it = mAbsPos.begin(); it != mAbsPos.end(); ++it){
-      
+
         map.at<Vec3b>((*it).y, (*it).x)[0] = 255;
         map.at<Vec3b>((*it).y, (*it).x)[1] = 255;
         map.at<Vec3b>((*it).y, (*it).x)[2] = 255;
@@ -306,7 +306,7 @@ Mat LocalEvent::createPosNegAbsMap() {
                 map.at<Vec3b>((*it).y, (*it).x)[1] = 0;
                 map.at<Vec3b>((*it).y, (*it).x)[2] = 255;
 
-                
+
 
             }
 
@@ -382,7 +382,7 @@ void LocalEvent::completeGapWithRoi(Point p1, Point p2) {
         for(int i = 0; i < part ; i++){
 
             Point p = Point(p3.x + i * part2, p1.y + i* part1);
-     
+
             if(p.x-5 > 0 && p.x+5 < mLeMap.cols && p.y-5 > 0 && p.y+5 < mLeMap.rows)
                 roi.copyTo(mLeMap(Rect(p.x-5,p.y-5,10,10)));
 

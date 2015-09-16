@@ -298,7 +298,7 @@ int main(int argc, const char ** argv){
                             {
 
                                 Device *device = new Device(cam_type.parseEnum("CAMERA_TYPE", camtype));
-                                device->getCam()->listGigeCameras();
+                                device->getCam()->listCameras();
                                 delete device;
                             }
 
@@ -307,14 +307,14 @@ int main(int argc, const char ** argv){
                             {
 
                                 Device *device = new Device(cam_type.parseEnum("CAMERA_TYPE", camtype));
-                                device->getCam()->listGigeCameras();
+                                device->getCam()->listCameras();
                                 delete device;
                             }
 
                         #else
 
                             Device *device = new Device(cam_type.parseEnum("CAMERA_TYPE", camtype));
-                            device->getCam()->listGigeCameras();
+                            device->getCam()->listCameras();
                             delete device;
 
                         #endif
@@ -1058,39 +1058,6 @@ int main(int argc, const char ** argv){
 
                     {
 
-                        CameraV4l2 tytea = CameraV4l2();
-
-                        namedWindow( "Display window", WINDOW_AUTOSIZE );
-
-                        tytea.createDevice(0);
-                        tytea.grabInitialization();
-                        tytea.acqStart();
-
-                        int nb = 30;
-                        int n = 0;
-
-                        while(n!=nb ) {
-
-                            Frame i;
-
-                            if(tytea.grabImage(i)) {
-
-                                imshow( "Display window", i.mImg );
-                                waitKey(30);
-                                n++;
-
-                            }else {
-
-                                printf("No image buffer retrieved.\n");
-                                break;
-
-                            }
-                        }
-
-                        tytea.acqStop();
-                        tytea.grabCleanse();
-
-                        printf("Program ended\n");
 
                     }
 

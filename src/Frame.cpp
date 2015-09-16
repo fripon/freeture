@@ -34,24 +34,20 @@
 
 #include "Frame.h"
 
-Frame::Frame(Mat capImg, int g, int e, string acquisitionDate) {
+Frame::Frame(Mat capImg, int g, int e, string acquisitionDate):
+mExposure(e), mGain(g), mFileName("noFileName"), mFrameRemaining(0),
+mFrameNumber(0), mFps(0), mBitDepth(MONO_8), mSaturatedValue(255) {
 
-    mExposure    = e;
-    mGain        = g;
-    mFileName    = "";
     capImg.copyTo(mImg);
-    mFrameRemaining = 0;
-
     mDate = TimeDate::splitIsoExtendedDate(acquisitionDate);
 
 }
 
-Frame::Frame() {
+Frame::Frame():
+mExposure(0), mGain(0), mFileName("noFileName"), mFrameRemaining(0),
+mFrameNumber(0), mFps(0), mBitDepth(MONO_8), mSaturatedValue(255) {
 
-    mExposure         = 0;
-    mGain        = 0;
-    mFileName    = "";
-    mFrameRemaining = 0;
+    mDate = {0, 0, 0, 0, 0, 0.0};
 
 }
 

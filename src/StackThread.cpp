@@ -45,8 +45,10 @@ StackThread::StackThread(   string                          cfg_p,
                             boost::condition_variable       *sS_c,
                             boost::circular_buffer<Frame>   *fb,
                             boost::mutex                    *fb_m,
-                            boost::condition_variable       *fb_c){
+                            boost::condition_variable       *fb_c):
 
+                            STACK_REDUCTION(false), STACK_INTERVAL(0), STACK_TIME(0.0), ACQ_BIT_DEPTH(MONO_8),
+                            STACK_MTHD(SUM) {
     cfgPath = cfg_p;
     thread = NULL;
     mustStop = false;

@@ -116,7 +116,11 @@ class Fits3D : public Fits {
         * Constructor.
         *
         */
-        Fits3D() {};
+        Fits3D():
+        fptr(NULL), mFileName("noFileName"), status(0), naxis(3), size3d(0), imgSize(0),
+        imgDepth(MONO_8), n(0), array3D_MONO_12(NULL), array3D_MONO_8(NULL) {
+
+        };
 
         /**
         * Destructor.

@@ -40,7 +40,8 @@ boost::log::sources::severity_logger< LogSeverityLevel > CameraFrames::logger;
 CameraFrames::Init CameraFrames::initializer;
 
 CameraFrames::CameraFrames(vector<string> locationList, int numPos):
-    mFramesDir(locationList), mNumFramePos(numPos), mReadDataStatus(false), mCurrDirId(0) {
+mFramesDir(locationList), mNumFramePos(numPos), mReadDataStatus(false), mCurrDirId(0),
+mFirstFrameNum(0), mLastFrameNum(0) {
 
 }
 

@@ -45,8 +45,15 @@ DetThread::DetThread(   string                          cfg_p,
                         boost::condition_variable      *fb_c,
                         bool                           *dSignal,
                         boost::mutex                   *dSignal_m,
-                        boost::condition_variable      *dSignal_c){
+                        boost::condition_variable      *dSignal_c):
 
+                        pDetMthd(NULL), mSaveAvi(false), mSaveFits3D(false), mSaveFits2D(false), mSaveSum(false),
+                        mTimeBeforeEvent(0), mTimeAfterEvent(0), mBitDepth(MONO_8), mMailAlertEnabled(false),
+                        mSmtpSecurity(NO_SECURITY), mStackReduction(false), mStackMthd(SUM), mForceToReset(false), mMustStop(false),
+                        mEventPath(""), mIsRunning(false), mNbDetection(0), mWaitFramesToCompleteEvent(false), mCurrentDataSetLocation(""),
+                        mNbWaitFrames(0), mInterruptionStatus(false) {
+
+    mEventDate = {0, 0, 0, 0, 0, 0.0};
     mCfgPath = cfg_p;
     frameBuffer = fb;
     frameBuffer_mutex = fb_m;
@@ -55,18 +62,7 @@ DetThread::DetThread(   string                          cfg_p,
     detSignal_mutex = dSignal_m;
     detSignal_condition = dSignal_c;
     pThread = NULL;
-    mMustStop = false;
-    mEventPath = "";
     mDetMthd = m;
-
-    mIsRunning               = false;
-    mNbDetection             = 0;
-
-    mWaitFramesToCompleteEvent = false;
-    mCurrentDataSetLocation = "";
-    mNbWaitFrames = 0;
-
-    mInterruptionStatus = false;
 
 }
 

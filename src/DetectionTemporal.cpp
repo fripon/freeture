@@ -39,15 +39,11 @@ boost::log::sources::severity_logger< LogSeverityLevel > DetectionTemporal::logg
 
 DetectionTemporal::Init DetectionTemporal::initializer;
 
-DetectionTemporal::DetectionTemporal() {
-
-    mSubdivisionStatus = false;
-
-    mDebugEnabled = false;
-    mDebugVideo = false;
-
-    mMaskToCreate = false;
-    mDataSetCounter = 0;
+DetectionTemporal::DetectionTemporal():
+mDownsampleEnabled(false), mSaveGeMap(false), mSavePos(false), mSaveDirMap(false),
+mSaveGeInfos(false), mMaskEnabled(false), mImgNum(0), mUpdateMask(false), mDebugUpdateMask(false),
+mSubdivisionStatus(false), mDebugEnabled(false), mDebugVideo(false), mMaskToCreate(false),
+mDataSetCounter(0), mCapCounter(0) {
 
     mCapBuffer = boost::circular_buffer<Mat>(5);
 
@@ -74,7 +70,6 @@ DetectionTemporal::DetectionTemporal() {
 
     mRoiSize[0] = 10;
     mRoiSize[1] = 10;
-    mCapCounter = 0;
 
 }
 
@@ -170,7 +165,7 @@ bool DetectionTemporal::initMethod(string cfgPath) {
         if(mDebugVideo)
             mVideoDebug = VideoWriter(mDebugCurrentPath + "debug-video.avi", CV_FOURCC('M', 'J', 'P', 'G'), 5, Size(static_cast<int>(1280), static_cast<int>(960)), true);
 
-        
+
         cfg.Get("DET_UPDATE_MASK", mUpdateMask);
         BOOST_LOG_SEV(logger, notification) << "DET_UPDATE_MASK : " << mUpdateMask;
 

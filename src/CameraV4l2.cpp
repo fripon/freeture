@@ -78,6 +78,7 @@
         height = 768;
         memset(&mFormat, 0, sizeof(mFormat));
 
+
     }
 
     CameraV4l2::~CameraV4l2(){}

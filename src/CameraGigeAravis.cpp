@@ -41,12 +41,18 @@
     boost::log::sources::severity_logger< LogSeverityLevel >  CameraGigeAravis::logger;
     CameraGigeAravis::Init CameraGigeAravis::initializer;
 
-    CameraGigeAravis::CameraGigeAravis(bool shift){
-        shiftBitsImage = shift;
+    CameraGigeAravis::CameraGigeAravis(bool shift):
+    camera(NULL), width(0), height(0), fps(0), gainMin(0.0), gainMax(0.0),
+    payload(0), exposureMin(0), exposureMax(0), gain(0), exp(0), nbCompletedBuffers(0),
+    nbFailures(0), nbUnderruns(0), frameCounter(0), shiftBitsImage(shift){
+
     }
 
-    CameraGigeAravis::CameraGigeAravis(){
-        shiftBitsImage = false;
+    CameraGigeAravis::CameraGigeAravis():
+    camera(NULL), width(0), height(0), fps(0), gainMin(0.0), gainMax(0.0),
+    payload(0), exposureMin(0), exposureMax(0), gain(0), exp(0), nbCompletedBuffers(0),
+    nbFailures(0), nbUnderruns(0), frameCounter(0), shiftBitsImage(false) {
+
     }
 
     CameraGigeAravis::~CameraGigeAravis(){}
@@ -273,7 +279,6 @@
         return true;
 
     }
-
 
     void CameraGigeAravis::grabCleanse(){}
 

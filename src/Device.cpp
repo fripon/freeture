@@ -42,13 +42,21 @@ boost::log::sources::severity_logger< LogSeverityLevel >  Device::logger;
 Device::Init Device::initializer;
 
 Device::Device(CamType type, string cfgPath):
-    mType(type), mCfgPath(cfgPath) {
+mType(type), mCfgPath(cfgPath), mBitDepth(MONO_8), mRegularAcqEnabled(false), mRegularInterval(0),
+mRegularExposure(0), mRegularGain(0), mRegularFormat(MONO_8), mRegularRepetition(0),
+mDetectionEnabled(false), mDebugEnabled(false), mSunHorizon1(0.0), mSunHorizon2(0.0),
+mStationLongitude(0.0), mStationLatitude(0.0), mCurrentTime(0), mRegularMode(NIGHT),
+mRegularOutput(FITS), mScheduleOutput(FITS), mDetectionMode(NIGHT), mStackMode(NIGHT) {
 
     initialization();
 }
 
 Device::Device(CamType type):
-    mType(type) {
+mType(type), mBitDepth(MONO_8), mRegularAcqEnabled(false), mRegularInterval(0),
+mRegularExposure(0), mRegularGain(0), mRegularFormat(MONO_8), mRegularRepetition(0),
+mDetectionEnabled(false), mDebugEnabled(false), mSunHorizon1(0.0), mSunHorizon2(0.0),
+mStationLongitude(0.0), mStationLatitude(0.0), mCurrentTime(0), mRegularMode(NIGHT),
+mRegularOutput(FITS), mScheduleOutput(FITS), mDetectionMode(NIGHT), mStackMode(NIGHT) {
 
     initialization();
 

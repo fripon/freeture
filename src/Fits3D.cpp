@@ -41,6 +41,7 @@ Fits3D::Init Fits3D::initializer;
 
 Fits3D::Fits3D(CamBitDepth depth, int imgHeight, int imgWidth, int numberOfImages, string fileName){
 
+    fptr = NULL;
     mFileName    = fileName.c_str();
     status      = 0;
     naxis       = 3;
@@ -57,12 +58,10 @@ Fits3D::Fits3D(CamBitDepth depth, int imgHeight, int imgWidth, int numberOfImage
 
     if(depth == MONO_8){
 
-        array3D_MONO_12 = NULL;
         array3D_MONO_8 = (unsigned char *)malloc(size3d * sizeof(unsigned char));
 
     }else if(depth == MONO_12){
 
-        array3D_MONO_8 = NULL;
         array3D_MONO_12 = (unsigned short *)malloc(size3d * sizeof(unsigned short));
 
     }

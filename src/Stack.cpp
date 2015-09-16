@@ -39,13 +39,12 @@ boost::log::sources::severity_logger< LogSeverityLevel >  Stack::logger;
 
 Stack::Init Stack::initializer;
 
-Stack::Stack(int nbFrameToSum){
+Stack::Stack(int nbFrameToSum):
+fullStatus(false), curFrames(0), maxFrames(nbFrameToSum), varExpTime(false),
+sumExpTime(0.0), gainFirstFrame(0), expFirstFrame(0), fps(0), bitdepth(MONO_8){
 
-    fullStatus			= false;
-    curFrames			= 0;
-    maxFrames			= nbFrameToSum;
-    varExpTime          = false;
-    sumExpTime          = 0.0;
+    mDateFirstFrame = {0, 0, 0, 0, 0, 0.0};
+    mDateLastFrame = {0, 0, 0, 0, 0, 0.0};
 
 }
 
@@ -258,7 +257,7 @@ bool Stack::saveStack(Fits fitsHeader, string path, StackMeth stackMthd, string 
                     BOOST_LOG_SEV(logger, notification) << "Setting fits SATURATE key : 255 * curFrames";
                     newFits.kSATURATE = 255 * curFrames;
                 }
-                else if(bitdepth = MONO_12){
+                else if(bitdepth == MONO_12){
                     BOOST_LOG_SEV(logger, notification) << "Setting fits SATURATE key : 4095 * curFrames";
                     newFits.kSATURATE = 4095 * curFrames;
                 }

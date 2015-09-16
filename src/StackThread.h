@@ -81,7 +81,6 @@ class StackThread {
         CamBitDepth                     ACQ_BIT_DEPTH;
         StackMeth                       STACK_MTHD;
         string                          STATION_NAME;
-        bool                            CFG_FILECOPY_ENABLED;
         Fits                            fitsHeader;
         bool                            isRunning;
         bool                            mustStop;

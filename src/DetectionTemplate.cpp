@@ -38,7 +38,10 @@ boost::log::sources::severity_logger< LogSeverityLevel > DetectionTemplate::logg
 
 DetectionTemplate::Init DetectionTemplate::initializer;
 
-DetectionTemplate::DetectionTemplate() {
+DetectionTemplate::DetectionTemplate():
+mDownsampleEnabled(false), mSavePos(false), mMaskEnabled(false), mImgNum(0),
+mDebugEnabled(false), mDebugVideo(false), mMaskToCreate(false),
+mDataSetCounter(0) {
 
 }
 
