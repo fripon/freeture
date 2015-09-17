@@ -7,6 +7,11 @@ before_install:
   - echo $LANG
   - sudo apt-get update
   - sudo apt-get install libboost-all-dev
+  - sudo apt-get install libudev-dev
+  - sudo apt-get install libglib2.0-dev
+  - sudo apt-get install libssl-dev
+  - sudo apt-get install libcrypt++-dev
+  - sudo apt-get install libcfitsio3-dev
   - sudo apt-get install libopencv-calib3d-dev
   - sudo apt-get install libopencv-contrib-dev
   - sudo apt-get install libopencv-core-dev
@@ -16,11 +21,6 @@ before_install:
   - sudo apt-get install libopencv-imgproc-dev
   - sudo apt-get install libopencv-legacy-dev
   - sudo apt-get install libopencv-objdetect-dev
-  - sudo apt-get install libudev-dev
-  - sudo apt-get install libglib2.0-dev
-  - sudo apt-get install libssl-dev
-  - sudo apt-get install libcrypt++-dev
-  - sudo apt-get install libcfitsio3-dev
 
 os : 
   - linux 
