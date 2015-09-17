@@ -17,7 +17,9 @@ before_install:
   - sudo apt-get install intltool gtk-doc-tools autoconf 
   - wget https://github.com/GNOME/aravis/archive/ARAVIS_0_3_7.tar.gz
   - tar -xvf ARAVIS_0_3_7.tar.gz
-  - cd aravis-ARAVIS_0_3_7 && sh autogen.sh && ./configure && sudo make install
+  - cd aravis-ARAVIS_0_3_7 && sh autogen.sh && ./configure 
+  - sudo make install
+  - cd ..
   
 os : 
   - linux 
