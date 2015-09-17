@@ -1,5 +1,13 @@
 language : cpp
 
+compiler :
+  - gcc
+  
+before_install:
+  - echo $LANG
+
 os : 
   - linux 
   - windows
+  
+
