@@ -23,6 +23,7 @@ before_install:
   - ls
   - cd ..
   - ls
+  - sh bootstrap.sh
   
 os : 
   - linux 
