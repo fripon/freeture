@@ -668,5 +668,5 @@ bool ExposureControl::checkDataLocation(TimeDate::Date date){
         }
     }
 
-    return false;
+    return true;
 }
