@@ -16,7 +16,7 @@ before_install:
   - sudo apt-get install libv4l-dev
   - wget https://github.com/GNOME/aravis/archive/ARAVIS_0_3_7.tar.gz
   - tar -xvf ARAVIS_0_3_7.tar.gz
-  - cd ARAVIS_0_3_7 && autogen.sh && ./configure && sudo make install
+  - cd aravis-ARAVIS_0_3_7 && autogen.sh && ./configure && sudo make install
   
 
 os : 
