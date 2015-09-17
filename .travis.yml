@@ -14,13 +14,10 @@ before_install:
   - sudo apt-get install libcrypto++-dev
   - sudo apt-get install libcfitsio3-dev
   - sudo apt-get install libv4l-dev
+  - sudo apt-get install intltool
   - wget https://github.com/GNOME/aravis/archive/ARAVIS_0_3_7.tar.gz
   - tar -xvf ARAVIS_0_3_7.tar.gz
-  - cd aravis-ARAVIS_0_3_7 && autogen.sh && ./configure && sudo make install
+  - cd aravis-ARAVIS_0_3_7 && sh autogen.sh && ./configure && sudo make install
   
-
 os : 
   - linux 
-
-  
-
