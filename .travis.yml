@@ -5,6 +5,13 @@ compiler :
   
 before_install:
   - echo $LANG
+  - sudo apt-get install libboost-all-dev
+  - sudo apt-get install libopencv-dev
+  - sudo apt-get install libudev-dev
+  - sudo apt-get install libglib2.0-dev
+  - sudo apt-get install libssl-dev
+  - sudo apt-get install libcrypt++-dev
+  - sudo apt-get install libcfitsio3-dev
 
 os : 
   - linux 
