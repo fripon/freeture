@@ -100,7 +100,8 @@
         printf ("Driver version  : %u.%u.%u\n",(caps.version >> 16) & 0xFF, (caps.version >> 8) & 0xFF, caps.version & 0xFF);
         cout << "Capabilities    : " << caps.capabilities << endl;
 
-        struct v4l2_cropcap cropcap = {0};
+        struct v4l2_cropcap cropcap;
+        memset(&cropcap, 0, sizeof(cropcap));
         cropcap.type = V4L2_BUF_TYPE_VIDEO_CAPTURE;
         if (-1 == xioctl (fd, VIDIOC_CROPCAP, &cropcap)) {
             perror("Querying Cropping Capabilities");
@@ -809,7 +810,8 @@
 
         char fourcc[5] = {0};
 
-        struct v4l2_format fmt = {0};
+        struct v4l2_format fmt;
+        memset(&fmt, 0, sizeof(fmt));
         fmt.type = V4L2_BUF_TYPE_VIDEO_CAPTURE;
         fmt.fmt.pix.width = width;
         fmt.fmt.pix.height = height;
@@ -889,7 +891,8 @@
         w = 0;
         h = 0;
 
-        struct v4l2_format fmt = {0};
+        struct v4l2_format fmt;
+        memset(&fmt, 0, sizeof(fmt));
         fmt.type = V4L2_BUF_TYPE_VIDEO_CAPTURE;
         fmt.fmt.pix.field = V4L2_FIELD_NONE;
 
@@ -1170,7 +1173,8 @@
             if(depth == MONO_8 && fmtdesc.pixelformat == V4L2_PIX_FMT_GREY) {
 
                 char fourccc[5] = {0};
-                struct v4l2_format fmt = {0};
+                struct v4l2_format fmt;
+                memset(&fmt, 0, sizeof(fmt));
                 fmt.type = V4L2_BUF_TYPE_VIDEO_CAPTURE;
                 fmt.fmt.pix.width = width;
                 fmt.fmt.pix.height = height;
@@ -1190,7 +1194,8 @@
             }else if(depth == MONO_12 && fmtdesc.pixelformat == V4L2_PIX_FMT_Y12) {
 
                 char fourccc[5] = {0};
-                struct v4l2_format fmt = {0};
+                struct v4l2_format fmt;
+                memset(&fmt, 0, sizeof(fmt));
                 fmt.type = V4L2_BUF_TYPE_VIDEO_CAPTURE;
                 fmt.fmt.pix.width = width;
                 fmt.fmt.pix.height = height;
