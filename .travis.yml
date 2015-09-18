@@ -15,7 +15,9 @@ addons:
 before_install:
   - sudo apt-get update
   - sudo apt-get install libgstreamer0.10-dev
-  - sudo apt-get install libopencv-dev
+  - sudo apt-get install libopencv-calib3d2.4 libopencv-contrib2.4 libopencv-core2.4 libopencv-features2d2.4
+  - sudo apt-get install libopencv-flann2.4 libopencv-highgui2.4 libopencv-imgproc2.4 libopencv-legacy2.4 
+  - sudo apt-get install libopencv-ml2.4 libopencv-objdetect2.4 libopencv-video2.4
   - sudo apt-get install libudev-dev
   - sudo apt-get install libglib2.0-dev
   - sudo apt-get install libssl-dev
