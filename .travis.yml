@@ -42,7 +42,7 @@ before_script:
   - sudo apt-get update -q
   - sudo apt-get install --only-upgrade autoconf
   - gcc --version
-  - sudo add-apt-repository ppa:ubuntu-toolchain-r/test
+  - sudo add-apt-repository -y ppa:ubuntu-toolchain-r/test
   - sudo apt-get update; sudo apt-get install gcc-4.8 g++-4.8
   - sudo update-alternatives --remove-all gcc 
   - sudo update-alternatives --remove-all g++
