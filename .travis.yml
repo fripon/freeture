@@ -30,18 +30,17 @@ before_install:
   - tar -xvf ARAVIS_0_3_7.tar.gz
   - cd aravis-ARAVIS_0_3_7 && sh autogen.sh && ./configure 
   - sudo make install
+  - cd ..
   # Install newer boost compatible with gcc 4.8.
   - wget --no-verbose --output-document=boost-trunk.tar.bz2 http://sourceforge.net/projects/boost/files/boost/1.55.0/boost_1_55_0.tar.bz2/download
   - export BOOST_ROOT="$TRAVIS_BUILD_DIR/../boost-trunk"
   - export CMAKE_MODULE_PATH="$BOOST_ROOT"
   - mkdir -p $BOOST_ROOT
   - tar jxf boost-trunk.tar.bz2 --strip-components=1 -C $BOOST_ROOT
-  - (cd $BOOST_ROOT; ./bootstrap.sh --with-libraries=program_options,date_time,filesystem,system,iostreams,thread,log,log_setup,chrono)
+  - (cd $BOOST_ROOT; ./bootstrap.sh --with-libraries=program_options,date_time,filesystem,system,iostreams,thread,log,chrono)
   - (cd $BOOST_ROOT; ./b2 threading=multi --prefix=$BOOST_ROOT -d0 install)
   
 install :
-  - cd ..
-  - ls
   - sh bootstrap.sh
   
 before_script:
