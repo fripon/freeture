@@ -3,21 +3,21 @@ language : cpp
 compiler :
   - gcc
   
-addons:
-  apt:
-    sources:
-    # ubuntu-toolchain-r/test contains recent versions of gcc
-    - ubuntu-toolchain-r-test
-    packages:
-    - gcc-4.8
-    - g++-4.8
-  
 before_install:
   - sudo apt-get update
+  - sudo apt-get install autoconf
+  # Upgrade autoconf
+  - sudo add-apt-repository ppa:dns/gnu -y
+  - sudo apt-get update -q
+  - sudo apt-get install --only-upgrade autoconf
+  # Upgrade gcc
+  - gcc --version
+  - sudo add-apt-repository -y ppa:ubuntu-toolchain-r/test
+  - sudo apt-get update; sudo apt-get install gcc-4.8 g++-4.8
+  - sudo update-alternatives --install /usr/bin/gcc gcc /usr/bin/gcc-4.8 60 --slave /usr/bin/g++ g++ /usr/bin/g++-4.8
+  - sudo update-alternatives --install /usr/bin/gcc gcc /usr/bin/gcc-4.6 40 --slave /usr/bin/g++ g++ /usr/bin/g++-4.6
+  - gcc --version
   - sudo apt-get install libgstreamer0.10-dev
-  - sudo apt-get install libopencv-calib3d2.4 libopencv-contrib2.4 libopencv-core2.4 libopencv-features2d2.4
-  - sudo apt-get install libopencv-flann2.4 libopencv-highgui2.4 libopencv-imgproc2.4 libopencv-legacy2.4 
-  - sudo apt-get install libopencv-ml2.4 libopencv-objdetect2.4 libopencv-video2.4
   - sudo apt-get install libudev-dev
   - sudo apt-get install libglib2.0-dev
   - sudo apt-get install libssl-dev
@@ -25,11 +25,21 @@ before_install:
   - sudo apt-get install libcfitsio3-dev
   - sudo apt-get install libv4l-dev
   - sudo apt-get install v4l-utils
-  - sudo apt-get install autoconf
-  - sudo apt-get install intltool gtk-doc-tools  
-  - sudo add-apt-repository ppa:dns/gnu -y
-  - sudo apt-get update -q
-  - sudo apt-get install --only-upgrade autoconf
+  - sudo apt-get install intltool gtk-doc-tools 
+  # Install cmake
+  - sudo apt-get install cmake
+  - cmake --version
+  # Get opencv 2.4.9
+  - wget http://sourceforge.net/projects/opencvlibrary/files/opencv-unix/2.4.9/opencv-2.4.9.zip 
+  - unzip opencv-2.4.9.zip 
+  - cd opencv-2.4.9
+  - mkdir release
+  - cd release
+  - cmake CMAKE_BUILD_TYPE=RELEASE ..
+  - make
+  - sudo make install
+  - cd ../..
+  # Get ARAVIS
   - wget https://github.com/GNOME/aravis/archive/ARAVIS_0_3_7.tar.gz
   - tar -xvf ARAVIS_0_3_7.tar.gz
   - cd aravis-ARAVIS_0_3_7 && sh autogen.sh && ./configure 
@@ -49,17 +59,6 @@ install :
   - cd ..
   - sh bootstrap.sh
   
-before_script:
-  - sudo add-apt-repository ppa:dns/gnu -y
-  - sudo apt-get update -q
-  - sudo apt-get install --only-upgrade autoconf
-  - gcc --version
-  - sudo add-apt-repository -y ppa:ubuntu-toolchain-r/test
-  - sudo apt-get update; sudo apt-get install gcc-4.8 g++-4.8
-  - sudo update-alternatives --install /usr/bin/gcc gcc /usr/bin/gcc-4.8 60 --slave /usr/bin/g++ g++ /usr/bin/g++-4.8
-  - sudo update-alternatives --install /usr/bin/gcc gcc /usr/bin/gcc-4.6 40 --slave /usr/bin/g++ g++ /usr/bin/g++-4.6
-  - gcc --version
-
 script :
   - ./configure
   - make
