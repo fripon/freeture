@@ -6,7 +6,6 @@ compiler :
 before_install:
   - echo $LANG
   - sudo apt-get update
-  - sudo apt-get install gcc-4.9 g++-4.9
   - sudo apt-get install libboost-all-dev
   - sudo apt-get install libopencv-dev
   - sudo apt-get install libudev-dev
@@ -29,10 +28,18 @@ install :
   - cd ..
   - ls
   - sh bootstrap.sh
+  
+before_script:
+  - sudo add-apt-repository ppa:dns/gnu -y
+  - sudo apt-get update -q
+  - sudo apt-get install --only-upgrade autoconf
+  - sudo add-apt-repository -y ppa:ubuntu-toolchain-r/test
+  - sudo apt-get -qq update
+  - sudo apt-get -qq install g++-4.8
+  
+script :
   - ./configure
   - make
-
-script :
   
 os : 
   - linux 
