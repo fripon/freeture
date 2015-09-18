@@ -14,7 +14,14 @@ addons:
   
 before_install:
   - sudo apt-get update
-  - sudo apt-get install libboost-all-dev
+  - sudo apt-get install libboost-date-time1.55-dev
+  - sudo apt-get install libboost-program-options1.55-dev
+  - sudo apt-get install libboost-thread1.55-dev
+  - sudo apt-get install libboost-system1.55-dev
+  - sudo apt-get install libboost-log1.55-dev
+  - sudo apt-get install libboost-filesystem1.55-dev
+  - sudo apt-get install libboost-chrono1.55-dev
+  - sudo apt-get install libboost-iostreams1.55-dev
   - sudo apt-get install libopencv-dev
   - sudo apt-get install libudev-dev
   - sudo apt-get install libglib2.0-dev
