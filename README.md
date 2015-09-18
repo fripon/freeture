@@ -1,4 +1,4 @@
-### FreeTure [![Build Status](https://api.travis-ci.org/fripon/freeture.png?branch=master)](https://travis-ci.org/fripon/freeture)
+### FreeTure [![Build Status](https://travis-ci.org/fripon/freeture.svg?branch=master)](https://travis-ci.org/fripon/freeture)
 
 *A Free software to capTure meteors*
 
