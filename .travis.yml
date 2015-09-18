@@ -14,14 +14,6 @@ addons:
   
 before_install:
   - sudo apt-get update
-  - sudo apt-get install libboost-date-time1.55-dev
-  - sudo apt-get install libboost-program-options1.55-dev
-  - sudo apt-get install libboost-thread1.55-dev
-  - sudo apt-get install libboost-system1.55-dev
-  - sudo apt-get install libboost-log1.55-dev
-  - sudo apt-get install libboost-filesystem1.55-dev
-  - sudo apt-get install libboost-chrono1.55-dev
-  - sudo apt-get install libboost-iostreams1.55-dev
   - sudo apt-get install libopencv-dev
   - sudo apt-get install libudev-dev
   - sudo apt-get install libglib2.0-dev
@@ -38,6 +30,14 @@ before_install:
   - tar -xvf ARAVIS_0_3_7.tar.gz
   - cd aravis-ARAVIS_0_3_7 && sh autogen.sh && ./configure 
   - sudo make install
+  # Install newer boost compatible with gcc 4.8.
+  - wget --no-verbose --output-document=boost-trunk.tar.bz2 http://sourceforge.net/projects/boost/files/boost/1.55.0/boost_1_55_0.tar.bz2/download
+  - export BOOST_ROOT="$TRAVIS_BUILD_DIR/../boost-trunk"
+  - export CMAKE_MODULE_PATH="$BOOST_ROOT"
+  - mkdir -p $BOOST_ROOT
+  - tar jxf boost-trunk.tar.bz2 --strip-components=1 -C $BOOST_ROOT
+  - (cd $BOOST_ROOT; ./bootstrap.sh --with-libraries=date_time,filesystem,system,iostreams,regex,python,test)
+  - (cd $BOOST_ROOT; ./b2 threading=multi --prefix=$BOOST_ROOT -d0 install)
   
 install :
   - cd ..
