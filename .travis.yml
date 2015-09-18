@@ -25,6 +25,8 @@ before_install:
   - sudo make install
   
 install :
+  - cd ..
+  - ls
   - sh bootstrap.sh
   - ./configure
   - make
