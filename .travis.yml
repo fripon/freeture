@@ -14,6 +14,7 @@ addons:
   
 before_install:
   - sudo apt-get update
+  - sudo apt-get install libgstreamer0.10-dev
   - sudo apt-get install libopencv-dev
   - sudo apt-get install libudev-dev
   - sudo apt-get install libglib2.0-dev
