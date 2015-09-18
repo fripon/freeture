@@ -16,6 +16,9 @@ before_install:
   - sudo apt-get install libv4l-dev
   - sudo apt-get install autoconf
   - sudo apt-get install intltool gtk-doc-tools  
+  - sudo add-apt-repository ppa:dns/gnu -y
+  - sudo apt-get update -q
+  - sudo apt-get install --only-upgrade autoconf
   - wget https://github.com/GNOME/aravis/archive/ARAVIS_0_3_7.tar.gz
   - tar -xvf ARAVIS_0_3_7.tar.gz
   - cd aravis-ARAVIS_0_3_7 && sh autogen.sh && ./configure 
