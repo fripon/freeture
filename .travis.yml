@@ -39,7 +39,7 @@ before_install:
   - ./bootstrap.sh --help
   - sudo  ./bootstrap.sh --with-libraries="program_options,date_time,filesystem,system,iostreams,thread,log,chrono"
   - pwd
-  - sudo ./b2 --prefix="./build_boost" install 
+  - sudo ./b2 install | tail -n 50
   
 install :
   - cd ..
