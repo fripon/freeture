@@ -47,13 +47,12 @@ before_install:
   - cd ..
   # Install newer boost compatible with gcc 4.8.
   - wget http://sourceforge.net/projects/boost/files/boost/1.55.0/boost_1_55_0.tar.bz2
-  - tar --bzip2 -xf boost_1_55_0.tar.bz2
+  - tar -xvjf boost_1_55_0.tar.bz2
+  - ls
   - cd boost_1_55_0
-  - mkdir build_boost
   - ./bootstrap.sh --help
   - sudo  ./bootstrap.sh --with-libraries="program_options,date_time,filesystem,system,iostreams,thread,log,chrono"
-  - pwd
-  - sudo ./b2 install | tail -n 50
+  - sudo ./b2 install 
   
 install :
   - cd ..
