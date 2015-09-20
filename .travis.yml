@@ -29,6 +29,15 @@ before_install:
   # Install cmake
   - sudo apt-get install cmake
   - cmake --version
+  # Install newer boost compatible with gcc 4.8.
+  - wget http://sourceforge.net/projects/boost/files/boost/1.55.0/boost_1_55_0.tar.bz2
+  - tar -xvjf boost_1_55_0.tar.bz2
+  - ls
+  - cd boost_1_55_0
+  - ./bootstrap.sh --help
+  - sudo  ./bootstrap.sh --with-libraries="program_options,date_time,filesystem,system,iostreams,thread,log,chrono"
+  - sudo ./b2 install 
+  - cd ..
   # Get opencv 2.4.9
   - wget http://sourceforge.net/projects/opencvlibrary/files/opencv-unix/2.4.9/opencv-2.4.9.zip 
   - unzip opencv-2.4.9.zip 
@@ -45,17 +54,6 @@ before_install:
   - cd aravis-ARAVIS_0_3_7 && sh autogen.sh && ./configure 
   - sudo make install
   - cd ..
-  # Install newer boost compatible with gcc 4.8.
-  - sudo add-apt-repository ppa:boost-latest/ppa -y
-  - sudo apt-get update
-  - sudo apt-get install libboost1.55-dev
-  #- wget http://sourceforge.net/projects/boost/files/boost/1.55.0/boost_1_55_0.tar.bz2
-  #- tar -xvjf boost_1_55_0.tar.bz2
-  #- ls
-  #- cd boost_1_55_0
-  #- ./bootstrap.sh --help
-  #- sudo  ./bootstrap.sh --with-libraries="program_options,date_time,filesystem,system,iostreams,thread,log,chrono"
-  #- sudo ./b2 install 
   
 install :
   #- cd ..
