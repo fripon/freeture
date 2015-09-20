@@ -26,6 +26,20 @@ before_install:
   - sudo apt-get install libv4l-dev
   - sudo apt-get install v4l-utils
   - sudo apt-get install intltool gtk-doc-tools 
+  # Get opencv 2.4.9
+  #- wget http://sourceforge.net/projects/opencvlibrary/files/opencv-unix/2.4.9/opencv-2.4.9.zip 
+  #- unzip opencv-2.4.9.zip 
+  #- cd opencv-2.4.9
+  #- mkdir release
+  #- cd release
+  #- cmake CMAKE_BUILD_TYPE=RELEASE ..
+  #- make
+  #- sudo make install
+  #- cd ../..
+  - git submodule update --init --recursive
+  - sudo add-apt-repository -y ppa:kubuntu-ppa/backports 
+  - sudo apt-get update
+  - sudo apt-get install libcv-dev libcvaux-dev libhighgui-dev libopencv-dev
   # Install cmake
   - sudo apt-get install cmake
   - cmake --version
@@ -38,16 +52,6 @@ before_install:
   - sudo  ./bootstrap.sh --with-libraries="program_options,date_time,filesystem,system,iostreams,thread,log,chrono"
   - sudo ./b2 install | tail -n 50
   - cd ..
-  # Get opencv 2.4.9
-  - wget http://sourceforge.net/projects/opencvlibrary/files/opencv-unix/2.4.9/opencv-2.4.9.zip 
-  - unzip opencv-2.4.9.zip 
-  - cd opencv-2.4.9
-  - mkdir release
-  - cd release
-  - cmake CMAKE_BUILD_TYPE=RELEASE ..
-  - make
-  - sudo make install
-  - cd ../..
   # Get ARAVIS
   - wget https://github.com/GNOME/aravis/archive/ARAVIS_0_3_7.tar.gz
   - tar -xvf ARAVIS_0_3_7.tar.gz
