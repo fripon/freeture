@@ -85,18 +85,14 @@ DetThread::~DetThread(void){
 
 bool DetThread::startThread(){
 
-    BOOST_LOG_SEV(logger, notification) << "Starting detThread...";
-
-
-    if(!loadDetThreadParameters()){
-        BOOST_LOG_SEV(logger, fail) << "Fail to initialize detThread.";
+    if(!loadDetThreadParameters()) {
+        BOOST_LOG_SEV(logger, critical) << "Fail to load parameters for detection thread.";
         return false;
     }
 
-
-    BOOST_LOG_SEV(logger, notification) << "Success to initialize detThreads.";
-    BOOST_LOG_SEV(logger, notification) << "Create detThread.";
+    BOOST_LOG_SEV(logger, notification) << "Create detection thread.";
     pThread = new boost::thread(boost::ref(*this));
+
     return true;
 }
 
@@ -127,7 +123,7 @@ Detection* DetThread::getDetMethod(){
 
 bool DetThread::loadDetThreadParameters(){
 
-    try{
+    try {
 
         Configuration cfg;
         cfg.Load(mCfgPath);
@@ -136,93 +132,171 @@ bool DetThread::loadDetThreadParameters(){
         int ACQ_FPS; cfg.Get("ACQ_FPS", ACQ_FPS);
         BOOST_LOG_SEV(logger, notification) << "ACQ_FPS : " << ACQ_FPS;
 
-        // Get Acquisition format.
-        string acq_bit_depth; cfg.Get("ACQ_BIT_DEPTH", acq_bit_depth);
-        EParser<CamBitDepth> cam_bit_depth;
-        mBitDepth = cam_bit_depth.parseEnum("ACQ_BIT_DEPTH", acq_bit_depth);
-        BOOST_LOG_SEV(logger, notification) << "ACQ_BIT_DEPTH : " << acq_bit_depth;
+        //********************* ACQUISITION FORMAT.******************************
 
-        // Get the name of the station.
-        cfg.Get("STATION_NAME", mStationName);
-        BOOST_LOG_SEV(logger, notification) << "STATION_NAME : " << mStationName;
+        string acq_bit_depth;
 
-        // Get the location where to save data.
-        cfg.Get("DATA_PATH", mDataPath);
-        BOOST_LOG_SEV(logger, notification) << "DATA_PATH : " << mDataPath;
+        if(!cfg.Get("ACQ_BIT_DEPTH", acq_bit_depth)) {
 
-        // Get the option for saving .avi of detection.
-        cfg.Get("DET_SAVE_AVI", mSaveAvi);
-        BOOST_LOG_SEV(logger, notification) << "DET_SAVE_AVI : " << mSaveAvi;
+            BOOST_LOG_SEV(logger, warning) << "Fail to load ACQ_BIT_DEPTH from configuration file. Set to MONO_8";
+            mBitDepth = MONO_8;
 
-        // Get the option for saving fits cube.
-        cfg.Get("DET_SAVE_FITS3D", mSaveFits3D);
-        BOOST_LOG_SEV(logger, notification) << "DET_SAVE_FITS3D : " << mSaveFits3D;
+        }else {
 
-        // Get the option for saving each frame of the event in fits.
-        cfg.Get("DET_SAVE_FITS2D", mSaveFits2D);
-        BOOST_LOG_SEV(logger, notification) << "DET_SAVE_FITS2D : " << mSaveFits2D;
-
-        // Get the option for stacking frame's event.
-        cfg.Get("DET_SAVE_SUM", mSaveSum);
-        BOOST_LOG_SEV(logger, notification) << "DET_SAVE_SUM : " << mSaveSum;
-
-        // Get the time to keep before an event.
-        cfg.Get("DET_TIME_BEFORE", mTimeBeforeEvent);
-        mTimeBeforeEvent = mTimeBeforeEvent * ACQ_FPS;
-        BOOST_LOG_SEV(logger, notification) << "DET_TIME_BEFORE (in frames): " << mTimeBeforeEvent;
-
-        // Get the time to keep after an event.
-        cfg.Get("DET_TIME_AFTER", mTimeAfterEvent);
-        mTimeAfterEvent = mTimeAfterEvent * ACQ_FPS;
-        BOOST_LOG_SEV(logger, notification) << "DET_TIME_AFTER (in frames): " << mTimeAfterEvent;
-
-        // Get the option to send mail notifications.
-        cfg.Get("MAIL_DETECTION_ENABLED", mMailAlertEnabled);
-        BOOST_LOG_SEV(logger, notification) << "MAIL_DETECTION_ENABLED : " << mMailAlertEnabled;
-
-        // Get the SMTP server adress.
-        cfg.Get("MAIL_SMTP_SERVER", mMailSmtpServer);
-        BOOST_LOG_SEV(logger, notification) << "MAIL_SMTP_SERVER : " << mMailSmtpServer;
-
-        // Get the SMTP login.
-        cfg.Get("MAIL_SMTP_LOGIN", mMailSmtpLogin);
-
-        // Get the SMTP server adress.
-        cfg.Get("MAIL_SMTP_PASSWORD", mMailSmtpPassword);
-
-        // Get connection type to the SMTP server.
-        string smtp_connection_type; cfg.Get("MAIL_CONNECTION_TYPE", smtp_connection_type);
-        EParser<SmtpSecurity> smtp_security;
-        mSmtpSecurity = smtp_security.parseEnum("MAIL_CONNECTION_TYPE", smtp_connection_type);
-
-        // Get the option to reduce the stack of frame's event to 16 bits.
-        cfg.Get("STACK_REDUCTION", mStackReduction);
-        BOOST_LOG_SEV(logger, notification) << "STACK_REDUCTION : " << mStackReduction;
-
-        // Get the method to stack frame's event.
-        string stack_method;
-        cfg.Get("STACK_MTHD", stack_method);
-        BOOST_LOG_SEV(logger, notification) << "STACK_MTHD : " << stack_method;
-        EParser<StackMeth> stack_mth;
-        mStackMthd = stack_mth.parseEnum("STACK_MTHD", stack_method);
-
-        // Load settable fits keywords from configuration file.
-        mFitsHeader.loadKeywordsFromConfigFile(mCfgPath);
-
-        // Get the list of mail notifications recipients.
-        string mailRecipients;
-        cfg.Get("MAIL_RECIPIENT", mailRecipients);
-        BOOST_LOG_SEV(logger, notification) << "MAIL_RECIPIENT : " << mailRecipients;
-        typedef boost::tokenizer<boost::char_separator<char> > tokenizer;
-        boost::char_separator<char> sep(",");
-        tokenizer tokens(mailRecipients, sep);
-
-        for (tokenizer::iterator tok_iter = tokens.begin();tok_iter != tokens.end(); ++tok_iter){
-            mMailRecipients.push_back(*tok_iter);
+            EParser<CamBitDepth> cam_bit_depth;
+            mBitDepth = cam_bit_depth.parseEnum("ACQ_BIT_DEPTH", acq_bit_depth);
 
         }
 
-        // Select the correct detection method according to DET_METHOD in configuration file.
+        //********************* STATION NAME.************************************
+
+        if(!cfg.Get("STATION_NAME", mStationName)) {
+            mStationName = "STATION";
+            BOOST_LOG_SEV(logger, warning) << "Fail to load STATION_NAME from configuration file. Set to STATION";
+        }
+
+        //********************* DATA PATH.***************************************
+
+        if(!cfg.Get("DATA_PATH", mDataPath)) {
+            throw "Fail to load DATA_PATH from configuration file !";
+        }
+
+        //********************* SAVE AVI.****************************************
+
+        if(!cfg.Get("DET_SAVE_AVI", mSaveAvi)) {
+            mSaveAvi = false;
+            BOOST_LOG_SEV(logger, warning) << "Fail to load DET_SAVE_AVI from configuration file. Set to false";
+        }
+
+        //********************* SAVE FITS3D.*************************************
+
+        if(!cfg.Get("DET_SAVE_FITS3D", mSaveFits3D)) {
+            mSaveFits3D = false;
+            BOOST_LOG_SEV(logger, warning) << "Fail to load DET_SAVE_FITS3D from configuration file. Set to false";
+        }
+
+        //********************* SAVE FITS2D.*************************************
+
+        if(!cfg.Get("DET_SAVE_FITS2D", mSaveFits2D)) {
+            mSaveFits2D = true;
+            BOOST_LOG_SEV(logger, warning) << "Fail to load DET_SAVE_FITS2D from configuration file. Set to true";
+        }
+
+        //********************* SAVE SUM.****************************************
+
+        if(!cfg.Get("DET_SAVE_SUM", mSaveSum)) {
+            mSaveSum = true;
+            BOOST_LOG_SEV(logger, warning) << "Fail to load DET_SAVE_SUM from configuration file. Set to true";
+        }
+
+        //********************* TIME BEFORE.*************************************
+
+        if(!cfg.Get("DET_TIME_BEFORE", mTimeBeforeEvent)) {
+            mTimeBeforeEvent = 0;
+            BOOST_LOG_SEV(logger, warning) << "Fail to load DET_TIME_BEFORE from configuration file. Set to 0";
+        }else {
+
+            mTimeBeforeEvent = mTimeBeforeEvent * ACQ_FPS;
+
+        }
+
+        //********************* TIME AFTER.**************************************
+
+        if(!cfg.Get("DET_TIME_AFTER", mTimeAfterEvent)) {
+            mTimeAfterEvent = 0;
+            BOOST_LOG_SEV(logger, warning) << "Fail to load DET_TIME_AFTER from configuration file. Set to 0";
+        }else {
+
+            mTimeAfterEvent = mTimeAfterEvent * ACQ_FPS;
+
+        }
+
+        //********************* SEND MAIL.***************************************
+
+        if(!cfg.Get("MAIL_DETECTION_ENABLED", mMailAlertEnabled)) {
+            mMailAlertEnabled = false;
+            BOOST_LOG_SEV(logger, warning) << "Fail to load MAIL_DETECTION_ENABLED from configuration file. Set to false";
+        }
+
+        //********************* SMTP SERVER.*************************************
+
+        if(!cfg.Get("MAIL_SMTP_SERVER", mMailSmtpServer) && mMailAlertEnabled) {
+            mMailAlertEnabled = false;
+            BOOST_LOG_SEV(logger, warning) << "Fail to load MAIL_SMTP_SERVER from configuration file. Set MAIL_DETECTION_ENABLED to false";
+        }
+
+        //********************* SMTP LOGIN.**************************************
+
+        if(!cfg.Get("MAIL_SMTP_LOGIN", mMailSmtpLogin) && mMailAlertEnabled) {
+            mMailAlertEnabled = false;
+            BOOST_LOG_SEV(logger, warning) << "Fail to load MAIL_SMTP_LOGIN from configuration file. Set MAIL_DETECTION_ENABLED to false";
+        }
+
+        //********************* SMTP PASSWORD.***********************************
+
+        if(!cfg.Get("MAIL_SMTP_PASSWORD", mMailSmtpPassword) && mMailAlertEnabled) {
+            mMailAlertEnabled = false;
+            BOOST_LOG_SEV(logger, warning) << "Fail to load MAIL_SMTP_PASSWORD from configuration file. Set MAIL_DETECTION_ENABLED to false";
+        }
+
+        //********************* SMTP SECURITY.***********************************
+
+        string smtp_connection_type;
+        if(!cfg.Get("MAIL_CONNECTION_TYPE", smtp_connection_type) && mMailAlertEnabled) {
+            mMailAlertEnabled = false;
+            BOOST_LOG_SEV(logger, warning) << "Fail to load MAIL_CONNECTION_TYPE from configuration file. Set MAIL_DETECTION_ENABLED to false";
+        }else {
+            EParser<SmtpSecurity> smtp_security;
+            mSmtpSecurity = smtp_security.parseEnum("MAIL_CONNECTION_TYPE", smtp_connection_type);
+        }
+
+        //********************* STACK REDUCTION.*********************************
+
+        if(!cfg.Get("STACK_REDUCTION", mStackReduction)) {
+            mStackReduction = false;
+            BOOST_LOG_SEV(logger, warning) << "Fail to load STACK_REDUCTION from configuration file. Set to false";
+        }
+
+        //********************* STACK MTHD.**************************************
+
+        string stack_method;
+
+        if(!cfg.Get("STACK_MTHD", stack_method)) {
+            mStackMthd = SUM;
+            BOOST_LOG_SEV(logger, warning) << "Fail to load STACK_MTHD from configuration file. Set to SUM";
+        }else {
+            EParser<StackMeth> stack_mth;
+            mStackMthd = stack_mth.parseEnum("STACK_MTHD", stack_method);
+        }
+
+        //********************* FITS KEYWORDS.***********************************
+
+        mFitsHeader.loadKeywordsFromConfigFile(mCfgPath);
+
+        //********************* MAIL RECIPIENTS.*********************************
+
+        string mailRecipients;
+
+        if(!cfg.Get("MAIL_RECIPIENT", mailRecipients) && mMailAlertEnabled) {
+
+            mMailAlertEnabled = false;
+            BOOST_LOG_SEV(logger, warning) << "Fail to load MAIL_RECIPIENT from configuration file. Set MAIL_DETECTION_ENABLED to false";
+
+        }else {
+
+            typedef boost::tokenizer<boost::char_separator<char> > tokenizer;
+            boost::char_separator<char> sep(",");
+            tokenizer tokens(mailRecipients, sep);
+
+            for (tokenizer::iterator tok_iter = tokens.begin();tok_iter != tokens.end(); ++tok_iter){
+                mMailRecipients.push_back(*tok_iter);
+
+            }
+
+        }
+
+        //********************* DETECTION METHOD.********************************
+
         switch(mDetMthd){
 
             case TEMPORAL_MTHD :
@@ -230,10 +304,7 @@ bool DetThread::loadDetThreadParameters(){
                 {
 
                     pDetMthd = new DetectionTemporal();
-                    if(!pDetMthd->initMethod(mCfgPath)){
-                        BOOST_LOG_SEV(logger, fail) << "Fail to init temporal detection method.";
-                        throw "Fail to init temporal detection method.";
-                    }
+                    pDetMthd->initMethod(mCfgPath);
 
                 }
 
@@ -243,12 +314,8 @@ bool DetThread::loadDetThreadParameters(){
 
                 {
 
-                    cout << "TEMPLATE_MTHD" << endl;
                     pDetMthd = new DetectionTemplate();
-                    if(!pDetMthd->initMethod(mCfgPath)){
-                        BOOST_LOG_SEV(logger, fail) << "Fail to init temporal detection method.";
-                        throw "Fail to init temporal detection method.";
-                    }
+                    pDetMthd->initMethod(mCfgPath);
 
                 }
 
@@ -256,19 +323,19 @@ bool DetThread::loadDetThreadParameters(){
 
         }
 
+        return true;
+
     }catch(exception& e){
 
-        cout << e.what() << endl;
-        return false;
+        BOOST_LOG_SEV(logger, critical) << e.what();
 
     }catch(const char * msg){
 
-        cout << msg << endl;
-        return false;
+        BOOST_LOG_SEV(logger,critical) << msg;
 
     }
 
-    return true;
+    return false;
 
 }
 
@@ -276,7 +343,6 @@ void DetThread::interruptThread(){
 
     mInterruptionStatusMutex.lock();
     mInterruptionStatus = true;
-    cout << "interruptionStatus in detection process : " << mInterruptionStatus << endl;
     mInterruptionStatusMutex.unlock();
 
 }
@@ -294,6 +360,7 @@ void DetThread::operator ()(){
 
     /// Thread loop.
     try{
+
         do{
 
             try{
@@ -407,7 +474,6 @@ void DetThread::operator ()(){
             }catch(const boost::thread_interrupted&){
 
                 BOOST_LOG_SEV(logger,notification) << "Detection Thread INTERRUPTED";
-                cout << "Detection Thread INTERRUPTED" <<endl;
 
             }
 
@@ -651,7 +717,6 @@ bool DetThread::saveEventData(int firstEvPosInFB, int lastEvPosInFB){
     if(frameBuffer->front().mFrameNumber > numFirstFrameToSave)
         numFirstFrameToSave = frameBuffer->front().mFrameNumber;
 
-
     // Check the number of the last frame to save.
     if(frameBuffer->back().mFrameNumber < numLastFrameToSave)
             numLastFrameToSave = frameBuffer->back().mFrameNumber;
@@ -874,8 +939,6 @@ bool DetThread::saveEventData(int firstEvPosInFB, int lastEvPosInFB){
                                 mailAttachments,
                                 mSmtpSecurity);
 
-
-        BOOST_LOG_SEV(logger,notification) << "Mail sent.";
 
     }
 

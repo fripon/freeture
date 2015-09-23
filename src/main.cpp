@@ -161,7 +161,7 @@ void init_log(string path, LogSeverityLevel sev){
     sink->locked_backend()->set_file_name_composer(
         sinks::file::as_file_name_composer(expr::stream << path <<expr::attr< std::string >("LogName") << ".log"));
 
-//    sink->locked_backend()->auto_flush(true);
+  //sink->locked_backend()->auto_flush(true);
 
     // Set the log record formatter
     sink->set_formatter(
@@ -202,7 +202,6 @@ int main(int argc, const char ** argv){
       ("version,v",                                                                                     "Get program version")
       ("camtype",       po::value<string>()->default_value("BASLER_GIGE"),                              "Type of camera")
       ("display",       po::value<bool>()->default_value(false),                                        "In mode 4 : Display the grabbed frame")
-      ("log,l",         po::value<bool>()->default_value(false),                                        "Write logs file in mode 4 (flog directory)")
       ("id",            po::value<int>(),                                                               "Camera ID")
       ("filename,n",    po::value<string>()->default_value("snap"),                                     "Name to use when a single frame is captured")
       ("sendmail,s",    po::value<string>()->default_value(""),                                         "Send a mail to the specified adress when a single frame is captured")
@@ -226,7 +225,6 @@ int main(int argc, const char ** argv){
         int     camID           = 0;
         string  fileName        = "snap";
         string  sendMail        = "";
-        bool    saveLogs        = false;
 
         //std::cout << " ( Default cfg file : " << string(CFG_PATH) << "configuration.cfg )" <<endl;
 
@@ -261,27 +259,6 @@ int main(int argc, const char ** argv){
 
                     {
 
-                        path pLog("./flog/");
-
-                        if(!boost::filesystem::exists(pLog)){
-
-                            if(!create_directory(pLog))
-                                throw "> Failed to create a directory for logs files.";
-                        }
-
-                        string log_severity = "normal";
-                        EParser<LogSeverityLevel> log_sev;
-                        LogSeverityLevel LOG_SEVERITY = log_sev.parseEnum("LOG_SEVERITY", log_severity);
-
-                        init_log("./flog/", LOG_SEVERITY);
-                        src::severity_logger< LogSeverityLevel > slg;
-                        slg.add_attribute("ClassName", boost::log::attributes::constant<std::string>("main.cpp"));
-                        BOOST_LOG_SCOPED_THREAD_TAG("LogName", "MAIN_THREAD");
-                        BOOST_LOG_SEV(slg,notification) << "\n";
-                        BOOST_LOG_SEV(slg,notification) << "==============================================";
-                        BOOST_LOG_SEV(slg,notification) << "======== FREETURE - Available cameras ========";
-                        BOOST_LOG_SEV(slg,notification) << "==============================================";
-
                         std::cout << "================================================" << endl;
                         std::cout << "========= FREETURE - Available cameras =========" << endl;
                         std::cout << "================================================" << endl << endl;
@@ -294,7 +271,7 @@ int main(int argc, const char ** argv){
 
                         #ifdef WINDOWS
 
-                            // Search BASLER GIGE cameras.
+                            // Search GIGE cameras.
                             {
 
                                 Device *device = new Device(cam_type.parseEnum("CAMERA_TYPE", camtype));
@@ -313,9 +290,23 @@ int main(int argc, const char ** argv){
 
                         #else
 
-                            Device *device = new Device(cam_type.parseEnum("CAMERA_TYPE", camtype));
-                            device->getCam()->listCameras();
-                            delete device;
+                            // Search GIGE cameras.
+                            {
+
+                                Device *device = new Device(cam_type.parseEnum("CAMERA_TYPE", camtype));
+                                device->getCam()->listCameras();
+                                delete device;
+
+                            }
+
+                            // Search USB2 cameras.
+                            {
+                                camtype = "TYTEA_USB";
+                                Device *device = new Device(cam_type.parseEnum("CAMERA_TYPE", camtype));
+                                device->getCam()->listCameras();
+                                delete device;
+
+                            }
 
                         #endif
 
@@ -640,13 +631,11 @@ int main(int argc, const char ** argv){
                                         }
                                     }
 
-
                                     inputDevice->stopThread();
 
                                     delete inputDevice;
 
                                 }
-
 
                             }
 
@@ -671,6 +660,11 @@ int main(int argc, const char ** argv){
                             cout << "An exception occured : " << e.what() << endl;
                             BOOST_LOG_SEV(slg, critical) << e.what();
 
+                        }catch(const char * msg){
+
+                            cout << "!!" << msg << endl;
+                            BOOST_LOG_SEV(slg,critical) << msg;
+
                         }
                     }
 
@@ -688,94 +682,67 @@ int main(int argc, const char ** argv){
                         std::cout << "======= FREETURE - Acquisition test mode =======" << endl;
                         std::cout << "================================================" << endl << endl;
 
-                        /// -------------------- Initialize logger system --------------------
-
-                        if(vm.count("log")) saveLogs = vm["log"].as<bool>();
-
-                        path pLog("./flog/");
-
-                        if(!boost::filesystem::exists(pLog)&&saveLogs){
-
-                            if(!create_directory(pLog))
-                                throw "> Failed to create a directory for logs files.";
-                        }
-
-                        src::severity_logger< LogSeverityLevel > slg;
-
-                        if(saveLogs){
-
-                            string log_severity = "normal";
-                            EParser<LogSeverityLevel> log_sev;
-                            LogSeverityLevel LOG_SEVERITY = log_sev.parseEnum("LOG_SEVERITY", log_severity);
-
-                            init_log("./flog/", LOG_SEVERITY);
-                            slg.add_attribute("ClassName", boost::log::attributes::constant<std::string>("main.cpp"));
-                            BOOST_LOG_SCOPED_THREAD_TAG("LogName", "MAIN_THREAD");
-                            BOOST_LOG_SEV(slg,notification) << "\n";
-                            BOOST_LOG_SEV(slg,notification) << "==============================================";
-                            BOOST_LOG_SEV(slg,notification) << "====== FREETURE - Acquisition test mode ======";
-                            BOOST_LOG_SEV(slg,notification) << "==============================================";
-                        }
-
                         /// --------------------- Manage program options -----------------------
 
                         // Display or not the grabbed frame.
                         if(vm.count("display")) display = vm["display"].as<bool>();
-                        if(saveLogs) BOOST_LOG_SEV(slg,notification) << "display option : " << display;
 
                         // Path where to save files.
                         if(vm.count("savepath")) savePath = vm["savepath"].as<string>();
-                        if(saveLogs) BOOST_LOG_SEV(slg,notification) << "savepath option : " << savePath;
 
                         // Acquisition format.
                         if(vm.count("bitdepth")) acqFormat = vm["bitdepth"].as<int>();
                         CamBitDepth camFormat;
                         Conversion::intBitDepthToCamBitDepthEnum(acqFormat, camFormat);
-                        if(saveLogs) BOOST_LOG_SEV(slg,notification) << "bitdepth option : " << acqFormat;
 
                         // Cam id.
                         if(vm.count("id")) camID = vm["id"].as<int>();
-                        if(saveLogs) BOOST_LOG_SEV(slg,notification) << "id option : " << camID;
 
                         // Save bmp.
                         if(vm.count("bmp")) saveBmp = vm["bmp"].as<bool>();
-                        if(saveLogs) BOOST_LOG_SEV(slg,notification) << "bmp option : " << saveBmp;
 
                         // Save fits.
                         if(vm.count("fits")) saveFits2D = vm["fits"].as<bool>();
-                        if(saveLogs) BOOST_LOG_SEV(slg,notification) << "fits option : " << saveFits2D;
 
                         // Type of camera in input.
                         string camtype;
                         if(vm.count("camtype")) camtype = vm["camtype"].as<string>();
                         std::transform(camtype.begin(), camtype.end(),camtype.begin(), ::toupper);
-                        if(saveLogs) BOOST_LOG_SEV(slg,notification) << "camtype option : " << camtype;
 
                         // Gain value.
                         if(vm.count("gain")){
                             gain = vm["gain"].as<int>();
-                            if(saveLogs) BOOST_LOG_SEV(slg,notification) << "gain option : " << gain;
                         }else{
-                            if(saveLogs) BOOST_LOG_SEV(slg,notification) << "Please define the gain value.";
                             throw "Please define the gain value.";
                         }
 
                         // Exposure value.
                         if(vm.count("exposure")){
                             exp = vm["exposure"].as<int>();
-                            if(saveLogs) BOOST_LOG_SEV(slg,notification) << "exposure option : " << exp;
                         }else{
-                            if(saveLogs) BOOST_LOG_SEV(slg,notification) << "Please define the exposure time value.";
                             throw "Please define the exposure time value.";
                         }
 
                         // Filename.
                         if(vm.count("filename")) fileName = vm["filename"].as<string>();
-                        if(saveLogs) BOOST_LOG_SEV(slg,notification) << "filename option : " << fileName;
 
                         // Send mail.
                         if(vm.count("sendmail")) sendMail = vm["sendmail"].as<string>();
-                        if(saveLogs) BOOST_LOG_SEV(slg,notification) << "sendmail option : " << sendMail;
+
+                        cout << "------------------------------------------------" << endl;
+                        cout << "CAM TYPE  : " << camtype << endl;
+                        cout << "CAM ID    : " << camID << endl;
+                        EParser<CamBitDepth> fmt;
+                        cout << "FORMAT    : " << fmt.getStringEnum(camFormat) << endl;
+                        cout << "GAIN      : " << gain << endl;
+                        cout << "EXPOSURE  : " << exp << endl;
+                        cout << "SAVE BMP  : " << saveBmp << endl;
+                        cout << "SAVE FITS : " << saveFits2D << endl;
+                        cout << "DISPLAY   : " << display << endl;
+                        cout << "SAVE PATH : " << savePath << endl;
+                        cout << "FILENAME  : " << fileName << endl;
+                        cout << "SEND MAIL : " << sendMail << endl;
+                        cout << "------------------------------------------------" << endl;
 
                         /// ----------------------- Manage filename -----------------------------
 
@@ -800,7 +767,7 @@ int main(int argc, const char ** argv){
 
                                 if(ch.front() == fileName && ch.size() == 2){
 
-                                    cout << "File found :" << file->path().string() << endl;
+                                    //cout << "File found :" << file->path().string() << endl;
 
                                     list<string> ch_;
                                     Conversion::stringTok(ch_, ch.back().c_str(), ".");
@@ -963,7 +930,7 @@ int main(int argc, const char ** argv){
                             if(sendMail != ""){
 
                                 cout << ">> Sending fits by mail to " << sendMail << "..." << endl;
-                                cout << "(This option is only available inside fripon network.)" << endl;
+                                cout << "(Only available inside fripon network.)" << endl;
 
                                 vector<string> mailAttachments;
                                 mailAttachments.push_back(savePath + fileName + "-" + Conversion::intToString(filenum) + ".fit");
@@ -979,7 +946,6 @@ int main(int argc, const char ** argv){
                                                     fileName + "-" + Conversion::intToString(filenum) + ".fit",
                                                     " Exposure time : " + Conversion::intToString((int)exp) + "\n Gain : " + Conversion::intToString((int)gain) + "\n Format : " + Conversion::intToString(acqFormat),
                                                     mailAttachments,
-
                                                     NO_SECURITY);
 
 
@@ -1098,7 +1064,6 @@ int main(int argc, const char ** argv){
     po::notify(vm);
 
     cout << endl << "PROGRAM ENDED." << endl;
-    //getchar();
 
     return 0 ;
 

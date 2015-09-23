@@ -206,7 +206,7 @@ class DetThread {
         void interruptThread();
 
         void updateDetectionReport() {
-         
+
             if(mCurrentDataSetLocation != "") {
 
                 mDetectionResults.push_back(pair<string,int>(mCurrentDataSetLocation, mNbDetection));
@@ -215,13 +215,13 @@ class DetThread {
             }
 
         };
-        
+
         void setCurrentDataSet(string location) {
-   
+
             mCurrentDataSetLocation = location;
 
         };
-       
+
 
 };
 

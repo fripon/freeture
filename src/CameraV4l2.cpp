@@ -358,7 +358,46 @@
         //if (-1 == xioctl(fd, VIDIOC_G_FMT, &mFormat))
         //    errno_exit("VIDIOC_G_FMT");
 
-        // Set maximum image size
+        // ************************ DISABLE AUTO EXPOSURE *****************************
+
+        struct v4l2_queryctrl queryctrl;
+        struct v4l2_control control;
+        memset(&queryctrl, 0, sizeof(queryctrl));
+        queryctrl.id = V4L2_CID_EXPOSURE_AUTO;
+
+        if(-1 == ioctl(fd, VIDIOC_QUERYCTRL, &queryctrl)) {
+
+            if(errno != EINVAL) {
+
+                perror("VIDIOC_QUERYCTRL");
+                return false;
+
+            }else {
+
+                printf("V4L2_CID_EXPOSURE_AUTO is not supported\n");
+
+            }
+
+        }else if (queryctrl.flags & V4L2_CTRL_FLAG_DISABLED) {
+
+            printf("V4L2_CID_EXPOSURE_AUTO is not supported\n");
+
+        }else {
+
+            memset(&control, 0, sizeof (control));
+            control.id = V4L2_CID_EXPOSURE_AUTO;
+            control.value = V4L2_EXPOSURE_MANUAL;
+
+            if (-1 == ioctl(fd, VIDIOC_S_CTRL, &control)) {
+                perror("VIDIOC_S_CTRL");
+                return false;
+            }
+
+            cout << ">> Manual exposure setted." << endl;
+
+        }
+
+        // ************************ SET MAXIMUM IMAGE SIZE *****************************
 
         struct v4l2_frmsizeenum frmsize;
         memset(&frmsize, 0, sizeof(frmsize));
@@ -422,13 +461,14 @@
 
         unsigned int i;
 
-        switch (io)
-        {
+        switch (io) {
+
             case IO_METHOD_READ:
                 free(buffers[0].start);
                 break;
 
             case IO_METHOD_MMAP:
+
                 for (i = 0; i < n_buffers; ++i)
                     if (-1 == munmap(buffers[i].start, buffers[i].length))
                         errno_exit("munmap");
@@ -623,10 +663,14 @@
     bool CameraV4l2::grabSingleImage(Frame &frame, int camID){
 
         createDevice(camID);
-        getInfos();
+        //getInfos();
 
         setExposureTime(frame.mExposure);
         setGain(frame.mGain);
+
+        if(!setPixelFormat(frame.mBitDepth)) {
+            return false;
+        }
 
         grabInitialization();
         acqStart();
@@ -637,43 +681,47 @@
         size_t s = width*height;
 
         bool grabSuccess = false;
+        //namedWindow( "Display window", WINDOW_AUTOSIZE );
 
-        for(;;) {
+        for(int i = 0; i< 2; i++) {
 
-            fd_set fds;
-            struct timeval tv;
-            int r;
+            for(;;) {
 
-            FD_ZERO(&fds);
-            FD_SET(fd, &fds);
+                fd_set fds;
+                struct timeval tv;
+                int r;
 
-            /* Timeout. */
-            int timeout = 2;
+                FD_ZERO(&fds);
+                FD_SET(fd, &fds);
 
-            if(frame.mExposure/1000000 > 1)
-                timeout = timeout + (int)(frame.mExposure/1000000);
+                /* Timeout. */
+                int timeout = 2;
 
-            tv.tv_sec = timeout;
-            tv.tv_usec = 0;
+                if(frame.mExposure/1000000 > 1)
+                    timeout = timeout + (int)(frame.mExposure/1000000);
 
-            r = select(fd + 1, &fds, NULL, NULL, &tv);
+                tv.tv_sec = timeout;
+                tv.tv_usec = 0;
 
-            if(-1 == r) {
-              if (EINTR == errno)
-              continue;
-              errno_exit("select");
+                r = select(fd + 1, &fds, NULL, NULL, &tv);
+
+                if(-1 == r) {
+                  if (EINTR == errno)
+                  continue;
+                  errno_exit("select");
+                }
+
+                if(0 == r) {
+                  fprintf(stderr, "select timeout\n");
+                  exit(EXIT_FAILURE);
+                }
+
+                if(read_frame()) {
+                    grabSuccess = true;
+                    break;
+                }
+                /* EAGAIN - continue select loop. */
             }
-
-            if(0 == r) {
-              fprintf(stderr, "select timeout\n");
-              exit(EXIT_FAILURE);
-            }
-
-            if(read_frame()) {
-                grabSuccess = true;
-                break;
-            }
-            /* EAGAIN - continue select loop. */
         }
 
         if(grabSuccess) {
@@ -682,10 +730,8 @@
 
             if(ImageBuffer != NULL) {
 
-                memcpy(img.ptr(), ImageBuffer, s);
-
                 boost::posix_time::ptime time = boost::posix_time::microsec_clock::universal_time();
-
+                memcpy(img.ptr(), ImageBuffer, s);
                 img.copyTo(frame.mImg);
                 frame.mDate = TimeDate::splitIsoExtendedDate(to_iso_extended_string(time));
                 //newFrame.mFps = fps;
@@ -1163,6 +1209,7 @@
         struct v4l2_fmtdesc fmtdesc = {0};
         fmtdesc.type = V4L2_BUF_TYPE_VIDEO_CAPTURE;
         char fourcc[5] = {0};
+        bool fmtFound = false;
         //char c, e;
         //printf( "  FMT    : CE Desc\n");
 
@@ -1183,12 +1230,12 @@
                 mFormat.fmt.pix.pixelformat = V4L2_PIX_FMT_GREY;
 
                 if (-1 == xioctl(fd, VIDIOC_S_FMT, &fmt)) {
-                    perror("Setting Pixel Format");
+                    BOOST_LOG_SEV(logger, critical) << "Fail to set format to MONO_8.";
                     return false;
                 }
 
                 strncpy(fourccc, (char *)&fmt.fmt.pix.pixelformat, 4);
-                cout << "Pixel format setted to " << fourccc << endl;
+                fmtFound = true;
                 break;
 
             }else if(depth == MONO_12 && fmtdesc.pixelformat == V4L2_PIX_FMT_Y12) {
@@ -1204,12 +1251,12 @@
                 mFormat.fmt.pix.pixelformat = V4L2_PIX_FMT_Y12;
 
                 if (-1 == xioctl(fd, VIDIOC_S_FMT, &fmt)) {
-                    perror("Setting Pixel Format");
+                    BOOST_LOG_SEV(logger, critical) << "Fail to set format to MONO_12.";
                     return false;
                 }
 
                 strncpy(fourccc, (char *)&fmt.fmt.pix.pixelformat, 4);
-                cout << "Pixel format setted to " << fourccc << endl;
+                fmtFound = true;
                 break;
 
             }
@@ -1218,6 +1265,14 @@
             //e = fmtdesc.flags & 2? 'E' : ' ';
             //printf("  %s : %c%c %s\n", fourcc, c, e, fmtdesc.description);
             fmtdesc.index++;
+        }
+
+        if(!fmtFound) {
+
+            EParser<CamBitDepth> fmt;
+            BOOST_LOG_SEV(logger, critical) << "FORMAT " << fmt.getStringEnum(depth) << " NOT SUPPORTED !";
+            return false;
+
         }
 
         return true;
@@ -1249,8 +1304,6 @@
             case IO_METHOD_READ:
             {
 
-                printf("IO_METHOD_READ\n");
-
                 if (-1 == read(fd, buffers[0].start, buffers[0].length))
                 {
                     switch (errno)
@@ -1272,7 +1325,6 @@
             }
             case IO_METHOD_MMAP:
             {
-                printf("IO_METHOD_MMAP\n");
 
                 memset(&buf, 0, sizeof(buf));
                 buf.type = V4L2_BUF_TYPE_VIDEO_CAPTURE;
@@ -1304,8 +1356,6 @@
             }
             case IO_METHOD_USERPTR:
             {
-
-                printf("IO_METHOD_USERPTR\n");
 
                 memset(&buf, 0, sizeof(buf));
                 buf.type = V4L2_BUF_TYPE_VIDEO_CAPTURE;

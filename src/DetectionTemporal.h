@@ -157,9 +157,8 @@ class DetectionTemporal : public Detection {
         * Initialize detection method.
         *
         * @param cfgPath Configuration file path.
-        * @return Success to initialize.
         */
-        bool initMethod(string cfgPath);
+        void initMethod(string cfgPath);
 
         /**
         * Run meteor detection.

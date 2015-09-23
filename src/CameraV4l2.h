@@ -66,6 +66,7 @@
     #define BOOST_LOG_DYN_LINK 1
 
     #include "ECamBitDepth.h"
+    #include "EParser.h"
     #include <boost/log/common.hpp>
     #include <boost/log/expressions.hpp>
     #include <boost/log/utility/setup/file.hpp>
@@ -80,10 +81,6 @@
 
     using namespace cv;
     using namespace std;
-
-   // #define CLEAR(x) memset(&(x), 0, sizeof(x))
-
-
 
     class CameraV4l2: public Camera {
 

@@ -327,6 +327,8 @@ void SMTPClient::sendMail(  string            server,
                     BOOST_LOG_SEV(logger,normal) << "Deconnection.";
                     write("QUIT\r\n", "221", true, *socket.GetSocket());
 
+                    BOOST_LOG_SEV(logger,notification) << "Mail sent.";
+
                 }
 
                 break;
@@ -343,64 +345,67 @@ void SMTPClient::sendMail(  string            server,
                     OpenSSL::StaticInitialize sslInitializer;
 
                     OpenSSL openSSL(socket.GetSocket()->native());
-                    cout << openSSL.Read(ReceiveFunctor(220));
+                    BOOST_LOG_SEV(logger,normal) << openSSL.Read(ReceiveFunctor(220));
 
                     BOOST_LOG_SEV(logger,notification) << string("EHLO ") << server;
                     openSSL.Write(string("EHLO ") + server + newline);
-                    cout << openSSL.Read(ReceiveFunctor(250));
+                    BOOST_LOG_SEV(logger,normal) << openSSL.Read(ReceiveFunctor(250));
 
                     BOOST_LOG_SEV(logger,notification) << "AUTH LOGIN";
                     openSSL.Write(string("AUTH LOGIN") + newline);
-                    cout << openSSL.Read(ReceiveFunctor(334));
+                    BOOST_LOG_SEV(logger,normal) << openSSL.Read(ReceiveFunctor(334));
 
                     BOOST_LOG_SEV(logger,notification) << "Write Login";
                     openSSL.Write(Base64::encodeBase64(login) + newline);
-                    cout << openSSL.Read(ReceiveFunctor(334));
+                    BOOST_LOG_SEV(logger,normal) << openSSL.Read(ReceiveFunctor(334));
 
                     BOOST_LOG_SEV(logger,notification) << "Write password";
                     openSSL.Write(password + newline);
-                    cout << openSSL.Read(ReceiveFunctor(235));
+                    BOOST_LOG_SEV(logger,normal) << openSSL.Read(ReceiveFunctor(235));
 
                     BOOST_LOG_SEV(logger,notification) << "MAIL FROM:<" << from << ">";
                     openSSL.Write(string("MAIL FROM:<") + from + ">" + newline);
-                    cout << openSSL.Read(ReceiveFunctor(250));
+                    BOOST_LOG_SEV(logger,normal) << openSSL.Read(ReceiveFunctor(250));
 
                     for(int i = 0; i < to.size(); i++) {
 
                         BOOST_LOG_SEV(logger,notification) << "RCPT TO:<" << to.at(i) << ">";
                         openSSL.Write(string("RCPT TO:<") + to.at(i) + ">" + newline);
-                        cout << openSSL.Read(ReceiveFunctor(250));
+                        BOOST_LOG_SEV(logger,normal) << openSSL.Read(ReceiveFunctor(250));
 
                     }
 
                     BOOST_LOG_SEV(logger,notification) << "DATA";
                     openSSL.Write(string("DATA") + newline);
-                    cout << openSSL.Read(ReceiveFunctor(354));
+                    BOOST_LOG_SEV(logger,normal) << openSSL.Read(ReceiveFunctor(354));
 
                     BOOST_LOG_SEV(logger,notification) << "Build message";
                     string m = buildMessage(message, pathAttachments, to, from, subject);
                     openSSL.Write( m + newline + "." + newline);
-                    cout << openSSL.Read(ReceiveFunctor(250));
+                    //BOOST_LOG_SEV(logger,normal) << openSSL.Read(ReceiveFunctor(250));
 
                     BOOST_LOG_SEV(logger,notification) << "QUIT";
                     openSSL.Write(string("QUIT: ") + newline);
-                    //cout << openSSL.Read(ReceiveFunctor(221));
+
+                    BOOST_LOG_SEV(logger,notification) << "Mail sent.";
 
                 }
 
                 break;
 
-
             case USE_TLS :
 
                 break;
 
-
         }
+
+    }catch(exception& e){
+
+        BOOST_LOG_SEV(logger, critical) << e.what();
 
     }catch(const char * msg){
 
-        BOOST_LOG_SEV(logger,fail) << "FAIL TO SEND MAIL : " << msg;
+        BOOST_LOG_SEV(logger,fail) << "Fail to send mail : " << msg;
 
     }
 }

@@ -49,89 +49,89 @@ DetectionTemplate::~DetectionTemplate() {
 
 }
 
-bool DetectionTemplate::initMethod(string cfgPath) {
+void DetectionTemplate::initMethod(string cfgPath) {
 
-    try {
+    Configuration cfg;
+    cfg.Load(cfgPath);
 
-        Configuration cfg;
-        cfg.Load(cfgPath);
+    //********************* DEBUG OPTION.******************************
 
-        // Get debug option.
-        cfg.Get("DET_DEBUG", mDebugEnabled);
-        BOOST_LOG_SEV(logger, notification) << "DET_DEBUG : " << mDebugEnabled;
+    if(!cfg.Get("DET_DEBUG", mDebugEnabled)) {
+        mDebugEnabled = false;
+        BOOST_LOG_SEV(logger, warning) << "Fail to load DET_DEBUG from configuration file. Set to false.";
+    }
 
-        // Get downsample option.
-        cfg.Get("DET_DOWNSAMPLE_ENABLED", mDownsampleEnabled);
-        BOOST_LOG_SEV(logger, notification) << "DET_DOWNSAMPLE_ENABLED : " << mDownsampleEnabled;
+    //********************* DOWNSAMPLE OPTION *************************
 
-        // Get save position option.
-        cfg.Get("DET_SAVE_POS", mSavePos);
-        BOOST_LOG_SEV(logger, notification) << "DET_SAVE_POS : " << mSavePos;
+    if(!cfg.Get("DET_DOWNSAMPLE_ENABLED", mDownsampleEnabled)) {
+        mDownsampleEnabled = true;
+        BOOST_LOG_SEV(logger, warning) << "Fail to load DET_DOWNSAMPLE_ENABLED from configuration file. Set to true.";
+    }
 
-        // Get use mask option.
-        cfg.Get("ACQ_MASK_ENABLED", mMaskEnabled);
-        BOOST_LOG_SEV(logger, notification) << "ACQ_MASK_ENABLED : " << mMaskEnabled;
+    //********************* SAVE POSITION OPTION **********************
 
-        if(mMaskEnabled) {
+    if(!cfg.Get("DET_SAVE_POS", mSavePos)) {
+        mSavePos = true;
+        BOOST_LOG_SEV(logger, warning) << "Fail to load DET_SAVE_POS from configuration file. Set to true.";
+    }
 
-            cfg.Get("ACQ_MASK_PATH", mMaskPath);
-            BOOST_LOG_SEV(logger, notification) << "ACQ_MASK_PATH : " << mMaskPath;
+    //********************* USE MASK OPTION ***************************
 
-            mMask = imread(mMaskPath, CV_LOAD_IMAGE_GRAYSCALE);
+    if(!cfg.Get("ACQ_MASK_ENABLED", mMaskEnabled)) {
+        mMaskEnabled = false;
+        BOOST_LOG_SEV(logger, warning) << "Fail to load ACQ_MASK_ENABLED from configuration file. Set to false.";
+    }
 
-            if(!mMask.data){
-                cout << " Can't load the mask from this location : " << mMaskPath;
-                BOOST_LOG_SEV(logger, notification) << " Can't load the mask from this location : " << mMaskPath;
-                throw "Can't load the mask. Wrong location.";
-            }
+    if(mMaskEnabled) {
 
-            if(mDownsampleEnabled){
+        //********************* MASK PATH *****************************
 
-                int imgH = mMask.rows/2;
-                int imgW = mMask.cols/2;
-
-                pyrDown(mMask, mMask, Size(imgW, imgH));
-
-            }
-
-            mMask.copyTo(mOriginalMask);
-
-        }else{
-
-            mMaskToCreate = true;
-
+        if(!cfg.Get("ACQ_MASK_PATH", mMaskPath)) {
+            throw "Fail to load ACQ_MASK_PATH from configuration file.";
         }
 
-        // Get debug path.
-        cfg.Get("DET_DEBUG_PATH", mDebugPath);
-        BOOST_LOG_SEV(logger, notification) << "DET_DEBUG_PATH : " << mDebugPath;
-        mDebugCurrentPath = mDebugPath;
+        mMask = imread(mMaskPath, CV_LOAD_IMAGE_GRAYSCALE);
 
-        // Get debug video option.
-        cfg.Get("DET_DEBUG_VIDEO", mDebugVideo);
-        BOOST_LOG_SEV(logger, notification) << "DET_DEBUG_VIDEO : " << mDebugVideo;
+        if(!mMask.data){
+            throw "Fail to read the mask specified in ACQ_MASK_PATH.";
+        }
 
-        // Create directories for debugging method.
-        if(mDebugEnabled)
-            createDebugDirectories(true);
+        if(mDownsampleEnabled){
+            pyrDown(mMask, mMask, Size(mMask.cols/2, mMask.rows/2));
+        }
 
-        // Create debug video.
-        if(mDebugVideo)
-            mVideoDebug = VideoWriter(mDebugCurrentPath + "debug-video.avi", CV_FOURCC('M', 'J', 'P', 'G'), 5, Size(static_cast<int>(1280), static_cast<int>(960)), true);
+        mMask.copyTo(mOriginalMask);
 
-    }catch(exception& e){
+    }else{
 
-        cout << e.what() << endl;
-        return false;
-
-    }catch(const char * msg){
-
-        cout << msg << endl;
-        return false;
+        mMaskToCreate = true;
 
     }
 
-    return true;
+    //********************* DEBUG PATH ********************************
+
+    if(!cfg.Get("DET_DEBUG_PATH", mDebugPath) && mDebugEnabled) {
+        mDebugEnabled = false;
+        mDebugPath = "";
+        BOOST_LOG_SEV(logger, warning) << "Error about DET_DEBUG_PATH from configuration file. DET_DEBUG option disabled.";
+    }
+
+    mDebugCurrentPath = mDebugPath;
+
+    //********************* DEBUG VIDEO OPETION ***********************
+
+    if(!cfg.Get("DET_DEBUG_VIDEO", mDebugVideo)) {
+        mDebugVideo = false;
+        BOOST_LOG_SEV(logger, warning) << "Fail to load DET_DEBUG_VIDEO from configuration file. Set to false.";
+    }
+
+    // Create directories for debugging method.
+    if(mDebugEnabled)
+        createDebugDirectories(true);
+
+    // Create debug video.
+    if(mDebugVideo)
+        mVideoDebug = VideoWriter(mDebugCurrentPath + "debug-video.avi", CV_FOURCC('M', 'J', 'P', 'G'), 5, Size(static_cast<int>(1280), static_cast<int>(960)), true);
 
 }
 

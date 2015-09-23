@@ -84,11 +84,8 @@ bool GlobalEvent::addLE(LocalEvent le){
         if(listv.size()>1 ) {
 
             float scalar = le.getLeDir().x * listv.back().x + le.getLeDir().y * listv.back().y;
-            cout << "scalar : " << scalar << endl;
-            leDir = le.getLeDir();
 
-            cout << "le.getLeDir() : " << le.getLeDir() << endl;
-             cout << "v : " << listv.back() << endl;
+            leDir = le.getLeDir();
 
             if(scalar <= 0.0) clusterNegPos.push_back(false);
             else clusterNegPos.push_back(true);

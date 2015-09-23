@@ -253,9 +253,6 @@ void AcqThread::operator()(){
                             currentTimeMode = DAY;
                         }
 
-                        EParser<TimeMode> mode;
-                        cout << "MODE : " << mode.getStringEnum(currentTimeMode) << endl;
-
                         // If exposure control is not active, the new frame can be shared with others threads.
                         if(!exposureControlStatus) {
 
@@ -867,8 +864,6 @@ void AcqThread::runImageCapture(int imgNumber, int imgExposure, int imgGain, Cam
 
         }
 
-        mDevice->getCam()->acqStop();
-        mDevice->getCam()->grabCleanse();
     }
 
     #ifdef WINDOWS

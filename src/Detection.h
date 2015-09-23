@@ -138,7 +138,7 @@ class Detection {
         * Initialize detection method.
         *
         */
-        virtual bool initMethod(string cfg_path){return false;};
+        virtual void initMethod(string cfg_path){};
 
         /**
         * Get frame's number (in frame buffer) of the last frame which belongs to the detected event.

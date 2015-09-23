@@ -63,15 +63,11 @@
 
         int n_devices = arv_get_n_devices();
 
-        BOOST_LOG_SEV(logger, notification) << "Cameras detected with Aravis : ";
-
-
         cout << endl << "------------ GIGE CAMERAS WITH ARAVIS ----------" << endl << endl;
 
         for(int i = 0; i < n_devices; i++){
 
             cout << "-> [" << i << "] " << arv_get_device_id(i)<< endl;
-            BOOST_LOG_SEV(logger, notification) << " -> [" << i << "] " << arv_get_device_id(i);
 
         }
 
@@ -88,30 +84,21 @@
 
     bool CameraGigeAravis::createDevice(int id){
 
-        BOOST_LOG_SEV(logger, notification) << "Creating device " << id;
-
         string deviceName;
 
         if(!getDeviceNameById(id, deviceName))
             return false;
 
-        //cout << "Device : " << deviceName << endl;
-        BOOST_LOG_SEV(logger, notification) << "Device selected: " << deviceName;
-
         camera = arv_camera_new(deviceName.c_str());
 
-        if(camera != NULL){
+        if(camera == NULL){
 
-            BOOST_LOG_SEV(logger, notification) << "Connection success to the camera.";
-            return true;
-
-        }else{
-
-            cout << "Connection fail to the camera." << endl;
-            BOOST_LOG_SEV(logger, fail) << "Connection fail to the camera.";
+            BOOST_LOG_SEV(logger, fail) << "Fail to connect the camera.";
             return false;
 
         }
+
+        return true;
     }
 
     bool CameraGigeAravis::getDeviceNameById(int id, string &device){
@@ -122,8 +109,6 @@
 
         for(int i = 0; i< n_devices; i++){
 
-            //cout << "ID : " << i << " -> " << arv_get_device_id(i) << endl;
-
             if(id == i){
 
                 device = arv_get_device_id(i);
@@ -132,6 +117,7 @@
             }
         }
 
+        BOOST_LOG_SEV(logger, fail) << "Fail to retrieve camera with this ID.";
         return false;
 
     }
@@ -184,7 +170,7 @@
         cout << "DEVICE VENDOR   : " << arv_camera_get_vendor_name(camera)  << endl;
         cout << "PAYLOAD         : " << payload                             << endl;
         cout << "Width           : " << width                               << endl
-		        << "Height          : " << height                              << endl;
+             << "Height          : " << height                              << endl;
         cout << "Exp Range       : [" << exposureMin    << " - " << exposureMax   << "]"  << endl;
         cout << "Exp             : " << exp                                 << endl;
         cout << "Gain Range      : [" << gainMin        << " - " << gainMax       << "]"  << endl;
@@ -535,8 +521,6 @@
         // Create a new stream object. Open stream on Camera.
         stream = arv_camera_create_stream(camera, NULL, NULL);
 
-        cout << "shiftBits status : " << shiftBitsImage << endl;
-
         if(stream != NULL){
 
             if(ARV_IS_GV_STREAM(stream)){
@@ -687,9 +671,9 @@
 
             arv_stream_get_statistics(stream, &nbCompletedBuffers, &nbFailures, &nbUnderruns);
 
-            cout << "Completed buffers = " << (unsigned long long) nbCompletedBuffers	<< endl;
-            cout << "Failures          = " << (unsigned long long) nbFailures           << endl;
-            cout << "Underruns         = " << (unsigned long long) nbUnderruns          << endl;
+            cout << ">> Completed buffers = " << (unsigned long long) nbCompletedBuffers	<< endl;
+            cout << ">> Failures          = " << (unsigned long long) nbFailures           << endl;
+            //cout << ">> Underruns         = " << (unsigned long long) nbUnderruns          << endl;
 
             // Stop acquisition.
             arv_camera_stop_acquisition(camera);
