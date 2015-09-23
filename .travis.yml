@@ -5,44 +5,25 @@ compiler :
   
 before_install:
   - sudo apt-get update
+  # Install and upgrade autoconf
   - sudo apt-get install autoconf
-  # Upgrade autoconf
   - sudo add-apt-repository ppa:dns/gnu -y
   - sudo apt-get update -q
   - sudo apt-get install --only-upgrade autoconf
   # Upgrade gcc
-  - gcc --version
   - sudo add-apt-repository -y ppa:ubuntu-toolchain-r/test
   - sudo apt-get update; sudo apt-get install gcc-4.8 g++-4.8
   - sudo update-alternatives --install /usr/bin/gcc gcc /usr/bin/gcc-4.8 60 --slave /usr/bin/g++ g++ /usr/bin/g++-4.8
   - sudo update-alternatives --install /usr/bin/gcc gcc /usr/bin/gcc-4.6 40 --slave /usr/bin/g++ g++ /usr/bin/g++-4.6
   - gcc --version
-  - sudo apt-get install libgstreamer0.10-dev
-  - sudo apt-get install libudev-dev
-  - sudo apt-get install libglib2.0-dev
-  - sudo apt-get install libssl-dev
-  - sudo apt-get install libcrypto++-dev
-  - sudo apt-get install libcfitsio3-dev
-  - sudo apt-get install libv4l-dev
-  - sudo apt-get install v4l-utils
-  - sudo apt-get install intltool gtk-doc-tools 
-  # Get opencv 2.4.9
-  #- wget http://sourceforge.net/projects/opencvlibrary/files/opencv-unix/2.4.9/opencv-2.4.9.zip 
-  #- unzip opencv-2.4.9.zip 
-  #- cd opencv-2.4.9
-  #- mkdir release
-  #- cd release
-  #- cmake CMAKE_BUILD_TYPE=RELEASE ..
-  #- make
-  #- sudo make install
-  #- cd ../..
+  # Install dependencies
+  - sudo apt-get install libgstreamer0.10-dev libudev-dev libglib2.0-dev libssl-dev libcrypto++-dev libcfitsio3-dev
+  - sudo apt-get install libv4l-dev v4l-utils intltool gtk-doc-tools
+  # Get opencv 2.4 at least
   - git submodule update --init --recursive
   - sudo add-apt-repository -y ppa:kubuntu-ppa/backports 
   - sudo apt-get update
   - sudo apt-get install libcv-dev libcvaux-dev libhighgui-dev libopencv-dev
-  # Install cmake
-  - sudo apt-get install cmake
-  - cmake --version
   # Install newer boost compatible with gcc 4.8.
   - wget http://sourceforge.net/projects/boost/files/boost/1.55.0/boost_1_55_0.tar.bz2
   - tar -xvjf boost_1_55_0.tar.bz2 | tail -n 50
@@ -60,7 +41,7 @@ before_install:
   - cd ..
   
 install :
-  #- cd ..
+  - cd autotools
   - sh bootstrap.sh
   
 script :
