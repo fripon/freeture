@@ -190,6 +190,13 @@ bool CameraFrames::getStopStatus() {
 
 }
 
+bool CameraFrames::getFPS(double &value) {
+
+    value = 30;
+    return true;
+
+}
+
 bool CameraFrames::grabImage(Frame &img) {
 
     bool fileFound = false;

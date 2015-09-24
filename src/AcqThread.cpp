@@ -145,26 +145,14 @@ void AcqThread::operator()(){
         bool scheduleTaskStatus = false;
         bool scheduleTaskActive = false;
 
-        /// Prepare acquisition at regular time interval.
+        /// Get Fps from camera
 
-        int regularAcqFrameInterval = 0;
-        int regularAcqFrameCounter = 0;
+        double fps = 0.0;
 
-        if(mDevice->getAcqRegularEnabled()) {
+        if(!mDevice->getCam()->getFPS(fps)) {
 
-            double fps = 0.0;
-            mDevice->getCam()->getFPS(fps);
-
-            if(fps>0){
-
-                regularAcqFrameInterval = mDevice->getAcqRegularTimeInterval() * fps;
-
-            }else{
-
-                BOOST_LOG_SEV(logger, critical) << "Error : Camera fps value is " << fps;
-                throw ">> Error on fps value.";
-
-            }
+            BOOST_LOG_SEV(logger, critical) << "Error : Camera fps value is " << fps;
+            throw ">> Fail to get fps value from camera.";
 
         }
 
@@ -196,6 +184,25 @@ void AcqThread::operator()(){
             if(!mDevice->getCam()->loadNextDataSet(location)) break;
 
             if(pDetection != NULL) pDetection->setCurrentDataSet(location);
+
+
+            /// Update timeBeforeEvent (in fps) and timeAfterEvent (in fps) according fps value.
+
+            if(pDetection != NULL) {
+                pDetection->setTimeAfterEvent(fps);
+                pDetection->setTimeBeforeEvent(fps);
+            }
+
+            if(pStack != NULL) {
+                pStack->setStackTime(fps);
+            }
+
+            /// Reference time to compute interval between regular captures.
+
+            time = boost::posix_time::microsec_clock::universal_time();
+            string cDate = to_simple_string(time);
+            string dateDelimiter = ".";
+            string refDate = cDate.substr(0, cDate.find(dateDelimiter));
 
             do {
 
@@ -370,57 +377,49 @@ void AcqThread::operator()(){
                         }
 
                         // Acquisition at regular time interval is enabled.
-                        if(mDevice->getAcqRegularEnabled()) {
+                        if(mDevice->getAcqRegularEnabled() && !mDevice->getVideoFramesInput()) {
 
-                            // Current time is after the sunset stop and before the sunrise start = NIGHT
-                            if((currentTimeMode == NIGHT) && (mDevice->mRegularMode == NIGHT || mDevice->mRegularMode == DAYNIGHT)) {
+                            time = boost::posix_time::microsec_clock::universal_time();
+                            cDate = to_simple_string(time);
+                            string nowDate = cDate.substr(0, cDate.find(dateDelimiter));
 
-                                // Check it's time to run a regular capture.
-                                if(regularAcqFrameCounter >= regularAcqFrameInterval) {
+                            boost::posix_time::ptime t1(boost::posix_time::time_from_string(refDate));
+                            boost::posix_time::ptime t2(boost::posix_time::time_from_string(nowDate));
+
+                            boost::posix_time::time_duration td = t2 - t1;
+                            long secTime = td.total_seconds();
+                            cout << secTime << "/" << mDevice->getAcqRegularTimeInterval() <<  endl;
+
+                            // Check it's time to run a regular capture.
+                            if(secTime >= mDevice->getAcqRegularTimeInterval()) {
+
+                                // Current time is after the sunset stop and before the sunrise start = NIGHT
+                                if((currentTimeMode == NIGHT) && (mDevice->mRegularMode == NIGHT || mDevice->mRegularMode == DAYNIGHT)) {
+
+                                        BOOST_LOG_SEV(logger, notification) << "Run regular acquisition.";
+
+                                        runImageCapture(    mDevice->getAcqRegularRepetition(),
+                                                            mDevice->getAcqRegularExposure(),
+                                                            mDevice->getAcqRegularGain(),
+                                                            mDevice->getAcqRegularFormat(),
+                                                            mDevice->mRegularOutput);
+
+                                // Current time is between sunrise start and sunset stop = DAY
+                                }else if(currentTimeMode == DAY && (mDevice->mRegularMode == DAY || mDevice->mRegularMode == DAYNIGHT)) {
 
                                     BOOST_LOG_SEV(logger, notification) << "Run regular acquisition.";
-
-                                    runImageCapture(    mDevice->getAcqRegularRepetition(),
-                                                        mDevice->getAcqRegularExposure(),
-                                                        mDevice->getAcqRegularGain(),
-                                                        mDevice->getAcqRegularFormat(),
-                                                        mDevice->mRegularOutput);
-
-                                    regularAcqFrameCounter = 0;
-
-                                }else {
-
-                                    //cout << "Next regular acquisition in : " << regularAcqFrameInterval - regularAcqFrameCounter << " frames." << endl;
-                                    regularAcqFrameCounter++;
-
-                                }
-
-                            // Current time is between sunrise start and sunset stop = DAY
-                            }else if(currentTimeMode == DAY && (mDevice->mRegularMode == DAY || mDevice->mRegularMode == DAYNIGHT)) {
-
-                                // Check if it's time to run a regular capture.
-                                if(regularAcqFrameCounter >= regularAcqFrameInterval) {
-                                     cout << "Run regular acquisition." << endl;
                                     saveImageCaptured(newFrame, 0, mDevice->mRegularOutput);
-                                    regularAcqFrameCounter = 0;
-
-                                }else {
-
-                                    //cout << "Next regular acquisition in : " << regularAcqFrameInterval - regularAcqFrameCounter << " frames." << endl;
-                                    regularAcqFrameCounter++;
 
                                 }
 
-                            }else{
-
-                                regularAcqFrameCounter = 0;
+                                refDate = nowDate;
 
                             }
 
                         }
 
                         // Acquisiton at scheduled time is enabled.
-                        if(mAcqScheduledList.size() != 0 && mDevice->getAcqScheduleEnabled()) {
+                        if(mAcqScheduledList.size() != 0 && mDevice->getAcqScheduleEnabled() && !mDevice->getVideoFramesInput()) {
 
                             // It's time to run scheduled acquisition.
                             if( mNextAcq.getH() == newFrame.mDate.hours &&
@@ -471,12 +470,11 @@ void AcqThread::operator()(){
                         }
 
                         // Check sunrise and sunset time.
-                        if( ((currentTimeInSec > mDevice->mStartSunriseTime && currentTimeInSec < mDevice->mStopSunriseTime) ||
-                            (currentTimeInSec > mDevice->mStartSunsetTime && currentTimeInSec < mDevice->mStopSunsetTime))) {
+                        if( (((currentTimeInSec > mDevice->mStartSunriseTime && currentTimeInSec < mDevice->mStopSunriseTime) ||
+                            (currentTimeInSec > mDevice->mStartSunsetTime && currentTimeInSec < mDevice->mStopSunsetTime))) && !mDevice->getVideoFramesInput()) {
 
                             exposureControlActive = true;
 
-                            //BOOST_LOG_SEV(logger, notification) << "SUNSET or SUNRISE detected. ";
 
                         }else {
 

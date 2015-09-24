@@ -118,7 +118,6 @@ class CameraVideo : public Camera{
         */
         bool grabImage(Frame &img);
 
-
         /**
         * Prepare acquisition on the first video.
         *
@@ -146,5 +145,7 @@ class CameraVideo : public Camera{
         * @return Success status to load next data set.
         */
         bool loadNextDataSet(string &location);
+
+        bool getFPS(double &value) {value = 30; return true;};
 };
 

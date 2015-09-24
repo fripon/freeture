@@ -121,11 +121,6 @@ bool StackThread::loadStackParameters(){
         Configuration cfg;
         cfg.Load(cfgPath);
 
-        // Get acquisition frequency.
-        int ACQ_FPS;
-        cfg.Get("ACQ_FPS", ACQ_FPS);
-        BOOST_LOG_SEV(logger,notification) << "Load ACQ_FPS : " << ACQ_FPS;
-
         // Get camera format.
         string acq_bit_depth; cfg.Get("ACQ_BIT_DEPTH", acq_bit_depth);
         EParser<CamBitDepth> cam_bit_depth;
@@ -135,7 +130,7 @@ bool StackThread::loadStackParameters(){
         // Get time of stacking frames.
         cfg.Get("STACK_TIME", STACK_TIME);
         BOOST_LOG_SEV(logger,notification) << "Load STACK_TIME : " << STACK_TIME;
-        STACK_TIME = STACK_TIME * ACQ_FPS;
+        STACK_TIME = STACK_TIME;
 
         // Get time to wait before a new stack.
         cfg.Get("STACK_INTERVAL", STACK_INTERVAL);
@@ -328,6 +323,7 @@ void StackThread::operator()(){
                     BOOST_LOG_SEV(logger,normal) << "End waiting for a new frame.";
                     *stackSignal = false;
                     lock.unlock();
+                    frameStack.setMaxFrames(STACK_TIME);
 
                     // Check interruption signal from AcqThread.
                     bool forceToSave = false;

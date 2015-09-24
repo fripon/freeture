@@ -153,6 +153,8 @@ class StackThread {
         */
         bool interruptThread();
 
+        void setStackTime(double fps) {STACK_TIME = STACK_TIME * fps;};
+
     private :
 
         /**

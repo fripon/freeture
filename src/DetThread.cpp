@@ -128,10 +128,6 @@ bool DetThread::loadDetThreadParameters(){
         Configuration cfg;
         cfg.Load(mCfgPath);
 
-        // Get Acquisition frequency.
-        int ACQ_FPS; cfg.Get("ACQ_FPS", ACQ_FPS);
-        BOOST_LOG_SEV(logger, notification) << "ACQ_FPS : " << ACQ_FPS;
-
         //********************* ACQUISITION FORMAT.******************************
 
         string acq_bit_depth;
@@ -210,7 +206,7 @@ bool DetThread::loadDetThreadParameters(){
             BOOST_LOG_SEV(logger, warning) << "Fail to load DET_TIME_BEFORE from configuration file. Set to 0";
         }else {
 
-            mTimeBeforeEvent = mTimeBeforeEvent * ACQ_FPS;
+            mTimeBeforeEvent = mTimeBeforeEvent;
 
         }
 
@@ -221,7 +217,7 @@ bool DetThread::loadDetThreadParameters(){
             BOOST_LOG_SEV(logger, warning) << "Fail to load DET_TIME_AFTER from configuration file. Set to 0";
         }else {
 
-            mTimeAfterEvent = mTimeAfterEvent * ACQ_FPS;
+            mTimeAfterEvent = mTimeAfterEvent;
 
         }
 

@@ -224,6 +224,18 @@ class DetThread {
 
         };
 
+        void setTimeBeforeEvent(double fps) {
+
+            mTimeBeforeEvent = mTimeBeforeEvent * fps;
+
+        };
+
+        void setTimeAfterEvent(double fps) {
+
+            mTimeAfterEvent = mTimeAfterEvent * fps;
+
+        };
+
 
 };
 

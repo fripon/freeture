@@ -141,6 +141,8 @@ class CameraFrames: public Camera {
         */
         bool getDataSetStatus();
 
+        bool getFPS(double &value);
+
 
 };
 

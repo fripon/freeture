@@ -133,7 +133,6 @@ class DetectionTemporal : public Detection {
         bool                            mUpdateMask;
         bool                            mDebugUpdateMask;
         double                          mTimeBeforeEvent;       // Time to keep before an event     (parameter from configuration file).
-        double                          mTimeAfterEvent;        // Time to keep after an event      (parameter from configuration file).
 
         boost::circular_buffer<Mat>     mCapBuffer;
 

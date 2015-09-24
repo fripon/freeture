@@ -85,12 +85,6 @@
             BOOST_LOG_SEV(logger, warning) << "Fail to load DET_DEBUG from configuration file. Set to false.";
         }
 
-        //********************* ACQUISITION FREQUENCY *********************
-
-        int ACQ_FPS = 1;
-        cfg.Get("ACQ_FPS", ACQ_FPS);
-        BOOST_LOG_SEV(logger, notification) << "ACQ_FPS : " << ACQ_FPS;
-
         //********************* DOWNSAMPLE OPTION *************************
 
         if(!cfg.Get("DET_DOWNSAMPLE_ENABLED", mDownsampleEnabled)) {
@@ -534,6 +528,8 @@
         double timeStep3        = 0;
         double timeStep4        = 0;
         double timeTotal        = 0;
+
+        timeTotal = (double)getTickCount();
 
         string pFrame0 = mDebugCurrentPath + "local/frame_" + Conversion::intToString(c.mFrameNumber);
         ofstream fileFrame;

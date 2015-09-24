@@ -89,8 +89,8 @@ class Stack {
         int             curFrames;
         int             gainFirstFrame;
         int             expFirstFrame;
-        TimeDate::Date          mDateFirstFrame;
-        TimeDate::Date          mDateLastFrame;
+        TimeDate::Date  mDateFirstFrame;
+        TimeDate::Date  mDateLastFrame;
         int             fps;
         bool            fullStatus;
         CamBitDepth     bitdepth;
@@ -159,6 +159,8 @@ class Stack {
         int getMaxFramesToStack(){return maxFrames;};
 
         Mat getStack() {return stack;};
+
+        void setMaxFrames(double nb) {maxFrames = nb;};
 
     private :
 
