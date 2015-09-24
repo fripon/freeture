@@ -317,7 +317,7 @@ bool DetThread::loadDetThreadParameters(){
 
                 {
 
-                    pDetMthd = new DetectionTemporal();
+                    pDetMthd = new DetectionTemporal(mTimeBeforeEvent);
                     pDetMthd->initMethod(mCfgPath);
 
                 }

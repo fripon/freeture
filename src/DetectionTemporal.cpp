@@ -39,11 +39,11 @@
 
     DetectionTemporal::Init DetectionTemporal::initializer;
 
-    DetectionTemporal::DetectionTemporal():
+    DetectionTemporal::DetectionTemporal(double timeBefore):
     mDownsampleEnabled(false), mSaveGeMap(false), mSavePos(false), mSaveDirMap(false),
     mSaveGeInfos(false), mMaskEnabled(false), mImgNum(0), mUpdateMask(false), mDebugUpdateMask(false),
     mSubdivisionStatus(false), mDebugEnabled(false), mDebugVideo(false), mMaskToCreate(false),
-    mDataSetCounter(0), mCapCounter(0) {
+    mDataSetCounter(0), mCapCounter(0), mTimeBeforeEvent(timeBefore) {
 
         mCapBuffer = boost::circular_buffer<Mat>(5);
 
@@ -363,7 +363,7 @@
 
                 if(mDownsampleEnabled) pos*=2;
 
-                string line = Conversion::intToString((*itLe).getNumFrame()) + "               (" + Conversion::intToString(pos.x)  + ";" + Conversion::intToString(pos.y) + ")\n";
+                string line = Conversion::intToString((*itLe).getNumFrame() - ((*itLe).getNumFrame() - mTimeBeforeEvent)) + "               (" + Conversion::intToString(pos.x)  + ";" + Conversion::intToString(pos.y) + ")\n";
                 posFile << line;
 
             }

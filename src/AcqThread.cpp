@@ -235,7 +235,8 @@ void AcqThread::operator()(){
                             Sleep(1000);
                         #else
                             #ifdef LINUX
-                                sleep(1);
+                                //sleep(1);
+                                usleep(500000);
                             #endif
                         #endif
 
