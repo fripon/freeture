@@ -161,6 +161,18 @@ void Device::initialization() {
 
             break;
 
+        case FRAMES :
+
+            {
+
+            }
+
+            break;
+
+        case VIDEO :
+
+            break;
+
         default :
 
             cout << "Type of camera not supported." << endl;

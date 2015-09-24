@@ -56,12 +56,12 @@ void Stack::addFrame(Frame &i){
 
         if(curFrames == 0){
 
-            stack			= Mat::zeros(i.mImg.rows, i.mImg.cols, CV_32FC1);
-            gainFirstFrame	= i.mGain;
-            expFirstFrame   = i.mExposure;
-            mDateFirstFrame	= i.mDate;
-            fps				= i.mFps;
-            bitdepth		= i.mBitDepth;
+            stack = Mat::zeros(i.mImg.rows, i.mImg.cols, CV_32FC1);
+            gainFirstFrame = i.mGain;
+            expFirstFrame = i.mExposure;
+            mDateFirstFrame = i.mDate;
+            fps = i.mFps;
+            bitdepth = i.mBitDepth;
 
         }
 

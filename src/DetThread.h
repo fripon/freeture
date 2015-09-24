@@ -88,6 +88,8 @@ class DetThread {
         bool                            mSaveFits3D;                // Save event as fits 3D            (parameter from configuration file).
         bool                            mSaveFits2D;                // Save event as fits 2D            (parameter from configuration file).
         bool                            mSaveSum;                   // Save sum of the event            (parameter from configuration file).
+        bool                            mSaveGeMap;
+        bool                            mSaveSumWithHistEqualization;
         double                          mTimeBeforeEvent;           // Time to keep before an event     (parameter from configuration file).
         double                          mTimeAfterEvent;            // Time to keep after an event      (parameter from configuration file).
         string                          mDataPath;                  // Where to save data               (parameter from configuration file).

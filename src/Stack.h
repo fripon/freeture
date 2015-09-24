@@ -158,6 +158,8 @@ class Stack {
         */
         int getMaxFramesToStack(){return maxFrames;};
 
+        Mat getStack() {return stack;};
+
     private :
 
         /**

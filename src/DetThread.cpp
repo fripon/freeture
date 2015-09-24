@@ -189,6 +189,20 @@ bool DetThread::loadDetThreadParameters(){
             BOOST_LOG_SEV(logger, warning) << "Fail to load DET_SAVE_SUM from configuration file. Set to true";
         }
 
+        //********************* GEMAP OPTION ******************************
+
+        if(!cfg.Get("DET_SAVE_GEMAP", mSaveGeMap)) {
+            mSaveGeMap = false;
+            BOOST_LOG_SEV(logger, warning) << "Fail to load DET_SAVE_GEMAP from configuration file. Set to false.";
+        }
+
+        //********************* ENABLE HISTOGRAM EQUALIZATION.*******************
+
+        if(!cfg.Get("DET_SAVE_SUM_WITH_HIST_EQUALIZATION", mSaveSumWithHistEqualization)) {
+            mSaveSumWithHistEqualization = true;
+            BOOST_LOG_SEV(logger, warning) << "Fail to load DET_SAVE_SUM_WITH_HIST_EQUALIZATION from configuration file. Set to true";
+        }
+
         //********************* TIME BEFORE.*************************************
 
         if(!cfg.Get("DET_TIME_BEFORE", mTimeBeforeEvent)) {
@@ -901,7 +915,8 @@ bool DetThread::saveEventData(int firstEvPosInFB, int lastEvPosInFB){
         }
     }
 
-    // Write fits cube.
+    // ********************************* SAVE EVENT IN FITS CUBE  ***********************************
+
     if(mSaveFits3D) {
 
         // Exposure time of a single frame.
@@ -917,17 +932,44 @@ bool DetThread::saveEventData(int firstEvPosInFB, int lastEvPosInFB){
 
     }
 
-    // Save stack of the event.
-    if(mSaveSum) stack.saveStack(mFitsHeader, mEventPath, mStackMthd, mStationName, mStackReduction);
+    // ********************************* SAVE EVENT STACK IN FITS  **********************************
 
-    // Send mail notification.
-    if(mMailAlertEnabled){
+    if(mSaveSum) {
+
+        stack.saveStack(mFitsHeader, mEventPath, mStackMthd, mStationName, mStackReduction);
+
+    }
+
+    // ************************** EVENT STACK WITH HISTOGRAM EQUALIZATION ***************************
+
+    if(mSaveSumWithHistEqualization) {
+
+        Mat s, eqHist;
+        stack.getStack().copyTo(s);
+        if(mBitDepth != MONO_8)
+            Conversion::convertTo8UC1(s).copyTo(s);
+        equalizeHist(s, eqHist);
+        SaveImg::saveJPEG(eqHist,mEventPath+mStationName+"_"+TimeDate::getYYYYMMDDThhmmss(mEventDate)+"_UT");
+
+    }
+
+    // *********************************** SEND MAIL NOTIFICATION ***********************************
+
+    if(mMailAlertEnabled) {
 
         BOOST_LOG_SEV(logger,notification) << "Sending mail...";
 
-        mailAttachments.push_back(mEventPath + "DirMap.bmp");
+        if(mSaveGeMap && boost::filesystem::exists( mEventPath + "GeMap.bmp" )) {
 
-        mailAttachments.push_back(mEventPath + "GeMap.bmp");
+            mailAttachments.push_back(mEventPath + "GeMap.bmp");
+
+        }
+
+        if(mSaveSumWithHistEqualization && boost::filesystem::exists(mEventPath + mStationName + "" + TimeDate::getYYYYMMDDThhmmss(mEventDate) + "_UT.jpg")) {
+
+            mailAttachments.push_back(mEventPath + mStationName + "" + TimeDate::getYYYYMMDDThhmmss(mEventDate) + "_UT.jpg");
+
+        }
 
         SMTPClient::sendMail(   mMailSmtpServer,
                                 mMailSmtpLogin,
@@ -938,7 +980,6 @@ bool DetThread::saveEventData(int firstEvPosInFB, int lastEvPosInFB){
                                 mStationName + "\n" + mEventPath,
                                 mailAttachments,
                                 mSmtpSecurity);
-
 
     }
 

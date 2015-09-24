@@ -137,61 +137,6 @@ void DetectionTemplate::initMethod(string cfgPath) {
 
 void DetectionTemplate::createDebugDirectories(bool cleanDebugDirectory) {
 
-    /*cout << "Debug mode : enabled." << endl;
-
-    mDebugCurrentPath = mDebugPath + "debug_" + Conversion::intToString(mDataSetCounter) + "/" ;
-
-    if(cleanDebugDirectory) {
-
-        cout << "Clean and create debug directories..." << endl;
-
-        const boost::filesystem::path p0 = path(mDebugPath); // .../debug/
-
-        if(boost::filesystem::exists(p0))
-            boost::filesystem::remove_all(p0);
-
-        if(!boost::filesystem::exists(p0))
-            boost::filesystem::create_directories(p0);
-
-    }else {
-
-        cout << "Create debug directories..." << endl;
-
-    }
-
-    const boost::filesystem::path p1 = path(mDebugCurrentPath);             // .../debug/debug_0/
-    const boost::filesystem::path p2 = path(mDebugCurrentPath + "local");   // .../debug/debug_0/local/
-    const boost::filesystem::path p3 = path(mDebugCurrentPath + "global");  // .../debug/debug_0/global/
-
-    if(!boost::filesystem::exists(p1))
-        boost::filesystem::create_directories(p1);
-
-    if(!boost::filesystem::exists(p2))
-        boost::filesystem::create_directories(p2);
-
-    if(!boost::filesystem::exists(p3))
-        boost::filesystem::create_directories(p3);
-
-    vector<string> debugSubDir;
-    debugSubDir.push_back("absolute_difference");
-    debugSubDir.push_back("absolute_difference_thresholded");
-    debugSubDir.push_back("event_map_initial");
-    debugSubDir.push_back("event_map_filtered");
-    debugSubDir.push_back("absolute_difference_dilated");
-    debugSubDir.push_back("neg_difference_thresholded");
-    debugSubDir.push_back("pos_difference_thresholded");
-    debugSubDir.push_back("neg_difference");
-    debugSubDir.push_back("pos_difference");
-
-    for(int i = 0; i< debugSubDir.size(); i++){
-
-        const boost::filesystem::path path(mDebugCurrentPath + "global/" + debugSubDir.at(i));
-
-        if(!boost::filesystem::exists(path))
-            boost::filesystem::create_directories(path);
-
-    }*/
-
 }
 
 bool DetectionTemplate::run(Frame &c) {
