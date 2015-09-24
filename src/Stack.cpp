@@ -39,8 +39,8 @@ boost::log::sources::severity_logger< LogSeverityLevel >  Stack::logger;
 
 Stack::Init Stack::initializer;
 
-Stack::Stack(int nbFrameToSum):
-fullStatus(false), curFrames(0), maxFrames(nbFrameToSum), varExpTime(false),
+Stack::Stack():
+curFrames(0), varExpTime(false),
 sumExpTime(0.0), gainFirstFrame(0), expFirstFrame(0), fps(0), bitdepth(MONO_8){
 
     mDateFirstFrame = {0, 0, 0, 0, 0, 0.0};
@@ -72,22 +72,11 @@ void Stack::addFrame(Frame &i){
 
         Mat curr = Mat::zeros(i.mImg.rows, i.mImg.cols, CV_32FC1);
 
-        cout << "> STACK : " << curFrames << " / " << maxFrames  << endl;
-        BOOST_LOG_SEV(logger, normal) << "> STACK : " << curFrames << " / " << maxFrames;
-
         i.mImg.convertTo(curr, CV_32FC1);
-        cout << "accumulate" << endl;
+        cout << "curFrames : " << curFrames << endl;
         accumulate(curr, stack);
         curFrames++;
         mDateLastFrame = i.mDate;
-
-        if(curFrames >= maxFrames){
-
-            BOOST_LOG_SEV(logger, notification) << "Last frame of stack received.";
-
-            fullStatus = true;
-
-        }
 
     }catch(exception& e){
 

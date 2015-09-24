@@ -779,7 +779,7 @@ bool DetThread::saveEventData(int firstEvPosInFB, int lastEvPosInFB){
     }
 
     // Init sum.
-    Stack stack = Stack(lastEvPosInFB - firstEvPosInFB);
+    Stack stack = Stack();
 
     // Exposure time sum.
     double sumExpTime = 0.0;

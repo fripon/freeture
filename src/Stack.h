@@ -85,14 +85,12 @@ class Stack {
         }initializer;
 
         Mat             stack;
-        int             maxFrames;
         int             curFrames;
         int             gainFirstFrame;
         int             expFirstFrame;
         TimeDate::Date  mDateFirstFrame;
         TimeDate::Date  mDateLastFrame;
         int             fps;
-        bool            fullStatus;
         CamBitDepth     bitdepth;
         bool            varExpTime;
         double          sumExpTime;
@@ -103,7 +101,7 @@ class Stack {
         * Constructor.
         *
         */
-        Stack(int nbFrameToSum);
+        Stack();
 
         /**
         * Destructor.
@@ -117,13 +115,6 @@ class Stack {
         * @param i Frame to add.
         */
         void addFrame(Frame &i);
-
-        /**
-        * Get full status of the stack.
-        *
-        * @return Stack is full or not.
-        */
-        bool getFullStatus(){return fullStatus;};
 
         /**
         * Get Date of the first frame of the stack.
@@ -151,16 +142,7 @@ class Stack {
         */
         int getNbFramesStacked(){return curFrames;};
 
-        /**
-        * Get number of maximum to stack.
-        *
-        * @return Number of frames.
-        */
-        int getMaxFramesToStack(){return maxFrames;};
-
         Mat getStack() {return stack;};
-
-        void setMaxFrames(double nb) {maxFrames = nb;};
 
     private :
 

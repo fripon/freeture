@@ -193,10 +193,6 @@ void AcqThread::operator()(){
                 pDetection->setTimeBeforeEvent(fps);
             }
 
-            if(pStack != NULL) {
-                pStack->setStackTime(fps);
-            }
-
             /// Reference time to compute interval between regular captures.
 
             time = boost::posix_time::microsec_clock::universal_time();
@@ -388,7 +384,7 @@ void AcqThread::operator()(){
 
                             boost::posix_time::time_duration td = t2 - t1;
                             long secTime = td.total_seconds();
-                            cout << secTime << "/" << mDevice->getAcqRegularTimeInterval() <<  endl;
+                            cout << "CAP : " << secTime << "/" << mDevice->getAcqRegularTimeInterval() <<  endl;
 
                             // Check it's time to run a regular capture.
                             if(secTime >= mDevice->getAcqRegularTimeInterval()) {
@@ -412,7 +408,10 @@ void AcqThread::operator()(){
 
                                 }
 
-                                refDate = nowDate;
+                                // Reset reference time in case a long exposure has been done.
+                                time = boost::posix_time::microsec_clock::universal_time();
+                                cDate = to_simple_string(time);
+                                refDate = cDate.substr(0, cDate.find(dateDelimiter));
 
                             }
 

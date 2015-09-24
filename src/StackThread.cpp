@@ -307,23 +307,29 @@ void StackThread::operator()(){
 
             try{
 
-                BOOST_LOG_SEV(logger,notification) << "Stack thread is going to sleep ... ";
+                // Thread is sleeping...
                 boost::this_thread::sleep(boost::posix_time::millisec(STACK_INTERVAL*1000));
-                BOOST_LOG_SEV(logger,notification) << "Stack thread wake up ...";
 
                 // Create a stack to accumulate n frames.
-                Stack frameStack(STACK_TIME);
+                Stack frameStack =Stack();
 
-                do{
+                // First reference date.
+                boost::posix_time::ptime time = boost::posix_time::microsec_clock::universal_time();
+                string cDate = to_simple_string(time);
+                string dateDelimiter = ".";
+                string refDate = cDate.substr(0, cDate.find(dateDelimiter));
+
+                long secTime = 0;
+
+                do {
 
                     // Communication with AcqThread. Wait for a new frame.
-                    BOOST_LOG_SEV(logger,normal) << "Waiting for a new frame ...";
                     boost::mutex::scoped_lock lock(*stackSignal_mutex);
                     while(!(*stackSignal)) stackSignal_condition->wait(lock);
-                    BOOST_LOG_SEV(logger,normal) << "End waiting for a new frame.";
                     *stackSignal = false;
                     lock.unlock();
-                    frameStack.setMaxFrames(STACK_TIME);
+
+                    double t = (double)getTickCount();
 
                     // Check interruption signal from AcqThread.
                     bool forceToSave = false;
@@ -333,39 +339,13 @@ void StackThread::operator()(){
 
                     if(!forceToSave){
 
-                        double t = (double)getTickCount();
-
                         // Fetch last frame grabbed.
-                        BOOST_LOG_SEV(logger,normal) << "Fetch last frame grabbed.";
-
                         boost::mutex::scoped_lock lock2(*frameBuffer_mutex);
                         Frame newFrame = frameBuffer->back();
                         lock2.unlock();
 
-                        BOOST_LOG_SEV(logger,normal) << "New frame received by stackThread :  "<< newFrame.mFrameNumber;
-
                         // Add the new frame to the stack.
                         frameStack.addFrame(newFrame);
-
-                        if(frameStack.getFullStatus()){
-
-                            if(buildStackDataDirectory(frameStack.getDateFirstFrame())){
-
-                                if(!frameStack.saveStack(fitsHeader, completeDataPath, STACK_MTHD, STATION_NAME, STACK_REDUCTION)){
-
-                                    BOOST_LOG_SEV(logger,critical) << "Error saving stack data.";
-
-                                }
-
-                                BOOST_LOG_SEV(logger,notification) << "Stack saved : " << completeDataPath;
-
-                            }else{
-
-                                BOOST_LOG_SEV(logger,fail) << "Fail to build stack directory. ";
-
-                            }
-
-                        }
 
                         t = (((double)getTickCount() - t)/getTickFrequency())*1000;
                         std::cout << "[ Stack time ] : " << std::setprecision(5) << std::fixed << t << " ms" << endl;
@@ -378,45 +358,42 @@ void StackThread::operator()(){
                         BOOST_LOG_SEV(logger,notification) << "Interruption status : " << forceToSave;
                         cout << "Interruption status : " << forceToSave << endl;
 
-                        if(frameStack.getNbFramesStacked() > 1){
-
-                            cout << "Building Stack Data Directory..." << endl;
-
-                            if(buildStackDataDirectory(frameStack.getDateFirstFrame())){
-
-                                cout << "Path : " << completeDataPath << endl;
-                                if(!frameStack.saveStack(fitsHeader, completeDataPath, STACK_MTHD, STATION_NAME, STACK_REDUCTION)){
-
-                                    BOOST_LOG_SEV(logger,critical) << "Error saving stack data.";
-
-                                }else{
-
-                                    float p = (frameStack.getNbFramesStacked() * 100.0) / (float)frameStack.getMaxFramesToStack();
-
-                                    cout << "Stack correctly saved at "  << p << endl;
-
-                                    BOOST_LOG_SEV(logger,notification) << "Stack saved : " << completeDataPath;
-
-                                }
-
-                            }else{
-
-                                BOOST_LOG_SEV(logger,fail) << "Fail to build stack directory. ";
-
-                            }
-
-                        }
-
                         // Interruption operations terminated. Rest interruption signal.
                         interruptionStatusMutex.lock();
                         interruptionStatus = false;
                         interruptionStatusMutex.unlock();
 
-                        cout << "Interruption status : " << forceToSave << endl;
+                        break;
 
                     }
 
-                }while(!frameStack.getFullStatus());
+                    time = boost::posix_time::microsec_clock::universal_time();
+                    cDate = to_simple_string(time);
+                    string nowDate = cDate.substr(0, cDate.find(dateDelimiter));
+                    boost::posix_time::ptime t1(boost::posix_time::time_from_string(refDate));
+                    boost::posix_time::ptime t2(boost::posix_time::time_from_string(nowDate));
+                    boost::posix_time::time_duration td = t2 - t1;
+                    secTime = td.total_seconds();
+                    cout << "STACK : " << secTime << "/" << STACK_TIME <<  endl;
+
+                }while(secTime <= STACK_TIME);
+
+                // Stack finished. Save it.
+                if(buildStackDataDirectory(frameStack.getDateFirstFrame())) {
+
+                    if(!frameStack.saveStack(fitsHeader, completeDataPath, STACK_MTHD, STATION_NAME, STACK_REDUCTION)){
+
+                        BOOST_LOG_SEV(logger,fail) << "Fail to save stack.";
+
+                    }
+
+                    BOOST_LOG_SEV(logger,notification) << "Stack saved : " << completeDataPath;
+
+                }else{
+
+                    BOOST_LOG_SEV(logger,fail) << "Fail to build stack directory. ";
+
+                }
 
             }catch(const boost::thread_interrupted&){
 
