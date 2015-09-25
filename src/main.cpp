@@ -598,7 +598,7 @@ int main(int argc, const char ** argv){
                                                 if(cptTime > executionTime){
 
                                                     std::cout << "Break main loop"<< endl;
-
+                                                 
                                                     break;
                                                 }
                                                 cptTime ++;
@@ -608,7 +608,6 @@ int main(int argc, const char ** argv){
                                             if(inputDevice != NULL){
 
                                                 if(inputDevice->getThreadEndStatus()){
-
                                                     std::cout << "Break main loop" << endl;
                                                     break;
 
@@ -640,7 +639,6 @@ int main(int argc, const char ** argv){
                             }
 
                             if(detection != NULL){
-
                                 if(detThreadCreationSuccess)
                                     detection->stopThread();
                                 delete detection;
@@ -648,7 +646,6 @@ int main(int argc, const char ** argv){
                             }
 
                             if(stack != NULL){
-
                                 if(stackThreadCreationSuccess)
                                     stack->stopThread();
                                 delete stack;
@@ -657,12 +654,12 @@ int main(int argc, const char ** argv){
 
                         }catch(exception& e){
 
-                            cout << "An exception occured : " << e.what() << endl;
+                            cout << e.what() << endl;
                             BOOST_LOG_SEV(slg, critical) << e.what();
 
                         }catch(const char * msg){
 
-                            cout << "!!" << msg << endl;
+                            cout << msg << endl;
                             BOOST_LOG_SEV(slg,critical) << msg;
 
                         }

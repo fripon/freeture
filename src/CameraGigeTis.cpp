@@ -203,7 +203,7 @@
 
         }else {
 
-            if(((id+1)>=pVidCapDevList->size()) || id < 0) {
+            if(((id+1)>pVidCapDevList->size()) || id < 0) {
 
                 BOOST_LOG_SEV(logger,fail) << "Camera ID not correct. Can't be found.";
                 return false;

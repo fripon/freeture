@@ -95,11 +95,11 @@ void StackThread::stopThread(){
     mustStop = true;
     mustStopMutex.unlock();
 
-    while(thread->timed_join(boost::posix_time::seconds(1)) == false){
-
+    /*while(thread->timed_join(boost::posix_time::seconds(1)) == false){
         thread->interrupt();
+    }*/
 
-    }
+    interruptThread();
 
 }
 
@@ -305,7 +305,7 @@ void StackThread::operator()(){
 
         do{
 
-            try{
+            //try{
 
                 // Thread is sleeping...
                 boost::this_thread::sleep(boost::posix_time::millisec(STACK_INTERVAL*1000));
@@ -395,12 +395,12 @@ void StackThread::operator()(){
 
                 }
 
-            }catch(const boost::thread_interrupted&){
+            /*}catch(const boost::thread_interrupted&){
 
                 BOOST_LOG_SEV(logger,notification) << "Stack thread INTERRUPTED";
                 cout << "Stack thread INTERRUPTED" << endl;
 
-            }
+            }*/
 
             // Get the "must stop" state (thread-safe)
             mustStopMutex.lock();
