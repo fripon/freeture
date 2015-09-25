@@ -948,7 +948,6 @@ int main(int argc, const char ** argv){
                                                     mailAttachments,
                                                     NO_SECURITY);
 
-
                             }
                         }
 
@@ -1020,14 +1019,7 @@ int main(int argc, const char ** argv){
 
                     break;
 
-                case 6 :
 
-                    {
-
-
-                    }
-
-                    break;
 
                 default :
 
