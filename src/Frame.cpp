@@ -47,7 +47,7 @@ Frame::Frame():
 mExposure(0), mGain(0), mFileName("noFileName"), mFrameRemaining(0),
 mFrameNumber(0), mFps(0), mBitDepth(MONO_8), mSaturatedValue(255) {
 
-    mDate = {0, 0, 0, 0, 0, 0.0};
+   // mDate = {};
 
 }
 

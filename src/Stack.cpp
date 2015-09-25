@@ -43,9 +43,6 @@ Stack::Stack():
 curFrames(0), varExpTime(false),
 sumExpTime(0.0), gainFirstFrame(0), expFirstFrame(0), fps(0), bitdepth(MONO_8){
 
-    mDateFirstFrame = {0, 0, 0, 0, 0, 0.0};
-    mDateLastFrame = {0, 0, 0, 0, 0, 0.0};
-
 }
 
 Stack::~Stack(){}

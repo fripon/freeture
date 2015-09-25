@@ -53,7 +53,6 @@ DetThread::DetThread(   string                          cfg_p,
                         mEventPath(""), mIsRunning(false), mNbDetection(0), mWaitFramesToCompleteEvent(false), mCurrentDataSetLocation(""),
                         mNbWaitFrames(0), mInterruptionStatus(false) {
 
-    mEventDate = {0, 0, 0, 0, 0, 0.0};
     mCfgPath = cfg_p;
     frameBuffer = fb;
     frameBuffer_mutex = fb_m;
@@ -760,7 +759,7 @@ bool DetThread::saveEventData(int firstEvPosInFB, int lastEvPosInFB){
     BOOST_LOG_SEV(logger,notification) << "> Total frames to save : " << nbTotalFramesToSave;
     BOOST_LOG_SEV(logger,notification) << "> Total digit          : " << nbDigitOnNbTotalFramesToSave;
 
-    TimeDate::Date dateFirstFrame = {0, 0, 0, 0, 0, 0.0};
+    TimeDate::Date dateFirstFrame;
 
     int c = 0;
 

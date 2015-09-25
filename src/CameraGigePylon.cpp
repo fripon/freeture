@@ -707,6 +707,8 @@ bool CameraGigePylon::getFrameSize(int &w , int &h) {
                 w = pCamera->Width.GetValue();
                 h = pCamera->Height.GetValue();
 
+                return true;
+
             }else{
 
                 BOOST_LOG_SEV(logger,fail) << "Can't access width image. Camera not opened or not attached." << endl;
@@ -720,6 +722,8 @@ bool CameraGigePylon::getFrameSize(int &w , int &h) {
 
         }
     }
+
+    return false;
 
 }
 

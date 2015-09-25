@@ -60,6 +60,8 @@ class TimeDate {
             int     minutes;
             double  seconds;
 
+            Date():year(0), month(0), day(0), hours(0), minutes(0), seconds(0) {}
+
         };
 
         /**

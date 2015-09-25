@@ -112,7 +112,7 @@ class Detection {
         * @return Date of the event : YYYY-MM-DDTHH:MM:SS,fffffffff
         */
         virtual TimeDate::Date getDateEvent() {
-            TimeDate::Date date = {0, 0, 0, 0, 0, 0.0};
+            TimeDate::Date date;
             return date;
         };
 
