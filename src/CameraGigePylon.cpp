@@ -501,11 +501,10 @@ bool CameraGigePylon::grabSingleImage(Frame &frame, int camID){
         devices.clear();
 
         if(pTlFactory) {
+            cout << pTlFactory->EnumerateDevices(devices) << endl;
+            if (((camID + 1 ) > pTlFactory->EnumerateDevices(devices)) || camID < 0){
 
-            if (0 == pTlFactory->EnumerateDevices(devices)){
-
-                cout << ">> Camera (ID:" << camID << ") not found. " << endl;
-                return false;
+                throw "Camera ID not correct. Can't be found.";
 
             }else {
 
@@ -639,12 +638,22 @@ bool CameraGigePylon::grabSingleImage(Frame &frame, int camID){
 
         }
 
-        return false;
-
     }catch(GenICam::GenericException &e) {
 
-        cerr << ">> An exception occurred : " << e.GetDescription() << endl;
+        BOOST_LOG_SEV(logger,fail) << e.GetDescription();
+
+    }catch(exception& e) {
+
+        BOOST_LOG_SEV(logger,fail) << e.what();
+
+    }catch(const char * msg) {
+
+        cout << msg << endl;
+        BOOST_LOG_SEV(logger,fail) << msg;
+
     }
+
+    return false;
 }
 
 void CameraGigePylon::getExposureBounds(int &eMin, int &eMax){

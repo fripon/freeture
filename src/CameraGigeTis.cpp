@@ -203,6 +203,13 @@
 
         }else {
 
+            if(((id+1)>=pVidCapDevList->size()) || id < 0) {
+
+                BOOST_LOG_SEV(logger,fail) << "Camera ID not correct. Can't be found.";
+                return false;
+
+            }
+            
             // Open the selected video capture device.
             m_pGrabber->openDev(pVidCapDevList->at(id));
             return true;
