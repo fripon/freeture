@@ -27,9 +27,7 @@ before_install:
   # Install newer boost compatible with gcc 4.8.
   - wget http://sourceforge.net/projects/boost/files/boost/1.55.0/boost_1_55_0.tar.bz2
   - tar -xvjf boost_1_55_0.tar.bz2 | tail -n 50
-  - ls
   - cd boost_1_55_0
-  - ./bootstrap.sh --help
   - sudo  ./bootstrap.sh --with-libraries="program_options,date_time,filesystem,system,iostreams,thread,log,chrono"
   - sudo ./b2 install | tail -n 50
   - cd ..
@@ -41,7 +39,6 @@ before_install:
   - cd ..
   
 install :
-  - cd autotools
   - sh bootstrap.sh
   
 script :
