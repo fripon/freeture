@@ -792,7 +792,7 @@
 
     }
 
-    int CameraV4l2::getExposureTime(){
+    double CameraV4l2::getExposureTime(){
 
         struct v4l2_control control;
         memset(&control, 0, sizeof(control));

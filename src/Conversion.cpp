@@ -71,6 +71,15 @@ string Conversion::intToString(int nb){
 
 }
 
+float Conversion::roundToNearest(float value, float precision) {
+
+    float fractpart1 = 0.0, intpart1 = 0.0, fractpart2 = 0.0, intpart2 = 0.0;
+    fractpart1 = modf (value , &intpart1);
+    float d = fractpart1/precision;
+    fractpart2 = modf (d , &intpart2);
+    return intpart1 + intpart2*precision;
+}
+
 string Conversion::floatToString(float nb){
 
     std::ostringstream ss;

@@ -266,7 +266,7 @@
             *
             * @return Device's exposure time.
             */
-            int getExposureTime();
+            double getExposureTime();
 
             /**
             * Set device's exposure time value.

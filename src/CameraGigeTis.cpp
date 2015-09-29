@@ -71,12 +71,12 @@
         for(int i = 0; i < pVidCapDevList->size(); i++) {
 
             LARGE_INTEGER iSerNum;
-            if(pVidCapDevList->at(0).getSerialNumber(iSerNum.QuadPart) == false) iSerNum.QuadPart = 0;
+            if(pVidCapDevList->at(i).getSerialNumber(iSerNum.QuadPart) == false) iSerNum.QuadPart = 0;
             std::ostringstream ossSerNum;
             ossSerNum << std::hex << iSerNum.QuadPart;
             string SerNum = ossSerNum.str();
 
-            cout << "-> ID[" << i << "]  NAME[" << pVidCapDevList->at(0).c_str() << "]  S/N[" << SerNum <<"]" << endl;
+            cout << "-> ID[" << i << "]  NAME[" << pVidCapDevList->at(i).c_str() << "]  S/N[" << SerNum <<"]" << endl;
 
         }
 
@@ -187,10 +187,88 @@
 
     }*/
 
+    bool CameraGigeTis::setFpsToLowerValue() {
+
+        try {
+
+            // Get list of possible format.
+            DShowLib::Grabber::tFrameRateListPtr VidFpsListPtr = m_pGrabber->getAvailableFrameRates();
+            double chooseValue = 0.0;
+            cout << "Available FPS : | " ;
+            for(int i = 0; i < VidFpsListPtr->size(); i++) {
+
+                double fps = Conversion::roundToNearest((1.0/((float)VidFpsListPtr->at(i) / 1000.0)), 0.25);
+                cout << fps << " | ";
+                if(chooseValue == 0.0) {
+                    chooseValue = fps;
+                }else {
+                    if(fps < chooseValue) {
+                        chooseValue = fps;
+                    }
+                }
+
+            }
+            cout << endl;
+        
+            if(chooseValue != 0.0) {
+                mFPS = chooseValue;
+                cout << ">> Fps setted to the lower value : " << chooseValue << endl;
+                m_pGrabber->setFPS(chooseValue);
+                return true;
+            }
+
+        }catch(exception& e) {
+
+            BOOST_LOG_SEV(logger,critical) << "An error occured on set lower fps operation.";
+            BOOST_LOG_SEV(logger,critical) << e.what();
+
+        }
+
+        return false;
+
+    }
+
     bool CameraGigeTis::setFPS(double value) {
 
-        mFPS = value;
-        return m_pGrabber->setFPS((double)value);
+        try {
+
+            // Get list of possible format.
+            DShowLib::Grabber::tFrameRateListPtr VidFpsListPtr = m_pGrabber->getAvailableFrameRates();
+            double chooseValue = 0.0;
+            double resPrev = 0.0;
+            cout << "Available FPS : | " ;
+            for(int i = 0; i < VidFpsListPtr->size(); i++) {
+
+                double fps = Conversion::roundToNearest((1.0/((float)VidFpsListPtr->at(i) / 1000.0)), 0.25);
+                cout << fps << " | ";
+                if(resPrev == 0.0) {
+                    resPrev = abs(fps - value);
+                    chooseValue = fps;
+                }else {
+                    if(resPrev > abs(fps - value)) {
+                        resPrev = abs(fps - value);
+                        chooseValue = fps;
+                    }
+                }
+
+            }
+            cout << endl;
+        
+            if(chooseValue != 0.0) {
+                mFPS = chooseValue;
+                cout << ">> Set fps to : " << chooseValue << endl;
+                m_pGrabber->setFPS(chooseValue);
+                return true;
+            }
+
+        }catch(exception& e) {
+
+            BOOST_LOG_SEV(logger,critical) << "An error occured on set fps operation.";
+            BOOST_LOG_SEV(logger,critical) << e.what();
+
+        }
+
+        return false;
 
     }
 
@@ -221,11 +299,39 @@
 
         mImgDepth = format;
 
+        vector<string> mono12, mono8;
+
+        // Get list of possible format.
+        DShowLib::Grabber::tVidFmtListPtr     VidFmtListPtr     = m_pGrabber->getAvailableVideoFormats();
+        string dateDelimiter = " ";
+        cout << "Available Format : " << endl;
+        for(int i = 0; i < VidFmtListPtr->size(); i++) {
+
+            string s = VidFmtListPtr->at(i).c_str();
+            string s1 = s.substr(0, s.find(dateDelimiter));
+            cout << "-> (" << Conversion::intToString(i) << ") " << VidFmtListPtr->at(i).c_str() << endl;
+
+            if(s1 == "Y8" || s1 == "Y800"){
+
+                mono8.push_back(VidFmtListPtr->at(i).c_str());
+
+            }else if(s1 == "Y12"){
+
+                mono12.push_back(VidFmtListPtr->at(i).c_str());
+
+            }
+        }
+
+        cout << endl;
+
         switch(format){
 
             case MONO_8 :
 
-                m_pGrabber->setVideoFormat("Y8 (1280x960-1280x960)");
+                if(mono8.size() == 0) 
+                    return false;
+
+                m_pGrabber->setVideoFormat(mono8.front());//"Y8 (1280x960-1280x960)");
 
                 // Set the image buffer format to eY800. eY800 means monochrome, 8 bits (1 byte) per pixel.
                 // Let the sink create a matching MemBufferCollection with 1 buffer.
@@ -235,7 +341,10 @@
 
             case MONO_12 :
 
-                m_pGrabber->setVideoFormat("Y16 (1280x960-1280x960)");
+                if(mono12.size() == 0) 
+                    return false;
+
+                m_pGrabber->setVideoFormat(mono12.front());//"Y16 (1280x960-1280x960)");
 
                 // Disable overlay.
                 // http://www.theimagingsourceforums.com/archive/index.php/t-319880.html
@@ -267,12 +376,33 @@
 
     void CameraGigeTis::getExposureBounds(int &eMin, int &eMax) {
 
-        // Get properties.
-        _DSHOWLIB_NAMESPACE::tIVCDPropertyItemsPtr pItems = m_pGrabber->getAvailableVCDProperties();
+        DShowLib::tIVCDAbsoluteValuePropertyPtr pExposureRange;
 
-        eMin  = (int)getPropertyRangeMin(DShowLib::VCDID_Exposure, pItems);
-        eMax  = (int)getPropertyRangeMax(DShowLib::VCDID_Exposure, pItems);
+        pExposureRange = NULL;
+ 
+        DShowLib::tIVCDPropertyItemsPtr pItems = m_pGrabber->getAvailableVCDProperties();
 
+        if( pItems != 0 ) { 
+
+            // Try to find the exposure item. 
+            DShowLib::tIVCDPropertyItemPtr pExposureItem = pItems->findItem( DShowLib::VCDID_Exposure );
+
+            if( pExposureItem != 0 ) { 
+
+                // Try to find the value and auto elements 
+                DShowLib::tIVCDPropertyElementPtr pExposureValueElement = pExposureItem->findElement( DShowLib::VCDElement_Value );
+
+                // If a value element exists, try to acquire a range interface 
+                if( pExposureValueElement != 0 ) { 
+
+                    pExposureValueElement->getInterfacePtr( pExposureRange );
+
+                    eMin = pExposureRange->getRangeMin();
+                    eMax = pExposureRange->getRangeMax();
+
+                } 
+            } 
+        }
     }
 
     void CameraGigeTis::getGainBounds(int &gMin, int &gMax) {
@@ -285,53 +415,105 @@
 
     }
 
-    bool CameraGigeTis::setExposureTime(int value) {
 
-        _DSHOWLIB_NAMESPACE::tIVCDPropertyItemsPtr pItems = m_pGrabber->getAvailableVCDProperties();
+    bool CameraGigeTis::setExposureTime(double value) {
 
-        if(mExposureMin == -1 && mExposureMax == -1) {
+        bool bOK = false;
+        DShowLib::tIVCDAbsoluteValuePropertyPtr pExposureRange;
+        DShowLib::tIVCDSwitchPropertyPtr pExposureAuto;
 
-            mExposureMin = (int)getPropertyRangeMin(DShowLib::VCDID_Exposure, pItems);
-            mExposureMax = (int)getPropertyRangeMax(DShowLib::VCDID_Exposure, pItems);
+        pExposureRange = NULL;
+        pExposureAuto = NULL;
 
-    }
+        DShowLib::tIVCDPropertyItemsPtr pItems = m_pGrabber->getAvailableVCDProperties();
 
-        if(value > mExposureMax || value < mExposureMin){
+        if( pItems != 0 ) { 
+            // Try to find the exposure item. 
+            DShowLib::tIVCDPropertyItemPtr pExposureItem = pItems->findItem( DShowLib::VCDID_Exposure );
+            if( pExposureItem != 0 ) { 
+                // Try to find the value and auto elements 
+                DShowLib::tIVCDPropertyElementPtr pExposureValueElement = pExposureItem->findElement( DShowLib::VCDElement_Value );
+                DShowLib::tIVCDPropertyElementPtr pExposureAutoElement = pExposureItem->findElement( DShowLib::VCDElement_Auto );
 
-            cout << endl << ">> Fail to set exposure. Available range value is " << mExposureMin << " to " << mExposureMax << endl;
-            BOOST_LOG_SEV(logger,fail) << "Fail to set EXPOSURE TIME. Available range value is " << mExposureMin << " to " << mExposureMax;
-            return false;
+                // If an auto element exists, try to acquire a switch interface 
+                if( pExposureAutoElement != 0 ) { 
+                    pExposureAutoElement->getInterfacePtr( pExposureAuto );
+                    pExposureAuto->setSwitch(false); // Disable auto, otherwise we can not set exposure.
+                } 
+
+                // If a value element exists, try to acquire a range interface 
+                if( pExposureValueElement != 0 ) { 
+
+                    pExposureValueElement->getInterfacePtr( pExposureRange );
+
+                    mExposureMin = pExposureRange->getRangeMin();
+                    mExposureMax = pExposureRange->getRangeMax();
+
+                    cout << "Available exposure range : [ " << mExposureMin << " - "<< mExposureMax << " ]" << endl;
+
+                    if ( value < mExposureMin ) {
+                        value = mExposureMin;
+                        BOOST_LOG_SEV(logger,warning) << "EXPOSURE TIME setted to " << mExposureMin << ". Available range [" << mExposureMin << " - " << mExposureMax<< "]";
+                    } else if( value > mExposureMax ) {
+                        value = mExposureMax;
+                        BOOST_LOG_SEV(logger,warning) << "EXPOSURE TIME setted to " << mExposureMax << ". Available range [" << mExposureMin << " - " << mExposureMax<< "]";
+                    }
+                                
+                    // Here we set the the exposure value.
+                    cout << ">> Set exposure time to : " << value << endl;
+                    pExposureRange->setValue( value); 
+                    bOK = true;
+                } 
+            } 
         }
-
-        setPropertyValue(DShowLib::VCDID_Exposure, (long)value, pItems);
-        mExposure = value;
-        return true;
-
+        return bOK;
     }
 
     bool CameraGigeTis::setGain(int value) {
 
-        _DSHOWLIB_NAMESPACE::tIVCDPropertyItemsPtr pItems = m_pGrabber->getAvailableVCDProperties();
+        bool bOK = false;
+        DShowLib::tIVCDSwitchPropertyPtr pGainAuto;
 
-        if(mGainMin == -1 && mGainMax == -1) {
+        pGainAuto = NULL;
 
-            mGainMin  = (int)getPropertyRangeMin(DShowLib::VCDID_Gain, pItems);
-            mGainMax  = (int)getPropertyRangeMax(DShowLib::VCDID_Gain, pItems);
+        DShowLib::tIVCDPropertyItemsPtr pItems = m_pGrabber->getAvailableVCDProperties();
 
+        if( pItems != 0 ) { 
+
+            // Try to find the gain item. 
+            DShowLib::tIVCDPropertyItemPtr pGainItem = pItems->findItem( DShowLib::VCDID_Gain );
+
+            if( pGainItem != 0 ) { 
+
+                // Try to find auto elements 
+                DShowLib::tIVCDPropertyElementPtr pGainAutoElement = pGainItem->findElement( DShowLib::VCDElement_Auto );
+
+                // If an auto element exists, try to acquire a switch interface 
+                if( pGainAutoElement != 0 ) { 
+                    pGainAutoElement->getInterfacePtr( pGainAuto );
+                    pGainAuto->setSwitch(false); // Disable auto, otherwise we can not set gain.
+                } 
+
+                mGainMin  = (int)getPropertyRangeMin(DShowLib::VCDID_Gain, pItems);
+                mGainMax  = (int)getPropertyRangeMax(DShowLib::VCDID_Gain, pItems);
+
+                cout << "Available gain range : [ " << mGainMin << " - "<< mGainMax << " ]" << endl;
+
+                if(value > mGainMax || value < mGainMin){
+
+                    BOOST_LOG_SEV(logger,fail) << "Fail to set GAIN. Available range value is " << mGainMin << " to " << mGainMax;
+                    cout << endl << ">> Fail to set GAIN. Available range value is " << mGainMin << " to " << mGainMax << endl;
+
+                }else {
+
+                    setPropertyValue(DShowLib::VCDID_Gain, (long)value, pItems);
+                    cout << ">> Set gain to : " << value << endl;
+                    mGain = value;
+                    bOK = true;
+                }
+            } 
         }
-
-        if(value > mGainMax || value < mGainMin){
-
-            BOOST_LOG_SEV(logger,fail) << "Fail to set GAIN. Available range value is " << mGainMin << " to " << mGainMax;
-            cout << endl << ">> Fail to set GAIN. Available range value is " << mGainMin << " to " << mGainMax << endl;
-
-            return false;
-
-        }
-
-        setPropertyValue(DShowLib::VCDID_Gain, (long)value, pItems);
-        mGain = value;
-        return true;
+        return bOK;
 
     }
 
@@ -374,13 +556,13 @@
 
     void CameraGigeTis::acqStart() {
 
-    if (!m_pGrabber->isLive()) {
+        if (!m_pGrabber->isLive()) {
 
-        m_pGrabber->startLive(false);
+            m_pGrabber->startLive(false);
 
-    }
+        }
 
-    pSink->snapImages(1,(DWORD)-1);
+        pSink->snapImages(1,(DWORD)-1);
 
     }
 
@@ -479,11 +661,35 @@
 
     }
 
-    int CameraGigeTis::getExposureTime() {
+    double CameraGigeTis::getExposureTime() {
 
-        _DSHOWLIB_NAMESPACE::tIVCDPropertyItemsPtr pItems = m_pGrabber->getAvailableVCDProperties();
+        DShowLib::tIVCDAbsoluteValuePropertyPtr pExposureRange;
 
-        return (int)getPropertyValue(DShowLib::VCDID_Exposure,pItems);
+        pExposureRange = NULL;
+
+        DShowLib::tIVCDPropertyItemsPtr pItems = m_pGrabber->getAvailableVCDProperties();
+
+        if( pItems != 0 ) { 
+
+            // Try to find the exposure item. 
+
+            DShowLib::tIVCDPropertyItemPtr pExposureItem = pItems->findItem( DShowLib::VCDID_Exposure );
+            if( pExposureItem != 0 ) { 
+
+                // Try to find the value and auto elements 
+                DShowLib::tIVCDPropertyElementPtr pExposureValueElement = pExposureItem->findElement( DShowLib::VCDElement_Value );
+
+                // If a value element exists, try to acquire a range interface 
+                if( pExposureValueElement != 0 ) { 
+
+                    pExposureValueElement->getInterfacePtr( pExposureRange );
+                    return pExposureRange->getValue();
+
+                } 
+            } 
+        }
+
+        return 0.0;
 
     }
 
@@ -511,9 +717,14 @@
 
         listCameras();
 
-        if(createDevice(camID)) {
-
+        if(!createDevice(camID))
+            return false;
+  
         if(!setPixelFormat(frame.mBitDepth))
+            return false;
+        
+        // Set lower fps value.
+        if(!setFpsToLowerValue())
             return false;
 
         if(!setExposureTime(frame.mExposure))
@@ -522,122 +733,120 @@
         if(!setGain(frame.mGain))
             return false;
 
-            cout << ">> Acquisition in progress... (Please wait)" << endl;
+        cout << ">> Acquisition in progress... (Please wait)" << endl;
 
-            // Set the sink.
-            m_pGrabber->setSinkType(pSink);
+        // We use snap mode.
+        pSink->setSnapMode(true);
 
-            // We use snap mode.
-            pSink->setSnapMode(true);
+        // Set the sink.
+        m_pGrabber->setSinkType(pSink);
 
-            // Prepare the live mode, to get the output size if the sink.
-            if(!m_pGrabber->prepareLive(false)){
+        // Disable live mode.
+        m_pGrabber->prepareLive(false);
 
-                std::cerr << "Could not render the VideoFormat into a eY800 sink.";
-                return false;
-            }
+            
+        // Retrieve the output type and dimension of the handler sink.
+        DShowLib::FrameTypeInfo info;
+        pSink->getOutputFrameType(info);
 
-            // Retrieve the output type and dimension of the handler sink.
-            // The dimension of the sink could be different from the VideoFormat, when
-            // you use filters.
-            DShowLib::FrameTypeInfo info;
-            pSink->getOutputFrameType(info);
+        Mat newImg;
+        DShowLib ::Error e;
 
-            Mat newImg;
+        //Timestamping.
+        boost::posix_time::ptime time;
 
-            switch(info.getBitsPerPixel()){
+        switch(info.getBitsPerPixel()){
 
-                case 8 :
+            case 8 :
 
-                    {
+                {
 
-                        newImg = Mat(info.dim.cy, info.dim.cx, CV_8UC1, Scalar(0));
-                        //BYTE* pBuf[1];
-                        // Allocate image buffers of the above calculate buffer size.
-                        pBuf[0] = new BYTE[info.buffersize];
+                    newImg = Mat(info.dim.cy, info.dim.cx, CV_8UC1, Scalar(0));
+                    BYTE* pBuf[1];
+                    // Allocate image buffers of the above calculate buffer size.
+                    pBuf[0] = new BYTE[info.buffersize];
 
-                        // Create a new MemBuffer collection that uses our own image buffers.
-                        pCollection = DShowLib::MemBufferCollection::create( info, 1, pBuf );
-                        if( pCollection == 0 || !pSink->setMemBufferCollection(pCollection)){
+                    // Create a new MemBuffer collection that uses our own image buffers.
+                    pCollection = DShowLib::MemBufferCollection::create( info, 1, pBuf );
 
-                            std::cerr << "Could not set the new MemBufferCollection, because types do not match.";
-                            return false;
+                    if( pCollection == 0 || !pSink->setMemBufferCollection(pCollection)){
 
+                        BOOST_LOG_SEV(logger,critical) << "Could not set the new MemBufferCollection.";
+
+                    }else {
+
+                        m_pGrabber->startLive();
+
+                        e = pSink->snapImages(1);
+
+                        if( !e.isError()) {
+                            time = boost::posix_time::microsec_clock::universal_time();
+                            memcpy(newImg.ptr(), pBuf[0], info.buffersize);
                         }
-
-                        m_pGrabber->startLive(false);
-
-                        pSink->snapImages(1);
-
-                        memcpy(newImg.ptr(), pBuf[0], info.buffersize);
-
                     }
+                }
 
-                    break;
+                break;
 
-                case 16 :
+            case 16 :
 
-                    {
+                {
 
-                        newImg = Mat(info.dim.cy, info.dim.cx, CV_16UC1, Scalar(0));
-                        BYTE * pBuf[1];
-                        // Allocate image buffers of the above calculate buffer size.
-                        pBuf[0] = new BYTE[info.buffersize];
+                    newImg = Mat(info.dim.cy, info.dim.cx, CV_16UC1, Scalar(0));
+                    BYTE * pBuf[1];
+                    // Allocate image buffers of the above calculate buffer size.
+                    pBuf[0] = new BYTE[info.buffersize];
 
-                        // Create a new MemBuffer collection that uses our own image buffers.
-                        pCollection = DShowLib::MemBufferCollection::create(info, 1, pBuf);
-                        if(pCollection == 0 || !pSink->setMemBufferCollection(pCollection)){
+                    // Create a new MemBuffer collection that uses our own image buffers.
+                    pCollection = DShowLib::MemBufferCollection::create(info, 1, pBuf);
 
-                            std::cerr << "Could not set the new MemBufferCollection, because types do not match.";
-                            return false;
+                    if(pCollection == 0 || !pSink->setMemBufferCollection(pCollection)){
 
-                        }
+                        BOOST_LOG_SEV(logger,critical) << "Could not set the new MemBufferCollection.";
+
+                    }else {
 
                         m_pGrabber->startLive(false);
 
-                        pSink->snapImages(1);
+                        e = pSink->snapImages(1);
 
-                        memcpy(newImg.ptr(), pBuf[0], info.buffersize);
+                        if( !e.isError()) {
 
-                        unsigned short * ptr;
+                            time = boost::posix_time::microsec_clock::universal_time();
+                            memcpy(newImg.ptr(), pBuf[0], info.buffersize);
 
-                        double t = (double)getTickCount();
-
-                        for(int i = 0; i < newImg.rows; i++){
-
-                            ptr = newImg.ptr<unsigned short>(i);
-
-                            for(int j = 0; j < newImg.cols; j++){
-
-                                ptr[j] = ptr[j] >> 4;
-
+                            // Shift.
+                            unsigned short * ptr;
+                            for(int i = 0; i < newImg.rows; i++){
+                                ptr = newImg.ptr<unsigned short>(i);
+                                for(int j = 0; j < newImg.cols; j++){
+                                    ptr[j] = ptr[j] >> 4;
+                                }
                             }
                         }
-
                     }
+                }
 
-                    break;
+                break;
 
-                default:
+            default:
 
-                        return false;
+                    return false;
 
-                    break;
-            }
+                break;
+        }
 
-            m_pGrabber->stopLive();
+        m_pGrabber->stopLive();
 
-            m_pGrabber->closeDev();
+        m_pGrabber->closeDev();
 
-            //Timestamping.
-            boost::posix_time::ptime time = boost::posix_time::microsec_clock::universal_time();
+        if( !e.isError()) {
 
             newImg.copyTo(frame.mImg);
             frame.mDate = TimeDate::splitIsoExtendedDate(to_iso_extended_string(time));
             frame.mFps = 0;
 
             return true;
-
         }
 
         return false;

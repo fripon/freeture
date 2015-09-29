@@ -98,7 +98,7 @@
             int mFrameCounter;
             int mGain;
             int mExposure;
-            int mFPS;
+            double mFPS;
             CamBitDepth mImgDepth;
             int mSaturateVal;
             int mGainMin;
@@ -179,7 +179,7 @@
             * @param value New exposure time value (us).
             * @return Success status to set new exposure time.
             */
-            bool setExposureTime(int value);
+            bool setExposureTime(double value);
 
             /**
             * Set device's gain value.
@@ -196,6 +196,8 @@
             * @return Success status to set fps.
             */
             bool setFPS(double value);
+
+            bool setFpsToLowerValue();
 
             /**
             * Prepare device to grab frames.
@@ -243,7 +245,7 @@
             *
             * @return Device's exposure time.
             */
-            int getExposureTime();
+            double getExposureTime();
 
     };
 

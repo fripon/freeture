@@ -51,7 +51,7 @@ class Frame {
     public :
          
         TimeDate::Date      mDate;
-        int                 mExposure;           // Camera's exposure value used to grab the frame.
+        double              mExposure;           // Camera's exposure value used to grab the frame.
         int                 mGain;               // Camera's gain value used to grab the frame.
         CamBitDepth         mBitDepth;           // Image format.
         Mat                 mImg;                // Frame's image data.

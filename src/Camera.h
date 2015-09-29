@@ -47,6 +47,8 @@ class Camera {
 
     public :
 
+        virtual void grabTest() {};
+
         /**
         * List connected GigE devices.
         *
@@ -190,7 +192,7 @@ class Camera {
         *
         * @return Device's exposure time.
         */
-        virtual int getExposureTime() {return 0;};
+        virtual double getExposureTime() {return 0.0;};
 
         /**
         * Set device's exposure time value.
@@ -198,7 +200,7 @@ class Camera {
         * @param value New exposure time value (us).
         * @return Success status to set new exposure time.
         */
-        virtual bool setExposureTime(int value)	{return false;};
+        virtual bool setExposureTime(double value)	{return false;};
 
         /**
         * Set device's gain value.

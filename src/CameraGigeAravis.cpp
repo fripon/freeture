@@ -719,7 +719,7 @@
 
     }
 
-    int CameraGigeAravis::getExposureTime(){
+    double CameraGigeAravis::getExposureTime(){
 
         return arv_camera_get_exposure_time(camera);
 
@@ -800,7 +800,7 @@
 
     }
 
-    bool CameraGigeAravis::setExposureTime(int val){
+    bool CameraGigeAravis::setExposureTime(double val){
 
         double expMin, expMax;
 
@@ -808,9 +808,9 @@
 
         if(camera != NULL){
 
-            if((double)val >= expMin && (double)val <= expMax)
+            if(val >= expMin && val <= expMax)
 
-            arv_camera_set_exposure_time(camera, (double)val);
+            arv_camera_set_exposure_time(camera, val);
 
             else{
 

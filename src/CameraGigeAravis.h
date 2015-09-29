@@ -243,7 +243,7 @@
             *
             * @return Device's exposure time.
             */
-            int getExposureTime();
+            double getExposureTime();
 
             /**
             * Set device's exposure time value.
@@ -251,7 +251,7 @@
             * @param value New exposure time value (us).
             * @return Success status to set new exposure time.
             */
-            bool setExposureTime(int exp);
+            bool setExposureTime(double exp);
 
             /**
             * Get device's gain value.

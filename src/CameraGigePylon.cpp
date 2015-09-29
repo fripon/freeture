@@ -753,14 +753,14 @@ string CameraGigePylon::getModelName(){
  return "";
 }
 
-bool CameraGigePylon::setExposureTime(int exposition){
+bool CameraGigePylon::setExposureTime(double exposition){
 
     if(pCamera){
 
         try{
             if ( pCamera->IsAttached() && pCamera->IsOpen() ){
 
-                pCamera->ExposureTimeAbs = (double)exposition;
+                pCamera->ExposureTimeAbs = exposition;
 
             }else{
 
@@ -862,10 +862,10 @@ bool CameraGigePylon::setPixelFormat(CamBitDepth format){
 }
 
 
-int CameraGigePylon::getExposureTime(){
+double CameraGigePylon::getExposureTime(){
 
     if(pCamera!=0)
-         return (int)pCamera->ExposureTimeAbs.GetValue();
+         return pCamera->ExposureTimeAbs.GetValue();
     else
         return 0;
 

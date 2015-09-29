@@ -198,7 +198,7 @@ int main(int argc, const char ** argv){
       ("bmp",           po::value<bool>()->default_value(false),                                        "Save .bmp")
       ("fits",          po::value<bool>()->default_value(false),                                        "Save fits2D")
       ("gain,g",        po::value<int>(),                                                               "Define gain")
-      ("exposure,e",    po::value<int>(),                                                               "Define exposure")
+      ("exposure,e",    po::value<double>(),                                                            "Define exposure")
       ("version,v",                                                                                     "Get program version")
       ("camtype",       po::value<string>()->default_value("BASLER_GIGE"),                              "Type of camera")
       ("display",       po::value<bool>()->default_value(false),                                        "In mode 4 : Display the grabbed frame")
@@ -219,7 +219,7 @@ int main(int argc, const char ** argv){
         bool    saveBmp         = false;
         bool    saveFits2D      = false;
         int     gain            = 100;
-        int     exp             = 100;
+        double  exp             = 100;
         string  version         = string(VERSION);
         bool    display         = false;
         int     camID           = 0;
@@ -715,7 +715,7 @@ int main(int argc, const char ** argv){
 
                         // Exposure value.
                         if(vm.count("exposure")){
-                            exp = vm["exposure"].as<int>();
+                            exp = vm["exposure"].as<double>();
                         }else{
                             throw "Please define the exposure time value.";
                         }
@@ -1015,8 +1015,6 @@ int main(int argc, const char ** argv){
                     }
 
                     break;
-
-
 
                 default :
 

@@ -125,5 +125,7 @@ class Conversion {
         */
         static int roundToUpperRange(int n);
 
+        static float roundToNearest(float value, float precision);
+
 };
 
