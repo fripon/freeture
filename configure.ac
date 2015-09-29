@@ -33,7 +33,7 @@ define([AC_CACHE_SAVE],)
 
 AC_PREREQ([2.69])
 AC_INIT([freeture], [0.8-3], [yoan.audureau@u-psud.fr])
-AC_CONFIG_SRCDIR([../src/main.cpp])
+AC_CONFIG_SRCDIR([src/main.cpp])
 AC_CONFIG_HEADERS([config.h])
 
 AM_INIT_AUTOMAKE
@@ -231,7 +231,10 @@ AC_MSG_RESULT([Link    cmdline:  $CC $AM_LDFLAGS $LDFLAGS $LIBS])
 AC_MSG_RESULT([***************************************************************])
 
 AC_CONFIG_FILES([Makefile
-		 		 README
-		 		 INSTALL
+		 README
+		 INSTALL
+                 doc/Makefile
+		 doc/freeture.1
+                 src/Makefile
                  ])
 AC_OUTPUT
