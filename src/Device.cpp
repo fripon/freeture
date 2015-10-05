@@ -161,6 +161,20 @@ void Device::initialization() {
 
             break;
 
+        case OTHERS :
+
+            {
+
+                #ifdef WINDOWS
+
+                    cam = new CameraWindows();
+
+                #endif
+
+            }
+
+            break;
+
         case FRAMES :
 
             {

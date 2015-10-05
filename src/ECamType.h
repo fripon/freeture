@@ -37,7 +37,8 @@ enum CamType{
     BASLER_GIGE,    /*!< Support of Basler cameras by using Aravis Library or Pylon.*/
     TYTEA_USB,
     VIDEO,          /*!< Used to support a simple .avi in input of FreeTure.*/
-    FRAMES          /*!< Used to send in input of FreeTure a set of single images (Fits2D, jpeg, bmp).*/
+    FRAMES,          /*!< Used to send in input of FreeTure a set of single images (Fits2D, jpeg, bmp).*/
+    OTHERS
 
 };
 

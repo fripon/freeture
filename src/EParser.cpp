@@ -57,6 +57,7 @@ template<> EParser<CamType>::EParser() {
     enumMap["TYTEA_USB"]    = TYTEA_USB;
     enumMap["VIDEO"]        = VIDEO;
     enumMap["FRAMES"]       = FRAMES;
+    enumMap["OTHERS"]       = OTHERS;
 
 }
 

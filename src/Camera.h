@@ -47,8 +47,6 @@ class Camera {
 
     public :
 
-        virtual void grabTest() {};
-
         /**
         * List connected GigE devices.
         *
@@ -134,6 +132,9 @@ class Camera {
         */
         virtual void getExposureBounds(int &eMin, int &eMax) {};
 
+
+        virtual void getExposureUnit() {};
+        
         /**
         * Get device's gain bounds.
         *

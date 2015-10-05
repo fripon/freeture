@@ -78,6 +78,7 @@
 #include <boost/circular_buffer.hpp>
 #include "Ephemeris.h"
 #include "ETimeMode.h"
+#include "CameraWindows.h"
 
 using namespace boost::filesystem;
 using namespace cv;
@@ -146,8 +147,6 @@ class Device {
         double              mSunHorizon2;
         double              mStationLongitude;
         double              mStationLatitude;
-
-
 
     public :
 
