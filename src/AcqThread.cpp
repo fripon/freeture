@@ -507,7 +507,6 @@ void AcqThread::operator()(){
 
                 }else {
 
-                    BOOST_LOG_SEV(logger, fail) << "Fail to grab frame " << newFrame.mFrameNumber;
                     mNbGrabFail++;
 
                 }

@@ -501,7 +501,7 @@ bool CameraGigePylon::grabSingleImage(Frame &frame, int camID){
         devices.clear();
 
         if(pTlFactory) {
-            cout << pTlFactory->EnumerateDevices(devices) << endl;
+
             if (((camID + 1 ) > pTlFactory->EnumerateDevices(devices)) || camID < 0){
 
                 throw "Camera ID not correct. Can't be found.";
@@ -517,7 +517,7 @@ bool CameraGigePylon::grabSingleImage(Frame &frame, int camID){
         CInstantCamera camera( CTlFactory::GetInstance().CreateDevice(devices[camID].GetFullName()));
 
         INodeMap& nodemap = camera.GetNodeMap();
-
+ 
         // Open the camera for accessing the parameters.
         camera.Open();
 
@@ -558,6 +558,12 @@ bool CameraGigePylon::grabSingleImage(Frame &frame, int camID){
             return false;
         }
 
+        CEnumerationPtr exposureAuto( nodemap.GetNode( "ExposureAuto"));
+        if ( IsWritable( exposureAuto)){
+            exposureAuto->FromString("Off");
+            cout << ">> Exposure auto disabled." << endl;
+        }
+
         // Set exposure.
         CIntegerPtr ExposureTimeRaw(nodemap.GetNode("ExposureTimeRaw"));
 
@@ -578,6 +584,14 @@ bool CameraGigePylon::grabSingleImage(Frame &frame, int camID){
 
             cout << ">> Fail to set exposure value." << endl;
             return false;
+        }
+
+        // Disable auto gain.
+
+        CEnumerationPtr gainAuto( nodemap.GetNode( "GainAuto"));
+        if ( IsWritable( gainAuto)){
+            gainAuto->FromString("Off");
+            cout << ">> Gain auto disabled." << endl;
         }
 
         // Set gain.
@@ -753,12 +767,22 @@ string CameraGigePylon::getModelName(){
  return "";
 }
 
-bool CameraGigePylon::setExposureTime(double exposition){
+bool CameraGigePylon::setExposureTime(double exposition) {
 
     if(pCamera){
 
         try{
-            if ( pCamera->IsAttached() && pCamera->IsOpen() ){
+
+            if( pCamera->IsAttached() && pCamera->IsOpen() ){
+               
+                // Check whether auto exposure is available
+                if (IsWritable( pCamera->ExposureAuto)){
+
+                    // Disable auto exposure.
+                    cout << "Disable ExposureAuto." << endl;
+                    pCamera->ExposureAuto.SetValue(ExposureAuto_Off);
+
+                }
 
                 pCamera->ExposureTimeAbs = exposition;
 
@@ -788,6 +812,15 @@ bool CameraGigePylon::setGain(int gain){
         try{
 
             if( pCamera->IsAttached() && pCamera->IsOpen() ){
+
+                // Check whether auto exposure is available
+                if (IsWritable( pCamera->GainAuto)){
+
+                    // Disable auto exposure.
+                    cout << "Disable GainAuto." << endl;
+                    pCamera->GainAuto.SetValue(GainAuto_Off);
+
+                }
 
                 pCamera->GainRaw = gain;
 
