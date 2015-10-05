@@ -345,7 +345,7 @@
                     return false;
 
                 m_pGrabber->setVideoFormat(mono12.front());//"Y16 (1280x960-1280x960)");
-
+                
                 // Disable overlay.
                 // http://www.theimagingsourceforums.com/archive/index.php/t-319880.html
                 m_pGrabber->setOverlayBitmapPathPosition(DShowLib::ePP_NONE);
@@ -415,10 +415,10 @@
 
     }
 
-
     bool CameraGigeTis::setExposureTime(double value) {
 
         bool bOK = false;
+
         DShowLib::tIVCDAbsoluteValuePropertyPtr pExposureRange;
         DShowLib::tIVCDSwitchPropertyPtr pExposureAuto;
 
@@ -451,12 +451,12 @@
 
                     cout << "Available exposure range : [ " << mExposureMin << " - "<< mExposureMax << " ]" << endl;
 
-                    if ( value < mExposureMin ) {
-                        value = mExposureMin;
-                        BOOST_LOG_SEV(logger,warning) << "EXPOSURE TIME setted to " << mExposureMin << ". Available range [" << mExposureMin << " - " << mExposureMax<< "]";
-                    } else if( value > mExposureMax ) {
+                    if ( value <= mExposureMin ) {
+                        value = mExposureMin + 0.000010;
+                        BOOST_LOG_SEV(logger,warning) << "EXPOSURE TIME setted to " << value << ". Available range [" << mExposureMin << " - " << mExposureMax<< "]";
+                    } else if( value >= mExposureMax ) {
                         value = mExposureMax;
-                        BOOST_LOG_SEV(logger,warning) << "EXPOSURE TIME setted to " << mExposureMax << ". Available range [" << mExposureMin << " - " << mExposureMax<< "]";
+                        BOOST_LOG_SEV(logger,warning) << "EXPOSURE TIME setted to " << value << ". Available range [" << mExposureMin << " - " << mExposureMax<< "]";
                     }
                                 
                     // Here we set the the exposure value.
@@ -466,6 +466,7 @@
                 } 
             } 
         }
+
         return bOK;
     }
 
@@ -855,6 +856,12 @@
     CameraGigeTis::~CameraGigeTis(){
 
          delete m_pGrabber;
+
+    }
+
+    TimeMeasureUnit CameraGigeTis::getExposureUnit() {
+
+        return SEC;
 
     }
 

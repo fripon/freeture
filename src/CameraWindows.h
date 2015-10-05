@@ -121,6 +121,8 @@ class CameraWindows: public Camera {
         bool getPixelFormat(CamBitDepth &format);
 
         double getExposureTime();
+
+        TimeMeasureUnit getExposureUnit();
 };
 #endif
 

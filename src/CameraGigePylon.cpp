@@ -870,6 +870,12 @@ double CameraGigePylon::getExposureTime(){
         return 0;
 
 }
+
+TimeMeasureUnit CameraGigePylon::getExposureUnit() {
+
+    return USEC;
+
+}
 /*
 int CameraGigePylon::getGain(){
 

@@ -199,6 +199,8 @@
             */
             void getExposureBounds(int &eMin, int &eMax);
 
+            TimeMeasureUnit getExposureUnit();
+
             /**
             * Get device's gain bounds.
             *

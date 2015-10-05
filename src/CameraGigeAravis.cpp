@@ -895,4 +895,10 @@
 
     }
 
+    TimeMeasureUnit CameraGigeAravis::getExposureUnit() {
+
+        return USEC;
+
+    }
+
 #endif

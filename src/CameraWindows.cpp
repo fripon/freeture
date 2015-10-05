@@ -258,3 +258,9 @@ double  CameraWindows::getExposureTime() {
     return 0.0;
 
 }
+
+TimeMeasureUnit CameraWindows::getExposureUnit() {
+
+    return SEC;
+
+}

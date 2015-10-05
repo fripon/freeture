@@ -108,144 +108,47 @@
 
         public:
 
-            /**
-            * Constructor.
-            *
-            */
             CameraGigeTis();
 
-            /**
-            * Destructor.
-            *
-            */
             ~CameraGigeTis();
 
-            /**
-            * List connected GigE devices.
-            *
-            */
             bool listCameras();
 
-            /**
-            * Configure the correct camera to use and grab a frame by single acquisition.
-            *
-            * @param frame It contains the single frame grabbed by a camera in case of success.
-            * @param camID ID of the camera to use.
-            * @return The success status of grabbing a single frame.
-            */
             bool grabSingleImage(Frame &frame, int camID);
 
-            /**
-            * Open/create a device.
-            *
-            * @param id Identification number of the camera to create.
-            */
             bool createDevice(int id);
 
-            /**
-            * Set device's format.
-            *
-            * @param format New format.
-            * @return Success status to set format.
-            */
             bool setPixelFormat(CamBitDepth format);
 
-            /**
-            * Get device's exposure time bounds.
-            *
-            * @param eMin Return minimum exposure time value.
-            * @param eMax Return maximum exposure time value.
-            */
             void getExposureBounds(int &eMin, int &eMax);
 
-            /**
-            * Get device's gain bounds.
-            *
-            * @param gMin Return minimum gain value.
-            * @param gMax Return maximum gain value.
-            */
             void getGainBounds(int &gMin, int &gMax);
 
-            /**
-            * Get device's acquisition frequency.
-            *
-            * @return Device's fps.
-            */
             bool getFPS(double &value);
 
-            /**
-            * Set device's exposure time value.
-            *
-            * @param value New exposure time value (us).
-            * @return Success status to set new exposure time.
-            */
             bool setExposureTime(double value);
 
-            /**
-            * Set device's gain value.
-            *
-            * @param value New gain value.
-            * @return Success status to set new gain.
-            */
             bool setGain(int value);
 
-            /**
-            * Set device's acquisition frequency.
-            *
-            * @param value New fps value.
-            * @return Success status to set fps.
-            */
             bool setFPS(double value);
 
             bool setFpsToLowerValue();
 
-            /**
-            * Prepare device to grab frames.
-            *
-            * @return Success status to prepare camera.
-            */
             bool grabInitialization();
 
-            /**
-            * Run acquisition.
-            *
-            */
             void acqStart();
 
-            /**
-            * Get a frame from continuous acquisition.
-            *
-            * @param newFrame New frame's container object.
-            * @return Success status to grab a frame.
-            */
             bool grabImage(Frame &newFrame);
 
-            /**
-            * Stop acquisition.
-            *
-            */
             void acqStop();
 
-            /**
-            * Close a device and clean resources.
-            *
-            */
             void grabCleanse();
 
-            /**
-            * Get device's image format.
-            *
-            * @param format Return image format.
-            * @return Success status to get format.
-            */
             bool getPixelFormat(CamBitDepth &format);
 
-            /**
-            * Get device's exposure time value.
-            *
-            * @return Device's exposure time.
-            */
             double getExposureTime();
+
+            TimeMeasureUnit getExposureUnit();
 
     };
 

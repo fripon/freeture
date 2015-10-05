@@ -498,7 +498,7 @@ bool Device::prepareDevice() {
 
                 cfg.Get("EXPOSURE_CONTROL_FREQUENCY", mExpCtrlFrequency);
                 BOOST_LOG_SEV(logger, notification) << "EXPOSURE_CONTROL_FREQUENCY : " << mExpCtrlFrequency;
-                mExpCtrlFrequency = mExpCtrlFrequency * mFPS;
+                mExpCtrlFrequency = mExpCtrlFrequency;
 
                 if(mScheduleEnabled){
 
@@ -643,6 +643,7 @@ bool Device::getSunTimes() {
             if(sunriseStartH + intpart1 < 24) {
 
                 sunriseStopH = sunriseStartH + intpart1;
+               
 
             }else {
 
@@ -650,12 +651,16 @@ bool Device::getSunTimes() {
 
             }
 
+        }else {
+
+            sunriseStopH = sunriseStartH;
+
         }
 
         double intpart2 = 0;
         double fractpart2 = modf(fractpart1 * 60 , &intpart2);
 
-        if(sunriseStopM + intpart2 < 60) {
+        if(sunriseStartM + intpart2 < 60) {
 
             sunriseStopM = sunriseStartM + intpart2;
 
@@ -695,12 +700,16 @@ bool Device::getSunTimes() {
 
             }
 
+        }else {
+
+            sunsetStopH = sunsetStartH;
+
         }
 
         double intpart4 = 0;
         double fractpart4 = modf(fractpart3 * 60 , &intpart4);
 
-        if(sunsetStopM + intpart4 < 60) {
+        if(sunsetStartM + intpart4 < 60) {
 
             sunsetStopM = sunsetStartM + intpart4;
 

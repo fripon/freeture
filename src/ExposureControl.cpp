@@ -47,8 +47,6 @@ ExposureControl::ExposureControl(int timeInterval,
     bin_3 = 0;
     bin_4 = 0;
 
-    // Frame timer.
-    autoExposureFrameTimer = 0;
     // Frame interval between two exposure time adjustment.
     autoExposureTimeInterval = timeInterval;
     // Exposure adjustment finished status.
@@ -89,6 +87,13 @@ ExposureControl::ExposureControl(int timeInterval,
     finalDataLocation = "";
 
     finalExposureTime = 0;
+
+    // First reference date.
+    boost::posix_time::ptime time = boost::posix_time::microsec_clock::universal_time();
+    string cDate = to_simple_string(time);
+    string dateDelimiter = ".";
+    mRefDate = cDate.substr(0, cDate.find(dateDelimiter));
+    mSecTime = 0;
 }
 
 bool ExposureControl::calculate(Mat& image, Mat &mask){
@@ -207,16 +212,29 @@ float ExposureControl::computeMSV(){
 
 bool ExposureControl::controlExposureTime(Device *camera, Mat image, TimeDate::Date imageDate){
 
+    boost::posix_time::ptime time = boost::posix_time::microsec_clock::universal_time();
+    string cDate = to_simple_string(time);
+    string dateDelimiter = ".";
+    string nowDate = cDate.substr(0, cDate.find(dateDelimiter));
+    boost::posix_time::ptime t1(boost::posix_time::time_from_string(mRefDate));
+    boost::posix_time::ptime t2(boost::posix_time::time_from_string(nowDate));
+    boost::posix_time::time_duration td = t2 - t1;
+    mSecTime = td.total_seconds();
+
     // Time to control exposure time.
-    if(autoExposureFrameTimer == autoExposureTimeInterval){
+    if(mSecTime > autoExposureTimeInterval) {
 
         // If exposure control finished
         if(autoExposureFinished){
 
-            // Reset exposure control timer
-            autoExposureFrameTimer = 0;
             // Reset autoExposureFinished
             autoExposureFinished = false;
+
+            boost::posix_time::ptime time = boost::posix_time::microsec_clock::universal_time();
+            string cDate = to_simple_string(time);
+            string dateDelimiter = ".";
+            mRefDate = cDate.substr(0, cDate.find(dateDelimiter));
+            mSecTime = 0;
 
         // If exposure control not finished
         }else{
@@ -257,15 +275,22 @@ bool ExposureControl::controlExposureTime(Device *camera, Mat image, TimeDate::D
 
                     // Get minimum exposure time.
                     minCameraExposureValue = camera->getMinExposureTime();
+                    cout << "minCameraExposureValue : " << minCameraExposureValue << endl;
                     // Get acquisition frequency.
                     double fps = 0.0;
                     camera->getCam()->getFPS(fps);
-                    // Set maximum exposure time (us) in respect of fps.
-                    if(fps != 0)
-                        maxCameraExposureValue = (int)((1.0/fps) * 1000000.0);
-                    else
-                        maxCameraExposureValue = 33333;
 
+                    // Set maximum exposure time (us) in respect of fps.
+                    if(fps != 0) {
+
+                        if(camera->getCam()->getExposureUnit() == USEC)
+                            maxCameraExposureValue = (int)((1.0/fps) * 1000000.0);
+                        else if(camera->getCam()->getExposureUnit() == SEC)
+                            maxCameraExposureValue = (1.0/fps);
+
+                    }else
+                        maxCameraExposureValue = 33333;
+                    cout << "maxCameraExposureValue : " << maxCameraExposureValue << endl;
                     // Compute msv with the following exposure time
                     exposureValue = minCameraExposureValue;
                     // Set exposure time with the minimum value
@@ -285,18 +310,22 @@ bool ExposureControl::controlExposureTime(Device *camera, Mat image, TimeDate::D
 
                         if(incrementExposureTimeValue){
 
-                            if(exposureValue + 1000 > maxCameraExposureValue){
+                            double delta = 0.0;
+                            if(camera->getCam()->getExposureUnit() == USEC) delta = 1000;
+                            else if(camera->getCam()->getExposureUnit() == SEC) delta = 1000.0 / 1000000.0;
+
+                            if(exposureValue + delta > maxCameraExposureValue){
 
                                 exposureValue = maxCameraExposureValue;
                                 incrementExposureTimeValue = false;
 
                             }else if(exposureValue == minCameraExposureValue){
 
-                                exposureValue = 1000;
+                                exposureValue = delta;
 
                             }else{
 
-                                exposureValue += 1000;
+                                exposureValue += delta;
 
                             }
 
@@ -379,6 +408,10 @@ bool ExposureControl::controlExposureTime(Device *camera, Mat image, TimeDate::D
                         msvArray_2.push_back(msv);
 
                         if(incrementExposureTimeValue){
+
+                            double delta = 0.0;
+                            if(camera->getCam()->getExposureUnit() == USEC) delta = 30;
+                            else if(camera->getCam()->getExposureUnit() == SEC) delta = 30 / 1000000.0;
 
                             if(exposureValue + 30 > expMax_1){
 
@@ -496,7 +529,7 @@ bool ExposureControl::controlExposureTime(Device *camera, Mat image, TimeDate::D
 
                                 string d = TimeDate::getYYYYMMDDThhmmss(imageDate);
 
-                                infFile << "# DATE : " << d << "  EXP : " << Conversion::intToString(exposureValue) << "  MSV : "<< Conversion::floatToString(msv) << "\n";
+                                infFile << "# DATE : " << d << "  EXP : " << Conversion::doubleToString(exposureValue) << "  MSV : "<< Conversion::floatToString(msv) << "\n";
 
                                 infFile.close();
 
@@ -546,9 +579,7 @@ bool ExposureControl::controlExposureTime(Device *camera, Mat image, TimeDate::D
 
     }else{
 
-        autoExposureFrameTimer++;
-        cout << "Next auto exposure control in : " << autoExposureTimeInterval - autoExposureFrameTimer << " frames." << endl;
-
+        cout << "EXPOSURE CONTROL : " << mSecTime << "/" << autoExposureTimeInterval <<  endl;
         return false;
 
     }
@@ -603,7 +634,7 @@ bool ExposureControl::checkDataLocation(TimeDate::Date date){
             if(!fs::create_directory(p1)){
 
                 //BOOST_LOG_SEV(logger,fail) << "Unable to create STATION_YYYYMMDD directory : " << p1.string();
-				return false;
+                return false;
 
             // If success to create data/STATION_YYYMMDD/
             }else{
@@ -614,13 +645,13 @@ bool ExposureControl::checkDataLocation(TimeDate::Date date){
                 if(!fs::create_directory(p2)){
 
                     //BOOST_LOG_SEV(logger,critical) << "Unable to create astro directory : " << p2.string();
-					return false;
+                    return false;
 
                 // If success to create data/STATION_YYYMMDD/exposure/
                 }else{
 
                     //BOOST_LOG_SEV(logger,notification) << "Success to create astro directory : " << p2.string();
-					return true;
+                    return true;
 
                 }
             }

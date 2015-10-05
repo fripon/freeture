@@ -58,12 +58,11 @@ class ExposureControl {
         float           bin_3; // 8 bits : ]150,200]    12 bits : ]2458,3278]
         float           bin_4; // 8 bits : ]200,255]    12 bits : ]3278,4095]
         cv::Mat         bins;
-        int             minCameraExposureValue;
-        int             maxCameraExposureValue;
-        int             exposureValue;
+        double          minCameraExposureValue;
+        double          maxCameraExposureValue;
+        double          exposureValue;
         bool            autoExposureFinished;
         int             autoExposureTimeInterval;
-        int             autoExposureFrameTimer;
         int             frameToSkip;
         int             frameSkippedCounter;
         bool            autoExposureInitialized;
@@ -71,23 +70,25 @@ class ExposureControl {
         bool            autoExposureSaveInfos;
         string          autoExposureDataLocation;
         vector<float>   msvArray_1;
-        vector<int>     expArray_1;
+        vector<double>  expArray_1;
         vector<float>   msvArray_2;
-        vector<int>     expArray_2;
+        vector<double>  expArray_2;
         bool            incrementExposureTimeValue ;
         float           msvMin_1;
         float           msvMax_1;
-        int             expMin_1;
-        int             expMax_1;
+        double          expMin_1;
+        double          expMax_1;
         float           msvMin_2;
         float           msvMax_2;
-        int             expMin_2;
-        int             expMax_2;
+        double          expMin_2;
+        double          expMax_2;
         bool            step1;
         bool            step2;
         string          finalDataLocation;
         string          stationName;
         int             finalExposureTime;
+        string mRefDate;
+        long mSecTime;
 
     public:
 

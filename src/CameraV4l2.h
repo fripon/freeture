@@ -299,6 +299,8 @@
             */
             bool setPixelFormat(CamBitDepth depth);
 
+            TimeMeasureUnit getExposureUnit();
+
     };
 
 #endif

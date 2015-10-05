@@ -39,6 +39,7 @@
 #include <opencv2/imgproc/imgproc.hpp>
 #include "ECamBitDepth.h"
 #include "Frame.h"
+#include "ETimeMeasureUnit.h"
 
 using namespace cv;
 using namespace std;
@@ -133,7 +134,7 @@ class Camera {
         virtual void getExposureBounds(int &eMin, int &eMax) {};
 
 
-        virtual void getExposureUnit() {};
+        virtual TimeMeasureUnit getExposureUnit() {return SEC;};
         
         /**
         * Get device's gain bounds.
