@@ -39,8 +39,7 @@ boost::log::sources::severity_logger< LogSeverityLevel >  AcqThread::logger;
 
 AcqThread::Init AcqThread::initializer;
 
-AcqThread::AcqThread(   CamType                             camType,
-                        string                              cfg,
+AcqThread::AcqThread(   string                              cfg,
                         boost::circular_buffer<Frame>       *fb,
                         boost::mutex                        *fb_m,
                         boost::condition_variable           *fb_c,
@@ -53,7 +52,7 @@ AcqThread::AcqThread(   CamType                             camType,
                         DetThread                           *detection,
                         StackThread                         *stack):
 
-                        mCameraType(camType), mCfgPath(cfg), frameBuffer(fb), frameBuffer_mutex(fb_m),
+                        mCfgPath(cfg), frameBuffer(fb), frameBuffer_mutex(fb_m),
                         frameBuffer_condition(fb_c), stackSignal(sSignal), stackSignal_mutex(sSignal_m),
                         stackSignal_condition(sSignal_c), detSignal(dSignal), detSignal_mutex(dSignal_m),
                         detSignal_condition(dSignal_c), pDetection(detection), pStack(stack), mThread(NULL),
@@ -96,13 +95,30 @@ void AcqThread::stopThread(){
 
 bool AcqThread::startThread(){
 
-    mDevice = new Device(mCameraType, mCfgPath);
+    // Get CAMERA_ID parameter from configuration file.
+    Configuration cfg;
+    cfg.Load(mCfgPath);
+    int camIdParam = 0;
+    if(!cfg.Get("CAMERA_ID", camIdParam)) {
+        BOOST_LOG_SEV(logger,fail) << "Fail to get CAMERA_ID.";
+        return false;
+    }
 
-    if(!mDevice->prepareDevice()){
+    // Create device.
+    mDevice = new Device(mCfgPath);
+    mDevice->listDevices(false);
+    mDevice->createCamera(camIdParam);
 
+    // Load device's parameters.
+    if(!mDevice->prepareDevice(camIdParam)) {
         BOOST_LOG_SEV(logger,fail) << "Fail to prepare device.";
         return false;
+    }
 
+    // Start continuous acquisition.
+    if(!mDevice->runContinuousAcquisition()) {
+        BOOST_LOG_SEV(logger,fail) << "Fail to run continuous acquisition.";
+        return false;
     }
 
     BOOST_LOG_SEV(logger,normal) << "Success to prepare device.";
@@ -149,7 +165,7 @@ void AcqThread::operator()(){
 
         double fps = 0.0;
 
-        if(!mDevice->getCam()->getFPS(fps)) {
+        if(!mDevice->mCam->getFPS(fps)) {
 
             BOOST_LOG_SEV(logger, critical) << "Error : Camera fps value is " << fps;
             throw ">> Fail to get fps value from camera.";
@@ -162,7 +178,7 @@ void AcqThread::operator()(){
         bool exposureControlActive = false;
         bool cleanStatus = false;
 
-        if(!mDevice->getVideoFramesInput()) {
+        if(mDevice->mCam->mExposureAvailable && mDevice->mCam->mGainAvailable) {
 
             pExpCtrl = new ExposureControl( mDevice->getExposureControlFrequency(),
                                             mDevice->getExposureControlSaveImage(),
@@ -181,7 +197,7 @@ void AcqThread::operator()(){
             string location = "";
 
             // Load videos file or frames directory if input type is FRAMES or VIDEO
-            if(!mDevice->getCam()->loadNextDataSet(location)) break;
+            if(!mDevice->mCam->loadNextDataSet(location)) break;
 
             if(pDetection != NULL) pDetection->setCurrentDataSet(location);
 
@@ -209,7 +225,7 @@ void AcqThread::operator()(){
                 double tacq = (double)getTickCount();
 
                 // Grab a frame.
-                if(mDevice->getCam()->grabImage(newFrame)) {
+                if(mDevice->mCam->grabImage(newFrame)) {
 
                     BOOST_LOG_SEV(logger, normal)   << "============= FRAME " << newFrame.mFrameNumber << " ============= ";
                     cout                            << "============= FRAME " << newFrame.mFrameNumber << " ============= " << endl;
@@ -483,17 +499,17 @@ void AcqThread::operator()(){
                                 if((currentTimeInSec >= mDevice->mStopSunriseTime && currentTimeInSec < mDevice->mStartSunsetTime)){
 
                                     BOOST_LOG_SEV(logger, notification) << "Apply day exposure time : " << mDevice->getDayExposureTime();
-                                    mDevice->getCam()->setExposureTime(mDevice->getDayExposureTime());
+                                    mDevice->mCam->setExposureTime(mDevice->getDayExposureTime());
                                     BOOST_LOG_SEV(logger, notification) << "Apply day exposure time : " << mDevice->getDayGain();
-                                    mDevice->getCam()->setGain(mDevice->getDayGain());
+                                    mDevice->mCam->setGain(mDevice->getDayGain());
 
                                 // In NIGHTTIME : Apply maximum available exposure time.
                                 }else if((currentTimeInSec >= mDevice->mStopSunsetTime) || (currentTimeInSec < mDevice->mStartSunriseTime)){
 
                                     BOOST_LOG_SEV(logger, notification) << "Apply night exposure time." << mDevice->getNightExposureTime();
-                                    mDevice->getCam()->setExposureTime(mDevice->getNightExposureTime());
+                                    mDevice->mCam->setExposureTime(mDevice->getNightExposureTime());
                                     BOOST_LOG_SEV(logger, notification) << "Apply night exposure time." << mDevice->getNightGain();
-                                    mDevice->getCam()->setGain(mDevice->getNightGain());
+                                    mDevice->mCam->setGain(mDevice->getNightGain());
 
                                 }
                             }
@@ -522,7 +538,7 @@ void AcqThread::operator()(){
                 stop = mMustStop;
                 mMustStopMutex.unlock();
 
-            }while(stop == false && !mDevice->getCam()->getStopStatus());
+            }while(stop == false && !mDevice->mCam->getStopStatus());
 
             // Reset detection process to prepare the analyse of a new data set.
             if(pDetection != NULL) {
@@ -540,7 +556,7 @@ void AcqThread::operator()(){
             frameBuffer->clear();
             lock.unlock();
 
-        }while(mDevice->getCam()->getDataSetStatus());
+        }while(mDevice->mCam->getDataSetStatus());
 
     }catch(const boost::thread_interrupted&){
 
@@ -558,8 +574,8 @@ void AcqThread::operator()(){
 
     }
 
-    mDevice->getCam()->acqStop();
-    mDevice->getCam()->grabCleanse();
+    mDevice->mCam->acqStop();
+    mDevice->mCam->grabCleanse();
 
     mThreadEndStatus = true;
 
@@ -800,8 +816,8 @@ void AcqThread::runImageCapture(int imgNumber, int imgExposure, int imgGain, Cam
 
     // Stop camera
     BOOST_LOG_SEV(logger, notification) << "Stopping camera...";
-    mDevice->getCam()->acqStop();
-    mDevice->getCam()->grabCleanse();
+    mDevice->mCam->acqStop();
+    mDevice->mCam->grabCleanse();
 
     // Stop stack process.
     if(pStack != NULL){
@@ -849,7 +865,7 @@ void AcqThread::runImageCapture(int imgNumber, int imgExposure, int imgGain, Cam
 
         // Run single capture.
         BOOST_LOG_SEV(logger, notification) << "Run single capture.";
-        if(mDevice->getCam()->grabSingleImage(frame, mDevice->getCameraId())) {
+        if(mDevice->mCam->grabSingleImage(frame, mDevice->mCamID)) {
 
             BOOST_LOG_SEV(logger, notification) << "Single capture succeed !";
             cout << "Single capture succeed !" << endl;

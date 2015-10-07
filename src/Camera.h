@@ -45,8 +45,20 @@ using namespace cv;
 using namespace std;
 
 class Camera {
+    
+    public :
+
+        bool mExposureAvailable;
+        bool mGainAvailable;
 
     public :
+
+        virtual vector<pair<int,string>> getCamerasList() {
+
+            vector<pair<int,string>> v;
+            return v;
+
+        }
 
         /**
         * List connected GigE devices.

@@ -163,7 +163,7 @@ class Logger {
                                     Conversion::numbering(2,mDate.at(2)) + Conversion::intToString(mDate.at(2)) +
                                     Conversion::numbering(2,mDate.at(3)) + Conversion::intToString(mDate.at(3)) +
                                     Conversion::numbering(2,mDate.at(4)) + Conversion::intToString(mDate.at(4)) +
-                                    Conversion::numbering(2,mDate.at(5)) + Conversion::intToString(mDate.at(5)) + "/";
+                                    Conversion::numbering(2,mDate.at(5)) + Conversion::intToString(mDate.at(5));
 
                 path ppp(newArchive);
 
@@ -247,10 +247,10 @@ class Logger {
 
         void cleanAll() {
 
-            path file1(mLogPath + "/DET_THREAD.log");
-            path file2(mLogPath + "/ACQ_THREAD.log");
-            path file3(mLogPath + "/STACK_THREAD.log");
-            path file4(mLogPath + "/MAIN_THREAD.log");
+            path file1(mLogPath + "DET_THREAD.log");
+            path file2(mLogPath + "ACQ_THREAD.log");
+            path file3(mLogPath + "STACK_THREAD.log");
+            path file4(mLogPath + "MAIN_THREAD.log");
 
             if(boost::filesystem::exists(file1))
                 boost::filesystem::remove(file1);

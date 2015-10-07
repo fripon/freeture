@@ -75,7 +75,6 @@ class AcqThread {
         boost::mutex        mMustStopMutex;
         boost::thread       *mThread;               // Acquisition thread.
         Device              *mDevice;               // Input device.
-        CamType             mCameraType;            // Type of camera in input -> CAMERA_TYPE in configuration file.
         int                 mNbGrabFail;            // Fail number to grab frames.
         int                 mNbGrabSuccess;         // Success number to grab frames.
         bool                mThreadEndStatus;
@@ -123,8 +122,7 @@ class AcqThread {
          * @param detection Pointer on detection thread.
          * @param stack Pointer on stack thread.
          */
-        AcqThread(  CamType                         camType,
-                    string                          cfg,
+        AcqThread(  string                          cfg,
                     boost::circular_buffer<Frame>   *fb,
                     boost::mutex                    *fb_m,
                     boost::condition_variable       *fb_c,

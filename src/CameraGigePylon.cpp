@@ -53,6 +53,82 @@ CameraGigePylon::CameraGigePylon(){
     connectionStatus = false;
     mFrameCounter = 0;
 
+    mExposureAvailable = true;
+    mGainAvailable = true;
+
+}
+
+vector<pair<int,string>> CameraGigePylon::getCamerasList() {
+
+    vector<pair<int,string>> camerasList;
+
+    try {
+
+        if(!pTlFactory) {
+
+            pTlFactory=&CTlFactory::GetInstance();
+
+        }
+
+        // Exit the application if the specific transport layer is not available
+        if(!pTlFactory) {
+            BOOST_LOG_SEV(logger,fail) << "Fail to create TransportLayer.";
+            return camerasList;
+        }
+
+        if(!connectionStatus) {
+
+            devices.clear();
+
+            if(pTlFactory) {
+
+                if (0 == pTlFactory->EnumerateDevices(devices)) {
+
+                    return camerasList;
+
+                }
+
+                int id=0;
+
+                if( !devices.empty() && !connectionStatus) {
+
+                    DeviceInfoList_t::const_iterator it;
+
+                    for(it = devices.begin(); it != devices.end(); ++it ) {
+
+                        if(!devices.empty()){
+
+                            if(devices[id].GetFullName().find_first_of("Basler")==0||devices[id].GetFullName().find_first_of("Prosilica")==0) {
+
+                                /*list<string> ch;
+                                Conversion::stringTok(ch,devices[id].GetFullName().c_str(), "#");*/
+                                pair<int,string> c;
+                                c.first = id;
+                                //string infoDev = devices[id].GetModelName() + " - " + devices[id].GetSerialNumber();
+                                c.second = "NAME[" + devices[id].GetModelName() + "] S/N[" + devices[id].GetSerialNumber() + "] SDK[PYLON]";
+                                camerasList.push_back(c);
+                                //cout << "-> ID[" << id << "]  NAME[" << devices[id].GetModelName().c_str() << "]  S/N[" << devices[id].GetSerialNumber().c_str() <<"]"/* ADRESS[" << ch.back() << "]"*/ << endl;
+
+                            }
+                        }
+
+                        id++;
+                        
+                    }
+                }
+            }
+
+        }
+
+    }catch (GenICam::GenericException &e){
+
+        BOOST_LOG_SEV(logger,fail) << "An exception occured : " << e.GetDescription() ;
+        cout << "An exception occured : " << e.GetDescription() << endl;
+
+    }
+
+    return camerasList;
+
 }
 
 CameraGigePylon::~CameraGigePylon(void){
@@ -119,6 +195,7 @@ bool CameraGigePylon::listCameras() {
                         }
 
                         id++;
+                        
                     }
                 }
             }
@@ -142,6 +219,8 @@ bool CameraGigePylon::createDevice(int id){
     bool chooseState  = false;
 
     try{
+
+        listCameras();
 
         if(!devices.empty()){
 
@@ -495,7 +574,7 @@ bool CameraGigePylon::grabImage(Frame &newFrame){
 bool CameraGigePylon::grabSingleImage(Frame &frame, int camID){
 
     try {
-
+        cout << "id : " << camID << endl;
         pTlFactory = &CTlFactory::GetInstance();
 
         devices.clear();

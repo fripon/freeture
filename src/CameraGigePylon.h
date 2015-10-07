@@ -102,6 +102,8 @@
 
             ~CameraGigePylon(void);
 
+            vector<pair<int,string>> getCamerasList();
+
             bool listCameras();
 
             bool createDevice(int id);

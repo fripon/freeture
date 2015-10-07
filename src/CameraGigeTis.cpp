@@ -58,14 +58,17 @@
         mExposureMin = -1;
         mExposureMax = -1;
 
+        mExposureAvailable = true;
+        mGainAvailable = true;
+
     }
 
-    bool CameraGigeTis::listCameras(){
+    vector<pair<int,string>> CameraGigeTis::getCamerasList() {
+
+        vector<pair<int,string>> camerasList;
 
         // Retrieve a list with the video capture devices connected to the computer.
         pVidCapDevList = m_pGrabber->getAvailableVideoCaptureDevices();
-
-        cout << endl << "-------------- GIGE CAMERAS WITH TIS -----------" << endl << endl;
 
         // Print available devices.
         for(int i = 0; i < pVidCapDevList->size(); i++) {
@@ -76,20 +79,15 @@
             ossSerNum << std::hex << iSerNum.QuadPart;
             string SerNum = ossSerNum.str();
 
-            cout << "-> ID[" << i << "]  NAME[" << pVidCapDevList->at(i).c_str() << "]  S/N[" << SerNum <<"]" << endl;
+            pair<int,string> c;
+            c.first = i;
+            c.second = "NAME[" + pVidCapDevList->at(i).getName() + "] S/N[" + SerNum + "] SDK[TIS]";
+            camerasList.push_back(c);
 
         }
 
-        if(pVidCapDevList->size() == 0) {
-            cout << "-> No cameras detected..." << endl;
-            cout << endl << "------------------------------------------------" << endl << endl;
-            return false;
-        }
-
-        cout << endl << "------------------------------------------------" << endl << endl;
-
-        return true;
-
+        return camerasList;
+        
     }
 
     // https://valelab.ucsf.edu/svn/micromanager2/branches/micromanager1.3/DeviceAdapters/TISCam/SimplePropertyAccess.cpp
@@ -274,6 +272,9 @@
 
     bool CameraGigeTis::createDevice(int id){
 
+        // Retrieve a list with the video capture devices connected to the computer.
+        pVidCapDevList = m_pGrabber->getAvailableVideoCaptureDevices();
+
         if(pVidCapDevList == 0 || pVidCapDevList->empty()){
 
             BOOST_LOG_SEV(logger,fail) << "No device available.";
@@ -417,6 +418,9 @@
 
     bool CameraGigeTis::setExposureTime(double value) {
 
+        // Conversion in seconds
+        value = value / 1000000.0;
+
         bool bOK = false;
 
         DShowLib::tIVCDAbsoluteValuePropertyPtr pExposureRange;
@@ -502,16 +506,16 @@
 
                 if(value > mGainMax || value < mGainMin){
 
-                    BOOST_LOG_SEV(logger,fail) << "Fail to set GAIN. Available range value is " << mGainMin << " to " << mGainMax;
+                    BOOST_LOG_SEV(logger,warning) << "Fail to set GAIN. Available range value is " << mGainMin << " to " << mGainMax;
                     cout << endl << ">> Fail to set GAIN. Available range value is " << mGainMin << " to " << mGainMax << endl;
-
-                }else {
-
-                    setPropertyValue(DShowLib::VCDID_Gain, (long)value, pItems);
-                    cout << ">> Set gain to : " << value << endl;
-                    mGain = value;
-                    bOK = true;
+                    value = mGainMin;
                 }
+
+                setPropertyValue(DShowLib::VCDID_Gain, (long)value, pItems);
+                cout << ">> Set gain to : " << value << endl;
+                mGain = value;
+                bOK = true;
+                
             } 
         }
         return bOK;
@@ -716,8 +720,6 @@
 
     bool CameraGigeTis::grabSingleImage(Frame &frame, int camID) {
 
-        listCameras();
-
         if(!createDevice(camID))
             return false;
   
@@ -745,7 +747,6 @@
         // Disable live mode.
         m_pGrabber->prepareLive(false);
 
-            
         // Retrieve the output type and dimension of the handler sink.
         DShowLib::FrameTypeInfo info;
         pSink->getOutputFrameType(info);

@@ -45,14 +45,16 @@
     camera(NULL), width(0), height(0), fps(0), gainMin(0.0), gainMax(0.0),
     payload(0), exposureMin(0), exposureMax(0), gain(0), exp(0), nbCompletedBuffers(0),
     nbFailures(0), nbUnderruns(0), frameCounter(0), shiftBitsImage(shift), stream(NULL) {
-
+        mExposureAvailable = true;
+        mGainAvailable = true;
     }
 
     CameraGigeAravis::CameraGigeAravis():
     camera(NULL), width(0), height(0), fps(0), gainMin(0.0), gainMax(0.0),
     payload(0), exposureMin(0), exposureMax(0), gain(0), exp(0), nbCompletedBuffers(0),
     nbFailures(0), nbUnderruns(0), frameCounter(0), shiftBitsImage(false), stream(NULL) {
-
+        mExposureAvailable = true;
+        mGainAvailable = true;
     }
 
     CameraGigeAravis::~CameraGigeAravis(){}
@@ -61,11 +63,11 @@
 
         arv_update_device_list();
 
-        int n_devices = arv_get_n_devices();
+        nbCamFound = arv_get_n_devices();
 
         cout << endl << "------------ GIGE CAMERAS WITH ARAVIS ----------" << endl << endl;
 
-        for(int i = 0; i < n_devices; i++){
+        for(int i = 0; i < nbCamFound; i++){
 
             cout << "-> [" << i << "] " << arv_get_device_id(i)<< endl;
 
@@ -73,7 +75,7 @@
 
         cout << endl << "------------------------------------------------" << endl << endl;
 
-        if(n_devices == 0) {
+        if(nbCamFound == 0) {
             cout << "-> No cameras detected..." << endl;
             return false;
         }

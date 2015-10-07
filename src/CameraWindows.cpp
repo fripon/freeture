@@ -37,7 +37,8 @@
 CameraWindows::CameraWindows() {
 
     mVideoInput.setVerbose(false);
-
+    mExposureAvailable = false;
+    mGainAvailable = false;
 }
 
 CameraWindows::~CameraWindows()
@@ -46,36 +47,32 @@ CameraWindows::~CameraWindows()
     delete[] mBuffer;
 }
 
- bool CameraWindows::listCameras() {
+vector<pair<int,string>> CameraWindows::getCamerasList() {
 
-     int numDevices = mVideoInput.listDevices(true);
+    vector<pair<int,string>> camerasList;
 
-     cout << endl << "--------------- CAMERAS WITH DSHOW -------------" << endl << endl;
+    int nbCamFound = mVideoInput.listDevices(true);
 
-     if(numDevices > 0) {
+    if(nbCamFound > 0) {
 
-         for(int i = 0; i < numDevices; i++) {
+         for(int i = 0; i < nbCamFound; i++) {
 
-             cout << "-> [" << i << "] " << mVideoInput.getDeviceName(i) << endl;
+             pair<int,string> c;
+             c.first = i;
+             c.second = "NAME[" + string(mVideoInput.getDeviceName(i)) + "] SDK[VI]";
+             camerasList.push_back(c);
 
          }
 
-         cout << endl << "------------------------------------------------" << endl << endl;
-
-         return true;
-
      }
 
-     cout << "-> No cameras detected..." << endl;
-     cout << endl << "------------------------------------------------" << endl << endl;
+    return camerasList;
 
-     return false;
-
- }
+}
 
  bool  CameraWindows::grabSingleImage(Frame &frame, int camID) {
      
-    listCameras();
+    int numDevices = mVideoInput.listDevices(true);
 
     mVideoInput.setupDevice(camID);
 
@@ -89,6 +86,10 @@ CameraWindows::~CameraWindows()
 
     // Disable autofocus and set focus to 0
     mVideoInput.setVideoSettingCamera(camID, CameraControl_Focus, mDefaultFocus, CameraControl_Flags_Manual);
+
+    setPixelFormat(frame.mBitDepth);
+    setExposureTime(frame.mExposure);
+    setGain(frame.mGain);
 
     bool success = mVideoInput.getPixels(camID, mBuffer, false, true);
 
@@ -123,6 +124,7 @@ bool  CameraWindows::createDevice(int id){
 }
 
 bool  CameraWindows::setPixelFormat(CamBitDepth format){
+    cout << ">> (WARNING) Can't set format with VI." << endl;
     return true;
 }
 
@@ -140,10 +142,12 @@ bool  CameraWindows::getFPS(double &value){
 }
 
 bool  CameraWindows::setExposureTime(double value){
+    cout << ">> (WARNING) Can't set exposure time with VI." << endl;
     return true;
 }
 
 bool  CameraWindows::setGain(int value){
+    cout << ">> (WARNING) Can't set gain with VI." << endl;
     return true;
 }
 
@@ -194,7 +198,7 @@ bool  CameraWindows::grabInitialization() {
 void  CameraWindows::acqStart(){};
 
 bool  CameraWindows::grabImage(Frame &newFrame){
-    
+
     bool success = mVideoInput.getPixels(mDevNumber, mBuffer, false, true);
 
     if(success) {

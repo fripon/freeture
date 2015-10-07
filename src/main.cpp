@@ -92,6 +92,7 @@
 #include "ImgProcessing.h"
 #include <boost/filesystem.hpp>
 #include "Logger.h"
+#include "CameraWindows.h"
 
 #define BOOST_NO_SCOPED_ENUMS
 
@@ -194,15 +195,14 @@ int main(int argc, const char ** argv){
       ("time,t",        po::value<int>(),                                                               "Execution time of the program in seconds")
       ("help,h",                                                                                        "Print help messages")
       ("config,c",      po::value<string>()->default_value(string(CFG_PATH) + "configuration.cfg"),     "Configuration file's path")
-      ("bitdepth,d",    po::value<int>()->default_value(8),                                             "Bit depth of a frame")
+      ("bitdepth,f",    po::value<int>()->default_value(8),                                             "Bit depth of a frame")
       ("bmp",           po::value<bool>()->default_value(false),                                        "Save .bmp")
       ("fits",          po::value<bool>()->default_value(false),                                        "Save fits2D")
       ("gain,g",        po::value<int>(),                                                               "Define gain")
       ("exposure,e",    po::value<double>(),                                                            "Define exposure")
       ("version,v",                                                                                     "Get program version")
-      ("camtype",       po::value<string>()->default_value("BASLER_GIGE"),                              "Type of camera")
       ("display",       po::value<bool>()->default_value(false),                                        "In mode 4 : Display the grabbed frame")
-      ("id",            po::value<int>(),                                                               "Camera ID")
+      ("id,i",            po::value<int>(),                                                             "Camera ID")
       ("filename,n",    po::value<string>()->default_value("snap"),                                     "Name to use when a single frame is captured")
       ("sendmail,s",    po::value<string>()->default_value(""),                                         "Send a mail to the specified adress when a single frame is captured")
       ("savepath,p",    po::value<string>()->default_value("./"),                                       "Save path");
@@ -218,11 +218,11 @@ int main(int argc, const char ** argv){
         int     acqFormat       = 8;
         bool    saveBmp         = false;
         bool    saveFits2D      = false;
-        int     gain            = 100;
-        double  exp             = 100;
+        int     gain            = 0;
+        double  exp             = 0;
         string  version         = string(VERSION);
         bool    display         = false;
-        int     camID           = 0;
+        int     devID           = 2;
         string  fileName        = "snap";
         string  sendMail        = "";
 
@@ -263,52 +263,8 @@ int main(int argc, const char ** argv){
                         std::cout << "========= FREETURE - Available cameras =========" << endl;
                         std::cout << "================================================" << endl << endl;
 
-                        std::cout << "Searching cameras..." << endl << endl;
-
-                        string camtype;
-                        camtype = "BASLER_GIGE";
-                        EParser<CamType> cam_type;
-
-                        #ifdef WINDOWS
-
-                            // Search GIGE cameras.
-                            {
-
-                                Device *device = new Device(cam_type.parseEnum("CAMERA_TYPE", camtype));
-                                device->getCam()->listCameras();
-                                delete device;
-                            }
-
-                            // Search TIS GIGE cameras.
-                            camtype = "DMK_GIGE";
-                            {
-
-                                Device *device = new Device(cam_type.parseEnum("CAMERA_TYPE", camtype));
-                                device->getCam()->listCameras();
-                                delete device;
-                            }
-
-                        #else
-
-                            // Search GIGE cameras.
-                            {
-
-                                Device *device = new Device(cam_type.parseEnum("CAMERA_TYPE", camtype));
-                                device->getCam()->listCameras();
-                                delete device;
-
-                            }
-
-                            // Search USB2 cameras.
-                            {
-                                camtype = "TYTEA_USB";
-                                Device *device = new Device(cam_type.parseEnum("CAMERA_TYPE", camtype));
-                                device->getCam()->listCameras();
-                                delete device;
-
-                            }
-
-                        #endif
+                        Device device;
+                        device.listDevices(true);
 
                     }
 
@@ -366,11 +322,6 @@ int main(int argc, const char ** argv){
                         Configuration cfg;
                         cfg.Load(configPath);
 
-                        // Get Camera type in input.
-                        string camera_type; cfg.Get("CAMERA_TYPE", camera_type);
-                        EParser<CamType> cam_type;
-                        CamType CAMERA_TYPE = cam_type.parseEnum("CAMERA_TYPE", camera_type);
-
                         // Get size of the frame buffer.
                         int ACQ_BUFFER_SIZE; cfg.Get("ACQ_BUFFER_SIZE", ACQ_BUFFER_SIZE);
 
@@ -382,9 +333,6 @@ int main(int argc, const char ** argv){
 
                         // Stack enabled or not.
                         bool STACK_ENABLED; cfg.Get("STACK_ENABLED", STACK_ENABLED);
-                        // Disable stack if CAMERA_TYPE = FRAMES or VIDEO
-                        if((CAMERA_TYPE == FRAMES) || (CAMERA_TYPE == VIDEO))
-                            STACK_ENABLED = false;
 
                         // Get log path.
                         string LOG_PATH; cfg.Get("LOG_PATH", LOG_PATH);
@@ -424,7 +372,7 @@ int main(int argc, const char ** argv){
                         BOOST_LOG_SEV(slg,notification) << "====== FREETURE - Meteor detection mode ======";
                         BOOST_LOG_SEV(slg,notification) << "==============================================";
 
-                        try{
+                        try {
 
                             /// ------------------------------------
                             /// --------- SHARED RESSOURCES --------
@@ -505,8 +453,7 @@ int main(int argc, const char ** argv){
                             if(((DET_ENABLED && detThreadCreationSuccess) || !DET_ENABLED) &&           // Detection Thread enabled and succeed or not enabled
                               (((STACK_ENABLED && stackThreadCreationSuccess) || !STACK_ENABLED))){     // Stack Thread enabled and succeed or not enabled
 
-                                inputDevice = new AcqThread(    CAMERA_TYPE,
-                                                                configPath,
+                                inputDevice = new AcqThread(    configPath,
                                                                 &frameBuffer,
                                                                 &frameBuffer_m,
                                                                 &frameBuffer_c,
@@ -693,7 +640,7 @@ int main(int argc, const char ** argv){
                         Conversion::intBitDepthToCamBitDepthEnum(acqFormat, camFormat);
 
                         // Cam id.
-                        if(vm.count("id")) camID = vm["id"].as<int>();
+                        if(vm.count("id")) devID = vm["id"].as<int>();
 
                         // Save bmp.
                         if(vm.count("bmp")) saveBmp = vm["bmp"].as<bool>();
@@ -701,24 +648,11 @@ int main(int argc, const char ** argv){
                         // Save fits.
                         if(vm.count("fits")) saveFits2D = vm["fits"].as<bool>();
 
-                        // Type of camera in input.
-                        string camtype;
-                        if(vm.count("camtype")) camtype = vm["camtype"].as<string>();
-                        std::transform(camtype.begin(), camtype.end(),camtype.begin(), ::toupper);
-
                         // Gain value.
-                        if(vm.count("gain")){
-                            gain = vm["gain"].as<int>();
-                        }else{
-                            throw "Please define the gain value.";
-                        }
+                        if(vm.count("gain")) gain = vm["gain"].as<int>();
 
                         // Exposure value.
-                        if(vm.count("exposure")){
-                            exp = vm["exposure"].as<double>();
-                        }else{
-                            throw "Please define the exposure time value.";
-                        }
+                        if(vm.count("exposure")) exp = vm["exposure"].as<double>();
 
                         // Filename.
                         if(vm.count("filename")) fileName = vm["filename"].as<string>();
@@ -727,8 +661,7 @@ int main(int argc, const char ** argv){
                         if(vm.count("sendmail")) sendMail = vm["sendmail"].as<string>();
 
                         cout << "------------------------------------------------" << endl;
-                        cout << "CAM TYPE  : " << camtype << endl;
-                        cout << "CAM ID    : " << camID << endl;
+                        cout << "CAM ID    : " << devID << endl;
                         EParser<CamBitDepth> fmt;
                         cout << "FORMAT    : " << fmt.getStringEnum(camFormat) << endl;
                         cout << "GAIN      : " << gain << endl;
@@ -739,7 +672,14 @@ int main(int argc, const char ** argv){
                         cout << "SAVE PATH : " << savePath << endl;
                         cout << "FILENAME  : " << fileName << endl;
                         cout << "SEND MAIL : " << sendMail << endl;
-                        cout << "------------------------------------------------" << endl;
+                        cout << "------------------------------------------------" << endl << endl;
+
+                        // ID 0 and 1 are not availables in this mode.
+                        if(devID <= 1) {
+
+                            throw ">> Not available ID for this mode.";
+
+                        }
 
                         /// ----------------------- Manage filename -----------------------------
 
@@ -790,10 +730,15 @@ int main(int argc, const char ** argv){
                         frame.mGain = gain;
                         frame.mBitDepth = camFormat;
 
-                        EParser<CamType> cam_type;
-                        Device *device = new Device(cam_type.parseEnum("CAMERA_TYPE", camtype));
+                        Device *device = new Device();
+                        device->listDevices(false);
+                        if(!device->createCamera(devID)) {
+                            throw ">> Fail to create device.";
+                            delete device;
+                        }
 
-                        if(!device->getCam()->grabSingleImage(frame, camID)){
+                        
+                        if(!device->mCam->grabSingleImage(frame, device->mCamID)){
                             delete device;
                             throw ">> Single capture failed.";
                         }
@@ -1016,6 +961,36 @@ int main(int argc, const char ** argv){
 
                     break;
 
+                case 6 :
+
+                    {
+
+                        CameraWindows cam ;
+                        cam.listCameras();
+                        cam.createDevice(1);
+                        cam.grabInitialization();
+                        cam.setFPS(30);
+                        cout << "exposure : " << cam.getExposureTime() << endl;
+
+                        cv::namedWindow("camera");
+
+                        for( ;; ) {
+                            double tacq = (double)getTickCount();
+                            Frame f;
+                            if ( cam.grabImage(f) ) {
+                                tacq = (((double)getTickCount() - tacq)/getTickFrequency())*1000;
+                                std::cout << " [ TIME ACQ ] : " << tacq << " ms" << endl;
+                                cv::imshow("camera", f.mImg );
+                            }
+
+                            cv::waitKey(30);
+
+                        }
+
+                    }
+
+                    break;
+
                 default :
 
                     {
@@ -1050,7 +1025,7 @@ int main(int argc, const char ** argv){
 
     po::notify(vm);
 
-    cout << endl << "PROGRAM ENDED." << endl;
+    cout << endl << ">> FreeTure ended." << endl << endl;
 
     return 0 ;
 

@@ -84,6 +84,18 @@ using namespace boost::filesystem;
 using namespace cv;
 using namespace std;
 
+ enum CamSdkType{
+
+    ARAVIS,
+    PYLONGIGE,
+    TIS,
+    VIDEOFILE,
+    FRAMESDIR,
+    V4L2,
+    VIDEOINPUT
+
+};
+
 class Device {
 
     private:
@@ -102,22 +114,21 @@ class Device {
 
         } initializer;
 
-        Camera              *cam;
         vector<AcqSchedule> mSchedule;
         bool                mScheduleEnabled;
-
         string              mDataPath;
         string              mStationName;
+        Mat                 mMask;
+        bool                mMaskEnabled;
+        string              mMaskPath;
+
         CamBitDepth         mBitDepth;
         int                 mNightExposure;
         int                 mNightGain;
         int                 mDayExposure;
         int                 mDayGain;
         int                 mFPS;
-        int                 mCamID;
-        Mat                 mMask;
-        bool                mMaskEnabled;
-        string              mMaskPath;
+
 
         bool                mExpCtrlSaveImg;
         bool                mExpCtrlSaveInfos;
@@ -140,13 +151,14 @@ class Device {
         int                 mMinGain;
         int                 mMaxGain;
         Fits                mFitsHeader;
-        CamType             mType;
         string              mCfgPath;
         bool                mDebugEnabled;
         double              mSunHorizon1;
         double              mSunHorizon2;
         double              mStationLongitude;
         double              mStationLatitude;
+
+        vector<pair<int,pair<int,CamSdkType>>> mDevices;
 
     public :
 
@@ -167,50 +179,28 @@ class Device {
         TimeMode            mDetectionMode;
         TimeMode            mStackMode;
 
+        int mCamID;
+        Camera *mCam;
+
     public :
 
-        /**
-        * Constructor.
-        *
-        * @param type Type of camera in input.
-        */
-        Device(CamType type);
+        Device(string cfgPath);
 
-        /**
-        * Constructor.
-        *
-        * @param type Type of camera in input.
-        * @param cfgPath Path of the configuration file.
-        */
-        Device(CamType type, string cfgPath);
+        Device();
 
-        /**
-        * Destructor.
-        *
-        */
         ~Device();
 
-        /**
-        * Load camera's parameters.
-        *
-        */
-        bool prepareDevice();
+        bool createCamera(int id);
 
-        /**
-        * Configure camera in order to run continuous acquisition.
-        *
-        */
-        void runContinuousAcquisition();
+        bool prepareDevice(int id);
 
-        Camera              *getCam() const                 {return cam;}
+        bool runContinuousAcquisition();
+
         vector<AcqSchedule> getSchedule()                   {return mSchedule;};
         string              getDataPath()                   {return mDataPath;};
         string              getStationName()                {return mStationName;};
-        int                 getCameraId()                   {return mCamID;};
         Fits                getFitsHeader()                 {return mFitsHeader;};
         Mat                 getMask()                       {return mMask;};
-        int                 getMaxGain()                    {return mMaxGain;};
-        int                 getMinGain()                    {return mMinGain;};
         int                 getMinExposureTime()            {return mMinExposureTime;};
         int                 getMaxExposureTime()            {return mMaxExposureTime;};
         bool                getExposureControlSaveImage()   {return mExpCtrlSaveImg;};
@@ -232,17 +222,13 @@ class Device {
         int                 getAcqRegularRepetition()       {return mRegularRepetition;};
         bool                getAcqScheduleEnabled()         {return mScheduleEnabled;};
         bool                getVideoFramesInput()           {return mVideoFramesInInput;};
-        bool                getDetectionEnabled()           {return mDetectionEnabled;};
-        bool                getDebugStatus()                {return mDebugEnabled;};
-
 
         bool getSunTimes();
 
+        void listDevices(bool printInfos);
+
     private :
 
-        /**
-        * Initialize device and select correct SDK.
-        *
-        */
-        void initialization();
+        bool createDevicesWith(CamSdkType sdk);
+
 };

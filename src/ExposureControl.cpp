@@ -35,6 +35,10 @@
 
 #include "ExposureControl.h"
 
+boost::log::sources::severity_logger< LogSeverityLevel >  ExposureControl::logger;
+
+ExposureControl::Init ExposureControl::initializer;
+
 ExposureControl::ExposureControl(int timeInterval,
                                  bool saveImage,
                                  bool saveInfos,
@@ -94,6 +98,7 @@ ExposureControl::ExposureControl(int timeInterval,
     string dateDelimiter = ".";
     mRefDate = cDate.substr(0, cDate.find(dateDelimiter));
     mSecTime = 0;
+    mNbFramesControlled = 0;
 }
 
 bool ExposureControl::calculate(Mat& image, Mat &mask){
@@ -212,377 +217,444 @@ float ExposureControl::computeMSV(){
 
 bool ExposureControl::controlExposureTime(Device *camera, Mat image, TimeDate::Date imageDate){
 
-    boost::posix_time::ptime time = boost::posix_time::microsec_clock::universal_time();
-    string cDate = to_simple_string(time);
-    string dateDelimiter = ".";
-    string nowDate = cDate.substr(0, cDate.find(dateDelimiter));
-    boost::posix_time::ptime t1(boost::posix_time::time_from_string(mRefDate));
-    boost::posix_time::ptime t2(boost::posix_time::time_from_string(nowDate));
-    boost::posix_time::time_duration td = t2 - t1;
-    mSecTime = td.total_seconds();
+    try {
 
-    // Time to control exposure time.
-    if(mSecTime > autoExposureTimeInterval) {
+        // Get current DATE and check number of seconds passed since last exposure control.
+        boost::posix_time::ptime time = boost::posix_time::microsec_clock::universal_time();
+        string cDate = to_simple_string(time);
+        string dateDelimiter = ".";
+        string nowDate = cDate.substr(0, cDate.find(dateDelimiter));
+        boost::posix_time::ptime t1(boost::posix_time::time_from_string(mRefDate));
+        boost::posix_time::ptime t2(boost::posix_time::time_from_string(nowDate));
+        boost::posix_time::time_duration td = t2 - t1;
+        mSecTime = td.total_seconds();
 
-        // If exposure control finished
-        if(autoExposureFinished){
+        // Check if it's time to run "exposure time control".
+        if(mSecTime > autoExposureTimeInterval) {
 
-            // Reset autoExposureFinished
-            autoExposureFinished = false;
+            // If exposure control finished
+            if(autoExposureFinished) {
 
-            boost::posix_time::ptime time = boost::posix_time::microsec_clock::universal_time();
-            string cDate = to_simple_string(time);
-            string dateDelimiter = ".";
-            mRefDate = cDate.substr(0, cDate.find(dateDelimiter));
-            mSecTime = 0;
+                autoExposureFinished = false;
 
-        // If exposure control not finished
-        }else{
+                // Get new reference DATE to count the next exposure control.
+                boost::posix_time::ptime time = boost::posix_time::microsec_clock::universal_time();
+                string cDate = to_simple_string(time);
+                string dateDelimiter = ".";
+                mRefDate = cDate.substr(0, cDate.find(dateDelimiter));
+                mSecTime = 0;
 
-            // Get frame mask.
-            Mat m = camera->getMask();
-            // Compute pixels value repartition.
-            calculate(image, m);
-            // Compute Mean Sample Value
-            float msv = computeMSV();
-            cout << "EXP : " << exposureValue <<  "     MSV : " << msv << endl;
+            // If exposure control not finished
+            }else {
 
-            // Skip "frameToSkip" 's value between two exposure time modification.
-            if(frameSkippedCounter <= frameToSkip){
+                // Skip n frames to give enough time to set new exposure value.
+                if(frameSkippedCounter <= frameToSkip) {
 
-                frameSkippedCounter++;
+                    frameSkippedCounter++;
 
-            }else{
+                }else {
 
-                // If method has not been initialized
-                if(!autoExposureInitialized){
+                    // Get frame mask.
+                    Mat m = camera->getMask();
 
-                    if(autoExposureSaveImage){
+                    // Compute pixels value repartition.
+                    calculate(image, m);
 
-                        Mat saveFrame; image.copyTo(saveFrame);
+                    // Compute Mean Sample Value
+                    float msv = computeMSV();
 
-                        if(saveFrame.type() == CV_16U) saveFrame = Conversion::convertTo8UC1(saveFrame);
+                    BOOST_LOG_SEV(logger,notification) << mNbFramesControlled << " -> EXP : " << exposureValue <<  " MSV : " << msv;
 
-                        putText(saveFrame, "MSV : " + Conversion::floatToString(msv), cvPoint(20,20),FONT_HERSHEY_COMPLEX_SMALL, 0.8, cvScalar(255), 1, CV_AA);
+                    // If method has not been initialized
+                    if(!autoExposureInitialized) {
 
-                        putText(saveFrame, "EXP : " + Conversion::intToString(camera->getCam()->getExposureTime()), cvPoint(20,40),FONT_HERSHEY_COMPLEX_SMALL, 0.8, cvScalar(255), 1, CV_AA);
+                        if(autoExposureSaveImage) {
 
-                        if(checkDataLocation(imageDate))
-                            SaveImg::saveBMP(saveFrame, finalDataLocation + "expControl_" + TimeDate::getYYYYMMDDThhmmss(imageDate));
-
-                    }
-
-
-                    // Get minimum exposure time.
-                    minCameraExposureValue = camera->getMinExposureTime();
-                    cout << "minCameraExposureValue : " << minCameraExposureValue << endl;
-                    // Get acquisition frequency.
-                    double fps = 0.0;
-                    camera->getCam()->getFPS(fps);
-
-                    // Set maximum exposure time (us) in respect of fps.
-                    if(fps != 0) {
-
-                        if(camera->getCam()->getExposureUnit() == USEC)
-                            maxCameraExposureValue = (int)((1.0/fps) * 1000000.0);
-                        else if(camera->getCam()->getExposureUnit() == SEC)
-                            maxCameraExposureValue = (1.0/fps);
-
-                    }else
-                        maxCameraExposureValue = 33333;
-                    cout << "maxCameraExposureValue : " << maxCameraExposureValue << endl;
-                    // Compute msv with the following exposure time
-                    exposureValue = minCameraExposureValue;
-                    // Set exposure time with the minimum value
-                    camera->getCam()->setExposureTime(minCameraExposureValue);
-                    cout << "Set Exposure Time to : " << minCameraExposureValue << endl;
-                    expArray_1.push_back(minCameraExposureValue);
-                    autoExposureInitialized = true;
-                    // Reset counter of skipped frames.
-                    frameSkippedCounter = 0;
-
-                // If method has been initialized
-                }else{
-
-                    if(step1){
-
-                        msvArray_1.push_back(msv);
-
-                        if(incrementExposureTimeValue){
-
-                            double delta = 0.0;
-                            if(camera->getCam()->getExposureUnit() == USEC) delta = 1000;
-                            else if(camera->getCam()->getExposureUnit() == SEC) delta = 1000.0 / 1000000.0;
-
-                            if(exposureValue + delta > maxCameraExposureValue){
-
-                                exposureValue = maxCameraExposureValue;
-                                incrementExposureTimeValue = false;
-
-                            }else if(exposureValue == minCameraExposureValue){
-
-                                exposureValue = delta;
-
-                            }else{
-
-                                exposureValue += delta;
-
-                            }
-
-                            expArray_1.push_back(exposureValue);
-                            camera->getCam()->setExposureTime(exposureValue);
-                            cout << "Set Exposure Time to : " << exposureValue << endl;
-
-                        }else{
-
-                            if(msvArray_1.front() > 2.5){
-
-                                finalExposureTime = minCameraExposureValue;
-                                exposureValue = minCameraExposureValue;
-                                camera->getCam()->setExposureTime(minCameraExposureValue);
-                                cout << "Set Exposure Time to : " << minCameraExposureValue << endl;
-
-                            }else if(msvArray_1.back() < 2.5){
-
-                                finalExposureTime = maxCameraExposureValue;
-                                exposureValue = maxCameraExposureValue;
-                                camera->getCam()->setExposureTime(maxCameraExposureValue);
-                                cout << "Set Exposure Time to : " << maxCameraExposureValue << endl;
-
-                            }else{
-
-                                for(int i = 0; i < msvArray_1.size(); i++){
-
-                                    if((i+1) < msvArray_1.size()){
-
-                                        if(msvArray_1.at(i) < 2.5 && msvArray_1.at(i+1) > 2.5 ){
-
-                                            expMin_1 = expArray_1.at(i);
-                                            expMax_1 = expArray_1.at(i+1);
-                                            msvMin_1 = msvArray_1.at(i);
-                                            msvMax_1 = msvArray_1.at(i+1);
-
-                                            minCameraExposureValue = expMin_1;
-                                            maxCameraExposureValue = expMax_1;
-
-                                            step2 = true;
-
-                                            incrementExposureTimeValue = true;
-                                            exposureValue = expMin_1;
-                                            expMax_2 = expMax_1;
-
-                                            cout << "msvMin_1 : " << msvMin_1 << endl;
-                                            cout << "expMin_1 : " << expMin_1 << endl;
-
-                                            cout << "msvMax_1 : " << msvMax_1 << endl;
-                                            cout << "expMax_1 : " << expMax_1 << endl;
-
-                                            camera->getCam()->setExposureTime(exposureValue);
-                                            cout << "Set Exposure Time to : " << exposureValue << endl;
-
-                                            break;
-
-                                        }
-                                    }
-                                }
-                            }
-
-                            step1 = false;
-
-                            for(int i = 0; i< msvArray_1.size(); i++){
-
-                                cout << "msvArray_1 at " << i << " : " << msvArray_1.at(i)<< endl;
-
-                            }
-
-                            for(int i = 0; i< expArray_1.size(); i++){
-
-                                cout << "expArray_1 at " << i << " : " << expArray_1.at(i)<< endl;
-
-                            }
-
-                        }
-
-                    }else if(step2){
-
-                        msvArray_2.push_back(msv);
-
-                        if(incrementExposureTimeValue){
-
-                            double delta = 0.0;
-                            if(camera->getCam()->getExposureUnit() == USEC) delta = 30;
-                            else if(camera->getCam()->getExposureUnit() == SEC) delta = 30 / 1000000.0;
-
-                            if(exposureValue + 30 > expMax_1){
-
-                                exposureValue = expMax_1;
-                                incrementExposureTimeValue = false;
-
-                            }else{
-
-                                exposureValue += 30;
-
-                            }
-
-                            expArray_2.push_back(exposureValue);
-                            camera->getCam()->setExposureTime(exposureValue);
-                            cout << "Set Exposure Time to : " << exposureValue << endl;
-
-                        }else{
-
-                            if(msvArray_2.front() > 2.5){
-
-                                finalExposureTime = expMin_1;
-                                camera->getCam()->setExposureTime(expMin_1);
-                                cout << "Set Exposure Time to : " << expMin_1 << endl;
-
-                            }else if(msvArray_2.back() < 2.5){
-
-                                finalExposureTime = expMax_2;
-                                camera->getCam()->setExposureTime(expMax_2);
-                                cout << "Set Exposure Time to : " << expMax_2 << endl;
-
-                            }else{
-
-                                for(int i = 0; i < msvArray_2.size(); i++){
-
-                                    if((i+1) < msvArray_2.size()){
-
-                                        if(msvArray_2.at(i) < 2.5 && msvArray_2.at(i+1) > 2.5 ){
-
-                                            expMin_2 = expArray_2.at(i);
-                                            expMax_2 = expArray_2.at(i+1);
-                                            msvMin_2 = msvArray_2.at(i);
-                                            msvMax_2 = msvArray_2.at(i+1);
-
-                                            if((2.5 - msvArray_1.at(i)) < (msvArray_1.at(i+1) - 2.5)){
-
-                                                finalExposureTime = expArray_2.at(i);
-                                                exposureValue = finalExposureTime;
-
-                                            }else{
-
-                                                finalExposureTime = expArray_2.at(i+1);
-                                                exposureValue = finalExposureTime;
-
-                                            }
-
-                                            camera->getCam()->setExposureTime(exposureValue);
-                                            cout << "Set Exposure Time to : " << exposureValue << endl;
-
-                                            cout << "msvMin_2 : " << msvMin_2 << endl;
-                                            cout << "expMin_2 : " << expMin_2 << endl;
-                                            cout << "msvMax_2 : " << msvMax_2 << endl;
-                                            cout << "expMax_2 : " << expMax_2 << endl;
-
-                                            break;
-
-                                        }
-                                    }
-                                }
-                            }
-
-                            step2 = false;
-
-                            for(int i = 0; i< msvArray_2.size(); i++){
-
-                                cout << "msvArray_2 at " << i << " : " << msvArray_2.at(i)<< endl;
-
-                            }
-
-                            for(int i = 0; i< expArray_2.size(); i++){
-
-                                cout << "expArray_2 at " << i << " : " << expArray_2.at(i)<< endl;
-
-                            }
-
-                            cout << "finalExposureTime : " << finalExposureTime << endl;
-
-                        }
-
-                    }else{
-
-                        // Save data to control exposure time process
-                        if(autoExposureSaveImage){
+                            // Save initial status before exposure control
 
                             Mat saveFrame; image.copyTo(saveFrame);
 
                             if(saveFrame.type() == CV_16U) saveFrame = Conversion::convertTo8UC1(saveFrame);
 
-                            putText(saveFrame, "MSV : " + Conversion::floatToString(msv), cvPoint(20,20),FONT_HERSHEY_COMPLEX_SMALL, 0.8, cvScalar(255), 1, CV_AA);
+                            putText(saveFrame, "BEFORE EC -> MSV : " + Conversion::floatToString(msv), cvPoint(20,20),FONT_HERSHEY_COMPLEX_SMALL, 0.8, cvScalar(255), 1, CV_AA);
 
-                            putText(saveFrame, "EXP : " + Conversion::intToString(finalExposureTime), cvPoint(20,40),FONT_HERSHEY_COMPLEX_SMALL, 0.8, cvScalar(255), 1, CV_AA);
+                            putText(saveFrame, "EXP : " + Conversion::intToString(camera->mCam->getExposureTime()), cvPoint(20,40),FONT_HERSHEY_COMPLEX_SMALL, 0.8, cvScalar(255), 1, CV_AA);
 
                             if(checkDataLocation(imageDate))
-                                SaveImg::saveBMP(saveFrame, finalDataLocation + "expControl_" + TimeDate::getYYYYMMDDThhmmss(imageDate));
+                                SaveImg::saveBMP(saveFrame, finalDataLocation + "expControl_" + TimeDate::getYYYYMMDDThhmmss(imageDate) + "_before");
 
                         }
 
+                        // Get minimum exposure time.
+                        minCameraExposureValue = camera->getMinExposureTime();
+                        BOOST_LOG_SEV(logger,notification) << "Min EXP : " << minCameraExposureValue;
+                        
+                        // Get acquisition frequency.
+                        double fps = 0.0; camera->mCam->getFPS(fps);
+                        BOOST_LOG_SEV(logger,notification) << "FPS : " << fps;
 
-                        if(autoExposureSaveInfos){
+                        // Set maximum exposure time (us) according fps value.
+                        if(fps > 0) maxCameraExposureValue = (int)((1.0/fps) * 1000000.0);
+                        else throw "Fail to get FPS value from camera.";
+                        BOOST_LOG_SEV(logger,notification) << "Max EXP : " << maxCameraExposureValue;
 
-                            if(checkDataLocation(imageDate)){
+                        // Compute msv with the following exposure time
+                        exposureValue = minCameraExposureValue;
 
-                                ofstream infFile;
-                                string infFilePath = finalDataLocation + "ExposureControl.txt";
-                                infFile.open(infFilePath.c_str(),std::ios_base::app);
+                        // Set exposure time with the minimum value
+                        if(!camera->mCam->setExposureTime(minCameraExposureValue))
+                            throw "Fail to set exposure time in initialization.";
 
-                                string d = TimeDate::getYYYYMMDDThhmmss(imageDate);
+                        BOOST_LOG_SEV(logger,notification) << "Set EXP to : " << minCameraExposureValue;
+                        expArray_1.push_back(minCameraExposureValue);
+                        autoExposureInitialized = true;
 
-                                infFile << "# DATE : " << d << "  EXP : " << Conversion::doubleToString(exposureValue) << "  MSV : "<< Conversion::floatToString(msv) << "\n";
+                        // Reset counter of skipped frames.
+                        frameSkippedCounter = 0;
 
-                                infFile.close();
+                    // If method has been initialized
+                    }else{
+
+                        if(step1) {
+
+                            BOOST_LOG_SEV(logger,notification) << "STEP 1";
+
+                            msvArray_1.push_back(msv);
+
+                            // Increment exposure time.
+                            if(incrementExposureTimeValue) {
+
+                                double delta = 1000;
+
+                                BOOST_LOG_SEV(logger,notification) << "STEP 1 : Incrementation by " << delta;
+
+                                if(exposureValue + delta > maxCameraExposureValue) {
+
+                                    exposureValue = maxCameraExposureValue;
+                                    incrementExposureTimeValue = false;
+
+                                }else if(exposureValue == minCameraExposureValue) {
+
+                                    exposureValue = delta;
+
+                                }else {
+
+                                    exposureValue += delta;
+
+                                }
+
+                                expArray_1.push_back(exposureValue);
+
+                                if(!camera->mCam->setExposureTime(exposureValue))
+                                    throw "Fail to set exposure time in step 1 : incrementation";
+
+                                BOOST_LOG_SEV(logger,notification) << "Set EXP to : " << exposureValue;
+
+                            }else{
+
+                                BOOST_LOG_SEV(logger,notification) << "STEP 1 : Analyse msv";
+                                BOOST_LOG_SEV(logger,notification) << "MSV ARRAY1 SIZE : " << msvArray_1.size() << "EXP ARRAY1 SIZE " << expArray_1.size();
+
+                                // MSV too high (over exposition) -> set camera with minimum exposure time.
+                                if(msvArray_1.front() > 2.5) {
+
+                                    finalExposureTime = minCameraExposureValue;
+                                    exposureValue = minCameraExposureValue;
+                                    if(!camera->mCam->setExposureTime(minCameraExposureValue))
+                                        throw "Fail to set exposure time in step 1 : Analyse MSV > 2.5";
+
+                                    BOOST_LOG_SEV(logger,notification) << "Set EXP to : " << exposureValue;
+
+                                // MSV too low (under exposition) -> set camera with maximum exposure time.
+                                }else if(msvArray_1.back() < 2.5) {
+
+                                    finalExposureTime = maxCameraExposureValue;
+                                    exposureValue = maxCameraExposureValue;
+                                    if(!camera->mCam->setExposureTime(maxCameraExposureValue))
+                                        throw "Fail to set exposure time in step 1 : Analyse MSV < 2.5";
+
+                                    BOOST_LOG_SEV(logger,notification) << "Set EXP to : " << exposureValue;
+
+                                // Search best MSV and attached exposure time.
+                                }else {
+
+                                    for(int i = 0; i < msvArray_1.size(); i++) {
+
+                                        if((i+1) < msvArray_1.size()) {
+
+                                            // If two consecutives MSV values around 2.5
+                                            if(msvArray_1.at(i) < 2.5 && msvArray_1.at(i+1) > 2.5 ) {
+
+                                                expMin_1 = expArray_1.at(i);
+                                                expMax_1 = expArray_1.at(i+1);
+                                                msvMin_1 = msvArray_1.at(i);
+                                                msvMax_1 = msvArray_1.at(i+1);
+
+                                                minCameraExposureValue = expMin_1;
+                                                maxCameraExposureValue = expMax_1;
+
+                                                step2 = true;
+
+                                                incrementExposureTimeValue = true;
+                                                exposureValue = expMin_1;
+                                                expMax_2 = expMax_1;
+
+                                                BOOST_LOG_SEV(logger,notification) << "New interval found -> MSV[" << msvMin_1 << "-" << msvMax_1 << "] EXP[" << expMin_1 << "-" << expMax_1 << "]";
+
+                                                if(!camera->mCam->setExposureTime(exposureValue))
+                                                    throw "Fail to set exposure time in step 1 : Analyse MSV : search";
+
+                                                BOOST_LOG_SEV(logger,notification) << "Set EXP to : " << exposureValue;
+
+                                                break;
+
+                                            }
+                                        }
+                                    }
+                                }
+
+                                step1 = false;
+
+                                /*for(int i = 0; i< msvArray_1.size(); i++){
+
+                                    cout << "msvArray_1 at " << i << " : " << msvArray_1.at(i)<< endl;
+
+                                }
+
+                                for(int i = 0; i< expArray_1.size(); i++){
+
+                                    cout << "expArray_1 at " << i << " : " << expArray_1.at(i)<< endl;
+
+                                }*/
 
                             }
 
+                        }else if(step2) {
+
+                            BOOST_LOG_SEV(logger,notification) << "STEP 2";
+                            
+                            msvArray_2.push_back(msv);
+                            
+                            if(incrementExposureTimeValue) {
+
+                                double delta = 30;
+
+                                BOOST_LOG_SEV(logger,notification) << "STEP 2 : Incrementation by " << delta;
+
+                                if(exposureValue + delta > expMax_1) {
+
+                                    exposureValue = expMax_1;
+                                    incrementExposureTimeValue = false;
+
+                                }else{
+
+                                    exposureValue += delta;
+
+                                }
+
+                                expArray_2.push_back(exposureValue);
+
+                                if(!camera->mCam->setExposureTime(exposureValue))
+                                    throw "Fail to set exposure time in step 2 : incrementation";
+
+                                BOOST_LOG_SEV(logger,notification) << "Set EXP to : " << exposureValue;
+
+                            }else {
+
+                                BOOST_LOG_SEV(logger,notification) << "STEP 2 : Analyse msv";
+                                BOOST_LOG_SEV(logger,notification) << "MSV ARRAY2 SIZE : " << msvArray_2.size() << "EXP ARRAY2 SIZE " << expArray_2.size();
+
+                                // MSV too high (over exposition) -> set camera with minimum exposure time.
+                                if(msvArray_2.front() > 2.5) {
+
+                                    finalExposureTime = expMin_1;
+                                    if(!camera->mCam->setExposureTime(expMin_1))
+                                        throw "Fail to set exposure time in step 2 : Analyse MSV > 2.5";
+                                    BOOST_LOG_SEV(logger,notification) << "Set EXP to : " << expMin_1;
+
+                                // MSV too low (under exposition) -> set camera with maximum exposure time.
+                                }else if(msvArray_2.back() < 2.5) {
+
+                                    finalExposureTime = expMax_2;
+                                    if(!camera->mCam->setExposureTime(expMax_2))
+                                        throw "Fail to set exposure time in step 2 : Analyse MSV < 2.5";
+                                    BOOST_LOG_SEV(logger,notification) << "Set EXP to : " << expMax_2;
+
+                                // Search best MSV and attached exposure time.
+                                }else {
+
+                                    for(int i = 0; i < msvArray_2.size(); i++) {
+
+                                        if((i+1) < msvArray_2.size()) {
+
+                                            if(msvArray_2.at(i) < 2.5 && msvArray_2.at(i+1) > 2.5 ) {
+
+                                                expMin_2 = expArray_2.at(i);
+                                                expMax_2 = expArray_2.at(i+1);
+                                                msvMin_2 = msvArray_2.at(i);
+                                                msvMax_2 = msvArray_2.at(i+1);
+
+                                                if((2.5 - msvArray_1.at(i)) < (msvArray_1.at(i+1) - 2.5)) {
+
+                                                    finalExposureTime = expArray_2.at(i);
+                                                    exposureValue = finalExposureTime;
+
+                                                }else{
+
+                                                    finalExposureTime = expArray_2.at(i+1);
+                                                    exposureValue = finalExposureTime;
+
+                                                }
+
+                                                if(!camera->mCam->setExposureTime(exposureValue))
+                                                    throw "Fail to set exposure time in step 2";
+                                                BOOST_LOG_SEV(logger,notification) << "Set EXP to : " << exposureValue;
+
+                                                BOOST_LOG_SEV(logger,notification) << "Interval choose -> MSV[" << msvMin_2 << "-" << msvMax_2 << "] EXP[" << expMin_2 << "-" << expMax_2 << "]";
+
+                                                break;
+
+                                            }
+                                        }
+                                    }
+                                }
+
+                                step2 = false;
+
+                                /*
+                                for(int i = 0; i< msvArray_2.size(); i++){
+
+                                    cout << "msvArray_2 at " << i << " : " << msvArray_2.at(i)<< endl;
+
+                                }
+
+                                for(int i = 0; i< expArray_2.size(); i++){
+
+                                    cout << "expArray_2 at " << i << " : " << expArray_2.at(i)<< endl;
+
+                                }*/
+
+                                BOOST_LOG_SEV(logger,notification) << "FINAL EXPOSURE : " << finalExposureTime;
+
+                            }
+
+                        }else {
+
+                            // Save data to control exposure time process
+                            if(autoExposureSaveImage) {
+
+                                Mat saveFrame; image.copyTo(saveFrame);
+
+                                if(saveFrame.type() == CV_16U) saveFrame = Conversion::convertTo8UC1(saveFrame);
+
+                                putText(saveFrame, "AFTER EC -> MSV : " + Conversion::floatToString(msv), cvPoint(20,20),FONT_HERSHEY_COMPLEX_SMALL, 0.8, cvScalar(255), 1, CV_AA);
+
+                                putText(saveFrame, "EXP : " + Conversion::intToString(finalExposureTime), cvPoint(20,40),FONT_HERSHEY_COMPLEX_SMALL, 0.8, cvScalar(255), 1, CV_AA);
+
+                                if(checkDataLocation(imageDate))
+                                    SaveImg::saveBMP(saveFrame, finalDataLocation + "expControl_" + TimeDate::getYYYYMMDDThhmmss(imageDate) + "_after" );
+
+                            }
+
+                            if(autoExposureSaveInfos) {
+
+                                if(checkDataLocation(imageDate)) {
+
+                                    ofstream infFile;
+                                    string infFilePath = finalDataLocation + "ECInfos.txt";
+                                    infFile.open(infFilePath.c_str(),std::ios_base::app);
+
+                                    string d = TimeDate::getYYYYMMDDThhmmss(imageDate);
+
+                                    infFile << "# DATE : " << d << "  EXP : " << Conversion::doubleToString(exposureValue) << "  MSV : "<< Conversion::floatToString(msv) << "\n";
+
+                                    infFile.close();
+
+                                }
+
+                            }
+
+                            // Reset variables
+                            autoExposureFinished = true;
+                            autoExposureInitialized = false;
+                            step1 = true;
+                            step2 = false;
+                            incrementExposureTimeValue = true;
+                            mNbFramesControlled = 0;
+
+                            msvMin_1 = 0.f;
+                            expMin_1 = 0.f;
+                            msvMax_1 = 0;
+                            expMax_1 = 0;
+
+                            msvMin_2 = 0.f;
+                            expMin_2 = 0.f;
+                            msvMax_2 = 0;
+                            expMax_2 = 0;
+
+                            expArray_1.clear();
+                            msvArray_1.clear();
+
+                            expArray_2.clear();
+                            msvArray_2.clear();
+
+                            minCameraExposureValue = 0;
+                            maxCameraExposureValue = 0;
+
+                            exposureValue = 0;
+
+                            finalExposureTime = 0;
+
                         }
 
-
-                        // Reset variables
-                        autoExposureFinished = true;
-                        autoExposureInitialized = false;
-                        step1 = true;
-                        step2 = false;
-                        incrementExposureTimeValue = true;
-
-                        msvMin_1 = 0.f;
-                        expMin_1 = 0.f;
-                        msvMax_1 = 0;
-                        expMax_1 = 0;
-
-                        msvMin_2 = 0.f;
-                        expMin_2 = 0.f;
-                        msvMax_2 = 0;
-                        expMax_2 = 0;
-
-                        expArray_1.clear();
-                        msvArray_1.clear();
-
-                        expArray_2.clear();
-                        msvArray_2.clear();
-
-                        minCameraExposureValue = 0;
-                        maxCameraExposureValue = 0;
-
-                        exposureValue = 0;
-
-                        finalExposureTime = 0;
-
+                        frameSkippedCounter = 0;
                     }
-
-                    frameSkippedCounter = 0;
                 }
             }
+
+            return true;
+
+        }else{
+
+            cout << "EXPOSURE CONTROL : " << mSecTime << "/" << autoExposureTimeInterval <<  endl;
+            return false;
         }
 
-        return true;
+    }catch(exception& e) {
 
-    }else{
+        cout << "An exception occured : " << e.what() << endl;
 
-        cout << "EXPOSURE CONTROL : " << mSecTime << "/" << autoExposureTimeInterval <<  endl;
-        return false;
+    }catch(const char * msg) {
 
+        BOOST_LOG_SEV(logger,fail) << msg << endl;
     }
+
+    // Reset variables
+    autoExposureFinished = true;
+    autoExposureInitialized = false;
+    mNbFramesControlled = 0;
+    step1 = true;
+    step2 = false;
+    incrementExposureTimeValue = true;
+    msvMin_1 = 0.f;
+    expMin_1 = 0.f;
+    msvMax_1 = 0;
+    expMax_1 = 0;
+    msvMin_2 = 0.f;
+    expMin_2 = 0.f;
+    msvMax_2 = 0;
+    expMax_2 = 0;
+    expArray_1.clear();
+    msvArray_1.clear();
+    expArray_2.clear();
+    msvArray_2.clear();
+    minCameraExposureValue = 0;
+    maxCameraExposureValue = 0;
+    exposureValue = 0;
+    finalExposureTime = 0;
+    frameSkippedCounter = 0;
+
+    return false;
 }
 
 bool ExposureControl::checkDataLocation(TimeDate::Date date){

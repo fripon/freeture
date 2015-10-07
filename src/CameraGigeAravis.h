@@ -127,6 +127,8 @@
              */
             ~CameraGigeAravis();
 
+            vector<pair<int,string>> getCamerasList();
+
             /**
             * List connected GigE devices.
             *

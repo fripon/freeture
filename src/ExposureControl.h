@@ -52,6 +52,20 @@ class ExposureControl {
 
     private :
 
+        static boost::log::sources::severity_logger< LogSeverityLevel > logger;
+
+        static class Init {
+
+            public :
+
+                Init() {
+
+                    logger.add_attribute("ClassName", boost::log::attributes::constant<std::string>("ExposureControl"));
+
+                }
+
+        }initializer;
+
         float           bin_0; // 8 bits : [0,50]       12 bits : [0,819]
         float           bin_1; // 8 bits : ]50,100]     12 bits : ]819,1638]
         float           bin_2; // 8 bits : ]100,150]    12 bits : ]1638,2458]
@@ -86,7 +100,8 @@ class ExposureControl {
         bool            step2;
         string          finalDataLocation;
         string          stationName;
-        int             finalExposureTime;
+        double          finalExposureTime;
+        int mNbFramesControlled;
         string mRefDate;
         long mSecTime;
 

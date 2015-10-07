@@ -78,6 +78,8 @@
         height = 768;
         memset(&mFormat, 0, sizeof(mFormat));
 
+        mExposureAvailable = true;
+        mGainAvailable = true;
 
     }
 
@@ -204,7 +206,7 @@
                         perror("Querying Capabilities");
                         res = false;
                     }else {
-
+                        nbCamFound++;
                         cout << "-> [" << deviceNumber << "] " << caps.card << endl;
 
                     }

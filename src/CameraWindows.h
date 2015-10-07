@@ -86,7 +86,7 @@ class CameraWindows: public Camera {
 
         ~CameraWindows();
 
-        bool listCameras();
+        vector<pair<int,string>> getCamerasList();
 
         bool grabSingleImage(Frame &frame, int camID);
 

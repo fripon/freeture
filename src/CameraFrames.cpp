@@ -43,6 +43,9 @@ CameraFrames::CameraFrames(vector<string> locationList, int numPos):
 mFramesDir(locationList), mNumFramePos(numPos), mReadDataStatus(false), mCurrDirId(0),
 mFirstFrameNum(0), mLastFrameNum(0) {
 
+    mExposureAvailable = false;
+    mGainAvailable = false;
+
 }
 
 CameraFrames::~CameraFrames(void) {

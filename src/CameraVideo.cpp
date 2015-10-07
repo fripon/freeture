@@ -48,6 +48,9 @@ CameraVideo::CameraVideo(vector<string> videoList):mVideoID(0), mFrameWidth(0), 
     // Open the video file for reading.
     mCap = VideoCapture(videoList.front());
 
+    mExposureAvailable = false;
+    mGainAvailable = false;
+
 }
 
 CameraVideo::~CameraVideo(void){
