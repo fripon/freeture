@@ -191,7 +191,7 @@ int main(int argc, const char ** argv){
     // Program options.
     po::options_description desc("Available options");
     desc.add_options()
-      ("mode,m",        po::value<int>(),                                                               "Execution mode of the program")
+      ("mode,m",        po::value<int>()->default_value(1),                                             "Execution mode of the program")
       ("time,t",        po::value<int>(),                                                               "Execution time of the program in seconds")
       ("help,h",                                                                                        "Print help messages")
       ("config,c",      po::value<string>()->default_value(string(CFG_PATH) + "configuration.cfg"),     "Configuration file's path")
@@ -674,13 +674,6 @@ int main(int argc, const char ** argv){
                         cout << "SEND MAIL : " << sendMail << endl;
                         cout << "------------------------------------------------" << endl << endl;
 
-                        // ID 0 and 1 are not availables in this mode.
-                        if(devID <= 1) {
-
-                            throw ">> Not available ID for this mode.";
-
-                        }
-
                         /// ----------------------- Manage filename -----------------------------
 
                         int filenum = 0;
@@ -732,18 +725,20 @@ int main(int argc, const char ** argv){
 
                         Device *device = new Device();
                         device->listDevices(false);
-                        if(!device->createCamera(devID)) {
+                        if(!device->createCamera(devID, false)) {
                             throw ">> Fail to create device.";
                             delete device;
                         }
 
-                        
-                        if(!device->mCam->grabSingleImage(frame, device->mCamID)){
+                        double tacq = (double)getTickCount();
+                        if(!device->runSingleCapture(frame)){
                             delete device;
                             throw ">> Single capture failed.";
                         }
                         delete device;
 
+                        tacq = (((double)getTickCount() - tacq)/getTickFrequency())*1000;
+                        std::cout << " >> [ TIME ACQ ] : " << tacq << " ms" << endl;
                         cout << ">> Single capture succeed." << endl;
 
                         /// ---------------------- Save grabbed frame --------------------------
@@ -961,31 +956,79 @@ int main(int argc, const char ** argv){
 
                     break;
 
-                case 6 :
+                case 0 :
+
+                    ///%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+                    ///%%%%%%%%%%%%%%%%%%%%%% MODE 0 : RUN ACQ TEST %%%%%%%%%%%%%%%%%%%%%%%%%%
+                    ///%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
                     {
 
-                        CameraWindows cam ;
-                        cam.listCameras();
-                        cam.createDevice(1);
-                        cam.grabInitialization();
-                        cam.setFPS(30);
-                        cout << "exposure : " << cam.getExposureTime() << endl;
+                        std::cout << "================================================" << endl;
+                        std::cout << "======= FREETURE - Acquisition test mode =======" << endl;
+                        std::cout << "================================================" << endl << endl;
 
-                        cv::namedWindow("camera");
+                        /// --------------------- Manage program options -----------------------
 
-                        for( ;; ) {
+                        // Display or not the grabbed frame.
+                        if(vm.count("display")) display = vm["display"].as<bool>();
+
+                        // Acquisition format.
+                        if(vm.count("bitdepth")) acqFormat = vm["bitdepth"].as<int>();
+                        CamBitDepth camFormat;
+                        Conversion::intBitDepthToCamBitDepthEnum(acqFormat, camFormat);
+
+                        // Cam id.
+                        if(vm.count("id")) devID = vm["id"].as<int>();
+
+                        // Gain value.
+                        if(vm.count("gain")) gain = vm["gain"].as<int>();
+
+                        // Exposure value.
+                        if(vm.count("exposure")) exp = vm["exposure"].as<double>();
+
+                        cout << "------------------------------------------------" << endl;
+                        cout << "CAM ID    : " << devID << endl;
+                        EParser<CamBitDepth> fmt;
+                        cout << "FORMAT    : " << fmt.getStringEnum(camFormat) << endl;
+                        cout << "GAIN      : " << gain << endl;
+                        cout << "EXPOSURE  : " << exp << endl;
+                        cout << "DISPLAY   : " << display << endl;
+                        cout << "------------------------------------------------" << endl << endl;
+
+                        Device *device = new Device();
+                        device->listDevices(false);
+                        if(!device->createCamera(devID, true)) {
+                            throw ">> Fail to create device.";
+                            delete device;
+                        }
+                        device->setCameraPixelFormat();
+                        device->setCameraFPS();
+                        device->setCameraExposureTime(exp);
+                        device->setCameraGain(gain);
+                        device->initializeCamera();
+                        device->startCamera();
+                        namedWindow("FreeTure", WINDOW_NORMAL);
+
+                        while(1) {
+
+                            Frame frame;
+                            
                             double tacq = (double)getTickCount();
-                            Frame f;
-                            if ( cam.grabImage(f) ) {
+                            if(device->runContinuousCapture(frame)){
                                 tacq = (((double)getTickCount() - tacq)/getTickFrequency())*1000;
-                                std::cout << " [ TIME ACQ ] : " << tacq << " ms" << endl;
-                                cv::imshow("camera", f.mImg );
+                                std::cout << " >> [ TIME ACQ ] : " << tacq << " ms" << endl;
+                                imshow("FreeTure", frame.mImg);
+                                waitKey(30);
                             }
 
-                            cv::waitKey(30);
-
+                            // Exit if ESC is pressed.
+                            if(GetAsyncKeyState(VK_ESCAPE)!=0)
+                                break;
                         }
+
+                        device->stopCamera();
+                        delete device;
 
                     }
 
