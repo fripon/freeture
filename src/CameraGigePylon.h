@@ -122,7 +122,7 @@
 
             bool grabSingleImage(Frame &frame, int camID);
 
-            void getExposureBounds(int &eMin, int &eMax);
+            void getExposureBounds(double &eMin, double &eMax);
 
             void getGainBounds(int &gMin, int &gMax);
 

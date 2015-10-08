@@ -254,7 +254,7 @@ bool Stack::saveStack(Fits fitsHeader, string path, StackMeth stackMthd, string 
 
                     Mat newMat ;
 
-                    float bzero	 = 0.0;
+                    float bzero  = 0.0;
                     float bscale = 1.0;
 
                     BOOST_LOG_SEV(logger, notification) << "Call reduction function.";

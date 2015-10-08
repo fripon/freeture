@@ -728,7 +728,7 @@ bool DetThread::saveEventData(int firstEvPosInFB, int lastEvPosInFB){
 
     // Check the number of the last frame to save.
     if(frameBuffer->back().mFrameNumber < numLastFrameToSave)
-            numLastFrameToSave = frameBuffer->back().mFrameNumber;
+        numLastFrameToSave = frameBuffer->back().mFrameNumber;
 
     // Total frames to save.
     int nbTotalFramesToSave = numLastFrameToSave - numFirstFrameToSave;
@@ -736,9 +736,12 @@ bool DetThread::saveEventData(int firstEvPosInFB, int lastEvPosInFB){
     // Count number of digit on nbTotalFramesToSave.
     int n = nbTotalFramesToSave;
     int nbDigitOnNbTotalFramesToSave = 0;
+
     while(n!=0){
+
       n/=10;
       ++nbDigitOnNbTotalFramesToSave;
+
     }
 
     cout << "> First frame to save  : " << numFirstFrameToSave	<< endl;
@@ -766,7 +769,7 @@ bool DetThread::saveEventData(int firstEvPosInFB, int lastEvPosInFB){
     // Init fits 3D.
     Fits3D fits3d;
 
-    if(mSaveFits3D){
+    if(mSaveFits3D) {
 
         fits3d = Fits3D(mBitDepth, frameBuffer->front().mImg.rows, frameBuffer->front().mImg.cols, (numLastFrameToSave - numFirstFrameToSave +1), mEventPath + "fits3D");
         boost::posix_time::ptime time = boost::posix_time::microsec_clock::universal_time();
@@ -939,10 +942,13 @@ bool DetThread::saveEventData(int firstEvPosInFB, int lastEvPosInFB){
 
     if(mSaveSumWithHistEqualization) {
 
-        Mat s, eqHist;
-        stack.getStack().copyTo(s);
+        Mat s,s1, eqHist;
+        float bzero  = 0.0;
+        float bscale = 1.0;
+        s = stack.reductionByFactorDivision(bzero,bscale);
         if(mBitDepth != MONO_8)
             Conversion::convertTo8UC1(s).copyTo(s);
+
         equalizeHist(s, eqHist);
         SaveImg::saveJPEG(eqHist,mEventPath+mStationName+"_"+TimeDate::getYYYYMMDDThhmmss(mEventDate)+"_UT");
 

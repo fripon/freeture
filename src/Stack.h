@@ -144,8 +144,6 @@ class Stack {
 
         Mat getStack() {return stack;};
 
-    private :
-
         /**
         * Reduce stack in float 32 bits to 8 or 16 bits.
         *

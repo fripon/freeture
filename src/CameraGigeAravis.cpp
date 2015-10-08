@@ -709,7 +709,7 @@
 
     }
 
-    void CameraGigeAravis::getExposureBounds(int &eMin, int &eMax){
+    void CameraGigeAravis::getExposureBounds(double &eMin, double &eMax){
 
         double exposureMin = 0.0;
         double exposureMax = 0.0;

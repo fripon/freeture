@@ -749,7 +749,7 @@ bool CameraGigePylon::grabSingleImage(Frame &frame, int camID){
     return false;
 }
 
-void CameraGigePylon::getExposureBounds(int &eMin, int &eMax){
+void CameraGigePylon::getExposureBounds(double &eMin, double &eMax){
 
     INodeMap *nodemap = pCamera->GetNodeMap();
 

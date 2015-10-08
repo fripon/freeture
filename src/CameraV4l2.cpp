@@ -755,7 +755,7 @@
 
     }
 
-    void CameraV4l2::getExposureBounds(int &eMin, int &eMax){
+    void CameraV4l2::getExposureBounds(double &eMin, double &eMax){
 
         struct v4l2_queryctrl queryctrl;
         memset(&queryctrl, 0, sizeof(queryctrl));

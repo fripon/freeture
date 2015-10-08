@@ -108,6 +108,8 @@ class CameraVideo : public Camera{
          */
         ~CameraVideo(void);
 
+        bool createDevice(int id);
+
         bool listCameras() {return true;};
 
         /**
@@ -147,5 +149,14 @@ class CameraVideo : public Camera{
         bool loadNextDataSet(string &location);
 
         bool getFPS(double &value) {value = 30; return true;};
+
+        bool setExposureTime(double exp){cout << "Fake exposure time." << endl; return true;};
+
+        bool setGain(int gain) {cout << "Fake gain." << endl; return true;};
+
+        bool setFPS(double fps){cout << "Fake fps." << endl;return true;};
+
+        bool setPixelFormat(CamBitDepth format){cout << "Fake format." << endl;return true;};
+
 };
 

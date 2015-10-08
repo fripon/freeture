@@ -50,6 +50,9 @@ class Camera {
 
         bool mExposureAvailable;
         bool mGainAvailable;
+        bool mCamSizeToMax;
+        int mCamSizeWidth;
+        int mCamSizeHeight;
 
     public :
 
@@ -143,7 +146,7 @@ class Camera {
         * @param eMin Return minimum exposure time value.
         * @param eMax Return maximum exposure time value.
         */
-        virtual void getExposureBounds(int &eMin, int &eMax) {};
+        virtual void getExposureBounds(double &eMin, double &eMax) {};
 
 
         virtual TimeMeasureUnit getExposureUnit() {return SEC;};

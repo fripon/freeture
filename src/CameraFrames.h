@@ -103,6 +103,8 @@ class CameraFrames: public Camera {
          */
         ~CameraFrames();
 
+        bool createDevice(int id) { return true;};
+
         bool listCameras() {return true;};
 
         /**
@@ -143,6 +145,13 @@ class CameraFrames: public Camera {
 
         bool getFPS(double &value);
 
+        bool setExposureTime(double exp){cout << "Fake exposure time." << endl; return true;};
+
+        bool setGain(int gain) {cout << "Fake gain." << endl; return true;};
+
+        bool setFPS(double fps){cout << "Fake fps." << endl;return true;};
+
+        bool setPixelFormat(CamBitDepth format){cout << "Fake format." << endl;return true;};
 
 };
 

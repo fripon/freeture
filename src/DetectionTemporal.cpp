@@ -351,13 +351,24 @@
             posFile.open(posFilePath.c_str());
 
             vector<LocalEvent>::iterator itLe;
+
+            // Number of the first frame associated to the event.
+            int numFirstFrame = -1;
+
             for(itLe = (*mGeToSave).LEList.begin(); itLe!=(*mGeToSave).LEList.end(); ++itLe){
+
+                if(numFirstFrame == -1) {
+
+                    numFirstFrame = (*itLe).getNumFrame() - mTimeBeforeEvent;
+
+                }
 
                 Point pos = (*itLe).getMassCenter();
 
                 if(mDownsampleEnabled) pos*=2;
-
-                string line = Conversion::intToString((*itLe).getNumFrame() - ((*itLe).getNumFrame() - mTimeBeforeEvent)) + "               (" + Conversion::intToString(pos.x)  + ";" + Conversion::intToString(pos.y) + ")\n";
+               
+                // NUM_FRAME    POSITIONX     POSITIONY (inversed)
+                string line = Conversion::intToString((*itLe).getNumFrame() - numFirstFrame) + "               (" + Conversion::intToString(pos.x)  + ";" + Conversion::intToString(pos.y) + ")\n";
                 posFile << line;
 
             }
@@ -1633,6 +1644,28 @@
                     fileFrame.close();
                     fileGe.close();
                 }
+                 timeTotal = (double)getTickCount() - timeTotal;
+                BOOST_LOG_SEV(logger, normal) << "mDownsampleTime : " << (mDownsampleTime/getTickFrequency())*1000 << " ms";
+
+            BOOST_LOG_SEV(logger, normal) << "absdiffTime : " << (absdiffTime/getTickFrequency())*1000 << " ms";
+
+            BOOST_LOG_SEV(logger, normal) << "posdiffTime : " << (posdiffTime/getTickFrequency())*1000 << " ms";
+
+            BOOST_LOG_SEV(logger, normal) << "negdiffTime : " << (negdiffTime/getTickFrequency())*1000 << " ms";
+
+            BOOST_LOG_SEV(logger, normal) << "dilateTime : " << (dilateTime/getTickFrequency())*1000 << " ms";
+
+            BOOST_LOG_SEV(logger, normal) << "thresholdTime : " << (thresholdTime/getTickFrequency())*1000 << " ms";
+
+            BOOST_LOG_SEV(logger, normal) << "timeStep1 : " << (timeStep1/getTickFrequency())*1000 << " ms";
+
+            BOOST_LOG_SEV(logger, normal) << "timeStep2 : " << (timeStep2/getTickFrequency())*1000 << " ms";
+
+            BOOST_LOG_SEV(logger, normal) << "timeStep3 : " << (timeStep3/getTickFrequency())*1000 << " ms";
+
+            BOOST_LOG_SEV(logger, normal) << "timeStep4 : " << (timeStep4/getTickFrequency())*1000 << " ms";
+
+            BOOST_LOG_SEV(logger, normal) << "timeTotal : " << (timeTotal/getTickFrequency())*1000 << " ms";
 
                 return saveSignal;
 
@@ -1643,30 +1676,9 @@
 
         timeTotal = (double)getTickCount() - timeTotal;
 
-        if(mDownsampleTime!=0)
-            cout << "mDownsampleTime : " << (mDownsampleTime/getTickFrequency())*1000 << " ms" << endl;
-        if(absdiffTime!=0)
-            cout << "absdiffTime : " << (absdiffTime/getTickFrequency())*1000 << " ms" << endl;
-        if(posdiffTime!=0)
-            cout << "posdiffTime : " << (posdiffTime/getTickFrequency())*1000 << " ms" << endl;
-        if(negdiffTime!=0)
-            cout << "negdiffTime : " << (negdiffTime/getTickFrequency())*1000 << " ms" << endl;
-        if(dilateTime!=0)
-            cout << "dilateTime : " << (dilateTime/getTickFrequency())*1000 << " ms" << endl;
-        if(thresholdTime!=0)
-            cout << "thresholdTime : " << (thresholdTime/getTickFrequency())*1000 << " ms" << endl;
-        if(timeStep1!=0)
-            cout << "timeStep1 : " << (timeStep1/getTickFrequency())*1000 << " ms" << endl;
-        if(timeStep2!=0)
-            cout << "timeStep2 : " << (timeStep2/getTickFrequency())*1000 << " ms" << endl;
-        if(timeStep3!=0)
-            cout << "timeStep3 : " << (timeStep3/getTickFrequency())*1000 << " ms" << endl;
-        if(timeStep4!=0)
-            cout << "timeStep4 : " << (timeStep4/getTickFrequency())*1000 << " ms" << endl;
-        if(timeTotal!=0)
-            cout << "timeTotal : " << (timeTotal/getTickFrequency())*1000 << " ms" << endl;
+            
 
-        return false;
+            return false;
 
         }
 

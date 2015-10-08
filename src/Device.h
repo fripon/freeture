@@ -66,8 +66,7 @@
 #include "CameraVideo.h"
 #include "CameraV4l2.h"
 #include "CameraFrames.h"
-#include "AcqSchedule.h"
-#include "Fits.h"
+#include "CameraWindows.h"
 #include <vector>
 #include <algorithm>
 #include <string>
@@ -76,9 +75,6 @@
 #include <algorithm>
 #include <boost/tokenizer.hpp>
 #include <boost/circular_buffer.hpp>
-#include "Ephemeris.h"
-#include "ETimeMode.h"
-#include "CameraWindows.h"
 
 using namespace boost::filesystem;
 using namespace cv;
@@ -98,7 +94,11 @@ using namespace std;
 
 class Device {
 
-    private:
+    public :
+
+        bool mVideoFramesInput; // TRUE if input is a video file or frames directories.
+
+    private :
 
         static boost::log::sources::severity_logger< LogSeverityLevel > logger;
 
@@ -114,73 +114,21 @@ class Device {
 
         } initializer;
 
-        vector<AcqSchedule> mSchedule;
-        bool                mScheduleEnabled;
-        string              mDataPath;
-        string              mStationName;
-        Mat                 mMask;
-        bool                mMaskEnabled;
-        string              mMaskPath;
-
-        CamBitDepth         mBitDepth;
-        int                 mNightExposure;
-        int                 mNightGain;
-        int                 mDayExposure;
-        int                 mDayGain;
-        int                 mFPS;
-
-
-        bool                mExpCtrlSaveImg;
-        bool                mExpCtrlSaveInfos;
-        int                 mExpCtrlFrequency;
-        vector<int>         mSunriseTime;
-        vector<int>         mSunsetTime;
-        int                 mSunsetDuration;
-        int                 mSunriseDuration;
-        bool                mRegularAcqEnabled;
-        int                 mRegularInterval;
-        int                 mRegularExposure;
-        int                 mRegularGain;
-        CamBitDepth         mRegularFormat;
-        int                 mRegularRepetition;
-
-        bool                mVideoFramesInInput;
-        bool                mDetectionEnabled;
-        int                 mMinExposureTime;
-        int                 mMaxExposureTime;
-        int                 mMinGain;
-        int                 mMaxGain;
-        Fits                mFitsHeader;
-        string              mCfgPath;
-        bool                mDebugEnabled;
-        double              mSunHorizon1;
-        double              mSunHorizon2;
-        double              mStationLongitude;
-        double              mStationLatitude;
-
         vector<pair<int,pair<int,CamSdkType>>> mDevices;
 
-    public :
-
-        bool                mEphemerisUpdated;
-        bool                mEphemerisEnabled;
-        string              mCurrentDate;
-
-        int mStartSunriseTime;
-        int mStopSunriseTime;
-        int mStartSunsetTime;
-        int mStopSunsetTime;
-        int mCurrentTime; // In seconds.
-
-        TimeMode            mRegularMode;
-        ImgFormat           mRegularOutput;
-        ImgFormat           mScheduleOutput;
-
-        TimeMode            mDetectionMode;
-        TimeMode            mStackMode;
-
-        int mCamID;
-        Camera *mCam;
+        bool        mSizeMax;
+        int         mSizeWidth;
+        int         mSizeHeight;
+        CamBitDepth mBitDepth;
+        int         mNightExposure;
+        int         mNightGain;
+        int         mDayExposure;
+        int         mDayGain;
+        int         mFPS;
+        int         mCamID;         // ID in a specific sdk.
+        int         mGenCamID;      // General ID.
+        Camera      *mCam;
+        string      mCfgPath;
 
     public :
 
@@ -190,42 +138,58 @@ class Device {
 
         ~Device();
 
-        bool createCamera(int id);
-
-        bool prepareDevice(int id);
-
-        bool runContinuousAcquisition();
-
-        vector<AcqSchedule> getSchedule()                   {return mSchedule;};
-        string              getDataPath()                   {return mDataPath;};
-        string              getStationName()                {return mStationName;};
-        Fits                getFitsHeader()                 {return mFitsHeader;};
-        Mat                 getMask()                       {return mMask;};
-        int                 getMinExposureTime()            {return mMinExposureTime;};
-        int                 getMaxExposureTime()            {return mMaxExposureTime;};
-        bool                getExposureControlSaveImage()   {return mExpCtrlSaveImg;};
-        bool                getExposureControlSaveInfos()   {return mExpCtrlSaveInfos;};
-        int                 getExposureControlFrequency()   {return mExpCtrlFrequency;};
-        vector<int>         getSunriseTime()                {return mSunriseTime;};
-        int                 getSunriseDuration()            {return mSunriseDuration;};
-        vector<int>         getSunsetTime()                 {return mSunsetTime;};
-        int                 getSunsetDuration()             {return mSunsetDuration;};
-        int                 getNightExposureTime()          {return mNightExposure;};
-        int                 getDayExposureTime()            {return mDayExposure;};
-        int                 getDayGain()                    {return mDayGain;};
-        int                 getNightGain()                  {return mNightGain;};
-        bool                getAcqRegularEnabled()          {return mRegularAcqEnabled;};
-        int                 getAcqRegularTimeInterval()     {return mRegularInterval;};
-        int                 getAcqRegularExposure()         {return mRegularExposure;};
-        int                 getAcqRegularGain()             {return mRegularGain;};
-        CamBitDepth         getAcqRegularFormat()           {return mRegularFormat;};
-        int                 getAcqRegularRepetition()       {return mRegularRepetition;};
-        bool                getAcqScheduleEnabled()         {return mScheduleEnabled;};
-        bool                getVideoFramesInput()           {return mVideoFramesInInput;};
-
-        bool getSunTimes();
-
         void listDevices(bool printInfos);
+
+        bool createCamera(int id, bool create);
+
+        bool createCamera();
+
+        bool initializeCamera();
+
+        bool runContinuousCapture(Frame &img);
+
+        bool runSingleCapture(Frame &img);
+
+        bool startCamera();
+
+        bool stopCamera();
+
+        bool setCameraPixelFormat();
+
+        bool getCameraGainBounds(int &min, int &max);
+
+        bool getCameraExposureBounds(double &min, double &max);
+
+        bool setCameraNightExposureTime();
+
+        bool setCameraDayExposureTime();
+
+        bool setCameraNightGain();
+
+        bool setCameraDayGain();
+
+        bool setCameraExposureTime(double value);
+
+        bool setCameraGain(int value);
+
+        bool setCameraFPS();
+
+        bool getCameraFPS(double &fps);
+
+        bool getCameraStatus();
+
+        bool getCameraDataSetStatus();
+
+        bool loadNextCameraDataSet(string &location);
+
+        bool getExposureStatus();
+
+        bool getGainStatus();
+
+        int getNightExposureTime() {return mNightExposure;};
+        int getNightGain() {return mNightGain;};
+        int getDayExposureTime() {return mDayExposure;};
+        int getDayGain() {return mDayGain;};
 
     private :
 

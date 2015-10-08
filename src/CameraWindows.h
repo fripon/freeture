@@ -47,7 +47,7 @@
 
 class CameraWindows: public Camera {
 
-    protected:
+    private :
 
         int mDevNumber;
         videoInput mVideoInput;
@@ -55,6 +55,7 @@ class CameraWindows: public Camera {
         int mHeight;
         int mSize;
         unsigned char * mBuffer;
+        int mFrameCounter;
 
         // see : http://msdn.microsoft.com/en-us/library/dd318253(v=vs.85).aspx
         // and : http://msdn.microsoft.com/en-us/library/dd389148(v=vs.85).aspx
@@ -94,7 +95,7 @@ class CameraWindows: public Camera {
 
         bool setPixelFormat(CamBitDepth format);
 
-        void getExposureBounds(int &eMin, int &eMax);
+        void getExposureBounds(double &eMin, double &eMax);
 
         void getGainBounds(int &gMin, int &gMax);
 

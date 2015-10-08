@@ -215,7 +215,7 @@ float ExposureControl::computeMSV(){
 
 }
 
-bool ExposureControl::controlExposureTime(Device *camera, Mat image, TimeDate::Date imageDate){
+bool ExposureControl::controlExposureTime(Device *camera, Mat image, TimeDate::Date imageDate, Mat mask, double minExposureTime, double fps){
 
     try {
 
@@ -254,11 +254,8 @@ bool ExposureControl::controlExposureTime(Device *camera, Mat image, TimeDate::D
 
                 }else {
 
-                    // Get frame mask.
-                    Mat m = camera->getMask();
-
                     // Compute pixels value repartition.
-                    calculate(image, m);
+                    calculate(image, mask);
 
                     // Compute Mean Sample Value
                     float msv = computeMSV();
@@ -278,7 +275,7 @@ bool ExposureControl::controlExposureTime(Device *camera, Mat image, TimeDate::D
 
                             putText(saveFrame, "BEFORE EC -> MSV : " + Conversion::floatToString(msv), cvPoint(20,20),FONT_HERSHEY_COMPLEX_SMALL, 0.8, cvScalar(255), 1, CV_AA);
 
-                            putText(saveFrame, "EXP : " + Conversion::intToString(camera->mCam->getExposureTime()), cvPoint(20,40),FONT_HERSHEY_COMPLEX_SMALL, 0.8, cvScalar(255), 1, CV_AA);
+                            putText(saveFrame, "EXP : ? " /*Conversion::intToString(camera->mCam->getExposureTime())*/, cvPoint(20,40),FONT_HERSHEY_COMPLEX_SMALL, 0.8, cvScalar(255), 1, CV_AA);
 
                             if(checkDataLocation(imageDate))
                                 SaveImg::saveBMP(saveFrame, finalDataLocation + "expControl_" + TimeDate::getYYYYMMDDThhmmss(imageDate) + "_before");
@@ -286,12 +283,8 @@ bool ExposureControl::controlExposureTime(Device *camera, Mat image, TimeDate::D
                         }
 
                         // Get minimum exposure time.
-                        minCameraExposureValue = camera->getMinExposureTime();
+                        minCameraExposureValue = minExposureTime;
                         BOOST_LOG_SEV(logger,notification) << "Min EXP : " << minCameraExposureValue;
-                        
-                        // Get acquisition frequency.
-                        double fps = 0.0; camera->mCam->getFPS(fps);
-                        BOOST_LOG_SEV(logger,notification) << "FPS : " << fps;
 
                         // Set maximum exposure time (us) according fps value.
                         if(fps > 0) maxCameraExposureValue = (int)((1.0/fps) * 1000000.0);
@@ -302,7 +295,7 @@ bool ExposureControl::controlExposureTime(Device *camera, Mat image, TimeDate::D
                         exposureValue = minCameraExposureValue;
 
                         // Set exposure time with the minimum value
-                        if(!camera->mCam->setExposureTime(minCameraExposureValue))
+                        if(!camera->setCameraExposureTime(minCameraExposureValue))
                             throw "Fail to set exposure time in initialization.";
 
                         BOOST_LOG_SEV(logger,notification) << "Set EXP to : " << minCameraExposureValue;
@@ -345,7 +338,7 @@ bool ExposureControl::controlExposureTime(Device *camera, Mat image, TimeDate::D
 
                                 expArray_1.push_back(exposureValue);
 
-                                if(!camera->mCam->setExposureTime(exposureValue))
+                                if(!camera->setCameraExposureTime(exposureValue))
                                     throw "Fail to set exposure time in step 1 : incrementation";
 
                                 BOOST_LOG_SEV(logger,notification) << "Set EXP to : " << exposureValue;
@@ -360,7 +353,7 @@ bool ExposureControl::controlExposureTime(Device *camera, Mat image, TimeDate::D
 
                                     finalExposureTime = minCameraExposureValue;
                                     exposureValue = minCameraExposureValue;
-                                    if(!camera->mCam->setExposureTime(minCameraExposureValue))
+                                    if(!camera->setCameraExposureTime(minCameraExposureValue))
                                         throw "Fail to set exposure time in step 1 : Analyse MSV > 2.5";
 
                                     BOOST_LOG_SEV(logger,notification) << "Set EXP to : " << exposureValue;
@@ -370,7 +363,7 @@ bool ExposureControl::controlExposureTime(Device *camera, Mat image, TimeDate::D
 
                                     finalExposureTime = maxCameraExposureValue;
                                     exposureValue = maxCameraExposureValue;
-                                    if(!camera->mCam->setExposureTime(maxCameraExposureValue))
+                                    if(!camera->setCameraExposureTime(maxCameraExposureValue))
                                         throw "Fail to set exposure time in step 1 : Analyse MSV < 2.5";
 
                                     BOOST_LOG_SEV(logger,notification) << "Set EXP to : " << exposureValue;
@@ -401,7 +394,7 @@ bool ExposureControl::controlExposureTime(Device *camera, Mat image, TimeDate::D
 
                                                 BOOST_LOG_SEV(logger,notification) << "New interval found -> MSV[" << msvMin_1 << "-" << msvMax_1 << "] EXP[" << expMin_1 << "-" << expMax_1 << "]";
 
-                                                if(!camera->mCam->setExposureTime(exposureValue))
+                                                if(!camera->setCameraExposureTime(exposureValue))
                                                     throw "Fail to set exposure time in step 1 : Analyse MSV : search";
 
                                                 BOOST_LOG_SEV(logger,notification) << "Set EXP to : " << exposureValue;
@@ -454,7 +447,7 @@ bool ExposureControl::controlExposureTime(Device *camera, Mat image, TimeDate::D
 
                                 expArray_2.push_back(exposureValue);
 
-                                if(!camera->mCam->setExposureTime(exposureValue))
+                                if(!camera->setCameraExposureTime(exposureValue))
                                     throw "Fail to set exposure time in step 2 : incrementation";
 
                                 BOOST_LOG_SEV(logger,notification) << "Set EXP to : " << exposureValue;
@@ -468,7 +461,7 @@ bool ExposureControl::controlExposureTime(Device *camera, Mat image, TimeDate::D
                                 if(msvArray_2.front() > 2.5) {
 
                                     finalExposureTime = expMin_1;
-                                    if(!camera->mCam->setExposureTime(expMin_1))
+                                    if(!camera->setCameraExposureTime(expMin_1))
                                         throw "Fail to set exposure time in step 2 : Analyse MSV > 2.5";
                                     BOOST_LOG_SEV(logger,notification) << "Set EXP to : " << expMin_1;
 
@@ -476,7 +469,7 @@ bool ExposureControl::controlExposureTime(Device *camera, Mat image, TimeDate::D
                                 }else if(msvArray_2.back() < 2.5) {
 
                                     finalExposureTime = expMax_2;
-                                    if(!camera->mCam->setExposureTime(expMax_2))
+                                    if(!camera->setCameraExposureTime(expMax_2))
                                         throw "Fail to set exposure time in step 2 : Analyse MSV < 2.5";
                                     BOOST_LOG_SEV(logger,notification) << "Set EXP to : " << expMax_2;
 
@@ -506,7 +499,7 @@ bool ExposureControl::controlExposureTime(Device *camera, Mat image, TimeDate::D
 
                                                 }
 
-                                                if(!camera->mCam->setExposureTime(exposureValue))
+                                                if(!camera->setCameraExposureTime(exposureValue))
                                                     throw "Fail to set exposure time in step 2";
                                                 BOOST_LOG_SEV(logger,notification) << "Set EXP to : " << exposureValue;
 

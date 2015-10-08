@@ -115,6 +115,10 @@ bool CameraVideo::loadNextDataSet(string &location){
 
 }
 
+bool CameraVideo::createDevice(int id) {
+    return true;
+}
+
 bool CameraVideo::grabImage(Frame &img){
 
     Mat frame;

@@ -120,7 +120,7 @@
 
             bool setPixelFormat(CamBitDepth format);
 
-            void getExposureBounds(int &eMin, int &eMax);
+            void getExposureBounds(double &eMin, double &eMax);
 
             void getGainBounds(int &gMin, int &gMax);
 

@@ -39,6 +39,7 @@ CameraWindows::CameraWindows() {
     mVideoInput.setVerbose(false);
     mExposureAvailable = false;
     mGainAvailable = false;
+    mFrameCounter = 0;
 }
 
 CameraWindows::~CameraWindows()
@@ -128,7 +129,7 @@ bool  CameraWindows::setPixelFormat(CamBitDepth format){
     return true;
 }
 
-void  CameraWindows::getExposureBounds(int &eMin, int &eMax){
+void  CameraWindows::getExposureBounds(double &eMin, double &eMax){
 
 }
 
@@ -212,8 +213,8 @@ bool  CameraWindows::grabImage(Frame &newFrame){
         newFrame.mFps = 0;
         newFrame.mBitDepth = MONO_8;
         newFrame.mSaturatedValue = 255;
-        newFrame.mFrameNumber = 0;
-
+        newFrame.mFrameNumber = mFrameCounter;
+        mFrameCounter++;
         return true;
 
     }

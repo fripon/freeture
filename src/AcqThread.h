@@ -49,6 +49,7 @@
 #include "ExposureControl.h"
 #include "ImgProcessing.h"
 #include "EImgFormat.h"
+#include "Ephemeris.h"
 
 using namespace cv;
 using namespace std;
@@ -88,6 +89,57 @@ class AcqThread {
         string              mCfgPath;               // Configuration file path.
 
 
+
+        vector<AcqSchedule> mSchedule;
+        bool                mScheduleEnabled;
+        string              mDataPath;
+        string              mStationName;
+        Mat                 mMask;
+        bool                mMaskEnabled;
+        string              mMaskPath;
+        bool                mExpCtrlSaveImg;
+        bool                mExpCtrlSaveInfos;
+        int                 mExpCtrlFrequency;
+        vector<int>         mSunriseTime;
+        vector<int>         mSunsetTime;
+        int                 mSunsetDuration;
+        int                 mSunriseDuration;
+        bool                mRegularAcqEnabled;
+        int                 mRegularInterval;
+        int                 mRegularExposure;
+        int                 mRegularGain;
+        CamBitDepth         mRegularFormat;
+        int                 mRegularRepetition;
+        bool                mVideoFramesInInput;
+        bool                mDetectionEnabled;
+        double              mMinExposureTime;
+        double              mMaxExposureTime;
+        int                 mMinGain;
+        int                 mMaxGain;
+        Fits                mFitsHeader;
+        bool                mDebugEnabled;
+        double              mSunHorizon1;
+        double              mSunHorizon2;
+        double              mStationLongitude;
+        double              mStationLatitude;
+        
+        bool                mEphemerisUpdated;
+        bool                mEphemerisEnabled;
+        string              mCurrentDate;
+
+        int mStartSunriseTime;
+        int mStopSunriseTime;
+        int mStartSunsetTime;
+        int mStopSunsetTime;
+        int mCurrentTime; // In seconds.
+
+        TimeMode            mRegularMode;
+        ImgFormat           mRegularOutput;
+        ImgFormat           mScheduleOutput;
+        TimeMode            mDetectionMode;
+        TimeMode            mStackMode;
+
+
         // Communication with the shared framebuffer.
         boost::condition_variable *frameBuffer_condition;
         boost::mutex *frameBuffer_mutex;
@@ -122,7 +174,7 @@ class AcqThread {
          * @param detection Pointer on detection thread.
          * @param stack Pointer on stack thread.
          */
-        AcqThread(  string                          cfg,
+        AcqThread(  string                          cfgFile,
                     boost::circular_buffer<Frame>   *fb,
                     boost::mutex                    *fb_m,
                     boost::condition_variable       *fb_c,
@@ -164,6 +216,10 @@ class AcqThread {
          */
         bool getThreadEndStatus();
 
+        
+        bool getSunTimes();
+
+
     private :
 
         /**
@@ -190,6 +246,7 @@ class AcqThread {
 
         void runImageCapture(int imgNumber, int imgExposure, int imgGain, CamBitDepth imgFormat, ImgFormat imgOutput);
 
+        bool configureInputDevice();
 };
 
 #endif

@@ -122,7 +122,7 @@ class ExposureControl {
 
         float computeMSV();
 
-        bool controlExposureTime(Device *camera, Mat image, TimeDate::Date imageDate);
+        bool controlExposureTime(Device *camera, Mat image, TimeDate::Date imageDate, Mat mask, double minExposureTime, double fps);
 
         bool checkDataLocation(TimeDate::Date date);
 

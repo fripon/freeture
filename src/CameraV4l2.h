@@ -207,7 +207,7 @@
             * @param eMin Return minimum exposure time value.
             * @param eMax Return maximum exposure time value.
             */
-            void getExposureBounds(int &eMin, int &eMax);
+            void getExposureBounds(double &eMin, double &eMax);
 
             /**
             * Get device's gain bounds.

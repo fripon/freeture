@@ -375,7 +375,7 @@
 
     }
 
-    void CameraGigeTis::getExposureBounds(int &eMin, int &eMax) {
+    void CameraGigeTis::getExposureBounds(double &eMin, double &eMax) {
 
         DShowLib::tIVCDAbsoluteValuePropertyPtr pExposureRange;
 
