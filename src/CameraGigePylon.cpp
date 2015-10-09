@@ -581,12 +581,14 @@ bool CameraGigePylon::setSize(int width, int height, bool customSize) {
 
                 if(customSize) {
 
+                    BOOST_LOG_SEV(logger,notification) << "Set custom size to : " << width << "x" << height;
                     pCamera->Width.SetValue(width);
                     pCamera->Height.SetValue(height);
 
                 // Default is maximum size
                 }else {
                     
+                    BOOST_LOG_SEV(logger,notification) << "Set size to : " << pCamera->Width.GetMax() << "x" << pCamera->Height.GetMax();
                     pCamera->Width.SetValue(pCamera->Width.GetMax());
                     pCamera->Height.SetValue(pCamera->Height.GetMax());
                 }

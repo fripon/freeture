@@ -95,9 +95,9 @@ void StackThread::stopThread(){
     mustStop = true;
     mustStopMutex.unlock();
 
-    /*while(thread->timed_join(boost::posix_time::seconds(1)) == false){
+    while(thread->timed_join(boost::posix_time::seconds(1)) == false) {
         thread->interrupt();
-    }*/
+    }
 
     interruptThread();
 
@@ -305,25 +305,28 @@ void StackThread::operator()(){
 
         do{
 
-            //try{
+            try {
 
                 // Thread is sleeping...
+                BOOST_LOG_SEV(logger,normal) << "Stack Thread is sleeping..." ;
                 boost::this_thread::sleep(boost::posix_time::millisec(STACK_INTERVAL*1000));
 
                 // Create a stack to accumulate n frames.
-                Stack frameStack =Stack();
+                Stack frameStack = Stack();
 
                 // First reference date.
                 boost::posix_time::ptime time = boost::posix_time::microsec_clock::universal_time();
                 string cDate = to_simple_string(time);
                 string dateDelimiter = ".";
                 string refDate = cDate.substr(0, cDate.find(dateDelimiter));
+                BOOST_LOG_SEV(logger,normal) << "Stack Thread ref date : " << refDate;
 
                 long secTime = 0;
 
                 do {
 
                     // Communication with AcqThread. Wait for a new frame.
+                    BOOST_LOG_SEV(logger,normal) << "Wait for a new frame.";
                     boost::mutex::scoped_lock lock(*stackSignal_mutex);
                     while(!(*stackSignal)) stackSignal_condition->wait(lock);
                     *stackSignal = false;
@@ -341,6 +344,10 @@ void StackThread::operator()(){
 
                         // Fetch last frame grabbed.
                         boost::mutex::scoped_lock lock2(*frameBuffer_mutex);
+                        BOOST_LOG_SEV(logger,normal) << "Get last frame in circular buffer. SIZE : " << frameBuffer->size();
+                        if(frameBuffer->size() == 0) {
+                            throw "SHARED CIRCULAR BUFFER SIZE = 0 -> STACK INTERRUPTION.";
+                        }
                         Frame newFrame = frameBuffer->back();
                         lock2.unlock();
 
@@ -374,7 +381,7 @@ void StackThread::operator()(){
                     boost::posix_time::ptime t2(boost::posix_time::time_from_string(nowDate));
                     boost::posix_time::time_duration td = t2 - t1;
                     secTime = td.total_seconds();
-                    cout << "STACK : " << secTime << "/" << STACK_TIME <<  endl;
+                    cout << "STACK OPEN STATUS : " << secTime << "/" << STACK_TIME <<  endl;
 
                 }while(secTime <= STACK_TIME);
 
@@ -395,12 +402,12 @@ void StackThread::operator()(){
 
                 }
 
-            /*}catch(const boost::thread_interrupted&){
+            }catch(const boost::thread_interrupted&){
 
                 BOOST_LOG_SEV(logger,notification) << "Stack thread INTERRUPTED";
                 cout << "Stack thread INTERRUPTED" << endl;
 
-            }*/
+            }
 
             // Get the "must stop" state (thread-safe)
             mustStopMutex.lock();

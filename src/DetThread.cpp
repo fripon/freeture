@@ -372,7 +372,7 @@ void DetThread::operator ()(){
 
         do{
 
-            try{
+            try {
 
                 /// Wait new frame from AcqThread.
                 BOOST_LOG_SEV(logger, normal) << "Waiting new frame from AcqThread.";

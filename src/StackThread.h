@@ -49,6 +49,7 @@
 #include "EParser.h"
 #include <boost/filesystem.hpp>
 #include <boost/circular_buffer.hpp>
+#include <assert.h>
 
 using namespace boost::filesystem;
 using namespace std;

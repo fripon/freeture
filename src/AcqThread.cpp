@@ -62,7 +62,7 @@ AcqThread::AcqThread(   string                              cfgFile,
     Configuration cfg;
     
     if(!cfg.Load(cfgFile))
-        throw "Fail to load parameters for acq thread from configuration file.";
+        throw "mload parameters for acq thread from configuration file.";
 
     // DATA LOCATION -----------------------------------------------------------
 
@@ -455,7 +455,7 @@ void AcqThread::operator()(){
         bool exposureControlActive = false;
         bool cleanStatus = false;
             
-        if(mDevice->getExposureStatus() && mDevice->getGainStatus()) {
+        if(mDevice->getExposureStatus()) {
 
             pExpCtrl = new ExposureControl( mExpCtrlFrequency,
                                             mExpCtrlSaveImg,
@@ -806,9 +806,6 @@ void AcqThread::operator()(){
                 tacq = (((double)getTickCount() - tacq)/getTickFrequency())*1000;
                 std::cout << " [ TIME ACQ ] : " << tacq << " ms" << endl;
                 BOOST_LOG_SEV(logger, normal) << " [ TIME ACQ ] : " << tacq << " ms";
-
-                if(!mDevice->mVideoFramesInput && tacq > 60.0)
-                    BOOST_LOG_SEV(logger, warning) << "FRAME " << newFrame.mFrameNumber << "  [ TIME ACQ ] : " << tacq << " ms";
 
                 mMustStopMutex.lock();
                 stop = mMustStop;
@@ -1452,7 +1449,6 @@ bool AcqThread::getSunTimes() {
 
 bool AcqThread::configureInputDevice() {
 
-    
     // CREATE CAMERA
     if(!mDevice->createCamera())
         return false;

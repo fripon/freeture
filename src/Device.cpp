@@ -44,6 +44,7 @@ Device::Device(string cfgPath) {
     mCam        = NULL;
     mCamID      = 0;
     mCfgPath    = cfgPath;
+    mVideoFramesInput = false;
     
     Configuration cfg;
 
@@ -83,8 +84,7 @@ Device::Device(string cfgPath) {
             throw "Fail to get ACQ_BIT_DEPTH for device object.";
 
         string width = res.substr(0,res.find("x"));
-        string height = res.substr(res.find("x"),string::npos);
-
+        string height = res.substr(res.find("x")+1,string::npos);
         mSizeWidth = atoi(width.c_str());
         mSizeHeight = atoi(height.c_str());
 
@@ -110,6 +110,7 @@ Device::Device() {
     mSizeWidth      = 640;
     mSizeHeight     = 480;
     mCam            = NULL;
+    mVideoFramesInput = false;
 
 }
 
@@ -569,7 +570,7 @@ bool Device::setCameraSize() {
 
     if(!mCam->setSize(mSizeWidth, mSizeHeight, mCustomSize)) {
         BOOST_LOG_SEV(logger, fail) << "Fail to set camera size.";
-        return true;
+        return false;
     }
 
     return true;
@@ -580,7 +581,7 @@ bool Device::getCameraFPS(double &fps) {
 
     if(!mCam->getFPS(fps)) {
         BOOST_LOG_SEV(logger, fail) << "Fail to get fps value from camera.";
-        return true;
+        return false;
     }
 
     return true;
