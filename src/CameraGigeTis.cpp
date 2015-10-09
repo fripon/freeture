@@ -288,7 +288,7 @@
 
                 mono8.push_back(VidFmtListPtr->at(i).c_str());
 
-            }else if(s1 == "Y12"){
+            }else if(s1 == "Y12" || s1 == "Y16"){
 
                 mono12.push_back(VidFmtListPtr->at(i).c_str());
 

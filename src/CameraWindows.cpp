@@ -91,7 +91,7 @@ bool CameraWindows::setSize(int width, int height, bool customSize) {
         if(!mVideoInput.setupDevice(camID, 640, 480))
             return false;
     }
-
+    
     // As requested width and height can not always be accomodated make sure to check the size once the device is setup
     mWidth = mVideoInput.getWidth(camID);
     mHeight = mVideoInput.getHeight(camID);
@@ -122,12 +122,13 @@ bool CameraWindows::setSize(int width, int height, bool customSize) {
         frame.mBitDepth = MONO_8;
         frame.mSaturatedValue = 255;
         frame.mFrameNumber = 0;
-
+        mVideoInput.stopDevice(camID);
         return true;
 
     }
 
     std::cout << "Error loading frame from camera (Windows)." << std::endl;
+    mVideoInput.stopDevice(camID);
     return false;
 
 };
@@ -240,7 +241,7 @@ bool  CameraWindows::grabImage(Frame &newFrame){
 }
 
 void  CameraWindows::acqStop(){
-
+    mVideoInput.stopDevice(mDevNumber);
 }
 
 void  CameraWindows::grabCleanse(){

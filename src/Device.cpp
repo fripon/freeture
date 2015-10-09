@@ -558,7 +558,7 @@ bool Device::runContinuousCapture(Frame &img) {
 }
 
 bool Device::runSingleCapture(Frame &img) {
-    
+
     if(mCam->grabSingleImage(img, mCamID))
         return true;
 
