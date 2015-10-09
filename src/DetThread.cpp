@@ -63,6 +63,196 @@ DetThread::DetThread(   string                          cfg_p,
     pThread = NULL;
     mDetMthd = m;
 
+    Configuration cfg;
+    
+    if(!cfg.Load(cfg_p))
+        throw "Fail to load parameters for det thread from configuration file.";
+
+    //********************* ACQUISITION FORMAT.******************************
+
+    string acq_bit_depth;
+    cfg.Get("ACQ_BIT_DEPTH", acq_bit_depth);
+    EParser<CamBitDepth> cam_bit_depth;
+    mBitDepth = cam_bit_depth.parseEnum("ACQ_BIT_DEPTH", acq_bit_depth);
+
+    //********************* STATION NAME.************************************
+
+    if(!cfg.Get("STATION_NAME", mStationName)) {
+        mStationName = "STATION";
+        BOOST_LOG_SEV(logger, warning) << "Fail to load STATION_NAME from configuration file. Set to STATION";
+    }
+
+    //********************* DATA PATH.***************************************
+
+    if(!cfg.Get("DATA_PATH", mDataPath))
+        throw "Fail to load DATA_PATH from configuration file !";
+
+    //********************* SAVE AVI.****************************************
+
+    if(!cfg.Get("DET_SAVE_AVI", mSaveAvi)) {
+        mSaveAvi = false;
+        BOOST_LOG_SEV(logger, warning) << "Fail to load DET_SAVE_AVI from configuration file. Set to false";
+    }
+
+    //********************* SAVE FITS3D.*************************************
+
+    if(!cfg.Get("DET_SAVE_FITS3D", mSaveFits3D)) {
+        mSaveFits3D = false;
+        BOOST_LOG_SEV(logger, warning) << "Fail to load DET_SAVE_FITS3D from configuration file. Set to false";
+    }
+
+    //********************* SAVE FITS2D.*************************************
+
+    if(!cfg.Get("DET_SAVE_FITS2D", mSaveFits2D)) {
+        mSaveFits2D = true;
+        BOOST_LOG_SEV(logger, warning) << "Fail to load DET_SAVE_FITS2D from configuration file. Set to true";
+    }
+
+    //********************* SAVE SUM.****************************************
+
+    if(!cfg.Get("DET_SAVE_SUM", mSaveSum)) {
+        mSaveSum = true;
+        BOOST_LOG_SEV(logger, warning) << "Fail to load DET_SAVE_SUM from configuration file. Set to true";
+    }
+
+    //********************* GEMAP OPTION ******************************
+
+    if(!cfg.Get("DET_SAVE_GEMAP", mSaveGeMap)) {
+        mSaveGeMap = false;
+        BOOST_LOG_SEV(logger, warning) << "Fail to load DET_SAVE_GEMAP from configuration file. Set to false.";
+    }
+
+    //********************* ENABLE HISTOGRAM EQUALIZATION.*******************
+
+    if(!cfg.Get("DET_SAVE_SUM_WITH_HIST_EQUALIZATION", mSaveSumWithHistEqualization)) {
+        mSaveSumWithHistEqualization = true;
+        BOOST_LOG_SEV(logger, warning) << "Fail to load DET_SAVE_SUM_WITH_HIST_EQUALIZATION from configuration file. Set to true";
+    }
+
+    //********************* TIME BEFORE.*************************************
+
+    if(!cfg.Get("DET_TIME_BEFORE", mTimeBeforeEvent)) {
+        mTimeBeforeEvent = 0;
+        BOOST_LOG_SEV(logger, warning) << "Fail to load DET_TIME_BEFORE from configuration file. Set to 0";
+    }
+
+    //********************* TIME AFTER.**************************************
+
+    if(!cfg.Get("DET_TIME_AFTER", mTimeAfterEvent)) {
+        mTimeAfterEvent = 0;
+        BOOST_LOG_SEV(logger, warning) << "Fail to load DET_TIME_AFTER from configuration file. Set to 0";
+    }
+
+    //********************* SEND MAIL.***************************************
+
+    if(!cfg.Get("MAIL_DETECTION_ENABLED", mMailAlertEnabled)) {
+        mMailAlertEnabled = false;
+        BOOST_LOG_SEV(logger, warning) << "Fail to load MAIL_DETECTION_ENABLED from configuration file. Set to false";
+    }
+
+    //********************* SMTP SERVER.*************************************
+
+    if(!cfg.Get("MAIL_SMTP_SERVER", mMailSmtpServer) && mMailAlertEnabled) {
+        mMailAlertEnabled = false;
+        BOOST_LOG_SEV(logger, warning) << "Fail to load MAIL_SMTP_SERVER from configuration file. Set MAIL_DETECTION_ENABLED to false";
+    }
+
+    //********************* SMTP LOGIN.**************************************
+
+    if(!cfg.Get("MAIL_SMTP_LOGIN", mMailSmtpLogin)) {
+        BOOST_LOG_SEV(logger, warning) << "Fail to load MAIL_SMTP_LOGIN from configuration file. Set MAIL_DETECTION_ENABLED to false";
+    }
+
+    //********************* SMTP PASSWORD.***********************************
+
+    if(!cfg.Get("MAIL_SMTP_PASSWORD", mMailSmtpPassword)) {
+        BOOST_LOG_SEV(logger, warning) << "Fail to load MAIL_SMTP_PASSWORD from configuration file. Set MAIL_DETECTION_ENABLED to false";
+    }
+
+    //********************* SMTP SECURITY.***********************************
+
+    string smtp_connection_type;
+    if(!cfg.Get("MAIL_CONNECTION_TYPE", smtp_connection_type) && mMailAlertEnabled) {
+        mMailAlertEnabled = false;
+        BOOST_LOG_SEV(logger, warning) << "Fail to load MAIL_CONNECTION_TYPE from configuration file. Set MAIL_DETECTION_ENABLED to false";
+    }else {
+        EParser<SmtpSecurity> smtp_security;
+        mSmtpSecurity = smtp_security.parseEnum("MAIL_CONNECTION_TYPE", smtp_connection_type);
+    }
+
+    //********************* STACK REDUCTION.*********************************
+
+    if(!cfg.Get("STACK_REDUCTION", mStackReduction)) {
+        mStackReduction = false;
+        BOOST_LOG_SEV(logger, warning) << "Fail to load STACK_REDUCTION from configuration file. Set to false";
+    }
+
+    //********************* STACK MTHD.**************************************
+
+    string stack_method;
+
+    if(!cfg.Get("STACK_MTHD", stack_method)) {
+        mStackMthd = SUM;
+        BOOST_LOG_SEV(logger, warning) << "Fail to load STACK_MTHD from configuration file. Set to SUM";
+    }else {
+        EParser<StackMeth> stack_mth;
+        mStackMthd = stack_mth.parseEnum("STACK_MTHD", stack_method);
+    }
+
+    //********************* FITS KEYWORDS.***********************************
+
+    mFitsHeader.loadKeywordsFromConfigFile(mCfgPath);
+
+    //********************* MAIL RECIPIENTS.*********************************
+
+    string mailRecipients;
+
+    if(!cfg.Get("MAIL_RECIPIENT", mailRecipients) && mMailAlertEnabled) {
+
+        mMailAlertEnabled = false;
+        BOOST_LOG_SEV(logger, warning) << "Fail to load MAIL_RECIPIENT from configuration file. Set MAIL_DETECTION_ENABLED to false";
+
+    }else {
+
+        typedef boost::tokenizer<boost::char_separator<char> > tokenizer;
+        boost::char_separator<char> sep(",");
+        tokenizer tokens(mailRecipients, sep);
+
+        for (tokenizer::iterator tok_iter = tokens.begin();tok_iter != tokens.end(); ++tok_iter){
+            mMailRecipients.push_back(*tok_iter);
+
+        }
+
+    }
+
+    //********************* DETECTION METHOD.********************************
+
+    switch(mDetMthd){
+
+        case TEMPORAL_MTHD :
+
+            {
+
+                pDetMthd = new DetectionTemporal(mTimeBeforeEvent);
+                pDetMthd->initMethod(mCfgPath);
+
+            }
+
+            break;
+
+        case TEMPLATE_MTHD:
+
+            {
+
+                pDetMthd = new DetectionTemplate();
+                pDetMthd->initMethod(mCfgPath);
+
+            }
+
+            break;
+
+    }
+
 }
 
 DetThread::~DetThread(void){
@@ -83,11 +273,6 @@ DetThread::~DetThread(void){
 }
 
 bool DetThread::startThread(){
-
-    if(!loadDetThreadParameters()) {
-        BOOST_LOG_SEV(logger, critical) << "Fail to load parameters for detection thread.";
-        return false;
-    }
 
     BOOST_LOG_SEV(logger, notification) << "Create detection thread.";
     pThread = new boost::thread(boost::ref(*this));
@@ -117,234 +302,6 @@ void DetThread::stopThread(){
 Detection* DetThread::getDetMethod(){
 
     return pDetMthd;
-
-}
-
-bool DetThread::loadDetThreadParameters(){
-
-    try {
-
-        Configuration cfg;
-        cfg.Load(mCfgPath);
-
-        //********************* ACQUISITION FORMAT.******************************
-
-        string acq_bit_depth;
-
-        if(!cfg.Get("ACQ_BIT_DEPTH", acq_bit_depth)) {
-
-            BOOST_LOG_SEV(logger, warning) << "Fail to load ACQ_BIT_DEPTH from configuration file. Set to MONO_8";
-            mBitDepth = MONO_8;
-
-        }else {
-
-            EParser<CamBitDepth> cam_bit_depth;
-            mBitDepth = cam_bit_depth.parseEnum("ACQ_BIT_DEPTH", acq_bit_depth);
-
-        }
-
-        //********************* STATION NAME.************************************
-
-        if(!cfg.Get("STATION_NAME", mStationName)) {
-            mStationName = "STATION";
-            BOOST_LOG_SEV(logger, warning) << "Fail to load STATION_NAME from configuration file. Set to STATION";
-        }
-
-        //********************* DATA PATH.***************************************
-
-        if(!cfg.Get("DATA_PATH", mDataPath)) {
-            throw "Fail to load DATA_PATH from configuration file !";
-        }
-
-        //********************* SAVE AVI.****************************************
-
-        if(!cfg.Get("DET_SAVE_AVI", mSaveAvi)) {
-            mSaveAvi = false;
-            BOOST_LOG_SEV(logger, warning) << "Fail to load DET_SAVE_AVI from configuration file. Set to false";
-        }
-
-        //********************* SAVE FITS3D.*************************************
-
-        if(!cfg.Get("DET_SAVE_FITS3D", mSaveFits3D)) {
-            mSaveFits3D = false;
-            BOOST_LOG_SEV(logger, warning) << "Fail to load DET_SAVE_FITS3D from configuration file. Set to false";
-        }
-
-        //********************* SAVE FITS2D.*************************************
-
-        if(!cfg.Get("DET_SAVE_FITS2D", mSaveFits2D)) {
-            mSaveFits2D = true;
-            BOOST_LOG_SEV(logger, warning) << "Fail to load DET_SAVE_FITS2D from configuration file. Set to true";
-        }
-
-        //********************* SAVE SUM.****************************************
-
-        if(!cfg.Get("DET_SAVE_SUM", mSaveSum)) {
-            mSaveSum = true;
-            BOOST_LOG_SEV(logger, warning) << "Fail to load DET_SAVE_SUM from configuration file. Set to true";
-        }
-
-        //********************* GEMAP OPTION ******************************
-
-        if(!cfg.Get("DET_SAVE_GEMAP", mSaveGeMap)) {
-            mSaveGeMap = false;
-            BOOST_LOG_SEV(logger, warning) << "Fail to load DET_SAVE_GEMAP from configuration file. Set to false.";
-        }
-
-        //********************* ENABLE HISTOGRAM EQUALIZATION.*******************
-
-        if(!cfg.Get("DET_SAVE_SUM_WITH_HIST_EQUALIZATION", mSaveSumWithHistEqualization)) {
-            mSaveSumWithHistEqualization = true;
-            BOOST_LOG_SEV(logger, warning) << "Fail to load DET_SAVE_SUM_WITH_HIST_EQUALIZATION from configuration file. Set to true";
-        }
-
-        //********************* TIME BEFORE.*************************************
-
-        if(!cfg.Get("DET_TIME_BEFORE", mTimeBeforeEvent)) {
-            mTimeBeforeEvent = 0;
-            BOOST_LOG_SEV(logger, warning) << "Fail to load DET_TIME_BEFORE from configuration file. Set to 0";
-        }else {
-
-            mTimeBeforeEvent = mTimeBeforeEvent;
-
-        }
-
-        //********************* TIME AFTER.**************************************
-
-        if(!cfg.Get("DET_TIME_AFTER", mTimeAfterEvent)) {
-            mTimeAfterEvent = 0;
-            BOOST_LOG_SEV(logger, warning) << "Fail to load DET_TIME_AFTER from configuration file. Set to 0";
-        }else {
-
-            mTimeAfterEvent = mTimeAfterEvent;
-
-        }
-
-        //********************* SEND MAIL.***************************************
-
-        if(!cfg.Get("MAIL_DETECTION_ENABLED", mMailAlertEnabled)) {
-            mMailAlertEnabled = false;
-            BOOST_LOG_SEV(logger, warning) << "Fail to load MAIL_DETECTION_ENABLED from configuration file. Set to false";
-        }
-
-        //********************* SMTP SERVER.*************************************
-
-        if(!cfg.Get("MAIL_SMTP_SERVER", mMailSmtpServer) && mMailAlertEnabled) {
-            mMailAlertEnabled = false;
-            BOOST_LOG_SEV(logger, warning) << "Fail to load MAIL_SMTP_SERVER from configuration file. Set MAIL_DETECTION_ENABLED to false";
-        }
-
-        //********************* SMTP LOGIN.**************************************
-
-        if(!cfg.Get("MAIL_SMTP_LOGIN", mMailSmtpLogin) && mMailAlertEnabled) {
-            mMailAlertEnabled = false;
-            BOOST_LOG_SEV(logger, warning) << "Fail to load MAIL_SMTP_LOGIN from configuration file. Set MAIL_DETECTION_ENABLED to false";
-        }
-
-        //********************* SMTP PASSWORD.***********************************
-
-        if(!cfg.Get("MAIL_SMTP_PASSWORD", mMailSmtpPassword) && mMailAlertEnabled) {
-            mMailAlertEnabled = false;
-            BOOST_LOG_SEV(logger, warning) << "Fail to load MAIL_SMTP_PASSWORD from configuration file. Set MAIL_DETECTION_ENABLED to false";
-        }
-
-        //********************* SMTP SECURITY.***********************************
-
-        string smtp_connection_type;
-        if(!cfg.Get("MAIL_CONNECTION_TYPE", smtp_connection_type) && mMailAlertEnabled) {
-            mMailAlertEnabled = false;
-            BOOST_LOG_SEV(logger, warning) << "Fail to load MAIL_CONNECTION_TYPE from configuration file. Set MAIL_DETECTION_ENABLED to false";
-        }else {
-            EParser<SmtpSecurity> smtp_security;
-            mSmtpSecurity = smtp_security.parseEnum("MAIL_CONNECTION_TYPE", smtp_connection_type);
-        }
-
-        //********************* STACK REDUCTION.*********************************
-
-        if(!cfg.Get("STACK_REDUCTION", mStackReduction)) {
-            mStackReduction = false;
-            BOOST_LOG_SEV(logger, warning) << "Fail to load STACK_REDUCTION from configuration file. Set to false";
-        }
-
-        //********************* STACK MTHD.**************************************
-
-        string stack_method;
-
-        if(!cfg.Get("STACK_MTHD", stack_method)) {
-            mStackMthd = SUM;
-            BOOST_LOG_SEV(logger, warning) << "Fail to load STACK_MTHD from configuration file. Set to SUM";
-        }else {
-            EParser<StackMeth> stack_mth;
-            mStackMthd = stack_mth.parseEnum("STACK_MTHD", stack_method);
-        }
-
-        //********************* FITS KEYWORDS.***********************************
-
-        mFitsHeader.loadKeywordsFromConfigFile(mCfgPath);
-
-        //********************* MAIL RECIPIENTS.*********************************
-
-        string mailRecipients;
-
-        if(!cfg.Get("MAIL_RECIPIENT", mailRecipients) && mMailAlertEnabled) {
-
-            mMailAlertEnabled = false;
-            BOOST_LOG_SEV(logger, warning) << "Fail to load MAIL_RECIPIENT from configuration file. Set MAIL_DETECTION_ENABLED to false";
-
-        }else {
-
-            typedef boost::tokenizer<boost::char_separator<char> > tokenizer;
-            boost::char_separator<char> sep(",");
-            tokenizer tokens(mailRecipients, sep);
-
-            for (tokenizer::iterator tok_iter = tokens.begin();tok_iter != tokens.end(); ++tok_iter){
-                mMailRecipients.push_back(*tok_iter);
-
-            }
-
-        }
-
-        //********************* DETECTION METHOD.********************************
-
-        switch(mDetMthd){
-
-            case TEMPORAL_MTHD :
-
-                {
-
-                    pDetMthd = new DetectionTemporal(mTimeBeforeEvent);
-                    pDetMthd->initMethod(mCfgPath);
-
-                }
-
-                break;
-
-            case TEMPLATE_MTHD:
-
-                {
-
-                    pDetMthd = new DetectionTemplate();
-                    pDetMthd->initMethod(mCfgPath);
-
-                }
-
-                break;
-
-        }
-
-        return true;
-
-    }catch(exception& e){
-
-        BOOST_LOG_SEV(logger, critical) << e.what();
-
-    }catch(const char * msg){
-
-        BOOST_LOG_SEV(logger,critical) << msg;
-
-    }
-
-    return false;
 
 }
 
@@ -955,7 +912,7 @@ bool DetThread::saveEventData(int firstEvPosInFB, int lastEvPosInFB){
     }
 
     // *********************************** SEND MAIL NOTIFICATION ***********************************
-
+    BOOST_LOG_SEV(logger,notification) << "Prepare mail..." << mMailAlertEnabled;
     if(mMailAlertEnabled) {
 
         BOOST_LOG_SEV(logger,notification) << "Sending mail...";

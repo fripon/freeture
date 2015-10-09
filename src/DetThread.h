@@ -181,13 +181,6 @@ class DetThread {
         bool saveEventData(int firstEvPosInFB, int lastEvPosInFB);
 
         /**
-        * Load detection thread parameters.
-        *
-        * @return Success to load parameters.
-        */
-        bool loadDetThreadParameters();
-
-        /**
         * Run status of detection thread.
         *
         * @return Is running or not.

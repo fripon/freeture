@@ -62,7 +62,7 @@ AcqThread::AcqThread(   string                              cfgFile,
     Configuration cfg;
     
     if(!cfg.Load(cfgFile))
-        throw "mload parameters for acq thread from configuration file.";
+        throw "Fail to load parameters for acq thread from configuration file.";
 
     // DATA LOCATION -----------------------------------------------------------
 
