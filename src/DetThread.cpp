@@ -919,13 +919,15 @@ bool DetThread::saveEventData(int firstEvPosInFB, int lastEvPosInFB){
 
         if(mSaveGeMap && boost::filesystem::exists( mEventPath + "GeMap.bmp" )) {
 
+            BOOST_LOG_SEV(logger,notification) << "Send : " << mEventPath << "GeMap.bmp";
             mailAttachments.push_back(mEventPath + "GeMap.bmp");
 
         }
 
-        if(mSaveSumWithHistEqualization && boost::filesystem::exists(mEventPath + mStationName + "" + TimeDate::getYYYYMMDDThhmmss(mEventDate) + "_UT.jpg")) {
+        if(mSaveSumWithHistEqualization && boost::filesystem::exists(mEventPath + mStationName + "_" + TimeDate::getYYYYMMDDThhmmss(mEventDate) + "_UT.jpg")) {
 
-            mailAttachments.push_back(mEventPath + mStationName + "" + TimeDate::getYYYYMMDDThhmmss(mEventDate) + "_UT.jpg");
+            BOOST_LOG_SEV(logger,notification) << "Send : " << mEventPath << mStationName << "_" << TimeDate::getYYYYMMDDThhmmss(mEventDate) << "_UT.jpg";
+            mailAttachments.push_back(mEventPath + mStationName + "_" + TimeDate::getYYYYMMDDThhmmss(mEventDate) + "_UT.jpg");
 
         }
 
