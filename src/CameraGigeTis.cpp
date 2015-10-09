@@ -157,34 +157,6 @@
         return rval;
     }
 
-    /*bool CameraGigeTis::getAvailableFormat(){
-
-        // Open device first.
-
-        // Query for all available video formats.
-        DShowLib::Grabber::tVidFmtListPtr pVidFmtList = m_pGrabber->getAvailableVideoFormats();
-
-        if(pVidFmtList == 0){
-
-            std::cerr << "Error: " << m_pGrabber->getLastError().toString() << std::endl;
-            return false;
-
-        }else{
-
-            unsigned int counter = 0;
-            // List the available video formats.
-            for(DShowLib::Grabber::tVidFmtList::iterator it = pVidFmtList->begin(); it != pVidFmtList->end();++it){
-	            std::cout << "\t[" << counter++ << "] " << it->toString() << std::endl;
-            }
-
-            return true;
-
-        }
-
-        // Close device.
-
-    }*/
-
     bool CameraGigeTis::setFpsToLowerValue() {
 
         try {
@@ -430,7 +402,7 @@
         pExposureAuto = NULL;
 
         DShowLib::tIVCDPropertyItemsPtr pItems = m_pGrabber->getAvailableVCDProperties();
-
+        
         if( pItems != 0 ) { 
             // Try to find the exposure item. 
             DShowLib::tIVCDPropertyItemPtr pExposureItem = pItems->findItem( DShowLib::VCDID_Exposure );
@@ -652,6 +624,18 @@
 
     }
 
+    bool CameraGigeTis::setSize(int width, int height, bool customSize) {
+
+        if(customSize){
+
+        }else{
+
+        }
+
+        return true;
+
+    }
+
     void CameraGigeTis::acqStop() {
 
         m_pGrabber->stopLive();
@@ -743,7 +727,7 @@
 
         // Set the sink.
         m_pGrabber->setSinkType(pSink);
-
+        
         // Disable live mode.
         m_pGrabber->prepareLive(false);
 

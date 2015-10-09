@@ -48,8 +48,6 @@ bool Configuration::Load(const string& file){
     ifstream inFile(file.c_str());
 
     if (!inFile.good()){
-
-        cout << "Cannot read configuration file : " << file << endl;
         return false;
     }
 

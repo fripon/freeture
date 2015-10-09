@@ -193,7 +193,9 @@ int main(int argc, const char ** argv){
     desc.add_options()
       ("mode,m",        po::value<int>()->default_value(1),                                             "Execution mode of the program")
       ("time,t",        po::value<int>(),                                                               "Execution time of the program in seconds")
-      ("help,h",                                                                                        "Print help messages")
+      ("width,w",       po::value<int>(),                                                               "Camera image width.")
+      ("height,h",      po::value<int>(),                                                               "Camera image height")
+      ("help",                                                                                          "Print help messages")
       ("config,c",      po::value<string>()->default_value(string(CFG_PATH) + "configuration.cfg"),     "Configuration file's path")
       ("bitdepth,f",    po::value<int>()->default_value(8),                                             "Bit depth of a frame")
       ("bmp",           po::value<bool>()->default_value(false),                                        "Save .bmp")
@@ -216,6 +218,8 @@ int main(int argc, const char ** argv){
         string  configPath      = string(CFG_PATH) + "configuration.cfg";
         string  savePath        = "./";
         int     acqFormat       = 8;
+        int     acqWidth        = 0;
+        int     acqHeight       = 0;
         bool    saveBmp         = false;
         bool    saveFits2D      = false;
         int     gain            = 0;
@@ -639,6 +643,12 @@ int main(int argc, const char ** argv){
                         CamBitDepth camFormat;
                         Conversion::intBitDepthToCamBitDepthEnum(acqFormat, camFormat);
 
+                        // Cam width size
+                        if(vm.count("width")) acqWidth = vm["width"].as<int>();
+
+                        // Cam height size
+                        if(vm.count("height")) acqHeight = vm["height"].as<int>();
+
                         // Cam id.
                         if(vm.count("id")) devID = vm["id"].as<int>();
 
@@ -666,6 +676,11 @@ int main(int argc, const char ** argv){
                         cout << "FORMAT    : " << fmt.getStringEnum(camFormat) << endl;
                         cout << "GAIN      : " << gain << endl;
                         cout << "EXPOSURE  : " << exp << endl;
+
+                        if(acqWidth > 0 && acqHeight > 0) {
+                            cout << "SIZE      : " << acqWidth << "x" << acqHeight << endl;
+                        }
+
                         cout << "SAVE BMP  : " << saveBmp << endl;
                         cout << "SAVE FITS : " << saveFits2D << endl;
                         cout << "DISPLAY   : " << display << endl;
@@ -722,6 +737,8 @@ int main(int argc, const char ** argv){
                         frame.mExposure = exp;
                         frame.mGain = gain;
                         frame.mBitDepth = camFormat;
+                        frame.mHeight = acqHeight;
+                        frame.mWidth = acqWidth;
 
                         Device *device = new Device();
                         device->listDevices(false);

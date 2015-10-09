@@ -571,6 +571,46 @@ bool CameraGigePylon::grabImage(Frame &newFrame){
 
 }
 
+bool CameraGigePylon::setSize(int width, int height, bool customSize) {
+
+    if(pCamera) {
+
+        try{
+
+            if (pCamera->IsAttached() && pCamera->IsOpen()){
+
+                if(customSize) {
+
+                    pCamera->Width.SetValue(width);
+                    pCamera->Height.SetValue(height);
+
+                // Default is maximum size
+                }else {
+                    
+                    pCamera->Width.SetValue(pCamera->Width.GetMax());
+                    pCamera->Height.SetValue(pCamera->Height.GetMax());
+                }
+
+                return true;
+
+            }else{
+
+                BOOST_LOG_SEV(logger,fail) << "Can't access size image. Camera not opened or not attached." << endl;
+
+            }
+
+        }catch (GenICam::GenericException &e){
+
+            // Error handling
+            BOOST_LOG_SEV(logger,fail) << "An exception occurred." << e.GetDescription();
+
+        }
+    }
+
+    return false;
+
+}
+
 bool CameraGigePylon::grabSingleImage(Frame &frame, int camID){
 
     try {
@@ -603,9 +643,18 @@ bool CameraGigePylon::grabSingleImage(Frame &frame, int camID){
         CIntegerPtr width(nodemap.GetNode("Width"));
         CIntegerPtr height(nodemap.GetNode("Height"));
 
-        // Set width and height to the maximum sensor's size.
-        width->SetValue(width->GetMax());
-        height->SetValue(height->GetMax());
+        if(frame.mWidth > 0 && frame.mHeight > 0) {
+
+            width->SetValue(frame.mWidth);
+            height->SetValue(frame.mHeight);
+
+        }else{
+
+            // Set width and height to the maximum sensor's size.
+            width->SetValue(width->GetMax());
+            height->SetValue(height->GetMax());
+
+        }
 
         // Set pixel format.
         // Access the PixelFormat enumeration type node.

@@ -60,6 +60,8 @@ class Frame {
         int                 mFrameRemaining;     // Define the number of remaining frames if the input source is a video or a set of single frames.
         double              mSaturatedValue;     // Max pixel value in the image.
         int                 mFps;                // Camera's fps parameter.
+        int                 mWidth;
+        int                 mHeight;
 
         /**
         * Constructor.

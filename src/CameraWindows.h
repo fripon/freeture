@@ -107,6 +107,8 @@ class CameraWindows: public Camera {
 
         bool setFPS(double value);
 
+        bool setSize(int width, int height, bool customSize);
+
         bool setFpsToLowerValue();
 
         bool grabInitialization();

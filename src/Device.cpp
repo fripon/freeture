@@ -73,19 +73,27 @@ Device::Device(string cfgPath) {
     EParser<CamBitDepth> camBitDepth;
     mBitDepth = camBitDepth.parseEnum("ACQ_BIT_DEPTH", acqBitDepth);
 
-    if(!cfg.Get("ACQ_RES_MAX", mSizeMax)) 
-        throw "Fail to get ACQ_RES_MAX for device object.";
+    if(!cfg.Get("ACQ_RES_CUSTOM_SIZE", mCustomSize)) 
+        throw "Fail to get ACQ_RES_CUSTOM_SIZE for device object.";
 
-    string res;
-    if(!cfg.Get("ACQ_RES_SIZE", res))
-        throw "Fail to get ACQ_BIT_DEPTH for device object.";
+    if(mCustomSize) {
 
-    string width = res.substr(0,res.find("x"));
-    string height = res.substr(res.find("x"),string::npos);
+        string res;
+        if(!cfg.Get("ACQ_RES_SIZE", res))
+            throw "Fail to get ACQ_BIT_DEPTH for device object.";
 
-    mSizeWidth = atoi(width.c_str());
-    mSizeHeight = atoi(height.c_str());
+        string width = res.substr(0,res.find("x"));
+        string height = res.substr(res.find("x"),string::npos);
 
+        mSizeWidth = atoi(width.c_str());
+        mSizeHeight = atoi(height.c_str());
+
+    }else {
+
+        mSizeWidth      = 640;
+        mSizeHeight     = 480;
+
+    }
 }
 
 Device::Device() {
@@ -98,7 +106,7 @@ Device::Device() {
     mFPS            = 30;
     mCamID          = 0;
     mGenCamID       = 0;
-    mSizeMax        = true;
+    mCustomSize     = true;
     mSizeWidth      = 640;
     mSizeHeight     = 480;
     mCam            = NULL;
@@ -554,6 +562,17 @@ bool Device::runSingleCapture(Frame &img) {
         return true;
 
     return false;
+
+}
+
+bool Device::setCameraSize() {
+
+    if(!mCam->setSize(mSizeWidth, mSizeHeight, mCustomSize)) {
+        BOOST_LOG_SEV(logger, fail) << "Fail to set camera size.";
+        return true;
+    }
+
+    return true;
 
 }
 

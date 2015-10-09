@@ -89,8 +89,8 @@
             ArvCamera       *camera;                // Camera to control.
             ArvPixelFormat  pixFormat;              // Image format.
             ArvStream       *stream;                // Object for video stream reception.
-            int             width;                  // Camera region's width.
-            int             height;                 // Camera region's height.
+            int             mWidth;                  // Camera region's width.
+            int             mHeight;                 // Camera region's height.
             double          fps;                    // Camera acquisition frequency.
             double          gainMin;                // Camera minimum gain.
             double          gainMax;                // Camera maximum gain.
@@ -288,6 +288,7 @@
             */
             void saveGenicamXml(string p);
 
+            bool setSize(int width, int height, bool customSize);
 
     };
 

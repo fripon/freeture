@@ -40,6 +40,8 @@ mFrameNumber(0), mFps(0), mBitDepth(MONO_8), mSaturatedValue(255) {
 
     capImg.copyTo(mImg);
     mDate = TimeDate::splitIsoExtendedDate(acquisitionDate);
+    mWidth = 640;
+    mHeight = 480;
 
 }
 
@@ -48,6 +50,8 @@ mExposure(0), mGain(0), mFileName("noFileName"), mFrameRemaining(0),
 mFrameNumber(0), mFps(0), mBitDepth(MONO_8), mSaturatedValue(255) {
 
    // mDate = {};
+   mWidth = 640;
+   mHeight = 480;
 
 }
 

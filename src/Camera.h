@@ -235,6 +235,8 @@ class Camera {
         */
         virtual bool setFPS(double value) {return false;};
 
+        virtual bool setSize(int width, int height, bool customSize) {return false;};
+
         /**
         * Set device's format.
         *

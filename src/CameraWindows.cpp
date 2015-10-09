@@ -71,16 +71,32 @@ vector<pair<int,string>> CameraWindows::getCamerasList() {
 
 }
 
+bool CameraWindows::setSize(int width, int height, bool customSize) {
+
+    if(customSize)
+        return mVideoInput.setupDevice(mDevNumber,width,height);
+    else
+        return mVideoInput.setupDevice(mDevNumber,640,480);
+
+}
+
  bool  CameraWindows::grabSingleImage(Frame &frame, int camID) {
-     
+
     int numDevices = mVideoInput.listDevices(true);
 
-    mVideoInput.setupDevice(camID);
+    if(frame.mWidth > 0 && frame.mHeight > 0) {
+        if(!mVideoInput.setupDevice(camID, frame.mWidth, frame.mHeight))
+            return false;
+    }else{
+        if(!mVideoInput.setupDevice(camID, 640, 480))
+            return false;
+    }
 
     // As requested width and height can not always be accomodated make sure to check the size once the device is setup
     mWidth = mVideoInput.getWidth(camID);
     mHeight = mVideoInput.getHeight(camID);
     mSize = mVideoInput.getSize(camID);
+    cout << ">> Size setted to : " << mWidth << "x" << mHeight << endl;
 
     // Create the buffer where the video will be captured
     mBuffer = new unsigned char[mSize];
@@ -118,7 +134,6 @@ vector<pair<int,string>> CameraWindows::getCamerasList() {
 
 bool  CameraWindows::createDevice(int id){
     
-    mVideoInput.setupDevice(id,640,480);
     mDevNumber = id;
     return true;
 

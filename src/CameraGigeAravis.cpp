@@ -42,7 +42,7 @@
     CameraGigeAravis::Init CameraGigeAravis::initializer;
 
     CameraGigeAravis::CameraGigeAravis(bool shift):
-    camera(NULL), width(0), height(0), fps(0), gainMin(0.0), gainMax(0.0),
+    camera(NULL), mWidth(0), mHeight(0), fps(0), gainMin(0.0), gainMax(0.0),
     payload(0), exposureMin(0), exposureMax(0), gain(0), exp(0), nbCompletedBuffers(0),
     nbFailures(0), nbUnderruns(0), frameCounter(0), shiftBitsImage(shift), stream(NULL) {
         mExposureAvailable = true;
@@ -50,7 +50,7 @@
     }
 
     CameraGigeAravis::CameraGigeAravis():
-    camera(NULL), width(0), height(0), fps(0), gainMin(0.0), gainMax(0.0),
+    camera(NULL), mWidth(0), mHeight(0), fps(0), gainMin(0.0), gainMax(0.0),
     payload(0), exposureMin(0), exposureMax(0), gain(0), exp(0), nbCompletedBuffers(0),
     nbFailures(0), nbUnderruns(0), frameCounter(0), shiftBitsImage(false), stream(NULL) {
         mExposureAvailable = true;
@@ -103,6 +103,31 @@
         return true;
     }
 
+    bool CameraWindows::setSize(int width, int height, bool customSize) {
+
+        if(customSize) {
+
+            arv_camera_set_region(camera, 0, 0,width,height);
+            arv_camera_get_region (camera, NULL, NULL, &mWidth, &mHeight);
+            BOOST_LOG_SEV(logger, notification) << "Camera region size : " << mWidth << "x" << mHeight;
+        
+        // Default is maximum size
+        }else {
+
+            int sensor_width, sensor_height;
+
+            arv_camera_get_sensor_size(camera, &sensor_width, &sensor_height);
+            BOOST_LOG_SEV(logger, notification) << "Camera sensor size : " << sensor_width << "x" << sensor_height;
+
+            arv_camera_set_region(camera, 0, 0,sensor_width,sensor_height);
+            arv_camera_get_region (camera, NULL, NULL, &mWidth, &mHeight);
+
+        }
+
+        return true;
+
+    }
+
     bool CameraGigeAravis::getDeviceNameById(int id, string &device){
 
         arv_update_device_list();
@@ -127,16 +152,6 @@
     bool CameraGigeAravis::grabInitialization(){
 
         frameCounter = 0;
-
-        int sensor_width, sensor_height;
-
-        arv_camera_get_sensor_size(camera, &sensor_width, &sensor_height);
-        BOOST_LOG_SEV(logger, notification) << "Camera sensor size : " << sensor_width << "x" << sensor_height;
-
-        arv_camera_set_region(camera, 0, 0,sensor_width,sensor_height);
-
-        arv_camera_get_region (camera, NULL, NULL, &width, &height);
-        BOOST_LOG_SEV(logger, notification) << "Camera region size : " << width << "x" << height;
 
         payload = arv_camera_get_payload (camera);
         BOOST_LOG_SEV(logger, notification) << "Camera payload : " << payload;
@@ -171,8 +186,8 @@
         cout << "DEVICE NAME     : " << arv_camera_get_model_name(camera)   << endl;
         cout << "DEVICE VENDOR   : " << arv_camera_get_vendor_name(camera)  << endl;
         cout << "PAYLOAD         : " << payload                             << endl;
-        cout << "Width           : " << width                               << endl
-             << "Height          : " << height                              << endl;
+        cout << "Width           : " << mWidth                               << endl
+             << "Height          : " << mHeight                              << endl;
         cout << "Exp Range       : [" << exposureMin    << " - " << exposureMax   << "]"  << endl;
         cout << "Exp             : " << exp                                 << endl;
         cout << "Gain Range      : [" << gainMin        << " - " << gainMax       << "]"  << endl;
@@ -346,14 +361,14 @@
                     if(pixFormat == ARV_PIXEL_FORMAT_MONO_8){
 
                         //BOOST_LOG_SEV(logger, normal) << "Creating Mat 8 bits ...";
-                        image = Mat(height, width, CV_8UC1, buffer_data);
+                        image = Mat(mHeight, mWidth, CV_8UC1, buffer_data);
                         imgDepth = MONO_8;
                         saturateVal = 255;
 
                     }else if(pixFormat == ARV_PIXEL_FORMAT_MONO_12){
 
                         //BOOST_LOG_SEV(logger, normal) << "Creating Mat 16 bits ...";
-                        image = Mat(height, width, CV_16UC1, buffer_data);
+                        image = Mat(mHeight, mWidth, CV_16UC1, buffer_data);
                         imgDepth = MONO_12;
                         saturateVal = 4095;
 
@@ -461,15 +476,23 @@
         if(!setGain(frame.mGain))
             return false;
 
-        int sensor_width, sensor_height;
+        if(frame.mWidth > 0 && frame.mHeight > 0) {
 
-        arv_camera_get_sensor_size(camera, &sensor_width, &sensor_height);
+            arv_camera_set_region(camera, 0, 0,frame.mWidth,frame.mHeight);
+            arv_camera_get_region (camera, NULL, NULL, &mWidth, &mHeight);
 
-        // Use maximum sensor size.
-        arv_camera_set_region(camera, 0, 0,sensor_width,sensor_height);
+        }else{
 
-        arv_camera_get_region (camera, NULL, NULL, &width, &height);
+            int sensor_width, sensor_height;
 
+            arv_camera_get_sensor_size(camera, &sensor_width, &sensor_height);
+
+            // Use maximum sensor size.
+            arv_camera_set_region(camera, 0, 0,sensor_width,sensor_height);
+            arv_camera_get_region (camera, NULL, NULL, &mWidth, &mHeight);
+
+        }
+        
         payload = arv_camera_get_payload (camera);
 
         pixFormat = arv_camera_get_pixel_format (camera);
@@ -493,8 +516,8 @@
         cout << "DEVICE NAME     : " << arv_camera_get_model_name(camera)   << endl;
         cout << "DEVICE VENDOR   : " << arv_camera_get_vendor_name(camera)  << endl;
         cout << "PAYLOAD         : " << payload                             << endl;
-        cout << "Width           : " << width                               << endl
-             << "Height          : " << height                              << endl;
+        cout << "Width           : " << mWidth                               << endl
+             << "Height          : " << mHeight                              << endl;
         cout << "Exp Range       : [" << exposureMin    << " - " << exposureMax   << "]"  << endl;
         cout << "Exp             : " << exp                                 << endl;
         cout << "Gain Range      : [" << gainMin        << " - " << gainMax       << "]"  << endl;
@@ -581,11 +604,11 @@
 
                     if(pixFormat == ARV_PIXEL_FORMAT_MONO_8){
 
-                        image = Mat(height, width, CV_8UC1, buffer_data);
+                        image = Mat(mHeight, mWidth, CV_8UC1, buffer_data);
 
                     }else if(pixFormat == ARV_PIXEL_FORMAT_MONO_12){
 
-                        image = Mat(height, width, CV_16UC1, buffer_data);
+                        image = Mat(mHeight, mWidth, CV_16UC1, buffer_data);
 
                         if(shiftBitsImage){
                             unsigned short * p;

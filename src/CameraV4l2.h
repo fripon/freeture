@@ -303,6 +303,8 @@
 
             TimeMeasureUnit getExposureUnit();
 
+            bool setSize(int width, int height, bool customSize){return true;};
+
     };
 
 #endif

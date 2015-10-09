@@ -1456,6 +1456,10 @@ bool AcqThread::configureInputDevice() {
     // CREATE CAMERA
     if(!mDevice->createCamera())
         return false;
+
+    // SET SIZE
+    if(!mDevice->setCameraSize())
+        return false;
     
     // SET FORMAT
     if(!mDevice->setCameraPixelFormat())

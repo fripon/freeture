@@ -116,7 +116,7 @@ class Device {
 
         vector<pair<int,pair<int,CamSdkType>>> mDevices;
 
-        bool        mSizeMax;
+        bool        mCustomSize;
         int         mSizeWidth;
         int         mSizeHeight;
         CamBitDepth mBitDepth;
@@ -173,6 +173,8 @@ class Device {
         bool setCameraGain(int value);
 
         bool setCameraFPS();
+
+        bool setCameraSize();
 
         bool getCameraFPS(double &fps);
 

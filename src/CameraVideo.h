@@ -150,13 +150,20 @@ class CameraVideo : public Camera{
 
         bool getFPS(double &value) {value = 30; return true;};
 
-        bool setExposureTime(double exp){cout << "Fake exposure time." << endl; return true;};
+        // Fake exposure.
+        bool setExposureTime(double exp){return true;};
 
-        bool setGain(int gain) {cout << "Fake gain." << endl; return true;};
+        // Fake gain.
+        bool setGain(int gain) {return true;};
 
-        bool setFPS(double fps){cout << "Fake fps." << endl;return true;};
+        // Fake fps.
+        bool setFPS(double fps){return true;};
 
-        bool setPixelFormat(CamBitDepth format){cout << "Fake format." << endl;return true;};
+        // Fake format.
+        bool setPixelFormat(CamBitDepth format){return true;};
+
+        // Fake size.
+        bool setSize(int width, int height, bool customSize) {return true;};
 
 };
 
