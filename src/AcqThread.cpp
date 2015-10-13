@@ -492,9 +492,8 @@ void AcqThread::operator()(){
                 // Get Fps from camera
                 double fps = 0; 
                 bool getFPS = mDevice->getCameraFPS(fps);
-                cout << "fps value : " << fps << endl;
+
                 if(getFPS == false) {
-                    cout << "average value" << endl;
                     fps = averageFPS;
                 }
         
@@ -542,7 +541,7 @@ void AcqThread::operator()(){
                         // Slow down the time in order to give more time to the detection process.
 
                         #ifdef WINDOWS
-                            Sleep(100);
+                            Sleep(500);
                         #else
                             #ifdef LINUX
                                 usleep(500000);
@@ -850,6 +849,7 @@ void AcqThread::operator()(){
                 mMustStopMutex.unlock();
 
             }while(stop == false && !mDevice->getCameraStatus());
+            cout << "QUIT"  << endl;
 
             // Reset detection process to prepare the analyse of a new data set.
             if(pDetection != NULL) {

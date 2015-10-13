@@ -164,7 +164,7 @@
 
         mDebugCurrentPath = mDebugPath;
 
-        //********************* DEBUG VIDEO OPETION ***********************
+        //********************* DEBUG VIDEO OPTION ***********************
 
         if(!cfg.Get("DET_DEBUG_VIDEO", mDebugVideo)) {
             mDebugVideo = false;
@@ -209,14 +209,15 @@
         mSubdivisionStatus = false;
         mPrevThresholdedMap.release();
         mPrevFrame.release();
-
+        cout << "loadNewDataSet : "<< loadNewDataSet << endl;
         if(mDebugEnabled && loadNewDataSet) {
             mDataSetCounter++;
+            cout << "createDebugDirectories" <<endl;
             createDebugDirectories(false);
         }
-        }
+    }
 
-        void DetectionTemporal::resetMask(){
+    void DetectionTemporal::resetMask(){
 
         mMaskToCreate = true;
 
@@ -224,21 +225,24 @@
 
     void DetectionTemporal::createDebugDirectories(bool cleanDebugDirectory){
 
-        cout << "Debug mode : enabled." << endl;
+        cout << "Debug mode : ENABLED." << endl;
 
         mDebugCurrentPath = mDebugPath + "debug_" + Conversion::intToString(mDataSetCounter) + "/" ;
 
         if(cleanDebugDirectory) {
 
-            cout << "Clean and create debug directories..." << endl;
-
             const boost::filesystem::path p0 = path(mDebugPath); // .../debug/
+            cout << "Clean and create debug directories : " << p0 << endl;
 
-            if(boost::filesystem::exists(p0))
+            if(boost::filesystem::exists(p0)) {
                 boost::filesystem::remove_all(p0);
+                cout << "Remove : " << p0 << endl;
+            }
 
-            if(!boost::filesystem::exists(p0))
+            if(!boost::filesystem::exists(p0)) {
                 boost::filesystem::create_directories(p0);
+                cout << "Create : " << p0 << endl;
+            }
 
         }else {
 
@@ -1340,18 +1344,25 @@
                         Mat roiF(10, 10, CV_8UC3, listLocalEvents.at(i).getColor());
 
                         for(int j = 0; j < listLocalEvents.at(i).mLeRoiList.size();j++) {
-
+                           /* cout << "condition eventMapFiltered" << endl;
+                            cout << "listLocalEvents.at(i).mLeRoiList.at(j).x-5 : " << listLocalEvents.at(i).mLeRoiList.at(j).x-5 << endl;
+                            cout << "listLocalEvents.at(i).mLeRoiList.at(j).x+5 : " << listLocalEvents.at(i).mLeRoiList.at(j).x+5 << endl;
+                            cout << "eventMapFiltered.cols: " << eventMapFiltered.cols << endl;
+                            cout << "listLocalEvents.at(i).mLeRoiList.at(j).y-5 : " << listLocalEvents.at(i).mLeRoiList.at(j).y-5 << endl;
+                            cout << "listLocalEvents.at(i).mLeRoiList.at(j).y-5 : " << listLocalEvents.at(i).mLeRoiList.at(j).y-5 << endl;
+                            cout << "listLocalEvents.at(i).mLeRoiList.at(j).y+5 : " << listLocalEvents.at(i).mLeRoiList.at(j).y+5 << endl;
+                            cout << "eventMapFiltered.rows: " << eventMapFiltered.rows << endl;*/
+                            //cout << "prepare test if: " << endl;
                             if( listLocalEvents.at(i).mLeRoiList.at(j).x-5 > 0 &&
                                 listLocalEvents.at(i).mLeRoiList.at(j).x+5 < eventMapFiltered.cols &&
                                 listLocalEvents.at(i).mLeRoiList.at(j).y-5 > 0 &&
-                                listLocalEvents.at(i).mLeRoiList.at(j).y+5 < eventMapFiltered.rows)
-
-                            roiF.copyTo(eventMapFiltered(Rect(listLocalEvents.at(i).mLeRoiList.at(j).x - 5, listLocalEvents.at(i).mLeRoiList.at(j).y + 5, 10, 10)));
-
+                                listLocalEvents.at(i).mLeRoiList.at(j).y+5 < eventMapFiltered.rows) {
+                                roiF.copyTo(eventMapFiltered(Rect(listLocalEvents.at(i).mLeRoiList.at(j).x - 5, listLocalEvents.at(i).mLeRoiList.at(j).y - 5, 10, 10)));
+                            }
                         }
 
                     }
-
+                     cout << "save eventMapFiltered" << endl;
                     SaveImg::saveBMP(eventMapFiltered, mDebugCurrentPath + "/global/event_map_filtered/frame_" + Conversion::intToString(c.mFrameNumber));
                     SaveImg::saveBMP(eventMapFiltered, pFrame0 + "/event_map_filtered");
 

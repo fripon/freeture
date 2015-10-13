@@ -123,7 +123,7 @@ bool CameraVideo::grabImage(Frame &img){
 
     Mat frame;
 
-    if(mCap.read(frame)){
+    if(mCap.read(frame)) {
 
         //BGR (3 channels) to G (1 channel)
         cvtColor(frame, frame, CV_BGR2GRAY);
@@ -133,24 +133,19 @@ bool CameraVideo::grabImage(Frame &img){
         Frame f = Frame(frame, 0, 0, to_iso_extended_string(time));
 
         img = f;
-
         img.mFrameNumber = mCap.get(CV_CAP_PROP_POS_FRAMES);
-
         img.mFrameRemaining = mCap.get(CV_CAP_PROP_FRAME_COUNT) - mCap .get(CV_CAP_PROP_POS_FRAMES);
+        return true;
 
-        img.mFps = 1;
-
-        img.mBitDepth = MONO_8;
-
-    }else{
+    }
+    
+    if(mCap.get(CV_CAP_PROP_FRAME_COUNT) - mCap .get(CV_CAP_PROP_POS_FRAMES) <=0) {
 
         mVideoID++;
-
         mReadDataStatus = true;
 
     }
 
-    waitKey(30);
-    return true;
+    return false;
 }
 
