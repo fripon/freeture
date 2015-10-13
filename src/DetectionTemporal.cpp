@@ -1344,15 +1344,6 @@
                         Mat roiF(10, 10, CV_8UC3, listLocalEvents.at(i).getColor());
 
                         for(int j = 0; j < listLocalEvents.at(i).mLeRoiList.size();j++) {
-                           /* cout << "condition eventMapFiltered" << endl;
-                            cout << "listLocalEvents.at(i).mLeRoiList.at(j).x-5 : " << listLocalEvents.at(i).mLeRoiList.at(j).x-5 << endl;
-                            cout << "listLocalEvents.at(i).mLeRoiList.at(j).x+5 : " << listLocalEvents.at(i).mLeRoiList.at(j).x+5 << endl;
-                            cout << "eventMapFiltered.cols: " << eventMapFiltered.cols << endl;
-                            cout << "listLocalEvents.at(i).mLeRoiList.at(j).y-5 : " << listLocalEvents.at(i).mLeRoiList.at(j).y-5 << endl;
-                            cout << "listLocalEvents.at(i).mLeRoiList.at(j).y-5 : " << listLocalEvents.at(i).mLeRoiList.at(j).y-5 << endl;
-                            cout << "listLocalEvents.at(i).mLeRoiList.at(j).y+5 : " << listLocalEvents.at(i).mLeRoiList.at(j).y+5 << endl;
-                            cout << "eventMapFiltered.rows: " << eventMapFiltered.rows << endl;*/
-                            //cout << "prepare test if: " << endl;
                             if( listLocalEvents.at(i).mLeRoiList.at(j).x-5 > 0 &&
                                 listLocalEvents.at(i).mLeRoiList.at(j).x+5 < eventMapFiltered.cols &&
                                 listLocalEvents.at(i).mLeRoiList.at(j).y-5 > 0 &&
@@ -1362,7 +1353,7 @@
                         }
 
                     }
-                     cout << "save eventMapFiltered" << endl;
+
                     SaveImg::saveBMP(eventMapFiltered, mDebugCurrentPath + "/global/event_map_filtered/frame_" + Conversion::intToString(c.mFrameNumber));
                     SaveImg::saveBMP(eventMapFiltered, pFrame0 + "/event_map_filtered");
 

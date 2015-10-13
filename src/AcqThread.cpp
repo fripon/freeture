@@ -854,7 +854,10 @@ void AcqThread::operator()(){
             // Reset detection process to prepare the analyse of a new data set.
             if(pDetection != NULL) {
 
-                pDetection->getDetMethod()->resetDetection(true);
+                if(mDevice->getCameraDataSetStatus())
+                    pDetection->getDetMethod()->resetDetection(true);
+                else
+                    pDetection->getDetMethod()->resetDetection(false);
                 pDetection->getDetMethod()->resetMask();
                 pDetection->updateDetectionReport();
 
