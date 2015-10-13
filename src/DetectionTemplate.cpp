@@ -38,18 +38,10 @@ boost::log::sources::severity_logger< LogSeverityLevel > DetectionTemplate::logg
 
 DetectionTemplate::Init DetectionTemplate::initializer;
 
-DetectionTemplate::DetectionTemplate():
+DetectionTemplate::DetectionTemplate(string cfgPath):
 mDownsampleEnabled(false), mSavePos(false), mMaskEnabled(false), mImgNum(0),
 mDebugEnabled(false), mDebugVideo(false), mMaskToCreate(false),
 mDataSetCounter(0) {
-
-}
-
-DetectionTemplate::~DetectionTemplate() {
-
-}
-
-void DetectionTemplate::initMethod(string cfgPath) {
 
     Configuration cfg;
     cfg.Load(cfgPath);
@@ -132,6 +124,11 @@ void DetectionTemplate::initMethod(string cfgPath) {
     // Create debug video.
     if(mDebugVideo)
         mVideoDebug = VideoWriter(mDebugCurrentPath + "debug-video.avi", CV_FOURCC('M', 'J', 'P', 'G'), 5, Size(static_cast<int>(1280), static_cast<int>(960)), true);
+
+
+}
+
+DetectionTemplate::~DetectionTemplate() {
 
 }
 

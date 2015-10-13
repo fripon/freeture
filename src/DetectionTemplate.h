@@ -123,7 +123,7 @@ class DetectionTemplate : public Detection {
         * Constructor.
         *
         */
-        DetectionTemplate();
+        DetectionTemplate(string cfgPath);
 
         /**
         * Destructor.

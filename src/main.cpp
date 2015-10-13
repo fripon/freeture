@@ -998,6 +998,12 @@ int main(int argc, const char ** argv){
                         // Cam id.
                         if(vm.count("id")) devID = vm["id"].as<int>();
 
+                        // Cam width size
+                        if(vm.count("width")) acqWidth = vm["width"].as<int>();
+
+                        // Cam height size
+                        if(vm.count("height")) acqHeight = vm["height"].as<int>();
+
                         // Gain value.
                         if(vm.count("gain")) gain = vm["gain"].as<int>();
 
@@ -1019,6 +1025,12 @@ int main(int argc, const char ** argv){
                             throw ">> Fail to create device.";
                             delete device;
                         }
+
+                        if(acqWidth != 0 && acqHeight != 0)
+                            device->setCameraSize(acqWidth, acqHeight);
+                        else
+                            device->setCameraSize();
+
                         device->setCameraPixelFormat();
                         device->setCameraFPS();
                         device->setCameraExposureTime(exp);

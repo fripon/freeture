@@ -39,7 +39,7 @@
 
     DetectionTemporal::Init DetectionTemporal::initializer;
 
-    DetectionTemporal::DetectionTemporal(double timeBefore):
+    DetectionTemporal::DetectionTemporal(double timeBefore, string cfgPath):
     mDownsampleEnabled(false), mSaveGeMap(false), mSavePos(false), mSaveDirMap(false),
     mSaveGeInfos(false), mMaskEnabled(false), mImgNum(0), mUpdateMask(false), mDebugUpdateMask(false),
     mSubdivisionStatus(false), mDebugEnabled(false), mDebugVideo(false), mMaskToCreate(false),
@@ -70,10 +70,6 @@
 
         mRoiSize[0] = 10;
         mRoiSize[1] = 10;
-
-    }
-
-    void DetectionTemporal::initMethod(string cfgPath) {
 
         Configuration cfg;
         cfg.Load(cfgPath);
@@ -199,6 +195,7 @@
 
         if(mDebugUpdateMask)
             mVideoDebugAutoMask = VideoWriter(mDebugCurrentPath + "debug-mask.avi", CV_FOURCC('M', 'J', 'P', 'G'), 5, Size(static_cast<int>(1280), static_cast<int>(960)), true);
+
 
     }
 
@@ -343,32 +340,35 @@
             infFile.close();
         }
 
-        // Save approximate positions.
+        // ################# Save approximate positions. #################
+
         if(mSavePos){
 
             ofstream posFile;
             string posFilePath = p + "positions.txt";
             posFile.open(posFilePath.c_str());
 
-            vector<LocalEvent>::iterator itLe;
-
             // Number of the first frame associated to the event.
             int numFirstFrame = -1;
 
+            vector<LocalEvent>::iterator itLe;
             for(itLe = (*mGeToSave).LEList.begin(); itLe!=(*mGeToSave).LEList.end(); ++itLe){
 
-                if(numFirstFrame == -1) {
-
+                if(numFirstFrame == -1)
                     numFirstFrame = (*itLe).getNumFrame() - mTimeBeforeEvent;
-
-                }
 
                 Point pos = (*itLe).getMassCenter();
 
-                if(mDownsampleEnabled) pos*=2;
+                int positionY = 0;
+                if(mDownsampleEnabled) {
+                    pos*=2;
+                    positionY = mPrevFrame.rows*2 - pos.y;
+                }else {
+                    positionY = mPrevFrame.rows - pos.y;
+                }
                
                 // NUM_FRAME    POSITIONX     POSITIONY (inversed)
-                string line = Conversion::intToString((*itLe).getNumFrame() - numFirstFrame) + "               (" + Conversion::intToString(pos.x)  + ";" + Conversion::intToString(pos.y) + ")\n";
+                string line = Conversion::intToString((*itLe).getNumFrame() - numFirstFrame) + "               (" + Conversion::intToString(pos.x)  + ";" + Conversion::intToString(positionY) + ")\n";
                 posFile << line;
 
             }

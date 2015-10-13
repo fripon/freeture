@@ -146,7 +146,7 @@ class DetectionTemporal : public Detection {
         * Constructor.
         *
         */
-        DetectionTemporal(double timeBefore);
+        DetectionTemporal(double timeBefore, string cfgPath);
 
         /**
         * Destructor.
