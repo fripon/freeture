@@ -160,7 +160,7 @@
                 fourcc,
                 fmt.fmt.pix.field);*/
 
-        int eMin, eMax, gMin, gMax;
+        double eMin, eMax; int gMin, gMax;
         getExposureBounds(eMin, eMax);
         cout << "Min exposure    : " << eMin << endl;
         cout << "Max exposure    : " << eMax << endl;
@@ -172,6 +172,65 @@
         return true;
 
     };
+
+    vector<pair<int,string>> CameraV4l2::getCamerasList() {
+
+        vector<pair<int,string>> camerasList;
+
+        bool loop = true;
+        bool res = true;
+        int deviceNumber = 0;
+
+        do {
+
+            string devicePathStr = "/dev/video" + Conversion::intToString(deviceNumber);
+
+            // http://stackoverflow.com/questions/230062/whats-the-best-way-to-check-if-a-file-exists-in-c-cross-platform
+
+            if(access(devicePathStr.c_str(), F_OK) != -1 ) {
+
+                // file exists
+
+                // http://stackoverflow.com/questions/4290834/how-to-get-a-list-of-video-capture-devices-web-cameras-on-linux-ubuntu-c
+
+                int fd;
+
+                if((fd = open(devicePathStr.c_str(), O_RDONLY)) == -1){
+                    perror("Can't open device");
+                    res = false;
+                }else {
+
+                    struct v4l2_capability caps = {};
+
+                    if (-1 == xioctl(fd, VIDIOC_QUERYCAP, &caps)) {
+                        perror("Querying Capabilities");
+                        res = false;
+                    }else {
+
+                        pair<int,string> c;
+                        c.first = deviceNumber;
+
+                        c.second = "NAME[" + caps.card[0];
+                        camerasList.push_back(c);
+
+                    }
+                }
+
+                close(fd);
+
+                deviceNumber++;
+
+            } else {
+
+                loop = false;
+
+            }
+
+        }while(loop);
+
+        return camerasList;
+
+    }
 
     bool CameraV4l2::listCameras() {
 
@@ -206,7 +265,7 @@
                         perror("Querying Capabilities");
                         res = false;
                     }else {
-                        nbCamFound++;
+
                         cout << "-> [" << deviceNumber << "] " << caps.card << endl;
 
                     }

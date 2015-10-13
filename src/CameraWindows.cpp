@@ -34,6 +34,8 @@
 
 #include "CameraWindows.h"
 
+#ifdef WINDOWS
+
 CameraWindows::CameraWindows() {
 
     mVideoInput.setVerbose(false);
@@ -91,7 +93,7 @@ bool CameraWindows::setSize(int width, int height, bool customSize) {
         if(!mVideoInput.setupDevice(camID, 640, 480))
             return false;
     }
-    
+
     // As requested width and height can not always be accomodated make sure to check the size once the device is setup
     mWidth = mVideoInput.getWidth(camID);
     mHeight = mVideoInput.getHeight(camID);
@@ -134,7 +136,7 @@ bool CameraWindows::setSize(int width, int height, bool customSize) {
 };
 
 bool  CameraWindows::createDevice(int id){
-    
+
     mDevNumber = id;
     return true;
 
@@ -169,7 +171,7 @@ bool  CameraWindows::setGain(int value){
 }
 
 bool  CameraWindows::setFPS(double value){
-    
+
     // If you want to capture at a different frame rate (default is 30) specify it here, you are not guaranteed to get this fps though.
     // Call before setupDevice
     // directshow will try and get the closest possible framerate to what is requested
@@ -198,9 +200,9 @@ bool  CameraWindows::grabInitialization() {
     mVideoInput.setVideoSettingCamera(mDevNumber, CameraControl_Focus, mDefaultFocus, CameraControl_Flags_Manual);
 
 
-    //long current_value,min_value,max_value,stepping_delta,flags,defaultValue; 
+    //long current_value,min_value,max_value,stepping_delta,flags,defaultValue;
 
-    //mVideoInput.getVideoSettingCamera(mDevNumber,mVideoInput.propBrightness ,min_value,max_value,stepping_delta,current_value,flags,defaultValue); 
+    //mVideoInput.getVideoSettingCamera(mDevNumber,mVideoInput.propBrightness ,min_value,max_value,stepping_delta,current_value,flags,defaultValue);
     /*cout << "min: "<< min_value << endl;
     cout << "max: "<< max_value << endl;
     cout << "flags: "<< flags << endl;
@@ -285,3 +287,5 @@ TimeMeasureUnit CameraWindows::getExposureUnit() {
     return SEC;
 
 }
+
+#endif

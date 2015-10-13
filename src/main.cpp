@@ -549,7 +549,7 @@ int main(int argc, const char ** argv){
                                                 if(cptTime > executionTime){
 
                                                     std::cout << "Break main loop"<< endl;
-                                                 
+
                                                     break;
                                                 }
                                                 cptTime ++;
@@ -1042,7 +1042,7 @@ int main(int argc, const char ** argv){
                         while(1) {
 
                             Frame frame;
-                            
+
                             double tacq = (double)getTickCount();
                             if(device->runContinuousCapture(frame)){
                                 tacq = (((double)getTickCount() - tacq)/getTickFrequency())*1000;
@@ -1051,9 +1051,11 @@ int main(int argc, const char ** argv){
                                 waitKey(30);
                             }
 
-                            // Exit if ESC is pressed.
-                            if(GetAsyncKeyState(VK_ESCAPE)!=0)
-                                break;
+                            #ifdef WINDOWS
+                                // Exit if ESC is pressed.
+                                if(GetAsyncKeyState(VK_ESCAPE)!=0)
+                                    break;
+                            #endif
                         }
 
                         device->stopCamera();

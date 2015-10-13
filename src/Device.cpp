@@ -45,36 +45,36 @@ Device::Device(string cfgPath) {
     mCamID      = 0;
     mCfgPath    = cfgPath;
     mVideoFramesInput = false;
-    
+
     Configuration cfg;
 
     if(!cfg.Load(cfgPath))
         throw "Fail to load parameters for device object from configuration file.";
 
-    if(!cfg.Get("CAMERA_ID", mGenCamID)) 
+    if(!cfg.Get("CAMERA_ID", mGenCamID))
         throw "Fail to get CAMERA_ID for device object.";
 
-    if(!cfg.Get("ACQ_FPS", mFPS)) 
+    if(!cfg.Get("ACQ_FPS", mFPS))
         throw "Fail to get ACQ_FPS for device object.";
 
-    if(!cfg.Get("ACQ_NIGHT_EXPOSURE", mNightExposure)) 
+    if(!cfg.Get("ACQ_NIGHT_EXPOSURE", mNightExposure))
         throw "Fail to get ACQ_NIGHT_EXPOSURE for device object.";
 
-    if(!cfg.Get("ACQ_NIGHT_GAIN", mNightGain)) 
+    if(!cfg.Get("ACQ_NIGHT_GAIN", mNightGain))
         throw "Fail to get ACQ_NIGHT_GAIN for device object.";
 
-    if(!cfg.Get("ACQ_DAY_EXPOSURE", mDayExposure)) 
+    if(!cfg.Get("ACQ_DAY_EXPOSURE", mDayExposure))
         throw "Fail to get ACQ_DAY_EXPOSURE for device object.";
 
-    if(!cfg.Get("ACQ_DAY_GAIN", mDayGain)) 
+    if(!cfg.Get("ACQ_DAY_GAIN", mDayGain))
         throw "Fail to get ACQ_DAY_GAIN for device object.";
 
-    string acqBitDepth; 
+    string acqBitDepth;
     cfg.Get("ACQ_BIT_DEPTH", acqBitDepth);
     EParser<CamBitDepth> camBitDepth;
     mBitDepth = camBitDepth.parseEnum("ACQ_BIT_DEPTH", acqBitDepth);
 
-    if(!cfg.Get("ACQ_RES_CUSTOM_SIZE", mCustomSize)) 
+    if(!cfg.Get("ACQ_RES_CUSTOM_SIZE", mCustomSize))
         throw "Fail to get ACQ_RES_CUSTOM_SIZE for device object.";
 
     if(mCustomSize) {
@@ -116,7 +116,7 @@ Device::Device() {
 
 Device::~Device(){
 
-    if(mCam != NULL) 
+    if(mCam != NULL)
         delete mCam;
 
 }
@@ -182,7 +182,7 @@ bool Device::createDevicesWith(CamSdkType sdk) {
 
     switch(sdk) {
 
-        case VIDEOFILE : 
+        case VIDEOFILE :
 
             {
                 Configuration cfg;
@@ -223,8 +223,8 @@ bool Device::createDevicesWith(CamSdkType sdk) {
             }
 
             break;
-            
-        case FRAMESDIR : 
+
+        case FRAMESDIR :
 
             {
                 Configuration cfg;
@@ -267,18 +267,18 @@ bool Device::createDevicesWith(CamSdkType sdk) {
             }
 
             break;
-            
-        case V4L2 : 
+
+        case V4L2 :
 
             {
                 #ifdef LINUX
-                    mCam = new CameraV4L2();
+                    mCam = new CameraV4l2();
                 #endif
             }
 
             break;
-            
-        case VIDEOINPUT : 
+
+        case VIDEOINPUT :
 
             {
                 #ifdef WINDOWS
@@ -287,8 +287,8 @@ bool Device::createDevicesWith(CamSdkType sdk) {
             }
 
             break;
-            
-        case ARAVIS : 
+
+        case ARAVIS :
 
             {
                 #ifdef LINUX
@@ -297,8 +297,8 @@ bool Device::createDevicesWith(CamSdkType sdk) {
             }
 
             break;
-            
-        case PYLONGIGE : 
+
+        case PYLONGIGE :
 
             {
                 #ifdef WINDOWS
@@ -307,8 +307,8 @@ bool Device::createDevicesWith(CamSdkType sdk) {
             }
 
             break;
-            
-        case TIS : 
+
+        case TIS :
 
             {
                 #ifdef WINDOWS
@@ -328,11 +328,11 @@ void Device::listDevices(bool printInfos) {
 
     int nbDev = 0, nbCam = 0;
     pair<int, CamSdkType> elem;             // general index to specify camera to use
-    pair<int,pair<int,CamSdkType>> subElem; // index in a specific sdk 
+    pair<int,pair<int,CamSdkType>> subElem; // index in a specific sdk
     vector<pair<int,string>> listCams;
 
     #ifdef WINDOWS
-     
+
         // PYLONGIGE
 
         createDevicesWith(PYLONGIGE);
@@ -404,7 +404,7 @@ void Device::listDevices(bool printInfos) {
     mDevices.push_back(subElem);
     if(printInfos) cout << "[" << nbDev << "]    FRAMES DIRECTORY" << endl;
     nbDev++;
-    
+
     mCam = NULL;
 
 }
