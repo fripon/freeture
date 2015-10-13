@@ -59,15 +59,39 @@
 
     CameraGigeAravis::~CameraGigeAravis(){}
 
+    vector<pair<int,string>> CameraGigeAravis::getCamerasList() {
+
+        vector<pair<int,string>> camerasList;
+
+        arv_update_device_list();
+
+        int nb = arv_get_n_devices();
+
+
+        for(int i = 0; i < nb; i++){
+
+            pair<int,string> c;
+            c.first = i;
+            const char* str = arv_get_device_id(i);
+            std::string s = str;
+            c.second = "NAME[" + s + "]";
+            camerasList.push_back(c);
+
+        }
+
+       return camerasList;
+
+    }
+
     bool CameraGigeAravis::listCameras(){
 
         arv_update_device_list();
 
-        nbCamFound = arv_get_n_devices();
+        int nb = arv_get_n_devices();
 
         cout << endl << "------------ GIGE CAMERAS WITH ARAVIS ----------" << endl << endl;
 
-        for(int i = 0; i < nbCamFound; i++){
+        for(int i = 0; i < nb; i++){
 
             cout << "-> [" << i << "] " << arv_get_device_id(i)<< endl;
 
@@ -75,7 +99,7 @@
 
         cout << endl << "------------------------------------------------" << endl << endl;
 
-        if(nbCamFound == 0) {
+        if(nb == 0) {
             cout << "-> No cameras detected..." << endl;
             return false;
         }
@@ -103,14 +127,14 @@
         return true;
     }
 
-    bool CameraWindows::setSize(int width, int height, bool customSize) {
+    bool CameraGigeAravis::setSize(int width, int height, bool customSize) {
 
         if(customSize) {
 
             arv_camera_set_region(camera, 0, 0,width,height);
             arv_camera_get_region (camera, NULL, NULL, &mWidth, &mHeight);
             BOOST_LOG_SEV(logger, notification) << "Camera region size : " << mWidth << "x" << mHeight;
-        
+
         // Default is maximum size
         }else {
 
@@ -491,7 +515,7 @@
             arv_camera_get_region (camera, NULL, NULL, &mWidth, &mHeight);
 
         }
-        
+
         payload = arv_camera_get_payload (camera);
 
         pixFormat = arv_camera_get_pixel_format (camera);
