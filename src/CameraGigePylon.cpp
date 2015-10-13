@@ -880,11 +880,10 @@ bool CameraGigePylon::getFrameSize(int &w , int &h) {
 
 }
 
-bool CameraGigePylon::getFPS(double &value){
+bool CameraGigePylon::getFPS(double &value) {
 
-    if(pCamera!=NULL){
-
-        value = pCamera->AcquisitionFrameRateAbs.GetValue();
+    if(pCamera!=NULL) {
+        value = pCamera->ResultingFrameRateAbs.GetValue();
         return true;
     }
 

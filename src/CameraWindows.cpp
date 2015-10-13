@@ -154,8 +154,8 @@ void  CameraWindows::getGainBounds(int &gMin, int &gMax){
 }
 
 bool  CameraWindows::getFPS(double &value){
-    value = 30;
-    return true;
+    value = 0;
+    return false;
 }
 
 bool  CameraWindows::setExposureTime(double value){

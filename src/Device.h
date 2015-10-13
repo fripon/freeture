@@ -188,6 +188,8 @@ class Device {
 
         bool getGainStatus();
 
+        bool setCameraSize(int w, int h);
+
         int getNightExposureTime() {return mNightExposure;};
         int getNightGain() {return mNightGain;};
         int getDayExposureTime() {return mDayExposure;};

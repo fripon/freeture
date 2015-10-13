@@ -233,8 +233,7 @@ DetThread::DetThread(   string                          cfg_p,
 
             {
 
-                pDetMthd = new DetectionTemporal(mTimeBeforeEvent);
-                pDetMthd->initMethod(mCfgPath);
+                pDetMthd = new DetectionTemporal(mTimeBeforeEvent, mCfgPath);
 
             }
 
@@ -244,8 +243,7 @@ DetThread::DetThread(   string                          cfg_p,
 
             {
 
-                pDetMthd = new DetectionTemplate();
-                pDetMthd->initMethod(mCfgPath);
+                pDetMthd = new DetectionTemplate(mCfgPath);
 
             }
 

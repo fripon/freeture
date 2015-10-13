@@ -404,7 +404,6 @@
                     newFrame.mBitDepth = imgDepth;
                     //BOOST_LOG_SEV(logger, normal) << "Setting saturated value of frame ...";
                     newFrame.mSaturatedValue = saturateVal;
-
                     newFrame.mFrameNumber = frameCounter;
                     frameCounter++;
 

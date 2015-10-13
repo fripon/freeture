@@ -362,6 +362,9 @@ AcqThread::AcqThread(   string                              cfgFile,
     mMaxGain = 0; mMaxGain = 0;
     mMinExposureTime = 0; mMaxExposureTime = 0;
 
+    fpsBuffer = boost::circular_buffer<double>(100);
+    averageFPS = 30; // Default
+
 }
 
 AcqThread::~AcqThread(void){
@@ -446,9 +449,6 @@ void AcqThread::operator()(){
         bool scheduleTaskStatus = false;
         bool scheduleTaskActive = false;
 
-        /// Get Fps from camera
-        double fps = 30; mDevice->getCameraFPS(fps);
-
         /// Exposure adjustment variables.
 
         bool exposureControlStatus = false;
@@ -478,14 +478,6 @@ void AcqThread::operator()(){
 
             if(pDetection != NULL) pDetection->setCurrentDataSet(location);
 
-
-            /// Update timeBeforeEvent (in fps) and timeAfterEvent (in fps) according fps value.
-
-            if(pDetection != NULL) {
-                pDetection->setTimeAfterEvent(fps);
-                pDetection->setTimeBeforeEvent(fps);
-            }
-
             /// Reference time to compute interval between regular captures.
 
             time = boost::posix_time::microsec_clock::universal_time();
@@ -494,6 +486,28 @@ void AcqThread::operator()(){
             string refDate = cDate.substr(0, cDate.find(dateDelimiter));
 
             do {
+
+                // ############## UPDATE FPS ##############
+
+                // Get Fps from camera
+                double fps = 0; 
+                bool getFPS = mDevice->getCameraFPS(fps);
+                cout << "fps value : " << fps << endl;
+                if(getFPS == false) {
+                    cout << "average value" << endl;
+                    fps = averageFPS;
+                }
+        
+                // Update timeBeforeEvent (in fps) and timeAfterEvent (in fps) according fps value.
+                if(pDetection != NULL) {
+                    if(!mDevice->mVideoFramesInput) {
+                        pDetection->setTimeAfterEvent(fps);
+                        pDetection->setTimeBeforeEvent(fps);
+                    }else {
+                        pDetection->setTimeAfterEvent(0);
+                        pDetection->setTimeBeforeEvent(0);
+                    }
+                }
 
                 // Container for the grabbed image.
                 Frame newFrame;
@@ -676,7 +690,7 @@ void AcqThread::operator()(){
 
                             boost::posix_time::time_duration td = t2 - t1;
                             long secTime = td.total_seconds();
-                            cout << "CAP : " << secTime << "/" << mRegularInterval <<  endl;
+                            cout << "NEXT CAPTURE IN : " << secTime << "/" << mRegularInterval <<  endl;
 
                             // Check it's time to run a regular capture.
                             if(secTime >= mRegularInterval) {
@@ -804,7 +818,31 @@ void AcqThread::operator()(){
                 }
 
                 tacq = (((double)getTickCount() - tacq)/getTickFrequency())*1000;
-                std::cout << " [ TIME ACQ ] : " << tacq << " ms" << endl;
+
+                if(!getFPS) {
+
+                    fpsBuffer.push_back((1.0/(tacq/1000.0)));
+
+                    if(fpsBuffer.size() != 100) {
+
+                        std::cout << " [ TIME ACQ ] : " << tacq << " ms   FPS("  << (1.0/(tacq/1000.0)) << ")" <<  endl;
+                        averageFPS = (1.0/(tacq/1000.0));
+
+                    }else {
+
+                        std::cout << " [ TIME ACQ ] : " << tacq << " ms  ";
+                        double ff = 0.0;
+                        for(int i = 0; i< fpsBuffer.size(); i++)
+                            ff += fpsBuffer.at(i);
+                        averageFPS = ff / fpsBuffer.size();
+                        cout << " (FPS : " << averageFPS << ")" << endl;
+
+                    }
+
+                }else{
+                    std::cout << " [ TIME ACQ ] : " << tacq << " ms   FPS("  << fps << ")" <<  endl;
+                }
+ 
                 BOOST_LOG_SEV(logger, normal) << " [ TIME ACQ ] : " << tacq << " ms";
 
                 mMustStopMutex.lock();

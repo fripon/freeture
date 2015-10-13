@@ -148,7 +148,7 @@ class CameraVideo : public Camera{
         */
         bool loadNextDataSet(string &location);
 
-        bool getFPS(double &value) {value = 30; return true;};
+        bool getFPS(double &value) {value = 0; return false;};
 
         // Fake exposure.
         bool setExposureTime(double exp){return true;};

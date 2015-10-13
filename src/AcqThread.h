@@ -139,6 +139,8 @@ class AcqThread {
         TimeMode            mDetectionMode;
         TimeMode            mStackMode;
 
+        boost::circular_buffer<double> fpsBuffer;
+        double averageFPS;
 
         // Communication with the shared framebuffer.
         boost::condition_variable *frameBuffer_condition;
@@ -154,6 +156,8 @@ class AcqThread {
         bool *detSignal;
         boost::mutex *detSignal_mutex;
         boost::condition_variable *detSignal_condition;
+
+
 
     public :
 
@@ -216,7 +220,6 @@ class AcqThread {
          */
         bool getThreadEndStatus();
 
-        
         bool getSunTimes();
 
 

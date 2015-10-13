@@ -195,8 +195,8 @@ bool CameraFrames::getStopStatus() {
 
 bool CameraFrames::getFPS(double &value) {
 
-    value = 30;
-    return true;
+    value = 0;
+    return false;
 
 }
 

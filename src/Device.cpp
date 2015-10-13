@@ -577,10 +577,21 @@ bool Device::setCameraSize() {
 
 }
 
+bool Device::setCameraSize(int w, int h) {
+
+    if(!mCam->setSize(w, h, true)) {
+        BOOST_LOG_SEV(logger, fail) << "Fail to set camera size.";
+        return false;
+    }
+
+    return true;
+
+}
+
 bool Device::getCameraFPS(double &fps) {
 
     if(!mCam->getFPS(fps)) {
-        BOOST_LOG_SEV(logger, fail) << "Fail to get fps value from camera.";
+        //BOOST_LOG_SEV(logger, fail) << "Fail to get fps value from camera.";
         return false;
     }
 
