@@ -274,7 +274,8 @@ class DetectionTemporal : public Detection {
                             Point subdivisionPos,
                             int maxNbLE,
                             int numFrame,
-                            string &msg);
+                            string &msg,
+                            TimeDate::Date cFrameDate);
 
 };
 

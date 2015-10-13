@@ -41,7 +41,7 @@
 #define _USE_MATH_DEFINES
 #include <math.h>
 #include "Circle.h"
-
+#include "TimeDate.h"
 
 using namespace cv;
 using namespace std;
@@ -73,6 +73,7 @@ class LocalEvent {
         vector<Point>   mNegPos;
         int             mFrameHeight;
         int             mFrameWidth;
+        TimeDate::Date  mFrameAcqDate;
 
         /**
         * Constructor.

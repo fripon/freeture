@@ -352,7 +352,7 @@
             int numFirstFrame = -1;
 
             vector<LocalEvent>::iterator itLe;
-            for(itLe = (*mGeToSave).LEList.begin(); itLe!=(*mGeToSave).LEList.end(); ++itLe){
+            for(itLe = (*mGeToSave).LEList.begin(); itLe!=(*mGeToSave).LEList.end(); ++itLe) {
 
                 if(numFirstFrame == -1)
                     numFirstFrame = (*itLe).getNumFrame() - mTimeBeforeEvent;
@@ -368,7 +368,7 @@
                 }
                
                 // NUM_FRAME    POSITIONX     POSITIONY (inversed)
-                string line = Conversion::intToString((*itLe).getNumFrame() - numFirstFrame) + "               (" + Conversion::intToString(pos.x)  + ";" + Conversion::intToString(positionY) + ")\n";
+                string line = Conversion::intToString((*itLe).getNumFrame() - numFirstFrame) + "               (" + Conversion::intToString(pos.x)  + ";" + Conversion::intToString(positionY) + ")                 " + TimeDate::getIsoExtendedFormatDate((*itLe).mFrameAcqDate)+ "\n";
                 posFile << line;
 
             }
@@ -1090,7 +1090,8 @@
                                         (*itR),
                                         10,
                                         c.mFrameNumber,
-                                        debugMsg);
+                                        debugMsg,
+                                        c.mDate);
 
                         if(mDebugEnabled)fileLe << debugMsg;
 
@@ -1777,7 +1778,8 @@
                                         Point subdivisionPos,     // Origin position of a region in frame (corner top left)
                                         int maxNbLE,
                                         int numFrame,
-                                        string &msg){
+                                        string &msg, 
+                                        TimeDate::Date cFrameDate){
 
     int situation = 0;
     int nbCreatedLE = 0;
@@ -1908,6 +1910,8 @@
 
                                     // Save the frame number where the local event has been created.
                                     newLocalEvent.setNumFrame(numFrame);
+                                    // Save acquisition date of the frame.
+                                    newLocalEvent.mFrameAcqDate = cFrameDate;
                                     // Add LE in the list of localEvent.
                                     listLE.push_back(newLocalEvent);
                                     // Update eventMap with the color of the new localEvent.
