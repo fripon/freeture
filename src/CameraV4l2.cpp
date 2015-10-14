@@ -209,8 +209,8 @@
 
                         pair<int,string> c;
                         c.first = deviceNumber;
-
-                        c.second = "NAME[" + caps.card[0];
+                        std::string s( reinterpret_cast< char const* >(caps.card) ) ;
+                        c.second = "NAME[" + s + "]";
                         camerasList.push_back(c);
 
                     }

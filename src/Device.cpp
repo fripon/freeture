@@ -385,7 +385,29 @@ void Device::listDevices(bool printInfos) {
 
         // ARAVIS
 
+        createDevicesWith(ARAVIS);
+        listCams = mCam->getCamerasList();
+        for(int i = 0; i < listCams.size(); i++) {
+            elem.first = nbDev; elem.second = ARAVIS;
+            subElem.first = listCams.at(i).first; subElem.second = elem;
+            mDevices.push_back(subElem);
+            if(printInfos) cout << "[" << nbDev << "]    " << listCams.at(i).second << endl;
+            nbDev++;
+        }
+        delete mCam;
+
         // V4L2
+
+        createDevicesWith(V4L2);
+        listCams = mCam->getCamerasList();
+        for(int i = 0; i < listCams.size(); i++) {
+            elem.first = nbDev; elem.second = V4L2;
+            subElem.first = listCams.at(i).first; subElem.second = elem;
+            mDevices.push_back(subElem);
+            if(printInfos) cout << "[" << nbDev << "]    " << listCams.at(i).second << endl;
+            nbDev++;
+        }
+        delete mCam;
 
     #endif
 
