@@ -106,7 +106,7 @@ Device::Device() {
     mFPS            = 30;
     mCamID          = 0;
     mGenCamID       = 0;
-    mCustomSize     = true;
+    mCustomSize     = false;
     mSizeWidth      = 640;
     mSizeHeight     = 480;
     mCam            = NULL;

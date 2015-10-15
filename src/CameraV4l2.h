@@ -104,9 +104,10 @@
             int fd;
             double expMin, expMax;
             int gainMin, gainMax;
-            int width, height;
-            int frameCounter;
+            int mWidth, mHeight;
+            int mFrameCounter;
             struct v4l2_format mFormat;
+            bool mCustomSize;
 
         public :
 
@@ -129,6 +130,8 @@
             bool listCameras();
 
             bool createDevice(int id);
+
+            bool setSize(int width, int height, bool customSize);
 
             bool grabInitialization();
 
@@ -162,7 +165,7 @@
 
             double getExposureTime();
 
-            bool setExposureTime(int exp);
+            bool setExposureTime(double exp);
 
             bool setGain(int gain);
 
@@ -170,9 +173,11 @@
 
             bool setPixelFormat(CamBitDepth depth);
 
-            //TimeMeasureUnit getExposureUnit();
+        private :
 
-            bool setSize(int width, int height, bool customSize){return true;};
+            void yuv2rgb(int y, int u, int v, unsigned char *r, unsigned char *g, unsigned char *b);
+
+            bool setSize();
 
     };
 

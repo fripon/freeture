@@ -973,6 +973,36 @@ int main(int argc, const char ** argv){
 
                     break;
 
+                case 6 :
+
+                    {
+
+                        CameraV4l2 *c = new CameraV4l2();
+                        cout << "List cameras" << endl;
+                        c->listCameras();
+                        /*if(!c->getFrameSizeEnum())
+                            cout << "Fail to get frame size" << endl;
+                            int w = 0, h = 0;
+                        c->getFrameSize(w, h);
+                        cout << w << "x" << h << endl;*/
+
+                        namedWindow("FreeTure", CV_WINDOW_AUTOSIZE);
+
+                        Frame frame;
+                        frame.mWidth = 800;
+                        frame.mHeight = 500;
+                        if(c->grabSingleImage(frame, 0)) {
+                            imshow("FreeTure", frame.mImg);
+                            waitKey(0);
+                        }
+
+
+                        delete c;
+
+
+                    }
+
+                    break;
 
                 case 0 :
 
@@ -1038,7 +1068,7 @@ int main(int argc, const char ** argv){
                         device->setCameraGain(gain);
                         device->initializeCamera();
                         device->startCamera();
-                        namedWindow("FreeTure", WINDOW_NORMAL);
+                        namedWindow("FreeTure", WINDOW_AUTOSIZE);
 
                         while(1) {
 

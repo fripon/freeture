@@ -73,10 +73,9 @@
         expMax = 0;
         gainMin = 0;
         gainMax = 0;
-        frameCounter = 0;
-        width = 1024;
-        height = 768;
-        memset(&mFormat, 0, sizeof(mFormat));
+        mFrameCounter = 0;
+        mWidth = 640;
+        mHeight = 480;
 
         mExposureAvailable = true;
         mGainAvailable = true;
@@ -124,7 +123,7 @@
         fmtdesc.type = V4L2_BUF_TYPE_VIDEO_CAPTURE;
         char fourcc[5] = {0};
         char c, e;
-        printf( "  FMT    : CE Desc\n");
+        printf( "  FORMAT    : CE Desc\n");
         while (0 == xioctl(fd, VIDIOC_ENUM_FMT, &fmtdesc)) {
             strncpy(fourcc, (char *)&fmtdesc.pixelformat, 4);
             if (fmtdesc.pixelformat == V4L2_PIX_FMT_SGRBG10)
@@ -203,6 +202,7 @@
                     struct v4l2_capability caps = {};
 
                     if (-1 == xioctl(fd, VIDIOC_QUERYCAP, &caps)) {
+                        cout << "Fail Querying Capabilities." << endl;
                         perror("Querying Capabilities");
                         res = false;
                     }else {
@@ -319,9 +319,120 @@
         getExposureBounds(expMin, expMax);
         getGainBounds(gainMin, gainMax);
 
+        memset(&mFormat, 0, sizeof(mFormat));
+        mFormat.type = V4L2_BUF_TYPE_VIDEO_CAPTURE;
+        // Preserve original settings as set by v4l2-ctl for example
+        if (-1 == xioctl(fd, VIDIOC_G_FMT, &mFormat)){
+            return false;
+        }
+
         return true;
 
     }
+
+    bool CameraV4l2::setSize(int width, int height, bool customSize) {
+        mWidth = width;
+        mHeight = height;
+        mCustomSize = customSize;
+        return true;
+    }
+
+    // if customSize = true --> set width and height values passed in argument
+    // if customSize = false --> set maximum size
+    bool CameraV4l2::setSize() {
+
+        int chooseWidth = 0;
+        int chooseHeight = 0;
+        bool discreteSize = false;
+
+        bool res = false;
+
+        struct v4l2_frmsizeenum frmsize;
+        memset(&frmsize, 0, sizeof(frmsize));
+        frmsize.pixel_format = mFormat.fmt.pix.pixelformat; // Necessary to set size.
+
+        while(ioctl(fd, VIDIOC_ENUM_FRAMESIZES, &frmsize) == 0) {
+
+            switch(frmsize.type) {
+
+                case V4L2_FRMSIZE_TYPE_DISCRETE :
+
+                    if(chooseHeight == 0 && chooseWidth == 0) {
+
+                        chooseHeight = frmsize.discrete.height;
+                        chooseWidth = frmsize.discrete.width;
+
+                    }else {
+
+                        if((abs(mWidth - chooseWidth) > abs(mWidth - frmsize.discrete.width)) && (abs(mHeight - chooseHeight) > abs(mHeight - frmsize.discrete.height))) {
+                            chooseWidth = frmsize.discrete.width;
+                            chooseHeight = frmsize.discrete.height;
+                        }
+
+                    }
+
+                    discreteSize = true;
+                    res = true;
+
+                    break;
+
+                case V4L2_FRMSIZE_TYPE_CONTINUOUS :
+
+                    break;
+
+                case V4L2_FRMSIZE_TYPE_STEPWISE :
+
+                    if(mCustomSize) {
+
+                        if(mWidth >= frmsize.stepwise.min_width && mWidth <=frmsize.stepwise.max_width) {
+
+                            mFormat.fmt.pix.width = mWidth;
+
+                        }else {
+
+                            mFormat.fmt.pix.width = frmsize.stepwise.max_width;
+
+                        }
+
+                        if(mHeight >= frmsize.stepwise.min_height && mHeight <=frmsize.stepwise.max_height) {
+
+                            mFormat.fmt.pix.height = mHeight;
+
+                        }else {
+
+                            mFormat.fmt.pix.height = frmsize.stepwise.max_height;
+
+                        }
+
+                    }else {
+
+                        mFormat.fmt.pix.height = frmsize.stepwise.max_height;
+                        mFormat.fmt.pix.width = frmsize.stepwise.max_width;
+
+                    }
+
+                    res = true;
+
+                    break;
+
+            }
+
+            frmsize.index++;
+
+        }
+
+        if(discreteSize && res) {
+
+            mFormat.fmt.pix.height = chooseHeight;
+            mFormat.fmt.pix.width = chooseWidth;
+
+        }
+
+
+        return res;
+
+    }
+
 
     bool CameraV4l2::getDeviceNameById(int id, string &device){
 
@@ -392,15 +503,12 @@
 
         cropcap.type = V4L2_BUF_TYPE_VIDEO_CAPTURE;
 
-        if (0 == xioctl(fd, VIDIOC_CROPCAP, &cropcap))
-        {
+        if (0 == xioctl(fd, VIDIOC_CROPCAP, &cropcap)) {
             crop.type = V4L2_BUF_TYPE_VIDEO_CAPTURE;
-            crop.c = cropcap.defrect; /* reset to default */
+            crop.c = cropcap.defrect; // reset to default
 
-            if (-1 == xioctl(fd, VIDIOC_S_CROP, &crop))
-            {
-                switch (errno)
-                {
+            if (-1 == xioctl(fd, VIDIOC_S_CROP, &crop)) {
+                switch (errno) {
                     case EINVAL:
                         // Cropping not supported.
                         break;
@@ -409,100 +517,19 @@
                         break;
                 }
             }
-        }
-        else
-        {
+        } else {
             // Errors ignored.
         }
 
-        // Preserve original settings as set by v4l2-ctl for example
-        //if (-1 == xioctl(fd, VIDIOC_G_FMT, &mFormat))
-        //    errno_exit("VIDIOC_G_FMT");
+        // Set some parameters...SIZE
 
-        // ************************ DISABLE AUTO EXPOSURE *****************************
-
-        struct v4l2_queryctrl queryctrl;
-        struct v4l2_control control;
-        memset(&queryctrl, 0, sizeof(queryctrl));
-        queryctrl.id = V4L2_CID_EXPOSURE_AUTO;
-
-        if(-1 == ioctl(fd, VIDIOC_QUERYCTRL, &queryctrl)) {
-
-            if(errno != EINVAL) {
-
-                perror("VIDIOC_QUERYCTRL");
-                return false;
-
-            }else {
-
-                printf("V4L2_CID_EXPOSURE_AUTO is not supported\n");
-
-            }
-
-        }else if (queryctrl.flags & V4L2_CTRL_FLAG_DISABLED) {
-
-            printf("V4L2_CID_EXPOSURE_AUTO is not supported\n");
-
-        }else {
-
-            memset(&control, 0, sizeof (control));
-            control.id = V4L2_CID_EXPOSURE_AUTO;
-            control.value = V4L2_EXPOSURE_MANUAL;
-
-            if (-1 == ioctl(fd, VIDIOC_S_CTRL, &control)) {
-                perror("VIDIOC_S_CTRL");
-                return false;
-            }
-
-            cout << ">> Manual exposure setted." << endl;
-
-        }
-
-        // ************************ SET MAXIMUM IMAGE SIZE *****************************
-
-        struct v4l2_frmsizeenum frmsize;
-        memset(&frmsize, 0, sizeof(frmsize));
-        frmsize.pixel_format = mFormat.fmt.pix.pixelformat;
-
-        int maxH = 0;
-        int maxW = 0;
-        bool initFrameSize = false;
-
-        while(ioctl(fd, VIDIOC_ENUM_FRAMESIZES, &frmsize) == 0) {
-
-            switch(frmsize.type) {
-
-                case V4L2_FRMSIZE_TYPE_DISCRETE :
-
-                    if(frmsize.discrete.height > maxH ) maxH = frmsize.discrete.height;
-                    if(frmsize.discrete.width > maxW ) maxW = frmsize.discrete.width;
-
-                    initFrameSize = true;
-
-                case V4L2_FRMSIZE_TYPE_CONTINUOUS :
-
-                    break;
-
-                case V4L2_FRMSIZE_TYPE_STEPWISE :
-
-                    maxW = frmsize.stepwise.max_width;
-                    maxH = frmsize.stepwise.max_height;
-                    initFrameSize = true;
-
-            }
-
-            frmsize.index++;
-
-        }
-
-        if(!initFrameSize && maxH == 0 && maxW == 0){
-
+        if(!setSize())
             return false;
 
+        if(-1 == xioctl(fd, VIDIOC_S_FMT, &mFormat)) {
+            cout << "Fail to set fmt." << endl;
+            return false;
         }
-
-        mFormat.fmt.pix.height = maxH;
-        mFormat.fmt.pix.width = maxW;
 
         /* Buggy driver paranoia. */
         min = mFormat.fmt.pix.width * 2;
@@ -554,6 +581,8 @@
 
     void CameraV4l2::acqStart(){
 
+        // INIT DEVICE
+
         unsigned int i;
         enum v4l2_buf_type type;
 
@@ -571,8 +600,9 @@
                 break;
         }
 
-        switch (io)
-        {
+        // START CAPTURING
+
+        switch (io) {
             case IO_METHOD_READ:
             {
                 /* Nothing to do. */
@@ -656,8 +686,8 @@
 
         unsigned char* ImageBuffer = NULL;
 
-        Mat img = Mat(height,width,CV_8UC1, Scalar(0));
-        size_t s = width*height;
+        Mat img = Mat(mFormat.fmt.pix.height,mFormat.fmt.pix.width,CV_8UC1, Scalar(0));
+        size_t s = mFormat.fmt.pix.width*mFormat.fmt.pix.height;
 
         bool grabSuccess = false;
 
@@ -694,55 +724,149 @@
             /* EAGAIN - continue select loop. */
         }
 
-        if(grabSuccess) {
+       if(grabSuccess) {
 
             ImageBuffer = (unsigned char*)buffers[buf.index].start;
+            boost::posix_time::ptime time = boost::posix_time::microsec_clock::universal_time();
+            newFrame.mDate = TimeDate::splitIsoExtendedDate(to_iso_extended_string(time));
+            double fps = 0;
+            if(getFPS(fps))
+                newFrame.mFps = fps;
+            newFrame.mBitDepth = MONO_8;
+            newFrame.mSaturatedValue = 255;
+            newFrame.mFrameNumber = mFrameCounter;
+            mFrameCounter++;
 
-            if(ImageBuffer != NULL) {
+            if(mFormat.fmt.pix.pixelformat == V4L2_PIX_FMT_GREY) {
 
-                memcpy(img.ptr(), ImageBuffer, s);
+                if(ImageBuffer != NULL) {
 
-                boost::posix_time::ptime time = boost::posix_time::microsec_clock::universal_time();
+                    memcpy(img.ptr(), ImageBuffer, s);
+                    img.copyTo(newFrame.mImg);
 
-                newFrame = Frame(img, 0, 0, to_iso_extended_string(time));
-                //newFrame.mFps = fps;
-                newFrame.mBitDepth = MONO_8;
-                newFrame.mSaturatedValue = 255;
-                newFrame.mFrameNumber = frameCounter;
-                frameCounter++;
+                }
 
-                return true;
+            }else if(mFormat.fmt.pix.pixelformat == V4L2_PIX_FMT_YUYV) {
 
+                unsigned char bigbuffer[mFormat.fmt.pix.height * mFormat.fmt.pix.width*3];
+                int i, newi, newsize=0;
+                int y_temp, y2_temp, u_temp, v_temp;
+                unsigned char *pptr = (unsigned char *)buffers[buf.index].start;
+                Mat dispimg(mFormat.fmt.pix.height, mFormat.fmt.pix.width, CV_8UC3, bigbuffer);
+
+                // Pixels are YU and YV alternating, so YUYV which is 4 bytes
+                // We want RGB, so RGBRGB which is 6 bytes
+                //
+                for(i=0, newi=0; i<buf.bytesused; i=i+4, newi=newi+6) {
+                    y_temp=(int)pptr[i]; u_temp=(int)pptr[i+1]; y2_temp=(int)pptr[i+2]; v_temp=(int)pptr[i+3];
+                    yuv2rgb(y_temp, u_temp, v_temp, &bigbuffer[newi], &bigbuffer[newi+1], &bigbuffer[newi+2]);
+                    yuv2rgb(y2_temp, u_temp, v_temp, &bigbuffer[newi+3], &bigbuffer[newi+4], &bigbuffer[newi+5]);
+                }
+
+                cvtColor(dispimg,newFrame.mImg,CV_BGR2GRAY);
+
+            }else {
+
+                cout << "Format not supported." << mFormat.fmt.pix.pixelformat << endl;
+                grabSuccess = false;
             }
 
         }
 
-        return false;
+        return grabSuccess;
 
+    }
+
+    void yuv2rgb_(int y, int u, int v, unsigned char *r, unsigned char *g, unsigned char *b) {
+
+       int r1, g1, b1;
+
+       // replaces floating point coefficients
+       int c = y-16, d = u - 128, e = v - 128;
+
+       // Conversion that avoids floating point
+       r1 = (298 * c           + 409 * e + 128) >> 8;
+       g1 = (298 * c - 100 * d - 208 * e + 128) >> 8;
+       b1 = (298 * c + 516 * d           + 128) >> 8;
+
+       // Computed values may need clipping.
+       if (r1 > 255) r1 = 255;
+       if (g1 > 255) g1 = 255;
+       if (b1 > 255) b1 = 255;
+
+       if (r1 < 0) r1 = 0;
+       if (g1 < 0) g1 = 0;
+       if (b1 < 0) b1 = 0;
+
+       *r = r1 ;
+       *g = g1 ;
+       *b = b1 ;
+    }
+
+    #define CLIP(color) (unsigned char)(((color) > 0xFF) ? 0xff : (((color) < 0) ? 0 : (color)))
+    // https://github.com/gjasny/v4l-utils/blob/master/lib/libv4lconvert/rgbyuv.c
+    void v4lconvert_uyvy_to_bgr24(const unsigned char *src, unsigned char *dest,
+        int width, int height, int stride)
+    {
+        int j;
+
+        while (--height >= 0) {
+            for (j = 0; j + 1 < width; j += 2) {
+                int u = src[0];
+                int v = src[2];
+                int u1 = (((u - 128) << 7) +  (u - 128)) >> 6;
+                int rg = (((u - 128) << 1) +  (u - 128) +
+                        ((v - 128) << 2) + ((v - 128) << 1)) >> 3;
+                int v1 = (((v - 128) << 1) +  (v - 128)) >> 1;
+
+                *dest++ = CLIP(src[1] + u1);
+                *dest++ = CLIP(src[1] - rg);
+                *dest++ = CLIP(src[1] + v1);
+
+                *dest++ = CLIP(src[3] + u1);
+                *dest++ = CLIP(src[3] - rg);
+                *dest++ = CLIP(src[3] + v1);
+                src += 4;
+            }
+            src += stride - width * 2;
+        }
     }
 
     bool CameraV4l2::grabSingleImage(Frame &frame, int camID){
 
         createDevice(camID);
-        //getInfos();
 
-        setExposureTime(frame.mExposure);
-        setGain(frame.mGain);
+        if(expMin != -1 && expMax != -1)
+            setExposureTime(frame.mExposure);
+        if(expMin != -1 && expMax != -1)
+            setGain(frame.mGain);
 
-        if(!setPixelFormat(frame.mBitDepth)) {
-            return false;
+        if(frame.mHeight > 0 && frame.mWidth > 0) {
+
+            setSize(frame.mWidth, frame.mHeight, true);
+
+        }else {
+
+            setSize(0, 0, false);
+
         }
 
+        cout << "H : " << mFormat.fmt.pix.height << endl;
+        cout << "V : " << mFormat.fmt.pix.width << endl;
+
+        if(!setPixelFormat(MONO_8))
+            return false;
+
         grabInitialization();
+
         acqStart();
 
         unsigned char* ImageBuffer = NULL;
 
-        Mat img = Mat(height,width,CV_8UC1, Scalar(0));
-        size_t s = width*height;
+        Mat img = Mat(mFormat.fmt.pix.height,mFormat.fmt.pix.width,CV_8UC1, Scalar(0));
+        size_t s = mFormat.fmt.pix.width*mFormat.fmt.pix.height;
 
         bool grabSuccess = false;
-        //namedWindow( "Display window", WINDOW_AUTOSIZE );
 
         for(int i = 0; i< 2; i++) {
 
@@ -788,18 +912,59 @@
         if(grabSuccess) {
 
             ImageBuffer = (unsigned char*)buffers[buf.index].start;
+            boost::posix_time::ptime time = boost::posix_time::microsec_clock::universal_time();
+            frame.mDate = TimeDate::splitIsoExtendedDate(to_iso_extended_string(time));
+            double fps = 0;
+            if(getFPS(fps))
+                frame.mFps = fps;
+            frame.mBitDepth = MONO_8;
+            frame.mSaturatedValue = 255;
+            frame.mFrameNumber = mFrameCounter;
 
-            if(ImageBuffer != NULL) {
+            if(mFormat.fmt.pix.pixelformat == V4L2_PIX_FMT_GREY) {
 
-                boost::posix_time::ptime time = boost::posix_time::microsec_clock::universal_time();
-                memcpy(img.ptr(), ImageBuffer, s);
-                img.copyTo(frame.mImg);
-                frame.mDate = TimeDate::splitIsoExtendedDate(to_iso_extended_string(time));
-                //newFrame.mFps = fps;
-                frame.mBitDepth = MONO_8;
-                frame.mSaturatedValue = 255;
-                //newFrame.mFrameNumber = frameCounter;
+                if(ImageBuffer != NULL) {
 
+                    memcpy(img.ptr(), ImageBuffer, s);
+                    img.copyTo(frame.mImg);
+
+                }
+
+            }else if(mFormat.fmt.pix.pixelformat == V4L2_PIX_FMT_YUYV) {
+
+                unsigned char bigbuffer[mFormat.fmt.pix.height * mFormat.fmt.pix.width*3];
+                int i, newi, newsize=0;
+                int y_temp, y2_temp, u_temp, v_temp;
+                unsigned char *pptr = (unsigned char *)buffers[buf.index].start;
+                Mat dispimg(mFormat.fmt.pix.height, mFormat.fmt.pix.width, CV_8UC3, bigbuffer);
+
+                // Pixels are YU and YV alternating, so YUYV which is 4 bytes
+                // We want RGB, so RGBRGB which is 6 bytes
+                //
+                for(i=0, newi=0; i<buf.bytesused; i=i+4, newi=newi+6) {
+                    y_temp=(int)pptr[i]; u_temp=(int)pptr[i+1]; y2_temp=(int)pptr[i+2]; v_temp=(int)pptr[i+3];
+                    yuv2rgb(y_temp, u_temp, v_temp, &bigbuffer[newi], &bigbuffer[newi+1], &bigbuffer[newi+2]);
+                    yuv2rgb(y2_temp, u_temp, v_temp, &bigbuffer[newi+3], &bigbuffer[newi+4], &bigbuffer[newi+5]);
+                }
+
+                cvtColor(dispimg,frame.mImg,CV_BGR2GRAY);
+
+            }else if( mFormat.fmt.pix.pixelformat == V4L2_PIX_FMT_UYVY){
+
+                unsigned char bigbuffer[mFormat.fmt.pix.height * mFormat.fmt.pix.width*3];
+                int i, newi, newsize=0;
+                int y_temp, y2_temp, u_temp, v_temp;
+                unsigned char *pptr = (unsigned char *)buffers[buf.index].start;
+
+                v4lconvert_uyvy_to_bgr24(ImageBuffer, bigbuffer, mFormat.fmt.pix.width, mFormat.fmt.pix.height, mFormat.fmt.pix.bytesperline);
+                Mat dispimg(mFormat.fmt.pix.height, mFormat.fmt.pix.width, CV_8UC3, bigbuffer);
+                cvtColor(dispimg,frame.mImg,CV_BGR2GRAY);
+
+
+            }else {
+
+                cout << "Format not supported." << mFormat.fmt.pix.pixelformat << endl;
+                grabSuccess = false;
             }
 
         }
@@ -807,10 +972,7 @@
         acqStop();
         grabCleanse();
 
-        if(grabSuccess)
-            return true;
-        else
-            return false;
+        return grabSuccess;
 
     }
 
@@ -830,12 +992,16 @@
             } else {
 
                 printf("V4L2_CID_EXPOSURE_ABSOLUTE is not supported\n");
+                eMin = -1;
+                eMax = -1;
 
             }
 
         } else if (queryctrl.flags & V4L2_CTRL_FLAG_DISABLED) {
 
             printf("V4L2_CID_EXPOSURE_ABSOLUTE is not supported\n");
+            eMin = -1;
+            eMax = -1;
 
         } else {
 
@@ -890,12 +1056,16 @@
             } else {
 
                 printf("V4L2_CID_GAIN is not supported\n");
+                gainMin = -1;
+                gainMax = -1;
 
             }
 
         } else if (queryctrl.flags & V4L2_CTRL_FLAG_DISABLED) {
 
             printf("V4L2_CID_GAIN is not supported\n");
+            gainMin = -1;
+            gainMax = -1;
 
         } else {
 
@@ -915,13 +1085,13 @@
 
     bool CameraV4l2::getPixelFormat(CamBitDepth &format){
 
-        char fourcc[5] = {0};
+        /*char fourcc[5] = {0};
 
         struct v4l2_format fmt;
         memset(&fmt, 0, sizeof(fmt));
         fmt.type = V4L2_BUF_TYPE_VIDEO_CAPTURE;
-        fmt.fmt.pix.width = width;
-        fmt.fmt.pix.height = height;
+        fmt.fmt.pix.width = mWidth;
+        fmt.fmt.pix.height = mHeight;
         fmt.fmt.pix.field = V4L2_FIELD_NONE;
 
         if (-1 == xioctl(fd, VIDIOC_G_FMT, &fmt)) {
@@ -943,7 +1113,7 @@
             cout << "Pixel format : V4L2_PIX_FMT_Y12" << endl;
             format = MONO_12;
 
-        }
+        }*/
 
         return true;
     }
@@ -954,7 +1124,7 @@
 
         struct v4l2_frmsizeenum frmsize;
         memset(&frmsize, 0, sizeof(frmsize));
-        frmsize.pixel_format = V4L2_PIX_FMT_GREY;
+        frmsize.pixel_format = mFormat.fmt.pix.pixelformat;
 
         while(ioctl(fd, VIDIOC_ENUM_FRAMESIZES, &frmsize) == 0) {
 
@@ -1021,9 +1191,9 @@
 
         struct v4l2_frmivalenum temp;
         memset(&temp, 0, sizeof(temp));
-        temp.pixel_format = V4L2_PIX_FMT_GREY;
-        temp.width = width;
-        temp.height = height;
+        temp.pixel_format = mFormat.fmt.pix.pixelformat;
+        temp.width = mFormat.fmt.pix.width;
+        temp.height = mFormat.fmt.pix.height;
 
         ioctl(fd, VIDIOC_ENUM_FRAMEINTERVALS, &temp);
         if (temp.type == V4L2_FRMIVAL_TYPE_DISCRETE) {
@@ -1088,12 +1258,51 @@
 
     }
 
-    bool CameraV4l2::setExposureTime(int val){
+    bool CameraV4l2::setExposureTime(double val){
 
-        if(expMax != 0 && expMin != 0 && val >= expMin && val <= expMax) {
+        if(expMax > 0 && expMin > 0 && val >= expMin && val <= expMax) {
+
+            // ************************ DISABLE AUTO EXPOSURE *****************************
 
             struct v4l2_queryctrl queryctrl;
             struct v4l2_control control;
+            memset(&queryctrl, 0, sizeof(queryctrl));
+            queryctrl.id = V4L2_CID_EXPOSURE_AUTO;
+
+            if(-1 == ioctl(fd, VIDIOC_QUERYCTRL, &queryctrl)) {
+
+                if(errno != EINVAL) {
+
+                    perror("VIDIOC_QUERYCTRL");
+                    return false;
+
+                }else {
+
+                    printf("V4L2_CID_EXPOSURE_AUTO is not supported\n");
+
+                }
+
+            }else if (queryctrl.flags & V4L2_CTRL_FLAG_DISABLED) {
+
+                printf("V4L2_CID_EXPOSURE_AUTO is not supported\n");
+
+            }else {
+
+                memset(&control, 0, sizeof (control));
+                control.id = V4L2_CID_EXPOSURE_AUTO;
+                control.value = V4L2_EXPOSURE_MANUAL;
+
+                if (-1 == ioctl(fd, VIDIOC_S_CTRL, &control)) {
+                    perror("VIDIOC_S_CTRL");
+                    return false;
+                }
+
+                cout << ">> Manual exposure setted." << endl;
+
+            }
+
+            // ************************ SET AUTO EXPOSURE *****************************
+
             memset(&queryctrl, 0, sizeof(queryctrl));
             queryctrl.id = V4L2_CID_EXPOSURE_ABSOLUTE;
 
@@ -1142,6 +1351,13 @@
 
         }else {
 
+            if(expMin == -1 && expMax == -1) {
+
+                cout << "Exposure time not supported." << endl;
+                return true;
+
+            }
+
             cout << "> Exposure value (" << val << ") is not in range [ " << expMin << " - " << expMax << " ]" << endl;
 
         }
@@ -1151,7 +1367,7 @@
 
     bool CameraV4l2::setGain(int val){
 
-        if(gainMax != 0 && gainMin != 0 && val >= gainMin && val <= gainMax) {
+        if(gainMax > 0 && gainMin > 0 && val >= gainMin && val <= gainMax) {
 
             struct v4l2_queryctrl queryctrl;
             struct v4l2_control control;
@@ -1192,6 +1408,13 @@
 
         }else {
 
+            if(gainMin == -1 && gainMax == -1) {
+
+                cout << "Gain not supported." << endl;
+                return true;
+
+            }
+
             cout << "> Gain value (" << val << ") is not in range [ " << gainMin << " - " << gainMax << " ]" << endl;
 
         }
@@ -1202,12 +1425,12 @@
 
     bool CameraV4l2::setFPS(double fps){
 
-        bool res = false;
+        bool res = true;
         struct v4l2_frmivalenum temp;
         memset(&temp, 0, sizeof(temp));
-        temp.pixel_format = V4L2_PIX_FMT_GREY;
-        temp.width = width;
-        temp.height = height;
+        temp.pixel_format = mFormat.fmt.pix.pixelformat;
+        temp.width = mFormat.fmt.pix.width;
+        temp.height = mFormat.fmt.pix.height;
 
         ioctl(fd, VIDIOC_ENUM_FRAMEINTERVALS, &temp);
         if (temp.type == V4L2_FRMIVAL_TYPE_DISCRETE) {
@@ -1231,10 +1454,10 @@
                     //retval=1;
                     if (ioctl(fd, VIDIOC_S_PARM, &setfps) < 0) {
                         cout << "Failed to set camera FPS:"  << strerror(errno) << endl;
+                        res = false;
                         break;
                     }
 
-                    res = true;
                     break;
 
                 }
@@ -1246,7 +1469,6 @@
         float stepval = 0;
         if (temp.type == V4L2_FRMIVAL_TYPE_CONTINUOUS) {
             stepval = 1;
-            res = true;
         }
         if (temp.type == V4L2_FRMIVAL_TYPE_STEPWISE || temp.type == V4L2_FRMIVAL_TYPE_CONTINUOUS) {
             float minval = float(temp.stepwise.min.numerator)/temp.stepwise.min.denominator;
@@ -1257,7 +1479,6 @@
             for (float cval = minval; cval <= maxval; cval += stepval) {
                 cout << 1/cval << " fps" << endl;
 
-                res = true;
             }
         }
 
@@ -1271,8 +1492,14 @@
         fmtdesc.type = V4L2_BUF_TYPE_VIDEO_CAPTURE;
         char fourcc[5] = {0};
         bool fmtFound = false;
-        //char c, e;
-        //printf( "  FMT    : CE Desc\n");
+        bool fmtYUYV = false;
+        bool fmtUYVY = false;
+        char c, e;
+        printf( "  FMT    : CE Desc\n");
+
+        //memset(&mFormat, 0, sizeof(mFormat));
+        //mFormat.type = V4L2_BUF_TYPE_VIDEO_CAPTURE;
+        mFormat.fmt.pix.field = V4L2_FIELD_NONE;
 
         while (0 == xioctl(fd, VIDIOC_ENUM_FMT, &fmtdesc)) {
 
@@ -1280,61 +1507,48 @@
 
             if(depth == MONO_8 && fmtdesc.pixelformat == V4L2_PIX_FMT_GREY) {
 
-                char fourccc[5] = {0};
-                struct v4l2_format fmt;
-                memset(&fmt, 0, sizeof(fmt));
-                fmt.type = V4L2_BUF_TYPE_VIDEO_CAPTURE;
-                fmt.fmt.pix.width = width;
-                fmt.fmt.pix.height = height;
-                fmt.fmt.pix.pixelformat = V4L2_PIX_FMT_GREY;
-                fmt.fmt.pix.field = V4L2_FIELD_NONE;
                 mFormat.fmt.pix.pixelformat = V4L2_PIX_FMT_GREY;
-
-                if (-1 == xioctl(fd, VIDIOC_S_FMT, &fmt)) {
-                    BOOST_LOG_SEV(logger, critical) << "Fail to set format to MONO_8.";
-                    return false;
-                }
-
-                strncpy(fourccc, (char *)&fmt.fmt.pix.pixelformat, 4);
                 fmtFound = true;
                 break;
 
-            }else if(depth == MONO_12 && fmtdesc.pixelformat == V4L2_PIX_FMT_Y12) {
+            }else if(depth == MONO_8 && fmtdesc.pixelformat == V4L2_PIX_FMT_YUYV) {
 
-                char fourccc[5] = {0};
-                struct v4l2_format fmt;
-                memset(&fmt, 0, sizeof(fmt));
-                fmt.type = V4L2_BUF_TYPE_VIDEO_CAPTURE;
-                fmt.fmt.pix.width = width;
-                fmt.fmt.pix.height = height;
-                fmt.fmt.pix.pixelformat = V4L2_PIX_FMT_Y12;
-                fmt.fmt.pix.field = V4L2_FIELD_NONE;
-                mFormat.fmt.pix.pixelformat = V4L2_PIX_FMT_Y12;
-
-                if (-1 == xioctl(fd, VIDIOC_S_FMT, &fmt)) {
-                    BOOST_LOG_SEV(logger, critical) << "Fail to set format to MONO_12.";
-                    return false;
-                }
-
-                strncpy(fourccc, (char *)&fmt.fmt.pix.pixelformat, 4);
+                fmtYUYV = true;
                 fmtFound = true;
-                break;
+
+            }else if(depth == MONO_8 && fmtdesc.pixelformat == V4L2_PIX_FMT_UYVY) {
+
+                fmtUYVY = true;
+                fmtFound = true;
 
             }
 
-            //c = fmtdesc.flags & 1? 'C' : ' ';
-            //e = fmtdesc.flags & 2? 'E' : ' ';
-            //printf("  %s : %c%c %s\n", fourcc, c, e, fmtdesc.description);
+
+            c = fmtdesc.flags & 1? 'C' : ' ';
+            e = fmtdesc.flags & 2? 'E' : ' ';
+            printf("  %s : %c%c %s\n", fourcc, c, e, fmtdesc.description);
             fmtdesc.index++;
         }
 
         if(!fmtFound) {
 
-            EParser<CamBitDepth> fmt;
-            BOOST_LOG_SEV(logger, critical) << "FORMAT " << fmt.getStringEnum(depth) << " NOT SUPPORTED !";
-            return false;
+            if(fmtYUYV) {
+
+                mFormat.fmt.pix.pixelformat = V4L2_PIX_FMT_YUYV;
+
+            }else if(fmtUYVY){
+
+                mFormat.fmt.pix.pixelformat = V4L2_PIX_FMT_UYVY;
+
+            }else{
+
+                BOOST_LOG_SEV(logger, critical) << "FORMAT NOT SUPPORTED !";
+                return false;
+            }
 
         }
+
+        strncpy(fourcc, (char *)&mFormat.fmt.pix.pixelformat, 4);
 
         return true;
 
@@ -1354,6 +1568,32 @@
         } while (-1 == r && EINTR == errno);
 
         return r;
+    }
+
+    void CameraV4l2::yuv2rgb(int y, int u, int v, unsigned char *r, unsigned char *g, unsigned char *b) {
+
+       int r1, g1, b1;
+
+       // replaces floating point coefficients
+       int c = y-16, d = u - 128, e = v - 128;
+
+       // Conversion that avoids floating point
+       r1 = (298 * c           + 409 * e + 128) >> 8;
+       g1 = (298 * c - 100 * d - 208 * e + 128) >> 8;
+       b1 = (298 * c + 516 * d           + 128) >> 8;
+
+       // Computed values may need clipping.
+       if (r1 > 255) r1 = 255;
+       if (g1 > 255) g1 = 255;
+       if (b1 > 255) b1 = 255;
+
+       if (r1 < 0) r1 = 0;
+       if (g1 < 0) g1 = 0;
+       if (b1 < 0) b1 = 0;
+
+       *r = r1 ;
+       *g = g1 ;
+       *b = b1 ;
     }
 
     int CameraV4l2::read_frame (void) {
@@ -1410,7 +1650,6 @@
 
                 assert(buf.index < n_buffers);
 
-
                 if (-1 == xioctl(fd, VIDIOC_QBUF, &buf))
                     errno_exit("VIDIOC_QBUF");
                 break;
@@ -1449,8 +1688,6 @@
                 }
                 assert(i < n_buffers);
 
-
-
                 if (-1 == xioctl(fd, VIDIOC_QBUF, &buf))
                 {
                     errno_exit("VIDIOC_QBUF");
@@ -1482,6 +1719,7 @@
     }
 
     void CameraV4l2::init_mmap (void) {
+
         struct v4l2_requestbuffers req;
 
         memset(&req, 0, sizeof(req));
