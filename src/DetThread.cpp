@@ -39,7 +39,6 @@ boost::log::sources::severity_logger< LogSeverityLevel >  DetThread::logger;
 DetThread::Init DetThread::initializer;
 
 DetThread::DetThread(   string                          cfg_p,
-                        DetMeth                         m,
                         boost::circular_buffer<Frame>  *fb,
                         boost::mutex                   *fb_m,
                         boost::condition_variable      *fb_c,
@@ -61,10 +60,9 @@ DetThread::DetThread(   string                          cfg_p,
     detSignal_mutex = dSignal_m;
     detSignal_condition = dSignal_c;
     pThread = NULL;
-    mDetMthd = m;
 
     Configuration cfg;
-    
+
     if(!cfg.Load(cfg_p))
         throw "Fail to load parameters for det thread from configuration file.";
 
@@ -226,6 +224,13 @@ DetThread::DetThread(   string                          cfg_p,
     }
 
     //********************* DETECTION METHOD.********************************
+
+    // Get det method.
+    string det_method;
+    if(!cfg.Get("DET_METHOD", det_method))
+        throw "Fail to load DET_METHOD from configuration file.";
+    EParser<DetMeth> det_mth;
+    DetMeth mDetMthd = det_mth.parseEnum("DET_METHOD", det_method);
 
     switch(mDetMthd){
 

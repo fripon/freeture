@@ -43,6 +43,9 @@
 
         #include <signal.h>
         #include <unistd.h>
+        #include <termios.h>
+        #include <sys/types.h>
+        #include <sys/time.h>
         #define BOOST_LOG_DYN_LINK 1
     #endif
 #endif
@@ -113,17 +116,43 @@ bool sigTermFlag = false;
 
 struct sigaction act;
 
-/**
- * \brief Terminate signal on the current processus
- */
-
 void sigTermHandler(int signum, siginfo_t *info, void *ptr){
+    src::severity_logger< LogSeverityLevel > lg;
+    BOOST_LOG_SEV(lg, notification) << "Received signal : "<< signum << " from : "<< (unsigned long)info->si_pid;
+    cout << "Received signal : "<< signum << " from : "<< (unsigned long)info->si_pid<< endl;
+    sigTermFlag = true;
+}
 
-        src::severity_logger< LogSeverityLevel > lg;
+// http://cc.byexamples.com/2007/04/08/non-blocking-user-input-in-loop-without-ncurses/
+int kbhit() {
+    struct timeval tv;
+    fd_set fds;
+    tv.tv_sec = 0;
+    tv.tv_usec = 0;
+    FD_ZERO(&fds);
+    FD_SET(STDIN_FILENO, &fds); //STDIN_FILENO is 0
+    select(STDIN_FILENO+1, &fds, NULL, NULL, &tv);
+    return FD_ISSET(STDIN_FILENO, &fds);
+}
 
-        BOOST_LOG_SEV(lg, notification) << "Received signal : "<< signum << " from : "<< (unsigned long)info->si_pid;
+void nonblock(int state) {
 
-        sigTermFlag = true;
+    struct termios ttystate;
+
+    //get the terminal state
+    tcgetattr(STDIN_FILENO, &ttystate);
+
+    if (state==1) {
+        //turn off canonical mode
+        ttystate.c_lflag &= ~ICANON;
+        //minimum of number input read.
+        ttystate.c_cc[VMIN] = 1;
+    }else if (state==0) {
+        //turn on canonical mode
+        ttystate.c_lflag |= ICANON;
+    }
+    //set the terminal attributes.
+    tcsetattr(STDIN_FILENO, TCSANOW, &ttystate);
 
 }
 
@@ -131,7 +160,7 @@ void sigTermHandler(int signum, siginfo_t *info, void *ptr){
 
 // The operator puts a human-friendly representation of the severity level to the stream
 // http://www.boost.org/doc/libs/1_55_0/libs/log/example/doc/expressions_attr_fmt_tag.cpp
-std::ostream& operator<< (std::ostream& strm, LogSeverityLevel level){
+std::ostream& operator<< (std::ostream& strm, LogSeverityLevel level) {
 
     static const char* strings[] =
     {
@@ -150,7 +179,7 @@ std::ostream& operator<< (std::ostream& strm, LogSeverityLevel level){
     return strm;
 }
 
-void init_log(string path, LogSeverityLevel sev){
+void init_log(string path, LogSeverityLevel sev) {
 
     // Create a text file sink
     // Can't use rotation with text_multifile_backend
@@ -162,7 +191,7 @@ void init_log(string path, LogSeverityLevel sev){
     sink->locked_backend()->set_file_name_composer(
         sinks::file::as_file_name_composer(expr::stream << path <<expr::attr< std::string >("LogName") << ".log"));
 
-  //sink->locked_backend()->auto_flush(true);
+    //sink->locked_backend()->auto_flush(true);
 
     // Set the log record formatter
     sink->set_formatter(
@@ -178,11 +207,9 @@ void init_log(string path, LogSeverityLevel sev){
     // Add it to the core
     logging::core::get()->add_sink(sink);
 
-
     // Add some attributes too
     logging::add_common_attributes();
     logging::core::get()->add_global_attribute("TimeStamp", attrs::local_clock());
-
 
 }
 
@@ -229,8 +256,6 @@ int main(int argc, const char ** argv){
         int     devID           = 2;
         string  fileName        = "snap";
         bool    sendByMail      = false;
-
-        //std::cout << " ( Default cfg file : " << string(CFG_PATH) << "configuration.cfg )" <<endl;
 
         po::store(po::parse_command_line(argc, argv, desc), vm);
 
@@ -315,49 +340,59 @@ int main(int argc, const char ** argv){
                         std::cout << "======= FREETURE - Meteor detection mode =======" << endl;
                         std::cout << "================================================" << endl << endl;
 
-                        /// ------------------------------------
-                        /// ------ LOAD FREETURE PARAMETERS ----
-                        /// ------------------------------------
+                        /// ------------------------------------------------------------------
+                        /// --------------------- LOAD FREETURE PARAMETERS -------------------
+                        /// ------------------------------------------------------------------
+
+                        int ACQ_BUFFER_SIZE, ACQ_FPS, LOG_ARCHIVE_DAY, LOG_SIZE_LIMIT;
+                        bool DET_ENABLED, STACK_ENABLED;
+                        string LOG_PATH, log_severity;
 
                         boost::filesystem::path pcfg(configPath);
                         if(!boost::filesystem::exists(pcfg))
-                            throw "configuration.cfg not found.";
+                            throw "Configuration file not found.";
 
                         Configuration cfg;
-                        cfg.Load(configPath);
+                        if(!cfg.Load(configPath))
+                            throw "Fail to load parameters from configuration file.";
 
                         // Get size of the frame buffer.
-                        int ACQ_BUFFER_SIZE; cfg.Get("ACQ_BUFFER_SIZE", ACQ_BUFFER_SIZE);
+                        if(!cfg.Get("ACQ_BUFFER_SIZE", ACQ_BUFFER_SIZE))
+                            throw "Fail to load ACQ_BUFFER_SIZE from configuration file.";
 
                         // Get acquisition frequency.
-                        int ACQ_FPS; cfg.Get("ACQ_FPS", ACQ_FPS);
+                        if(!cfg.Get("ACQ_FPS", ACQ_FPS))
+                            throw "Fail to load ACQ_BUFFER_SIZE from configuration file.";
 
                         // Detection enabled or not.
-                        bool DET_ENABLED; cfg.Get("DET_ENABLED", DET_ENABLED);
+                        if(!cfg.Get("DET_ENABLED", DET_ENABLED))
+                            throw "Fail to load DET_ENABLED from configuration file.";
 
                         // Stack enabled or not.
-                        bool STACK_ENABLED; cfg.Get("STACK_ENABLED", STACK_ENABLED);
+                        if(!cfg.Get("STACK_ENABLED", STACK_ENABLED))
+                            throw "Fail to load STACK_ENABLED from configuration file.";
 
                         // Get log path.
-                        string LOG_PATH; cfg.Get("LOG_PATH", LOG_PATH);
-                        int LOG_ARCHIVE_DAY; cfg.Get("LOG_ARCHIVE_DAY", LOG_ARCHIVE_DAY);
-                        int LOG_SIZE_LIMIT; cfg.Get("LOG_SIZE_LIMIT", LOG_SIZE_LIMIT);
+                        if(!cfg.Get("LOG_PATH", LOG_PATH))
+                            throw "Fail to load LOG_PATH from configuration file.";
+
+                        if(!cfg.Get("LOG_ARCHIVE_DAY", LOG_ARCHIVE_DAY))
+                            throw "Fail to load LOG_ARCHIVE_DAY from configuration file.";
+
+                        if(!cfg.Get("LOG_SIZE_LIMIT", LOG_SIZE_LIMIT))
+                            throw "Fail to load LOG_SIZE_LIMIT from configuration file.";
+
                         Logger logSystem(LOG_PATH, LOG_ARCHIVE_DAY);
 
                         // Get log severity.
-                        string log_severity; cfg.Get("LOG_SEVERITY", log_severity);
+                        if(!cfg.Get("LOG_SEVERITY", log_severity))
+                            throw "Fail to load LOG_SEVERITY from configuration file.";
                         EParser<LogSeverityLevel> log_sev;
                         LogSeverityLevel LOG_SEVERITY = log_sev.parseEnum("LOG_SEVERITY", log_severity);
 
-                        // Get det method.
-                        string det_method;
-                        cfg.Get("DET_METHOD", det_method);
-                        EParser<DetMeth> det_mth;
-                        DetMeth DET_METHOD = det_mth.parseEnum("DET_METHOD", det_method);
-
-                        /// ------------------------------------
-                        /// ------------ MANAGE LOG ------------
-                        /// ------------------------------------
+                        /// ------------------------------------------------------------------
+                        /// -------------------------- MANAGE LOG ----------------------------
+                        /// ------------------------------------------------------------------
 
                         path pLog(LOG_PATH);
 
@@ -376,44 +411,41 @@ int main(int argc, const char ** argv){
                         BOOST_LOG_SEV(slg,notification) << "====== FREETURE - Meteor detection mode ======";
                         BOOST_LOG_SEV(slg,notification) << "==============================================";
 
+                        /// ------------------------------------------------------------------
+                        /// ------------------------- SHARED RESSOURCES ----------------------
+                        /// ------------------------------------------------------------------
+
+                        // Circular buffer to store last n grabbed frames.
+                        boost::circular_buffer<Frame> frameBuffer(ACQ_BUFFER_SIZE * ACQ_FPS);
+                        boost::mutex frameBuffer_m;
+                        boost::condition_variable frameBuffer_c;
+
+                        bool signalDet = false;
+                        boost::mutex signalDet_m;
+                        boost::condition_variable signalDet_c;
+
+                        bool signalStack = false;
+                        boost::mutex signalStack_m;
+                        boost::condition_variable signalStack_c;
+
+                        boost::mutex cfg_m;
+
+                        /// ------------------------------------------------------------------
+                        /// --------------------------- CREATE THREAD ------------------------
+                        /// ------------------------------------------------------------------
+
+                        AcqThread   *acqThread      = NULL;
+                        DetThread   *detThread      = NULL;
+                        StackThread *stackThread    = NULL;
+
                         try {
 
-                            /// ------------------------------------
-                            /// --------- SHARED RESSOURCES --------
-                            /// ------------------------------------
+                            // Create detection thread.
+                            if(DET_ENABLED) {
 
-                            // Circular buffer to store last n grabbed frames.
-                            boost::circular_buffer<Frame> frameBuffer(ACQ_BUFFER_SIZE * ACQ_FPS);
-                            boost::mutex frameBuffer_m;
-                            boost::condition_variable frameBuffer_c;
+                                BOOST_LOG_SEV(slg, normal) << "Start to create detection thread.";
 
-                            bool signalDet = false;
-                            boost::mutex signalDet_m;
-                            boost::condition_variable signalDet_c;
-
-                            bool signalStack = false;
-                            boost::mutex signalStack_m;
-                            boost::condition_variable signalStack_c;
-
-                            boost::mutex cfg_m;
-
-                            /// -------------------------------------
-                            /// ---------- CREATE THREADS -----------
-                            /// -------------------------------------
-
-                            AcqThread   *inputDevice        = NULL;
-                            DetThread   *detection          = NULL;
-                            StackThread *stack              = NULL;
-                            bool stackThreadCreationSuccess = true;
-                            bool detThreadCreationSuccess   = true;
-
-                            /// Create detection thread.
-                            if(DET_ENABLED){
-
-                                BOOST_LOG_SEV(slg, normal) << "Start to create detection Thread.";
-
-                                detection  = new DetThread( configPath,
-                                                            DET_METHOD,
+                                detThread = new DetThread(  configPath,
                                                             &frameBuffer,
                                                             &frameBuffer_m,
                                                             &frameBuffer_c,
@@ -421,199 +453,187 @@ int main(int argc, const char ** argv){
                                                             &signalDet_m,
                                                             &signalDet_c);
 
-                                if(!detection->startThread()){
-
-                                    cout << "Fail to start detection Thread." << endl;
-                                    BOOST_LOG_SEV(slg, fail) << "Fail to start detection Thread.";
-                                    detThreadCreationSuccess = false;
-
-                                }
+                                if(!detThread->startThread())
+                                    throw "Fail to start detection thread.";
 
                             }
 
-                            /// Create stack thread.
-                            if(STACK_ENABLED && ((DET_ENABLED && detThreadCreationSuccess) || !DET_ENABLED)){
+                            // Create stack thread.
+                            if(STACK_ENABLED) {
 
                                 BOOST_LOG_SEV(slg, normal) << "Start to create stack Thread.";
 
-                                stack = new StackThread(    configPath,
-                                                            &signalStack,
-                                                            &signalStack_m,
-                                                            &signalStack_c,
-                                                            &frameBuffer,
-                                                            &frameBuffer_m,
-                                                            &frameBuffer_c);
-
-                                if(!stack->startThread()){
-
-                                    cout << "Fail to start stack Thread." << endl;
-                                    BOOST_LOG_SEV(slg, fail) << "Fail to start stack Thread.";
-                                    stackThreadCreationSuccess = false;
-
-                                }
-
-                            }
-
-                            if(((DET_ENABLED && detThreadCreationSuccess) || !DET_ENABLED) &&           // Detection Thread enabled and succeed or not enabled
-                              (((STACK_ENABLED && stackThreadCreationSuccess) || !STACK_ENABLED))){     // Stack Thread enabled and succeed or not enabled
-
-                                inputDevice = new AcqThread(    configPath,
-                                                                &frameBuffer,
-                                                                &frameBuffer_m,
-                                                                &frameBuffer_c,
+                                stackThread = new StackThread(  configPath,
                                                                 &signalStack,
                                                                 &signalStack_m,
                                                                 &signalStack_c,
-                                                                &signalDet,
-                                                                &signalDet_m,
-                                                                &signalDet_c,
-                                                                detection,
-                                                                stack);
+                                                                &frameBuffer,
+                                                                &frameBuffer_m,
+                                                                &frameBuffer_c);
 
-                                if(inputDevice != NULL){
+                                if(!stackThread->startThread())
+                                    throw "Fail to start stack thread.";
 
-                                    if(!inputDevice->startThread()){
+                            }
 
-                                        BOOST_LOG_SEV(slg, fail) << "Fail to start acquisition Thread.";
+                            // Create acquisition thread.
+                            acqThread = new AcqThread(  configPath,
+                                                        &frameBuffer,
+                                                        &frameBuffer_m,
+                                                        &frameBuffer_c,
+                                                        &signalStack,
+                                                        &signalStack_m,
+                                                        &signalStack_c,
+                                                        &signalDet,
+                                                        &signalDet_m,
+                                                        &signalDet_c,
+                                                        detThread,
+                                                        stackThread);
+
+                            if(!acqThread->startThread()) {
+
+                                throw "Fail to start acquisition thread.";
+
+                            }else {
+
+                                BOOST_LOG_SEV(slg, normal) << "Success to start acquisition Thread.";
+
+                                #ifdef LINUX
+
+                                BOOST_LOG_SEV(slg, notification) << "This is the process : " << (unsigned long)getpid();
+
+                                memset(&act, 0, sizeof(act));
+                                act.sa_sigaction = sigTermHandler;
+                                act.sa_flags = SA_SIGINFO;
+                                sigaction(SIGTERM,&act,NULL);
+
+                                nonblock(1);
+
+                                #endif
+
+                                int cptTime = 0;
+                                bool waitLogTime = true;
+                                char hitKey;
+                                int interruption = 0;
+
+                                while(!sigTermFlag && !interruption) {
+
+                                    #ifdef WINDOWS
+
+                                    Sleep(1000);
+                                    // Exit if ESC is pressed.
+                                    if(GetAsyncKeyState(VK_ESCAPE)!=0)
+                                        interruption = 1;
+
+                                    #else
+                                    #ifdef LINUX
+
+                                    sleep(1);
+                                    interruption = kbhit();
+                                    if(interruption !=0) {
+                                        hitKey = fgetc(stdin);
+                                        if(hitKey == 27) interruption = 1;
+                                        else interruption = 0;
+                                    }
+
+                                    #endif
+                                    #endif
+
+                                    string acq = TimeDate::localDateTime(microsec_clock::universal_time(),"%Y:%m:%d:%H:%M:%S");
+                                    vector<int> acq_int= TimeDate::splitStringToInt(acq);
+
+                                    // At 00h00, check logs once.
+                                    if(acq_int.at(3) == 0 && acq_int.at(4) == 0 && waitLogTime) {
+
+                                        #ifdef WINDOWS
+                                            logSystem.mDate = acq_int;
+                                            logSystem.archiveLog();
+                                            logSystem.cleanLogArchives();
+                                        #endif
+
+                                        waitLogTime = false;
 
                                     }else{
 
-                                        BOOST_LOG_SEV(slg, normal) << "Success to start acquisition Thread.";
+                                        unsigned long long  f_size = 0;
+                                        logSystem.getFoldersize(LOG_PATH, f_size);
+                                        if((f_size/1024.0)/1024.0 > LOG_SIZE_LIMIT)
+                                            logSystem.cleanAll();
 
-                                        #ifdef WINDOWS
+                                    }
 
-                                             BOOST_LOG_SEV(slg, notification) << "This is the process : " << (unsigned long)_getpid();
+                                    // Reset log ckeck for the next time.
+                                    if(acq_int.at(3) == 0 && acq_int.at(4) >0 && !waitLogTime) {
 
-                                        #elif defined LINUX
+                                        waitLogTime = true;
 
-                                            BOOST_LOG_SEV(slg, notification) << "This is the process : " << (unsigned long)getpid();
+                                    }
 
-                                            memset(&act, 0, sizeof(act));
-                                            act.sa_sigaction = sigTermHandler;
-                                            act.sa_flags = SA_SIGINFO;
-                                            sigaction(SIGTERM,&act,NULL);
+                                    if(executionTime != 0){
 
-                                        #endif
+                                        if(cptTime > executionTime){
 
-                                        int cptTime = 0;
-                                        bool waitLogTime = true;
+                                            std::cout << "Break main loop"<< endl;
 
-                                        while(!sigTermFlag){
+                                            break;
+                                        }
+                                        cptTime ++;
 
-                                            #ifdef WINDOWS
-                                                Sleep(1000);
+                                    }
 
-                                                // Exit if ESC is pressed.
-                                                if(GetAsyncKeyState(VK_ESCAPE)!=0)
-                                                    break;
+                                    if(acqThread->getThreadEndStatus()){
+                                        std::cout << "Break main loop" << endl;
+                                        break;
+                                    }
 
-                                            #else
-                                                #ifdef LINUX
-
-                                                sleep(1);
-                                                #endif
-                                            #endif
-
-                                            string acq = TimeDate::localDateTime(microsec_clock::universal_time(),"%Y:%m:%d:%H:%M:%S");
-                                            vector<int> acq_int= TimeDate::splitStringToInt(acq);
-
-                                            // At 00h00, check logs once.
-                                            if(acq_int.at(3) == 0 && acq_int.at(4) == 0 && waitLogTime) {
-
-                                                #ifdef WINDOWS
-                                                    logSystem.mDate = acq_int;
-                                                    logSystem.archiveLog();
-                                                    logSystem.cleanLogArchives();
-                                                #endif
-
-                                                waitLogTime = false;
-
-                                            }else{
-
-                                                unsigned long long  f_size = 0;
-                                                logSystem.getFoldersize(LOG_PATH, f_size);
-                                                if((f_size/1024.0)/1024.0 > LOG_SIZE_LIMIT)
-                                                    logSystem.cleanAll();
-
-                                            }
-
-                                            // Reset log ckeck for the next time.
-                                            if(acq_int.at(3) == 0 && acq_int.at(4) >0 && !waitLogTime) {
-
-                                                waitLogTime = true;
-
-                                            }
-
-                                            if(executionTime != 0){
-
-                                                if(cptTime > executionTime){
-
-                                                    std::cout << "Break main loop"<< endl;
-
-                                                    break;
-                                                }
-                                                cptTime ++;
-
-                                            }
-
-                                            if(inputDevice != NULL){
-
-                                                if(inputDevice->getThreadEndStatus()){
-                                                    std::cout << "Break main loop" << endl;
-                                                    break;
-
-                                                }
-
-                                                if(detection != NULL){
-                                                    if(!detection->getRunStatus()){
-                                                        BOOST_LOG_SEV(slg, critical) << "DetThread not running. Stopping the process ...";
-                                                        break;
-                                                    }
-                                                }
-
-                                                if(stack != NULL){
-                                                    if(!stack->getRunStatus()){
-                                                        BOOST_LOG_SEV(slg, critical) << "StackThread not running. Stopping the process ...";
-                                                        break;
-                                                    }
-                                                }
-                                            }
+                                    if(detThread != NULL){
+                                        if(!detThread->getRunStatus()){
+                                            BOOST_LOG_SEV(slg, critical) << "DetThread not running. Stopping the process ...";
+                                            break;
                                         }
                                     }
 
-                                    inputDevice->stopThread();
-
-                                    delete inputDevice;
-
+                                    if(stackThread != NULL){
+                                        if(!stackThread->getRunStatus()){
+                                            BOOST_LOG_SEV(slg, critical) << "StackThread not running. Stopping the process ...";
+                                            break;
+                                        }
+                                    }
                                 }
 
+                                #ifdef LINUX
+                                nonblock(0);
+                                #endif
                             }
 
-                            if(detection != NULL){
-                                if(detThreadCreationSuccess)
-                                    detection->stopThread();
-                                delete detection;
-
-                            }
-
-                            if(stack != NULL){
-                                if(stackThreadCreationSuccess)
-                                    stack->stopThread();
-                                delete stack;
-
-                            }
-
-                        }catch(exception& e){
+                        }catch(exception& e) {
 
                             cout << e.what() << endl;
                             BOOST_LOG_SEV(slg, critical) << e.what();
 
-                        }catch(const char * msg){
+                        }catch(const char * msg) {
 
                             cout << msg << endl;
                             BOOST_LOG_SEV(slg,critical) << msg;
 
                         }
+
+                        if(acqThread != NULL) {
+                            acqThread->stopThread();
+                            delete acqThread;
+                        }
+
+                        if(detThread != NULL) {
+                            detThread->stopThread();
+                            delete detThread;
+                        }
+
+                        if(stackThread != NULL){
+                            stackThread->stopThread();
+                            delete stackThread;
+
+                        }
+
                     }
 
                     break;
@@ -630,7 +650,9 @@ int main(int argc, const char ** argv){
                         std::cout << "======== FREETURE - Single acquisition =========" << endl;
                         std::cout << "================================================" << endl << endl;
 
-                        /// ##################### MANAGE PROGRAM OPTIONS #####################
+                        /// ------------------------------------------------------------------
+                        /// --------------------- MANAGE PROGRAM OPTIONS ---------------------
+                        /// ------------------------------------------------------------------
 
                         // Display or not the grabbed frame.
                         if(vm.count("display")) display = vm["display"].as<bool>();
@@ -677,7 +699,9 @@ int main(int argc, const char ** argv){
                         cout << "SEND BY MAIL : " << sendByMail << endl;
                         cout << "------------------------------------------------" << endl << endl;
 
-                        /// ######################## MANAGE FILE NAME ########################
+                        /// ------------------------------------------------------------------
+                        /// ----------------------- MANAGE FILE NAME -------------------------
+                        /// ------------------------------------------------------------------
 
                         int filenum = 0;
                         bool increment = false;
@@ -716,7 +740,9 @@ int main(int argc, const char ** argv){
 
                         if(increment) filenum++;
 
-                        /// ###################### RUN SINGLE CAPTURE  #######################
+                        /// ------------------------------------------------------------------
+                        /// ---------------------- RUN SINGLE CAPTURE ------------------------
+                        /// ------------------------------------------------------------------
 
                         Frame frame;
                         frame.mExposure = exp;
@@ -742,7 +768,9 @@ int main(int argc, const char ** argv){
 
                         cout << ">> Single capture succeed." << endl;
 
-                        /// ################### SAVE / DISPLAY CAPTURE  ######################
+                        /// ------------------------------------------------------------------
+                        /// ------------------- SAVE / DISPLAY CAPTURE -----------------------
+                        /// ------------------------------------------------------------------
 
                         if(frame.mImg.data) {
 
@@ -1027,24 +1055,18 @@ int main(int argc, const char ** argv){
 
                         // Display or not the grabbed frame.
                         if(vm.count("display")) display = vm["display"].as<bool>();
-
                         // Acquisition format.
                         if(vm.count("bitdepth")) acqFormat = vm["bitdepth"].as<int>();
                         CamBitDepth camFormat;
                         Conversion::intBitDepthToCamBitDepthEnum(acqFormat, camFormat);
-
                         // Cam id.
                         if(vm.count("id")) devID = vm["id"].as<int>();
-
                         // Cam width size
                         if(vm.count("width")) acqWidth = vm["width"].as<int>();
-
                         // Cam height size
                         if(vm.count("height")) acqHeight = vm["height"].as<int>();
-
                         // Gain value.
                         if(vm.count("gain")) gain = vm["gain"].as<int>();
-
                         // Exposure value.
                         if(vm.count("exposure")) exp = vm["exposure"].as<double>();
 
@@ -1060,8 +1082,8 @@ int main(int argc, const char ** argv){
                         Device *device = new Device();
                         device->listDevices(false);
                         if(!device->createCamera(devID, true)) {
-                            throw ">> Fail to create device.";
                             delete device;
+                            throw ">> Fail to create device.";
                         }
 
                         if(acqWidth != 0 && acqHeight != 0)
@@ -1075,7 +1097,7 @@ int main(int argc, const char ** argv){
                         device->setCameraGain(gain);
                         device->initializeCamera();
                         device->startCamera();
-                        namedWindow("FreeTure", WINDOW_AUTOSIZE);
+                        namedWindow("FreeTure", WINDOW_NORMAL);
 
                         while(1) {
 
@@ -1085,8 +1107,11 @@ int main(int argc, const char ** argv){
                             if(device->runContinuousCapture(frame)){
                                 tacq = (((double)getTickCount() - tacq)/getTickFrequency())*1000;
                                 std::cout << " >> [ TIME ACQ ] : " << tacq << " ms" << endl;
-                                imshow("FreeTure", frame.mImg);
-                                waitKey(30);
+
+                                if(display) {
+                                    imshow("FreeTure", frame.mImg);
+                                    waitKey(10);
+                                }
                             }
 
                             #ifdef WINDOWS
@@ -1115,7 +1140,7 @@ int main(int argc, const char ** argv){
                         cout << "[4] Run single capture."                               << endl;
                         cout << "[5] Clean logs."                                       << endl << endl;
 
-                        cout << "Try help option (-h) or consult man pages for more informations." << endl;
+                        cout << "Try help option (-h) for more informations." << endl;
 
                     }
 

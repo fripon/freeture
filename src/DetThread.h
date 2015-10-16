@@ -131,7 +131,6 @@ class DetThread {
         *
         */
         DetThread(  string                          cfg_p,
-                    DetMeth                         m,
                     boost::circular_buffer<Frame>   *fb,
                     boost::mutex                    *fb_m,
                     boost::condition_variable       *fb_c,
