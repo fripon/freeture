@@ -41,18 +41,18 @@
 #include <boost/date_time/gregorian/greg_date.hpp>
 #include <boost/bind.hpp>
 #include <boost/iterator/transform_iterator.hpp>
+#include "TimeDate.h"
+#include "Conversion.h"
 
 class Logger {
 
     private :
 
         string mLogPath;
-        // The archives timestamped from now to this nummber of day in the past are kept. The others are removed.
         int mTimeLimit;
-
-    public :
-
-        vector<int> mDate;
+        int mSizeLimit;
+        vector<string> mLogFiles;
+        vector<int> mRefDate;
 
     public :
 
@@ -60,9 +60,119 @@ class Logger {
         * Constructor.
         *
         */
-        Logger(string logPath, int timeLimit):mLogPath(logPath), mTimeLimit(timeLimit) {
+        Logger(string logPath, int timeLimit, int sizeLimit, vector<string> logFiles):
+        mLogPath(logPath), mTimeLimit(timeLimit), mSizeLimit(sizeLimit), mLogFiles(logFiles) {
+
+            //mRefDate = TimeDate::splitStringToInt(TimeDate::localDateTime(microsec_clock::universal_time(),"%Y:%m:%d:%H:%M:%S"));
+            mRefDate.push_back(2015);
+            mRefDate.push_back(10);
+            mRefDate.push_back(17);
+            mRefDate.push_back(0);
+            mRefDate.push_back(0);
+            mRefDate.push_back(0);
 
         }
+
+        void monitorLog() {
+
+            vector<int> currDate = TimeDate::splitStringToInt(TimeDate::localDateTime(microsec_clock::universal_time(),"%Y:%m:%d:%H:%M:%S"));
+
+            //cout << "REFDATE : " << mRefDate.at(0) << mRefDate.at(1) << mRefDate.at(2) << endl;
+            //cout << "CURDATE : " << currDate.at(0) << currDate.at(1) << currDate.at(2) << endl;
+
+            // Create log date directories when date changes.
+            if(mRefDate.at(0) != currDate.at(0) || mRefDate.at(1) != currDate.at(1) || mRefDate.at(2) != currDate.at(2)) {
+
+                string rDate = Conversion::numbering(2, mRefDate.at(0)) + Conversion::intToString(mRefDate.at(0)) + Conversion::numbering(2, mRefDate.at(1)) + Conversion::intToString(mRefDate.at(1)) + Conversion::numbering(2, mRefDate.at(2)) + Conversion::intToString(mRefDate.at(2));
+                cout << rDate << endl;
+                if(create_directory(path(mLogPath + "/LOG_" + rDate)) || exists(path(mLogPath + "/LOG_" + rDate))) {
+
+                    //cout << mLogPath << "/LOG_" << rDate << " created." << endl;
+
+                    for(int i = 0; i < mLogFiles.size(); i++) {
+
+                        try {
+
+                            rename(path(mLogPath + "/" + mLogFiles.at(i)), path(mLogPath + "/LOG_" + rDate + "/" + mLogFiles.at(i)));
+                            //cout << "RENAME : " << mLogPath << "/" << mLogFiles.at(i) << " TO " << mLogPath << "/LOG_" << rDate << "/" + mLogFiles.at(i) << endl;
+
+                        }catch(boost::filesystem::filesystem_error e) {
+
+                            cout <<"filesystem error" << endl;
+
+                        }
+                    }
+
+                    // Clean logs directories
+
+                    boost::posix_time::ptime t1(boost::posix_time::from_iso_string(rDate + "T000000"));
+                    int dirNb = 0;
+                    vector<string> dirToRemove;
+                    path pDir(mLogPath);
+                    //cout << ">> LOOP DIR :  "<< endl;
+                    for(directory_iterator file(pDir);file!= directory_iterator(); ++file) {
+
+                        path curr(file->path());
+                        //cout << "-> " << curr << endl;
+
+                        if(is_directory(curr)) {
+
+                            string dirName = curr.filename().string();
+
+                            vector<string> output;
+                            typedef boost::tokenizer<boost::char_separator<char> > tokenizer;
+                            boost::char_separator<char> sep("_");
+                            tokenizer tokens(dirName, sep);
+
+                            for (tokenizer::iterator tok_iter = tokens.begin();tok_iter != tokens.end(); ++tok_iter) {
+                                output.push_back(*tok_iter);
+                            }
+
+                            if(output.size() == 2 && output.back().size() == 8) {
+
+                                boost::posix_time::ptime t2(boost::posix_time::from_iso_string(output.back() + "T000000"));
+
+                                boost::posix_time::time_duration td = t1 - t2;
+                                long secTime = td.total_seconds();
+                                cout << secTime << endl;
+
+                                if(abs(secTime) > mTimeLimit * 24 * 3600) {
+                                    dirToRemove.push_back(curr.string());
+                                }
+
+                            }else{
+                                dirToRemove.push_back(curr.string());
+                                //cout << "remove : " << curr.string() << endl;
+                            }
+                        }
+                    }
+
+                    //cout << ">> SIZE dirToRemove : " << dirToRemove.size() << endl;
+
+                    for(int i = 0; i < dirToRemove.size(); i++) {
+
+                        //cout << ">> REMOVE : " << dirToRemove.at(i) << endl;
+                        boost::filesystem::remove_all(path(dirToRemove.at(i)));
+
+                    }
+
+                    mRefDate = currDate;
+
+                }/*else
+                    cout << "DIR not exists" << endl;*/
+
+            }
+
+            // Check log size.
+            unsigned long long logSize = 0;
+            getFoldersize(mLogPath, logSize);
+            //cout << "LOG SIZE : " <<  logSize << endl;
+            if((logSize/1024.0)/1024.0 > mSizeLimit)
+                boost::filesystem::remove_all(path(mLogPath));
+
+        }
+
+    private :
 
         void  getFoldersize(string rootFolder,unsigned long long & f_size) {
 
@@ -87,182 +197,5 @@ class Logger {
                     }catch(exception& e){  cout << e.what() << endl; }
                 }
             }
-        }
-
-        /**
-        * Archive log files.
-        *
-        */
-        void archiveLog() {
-
-            path pp(mLogPath);
-
-            bool logStackThread = false;
-            bool logAcqThread = false;
-            bool logDetThread = false;
-            bool logMainThread = false;
-
-            vector<string> logFile;
-            vector<path> logToCopy;
-
-            /// Search logs files in the log directory.
-            for(directory_iterator file(pp); file!= directory_iterator(); ++file) {
-
-                path curr(file->path());
-
-                if(is_regular_file(curr)) {
-
-                    // Get file name.
-                    string fileName = curr.filename().string();
-
-                    if(fileName == "STACK_THREAD.log"){
-
-                        cout << "STACK_THREAD.log found" << endl;
-                        logStackThread = true;
-                        logToCopy.push_back(curr);
-                        logFile.push_back("STACK_THREAD.log");
-
-                    }
-
-                    if(fileName == "MAIN_THREAD.log"){
-
-                        cout << "MAIN_THREAD.log found" << endl;
-                        logMainThread = true;
-                        logToCopy.push_back(curr);
-                        logFile.push_back("MAIN_THREAD.log");
-
-                    }
-
-                    if(fileName == "DET_THREAD.log"){
-
-                        cout << "DET_THREAD.log found" << endl;
-                        logDetThread = true;
-                        logToCopy.push_back(curr);
-                        logFile.push_back("DET_THREAD.log");
-                    }
-
-                    if(fileName == "ACQ_THREAD.log"){
-
-                        cout << "ACQ_THREAD.log found" << endl;
-                        logAcqThread = true;
-                        logToCopy.push_back(curr);
-                        logFile.push_back("ACQ_THREAD.log");
-
-                    }
-
-                }
-
-            }
-
-            if(logToCopy.size() != 0 && mDate.size() == 6) {
-
-                // Create archive name with the following pattern : LOG_YYYYMMDDhhmmss.log
-                string newArchive = mLogPath + "LOG_" +
-                                    Conversion::numbering(2,mDate.at(0)) + Conversion::intToString(mDate.at(0)) +
-                                    Conversion::numbering(2,mDate.at(1)) + Conversion::intToString(mDate.at(1)) +
-                                    Conversion::numbering(2,mDate.at(2)) + Conversion::intToString(mDate.at(2)) +
-                                    Conversion::numbering(2,mDate.at(3)) + Conversion::intToString(mDate.at(3)) +
-                                    Conversion::numbering(2,mDate.at(4)) + Conversion::intToString(mDate.at(4)) +
-                                    Conversion::numbering(2,mDate.at(5)) + Conversion::intToString(mDate.at(5));
-
-                path ppp(newArchive);
-
-                // Create a directory with the name of the archive.
-                if(boost::filesystem::create_directory(ppp)) {
-
-                    // For each found log, copy it in the new directory and remove it.
-                    for(int i = 0; i<logToCopy.size(); i++) {
-
-                        path pppp(newArchive + logFile.at(i));
-                        // Not works with boost 1.55 and c++11
-
-                        // https://svn.boost.org/trac/boost/ticket/6779
-                        boost::filesystem::copy_file(logToCopy.at(i), pppp);
-                        boost::filesystem::remove(logToCopy.at(i));
-
-                    }
-                }
-
-                // Compress the new directory to create an archive.
-
-            }
-
-        }
-
-        /**
-        * Delete too old log archives.
-        *
-        */
-        void cleanLogArchives() {
-
-            path pp(mLogPath);
-
-            vector<string> fileToRemove;
-
-            // Search old logs archives in the log directory.
-            for(directory_iterator file(pp); file!= directory_iterator(); ++file) {
-
-                path curr(file->path());
-
-                int year, month, day;
-
-                if(is_directory(curr)) {
-
-                    string dirName = file->path().filename().string();
-
-                    // Extract YYYYMMDDhhmmss from LOG_YYYYMMDDhhmmss
-                    list<string> ch;
-                    Conversion::stringTok(ch, dirName.c_str(), "_");
-
-                    year = atoi(ch.back().substr(0,4).c_str());
-
-                    month = atoi(ch.back().substr(4,2).c_str());
-
-                    day = atoi(ch.back().substr(6,2).c_str());
-
-                    using boost::gregorian::date;
-
-                    date a( year, month, day );
-                    date b(mDate.at(0), mDate.at(1), mDate.at(2));
-
-                    if((b-a).days() > mTimeLimit) {
-
-                        fileToRemove.push_back(dirName);
-
-                    }
-
-                }
-            }
-
-            // Remove old archives.
-            for(int i = 0; i < fileToRemove.size(); i++) {
-
-                cout << fileToRemove.at(i) << endl;
-                path p(mLogPath + fileToRemove.at(i));
-                boost::filesystem::remove_all(p);
-
-            }
-
-        }
-
-        void cleanAll() {
-
-            path file1(mLogPath + "DET_THREAD.log");
-            path file2(mLogPath + "ACQ_THREAD.log");
-            path file3(mLogPath + "STACK_THREAD.log");
-            path file4(mLogPath + "MAIN_THREAD.log");
-
-            if(boost::filesystem::exists(file1))
-                boost::filesystem::remove(file1);
-
-            if(boost::filesystem::exists(file2))
-                boost::filesystem::remove(file2);
-
-            if(boost::filesystem::exists(file3))
-                boost::filesystem::remove(file3);
-
-            if(boost::filesystem::exists(file4))
-                boost::filesystem::remove(file4);
-
         }
 };

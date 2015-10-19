@@ -382,7 +382,13 @@ int main(int argc, const char ** argv){
                         if(!cfg.Get("LOG_SIZE_LIMIT", LOG_SIZE_LIMIT))
                             throw "Fail to load LOG_SIZE_LIMIT from configuration file.";
 
-                        Logger logSystem(LOG_PATH, LOG_ARCHIVE_DAY);
+                        vector<string> logFiles;
+                        logFiles.push_back("MAIN_THREAD.log");
+                        logFiles.push_back("ACQ_THREAD.log");
+                        logFiles.push_back("DET_THREAD.log");
+                        logFiles.push_back("STACK_THREAD.log");
+
+                        Logger logSystem(LOG_PATH, LOG_ARCHIVE_DAY, LOG_SIZE_LIMIT, logFiles);
 
                         // Get log severity.
                         if(!cfg.Get("LOG_SEVERITY", log_severity))
@@ -400,6 +406,8 @@ int main(int argc, const char ** argv){
 
                             if(!create_directory(pLog))
                                 throw "> Failed to create a directory for logs files.";
+                            else
+                                cout << "> Log directory created : " << pLog << endl;
                         }
 
                         init_log(LOG_PATH, LOG_SEVERITY);
@@ -518,6 +526,7 @@ int main(int argc, const char ** argv){
 
                                 while(!sigTermFlag && !interruption) {
 
+                                    // Stop freeture if escape is pressed.
                                     #ifdef WINDOWS
 
                                     Sleep(1000);
@@ -539,37 +548,11 @@ int main(int argc, const char ** argv){
                                     #endif
                                     #endif
 
-                                    string acq = TimeDate::localDateTime(microsec_clock::universal_time(),"%Y:%m:%d:%H:%M:%S");
-                                    vector<int> acq_int= TimeDate::splitStringToInt(acq);
+                                    // Monitors logs.
+                                    logSystem.monitorLog();
 
-                                    // At 00h00, check logs once.
-                                    if(acq_int.at(3) == 0 && acq_int.at(4) == 0 && waitLogTime) {
-
-                                        #ifdef WINDOWS
-                                            logSystem.mDate = acq_int;
-                                            logSystem.archiveLog();
-                                            logSystem.cleanLogArchives();
-                                        #endif
-
-                                        waitLogTime = false;
-
-                                    }else{
-
-                                        unsigned long long  f_size = 0;
-                                        logSystem.getFoldersize(LOG_PATH, f_size);
-                                        if((f_size/1024.0)/1024.0 > LOG_SIZE_LIMIT)
-                                            logSystem.cleanAll();
-
-                                    }
-
-                                    // Reset log ckeck for the next time.
-                                    if(acq_int.at(3) == 0 && acq_int.at(4) >0 && !waitLogTime) {
-
-                                        waitLogTime = true;
-
-                                    }
-
-                                    if(executionTime != 0){
+                                    // Stop freeture according time execution option.
+                                    if(executionTime != 0) {
 
                                         if(cptTime > executionTime){
 
@@ -577,10 +560,12 @@ int main(int argc, const char ** argv){
 
                                             break;
                                         }
+
                                         cptTime ++;
 
                                     }
 
+                                    // Stop freeture if one of the thread is stopped.
                                     if(acqThread->getThreadEndStatus()){
                                         std::cout << "Break main loop" << endl;
                                         break;
