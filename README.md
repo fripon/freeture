@@ -11,7 +11,7 @@ The project home page is http://fripon.org
 Examples
 --------
 
-![](https://raw.githubusercontent.com/fripon/freeture/master/data/gretz_armainvilliers-fireball-20141229.jpg)
+![grez armainvilliers 20141229](https://raw.githubusercontent.com/fripon/freeture/master/data/gretz_armainvilliers-fireball-20141229.jpg)
 
 Features
 --------
