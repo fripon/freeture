@@ -84,7 +84,6 @@
 #include "SaveImg.h"
 #include "Conversion.h"
 #include "Fits2D.h"
-#include "ECamType.h"
 #include "EImgBitDepth.h"
 #include "EParser.h"
 #include "EDetMeth.h"
@@ -253,7 +252,7 @@ int main(int argc, const char ** argv){
         double  exp             = 0;
         string  version         = string(VERSION);
         bool    display         = false;
-        int     devID           = 2;
+        int     devID           = 0;
         string  fileName        = "snap";
         bool    sendByMail      = false;
 
@@ -524,9 +523,13 @@ int main(int argc, const char ** argv){
                                 char hitKey;
                                 int interruption = 0;
 
+                                /// ------------------------------------------------------------------
+                                /// ----------------------------- MAIN LOOP --------------------------
+                                /// ------------------------------------------------------------------
+
                                 while(!sigTermFlag && !interruption) {
 
-                                    // Stop freeture if escape is pressed.
+                                    /// Stop freeture if escape is pressed.
                                     #ifdef WINDOWS
 
                                     Sleep(1000);
@@ -548,10 +551,10 @@ int main(int argc, const char ** argv){
                                     #endif
                                     #endif
 
-                                    // Monitors logs.
+                                    /// Monitors logs.
                                     logSystem.monitorLog();
 
-                                    // Stop freeture according time execution option.
+                                    /// Stop freeture according time execution option.
                                     if(executionTime != 0) {
 
                                         if(cptTime > executionTime){
@@ -565,7 +568,7 @@ int main(int argc, const char ** argv){
 
                                     }
 
-                                    // Stop freeture if one of the thread is stopped.
+                                    /// Stop freeture if one of the thread is stopped.
                                     if(acqThread->getThreadEndStatus()){
                                         std::cout << "Break main loop" << endl;
                                         break;
@@ -1147,7 +1150,7 @@ int main(int argc, const char ** argv){
 
     po::notify(vm);
 
-    cout << endl << ">> FreeTure ended." << endl << endl;
+    //cout << endl << ">> FreeTure ended." << endl << endl;
 
     return 0 ;
 
