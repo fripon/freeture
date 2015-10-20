@@ -264,8 +264,8 @@ int main(int argc, const char ** argv){
         if(vm.count("time"))
             executionTime = vm["time"].as<int>();
 
-        if(vm.count("config"))
-            configPath = vm["config"].as<string>();
+        if(vm.count("cfg"))
+            configPath = vm["cfg"].as<string>();
 
         if(vm.count("version")){
 
