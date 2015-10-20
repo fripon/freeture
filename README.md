@@ -2,4 +2,18 @@
 
 *A Free software to capTure meteors*
 
-`FreeTure` is a meteor detection software used to monitor the sky with GigE all-sky cameras to detect and record falling stars and fireball.
+`FreeTure` is a free open source (GPL license) meteor detection software used to monitor the sky with GigE all-sky cameras to detect and record falling stars and fireball.
+
+It is portable and cross-platform (Linux, Windows)
+
+The project home page is http://fripon.org
+
+Examples
+--------
+
+![grez_armainvilliers_20141229](https://raw.githubusercontent.com/fripon/freeture/master/data/gretz_armainvilliers-fireball-20141229.jpg)
+
+![wien_20150905](https://raw.githubusercontent.com/fripon/freeture/master/data/wien-fireball-20150905.jpg)
+
+Features
+--------
