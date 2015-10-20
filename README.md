@@ -17,3 +17,11 @@ Examples
 
 Features
 --------
+
+- Support GigE cameras (Tested with Basler acA1300-30gm and DMK23G445)
+- Support usb 2.0 cameras (Tested with stk1160 and Pinnacle Dazzle DVC 100 video grabber, DMx 31AU03.AS)
+- Internal computation of sun ephemeris
+- Night and daytime (experimental) meteor detection modes
+- Fits format in output https://en.wikipedia.org/wiki/FITS
+- Possibility to run regular or scheduled long exposure acquisition
+- Possibility to stack frames in order to keep a kind of "historic"
