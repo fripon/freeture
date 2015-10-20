@@ -36,23 +36,23 @@
 
 bool SaveImg::saveJPEG(Mat img, string name){
 
-	// Vector that stores the compression parameters of the image.
-	vector<int> compression_params;
+    // Vector that stores the compression parameters of the image.
+    vector<int> compression_params;
 
-	// Specify the compression technique.
+    // Specify the compression technique.
     compression_params.push_back(CV_IMWRITE_JPEG_QUALITY);
 
-	// Specify the compression quality.
+    // Specify the compression quality.
     compression_params.push_back(98);
 
-	// Write the image to file.
-	return imwrite(name + ".jpg", img, compression_params);
+    // Write the image to file.
+    return imwrite(name + ".jpg", img, compression_params);
 
 }
 
 bool SaveImg::saveBMP(Mat img, string name){
 
-	return imwrite(name+".bmp", img);
+    return imwrite(name+".bmp", img);
 
 }
 

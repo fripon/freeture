@@ -219,10 +219,10 @@ int main(int argc, const char ** argv){
     desc.add_options()
       ("mode,m",        po::value<int>()->default_value(1),                                             "Execution mode of the program")
       ("time,t",        po::value<int>(),                                                               "Execution time of the program in seconds")
-      ("width,w",       po::value<int>(),                                                               "Camera image width.")
-      ("height,h",      po::value<int>(),                                                               "Camera image height")
-      ("help",                                                                                          "Print help messages")
-      ("config,c",      po::value<string>()->default_value(string(CFG_PATH) + "configuration.cfg"),     "Configuration file's path")
+      ("width",         po::value<int>(),                                                               "Camera image width.")
+      ("height",        po::value<int>(),                                                               "Camera image height")
+      ("help,h",                                                                                        "Print help messages")
+      ("cfg,c",         po::value<string>()->default_value(string(CFG_PATH) + "configuration.cfg"),     "Configuration file's path")
       ("bitdepth,f",    po::value<int>()->default_value(8),                                             "Bit depth of a frame")
       ("bmp",           po::value<bool>()->default_value(false),                                        "Save .bmp")
       ("fits",          po::value<bool>()->default_value(false),                                        "Save fits2D")
@@ -230,16 +230,16 @@ int main(int argc, const char ** argv){
       ("exposure,e",    po::value<double>(),                                                            "Define exposure")
       ("version,v",                                                                                     "Get program version")
       ("display",       po::value<bool>()->default_value(false),                                        "In mode 4 : Display the grabbed frame")
-      ("id,i",          po::value<int>(),                                                             "Camera ID")
+      ("id,i",          po::value<int>(),                                                               "Camera ID. Run mode 1 to know the ID.")
       ("filename,n",    po::value<string>()->default_value("snap"),                                     "Name to use when a single frame is captured")
-      ("sendbymail,s",  po::value<bool>()->default_value(false),                                        "Send capture in fits by mail. Require -c option with correct configuration for mail.")
+      ("sendbymail,s",  po::value<bool>()->default_value(false),                                        "Send capture in fits by mail (option --fits must be enabledd). Require -c option with correct configuration for mail.")
       ("savepath,p",    po::value<string>()->default_value("./"),                                       "Save path");
 
     po::variables_map vm;
 
     try{
 
-        int     mode            = 0;
+        int     mode            = 1;
         int     executionTime   = 0;
         string  configPath      = string(CFG_PATH) + "configuration.cfg";
         string  savePath        = "./";
@@ -1140,11 +1140,11 @@ int main(int argc, const char ** argv){
 
     }catch(exception& e) {
 
-        cout << "An exception occured : " << e.what() << endl;
+        cout << ">> Error " << e.what() << endl;
 
     }catch(const char * msg) {
 
-        cout << msg << endl;
+        cout << ">> Error " << msg << endl;
 
     }
 

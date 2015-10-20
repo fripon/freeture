@@ -74,7 +74,7 @@
             c.first = i;
             const char* str = arv_get_device_id(i);
             std::string s = str;
-            c.second = "NAME[" + s + "]";
+            c.second = "NAME[" + s + "] SDK[ARAVIS]";
             camerasList.push_back(c);
 
         }

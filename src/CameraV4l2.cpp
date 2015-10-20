@@ -210,7 +210,7 @@
                         pair<int,string> c;
                         c.first = deviceNumber;
                         std::string s( reinterpret_cast< char const* >(caps.card) ) ;
-                        c.second = "NAME[" + s + "]";
+                        c.second = "NAME[" + s + "] SDK[V4L2]";
                         camerasList.push_back(c);
 
                     }
