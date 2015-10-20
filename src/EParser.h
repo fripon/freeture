@@ -39,7 +39,6 @@
 #include <iostream>
 #include <map>
 #include <stdexcept>
-#include "ECamType.h"
 #include "ECamBitDepth.h"
 #include "EDetMeth.h"
 #include "EStackMeth.h"

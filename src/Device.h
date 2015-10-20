@@ -58,7 +58,6 @@
 #include "ECamBitDepth.h"
 #include "EParser.h"
 #include "Conversion.h"
-#include "ECamType.h"
 #include "Camera.h"
 #include "CameraGigeAravis.h"
 #include "CameraGigePylon.h"
