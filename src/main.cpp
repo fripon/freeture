@@ -979,8 +979,8 @@ int main(int argc, const char ** argv){
                                     temp = ImgProcessing::correctGammaOnMono8(temp1,2.2);
                                 }
 
-                                namedWindow("FreeTure - Single capture", WINDOW_NORMAL);
-                                imshow("FreeTure - Single capture", temp);
+                                namedWindow("FreeTure (Press a key to close)", WINDOW_NORMAL);
+                                imshow("FreeTure (Press a key to close)", temp);
                                 waitKey(0);
 
                             }
@@ -1085,9 +1085,16 @@ int main(int argc, const char ** argv){
                         device->setCameraGain(gain);
                         device->initializeCamera();
                         device->startCamera();
-                        namedWindow("FreeTure", WINDOW_NORMAL);
+                        namedWindow("FreeTure (ESC to stop)", WINDOW_NORMAL);
 
-                        while(1) {
+                        #ifdef LINUX
+                        nonblock(1);
+                        #endif
+
+                        char hitKey;
+                        int interruption = 0;
+
+                        while(!interruption) {
 
                             Frame frame;
 
@@ -1097,17 +1104,36 @@ int main(int argc, const char ** argv){
                                 std::cout << " >> [ TIME ACQ ] : " << tacq << " ms" << endl;
 
                                 if(display) {
-                                    imshow("FreeTure", frame.mImg);
+                                    imshow("FreeTure (ESC to stop)", frame.mImg);
                                     waitKey(10);
                                 }
                             }
 
+                            /// Stop freeture if escape is pressed.
                             #ifdef WINDOWS
-                                // Exit if ESC is pressed.
-                                if(GetAsyncKeyState(VK_ESCAPE)!=0)
-                                    break;
+
+                            //Sleep(1000);
+                            // Exit if ESC is pressed.
+                            if(GetAsyncKeyState(VK_ESCAPE)!=0)
+                                interruption = 1;
+
+                            #else
+                            #ifdef LINUX
+
+                            interruption = kbhit();
+                            if(interruption !=0) {
+                                hitKey = fgetc(stdin);
+                                if(hitKey == 27) interruption = 1;
+                                else interruption = 0;
+                            }
+
+                            #endif
                             #endif
                         }
+
+                        #ifdef LINUX
+                        nonblock(0);
+                        #endif
 
                         device->stopCamera();
                         delete device;

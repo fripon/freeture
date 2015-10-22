@@ -727,8 +727,10 @@
        if(grabSuccess) {
 
             ImageBuffer = (unsigned char*)buffers[buf.index].start;
+
             boost::posix_time::ptime time = boost::posix_time::microsec_clock::universal_time();
             newFrame.mDate = TimeDate::splitIsoExtendedDate(to_iso_extended_string(time));
+
             double fps = 0;
             if(getFPS(fps))
                 newFrame.mFps = fps;
@@ -737,39 +739,8 @@
             newFrame.mFrameNumber = mFrameCounter;
             mFrameCounter++;
 
-            if(mFormat.fmt.pix.pixelformat == V4L2_PIX_FMT_GREY) {
-
-                if(ImageBuffer != NULL) {
-
-                    memcpy(img.ptr(), ImageBuffer, s);
-                    img.copyTo(newFrame.mImg);
-
-                }
-
-            }else if(mFormat.fmt.pix.pixelformat == V4L2_PIX_FMT_YUYV) {
-
-                unsigned char bigbuffer[mFormat.fmt.pix.height * mFormat.fmt.pix.width*3];
-                int i, newi, newsize=0;
-                int y_temp, y2_temp, u_temp, v_temp;
-                unsigned char *pptr = (unsigned char *)buffers[buf.index].start;
-                Mat dispimg(mFormat.fmt.pix.height, mFormat.fmt.pix.width, CV_8UC3, bigbuffer);
-
-                // Pixels are YU and YV alternating, so YUYV which is 4 bytes
-                // We want RGB, so RGBRGB which is 6 bytes
-                //
-                for(i=0, newi=0; i<buf.bytesused; i=i+4, newi=newi+6) {
-                    y_temp=(int)pptr[i]; u_temp=(int)pptr[i+1]; y2_temp=(int)pptr[i+2]; v_temp=(int)pptr[i+3];
-                    yuv2rgb(y_temp, u_temp, v_temp, &bigbuffer[newi], &bigbuffer[newi+1], &bigbuffer[newi+2]);
-                    yuv2rgb(y2_temp, u_temp, v_temp, &bigbuffer[newi+3], &bigbuffer[newi+4], &bigbuffer[newi+5]);
-                }
-
-                cvtColor(dispimg,newFrame.mImg,CV_BGR2GRAY);
-
-            }else {
-
-                cout << "Format not supported." << mFormat.fmt.pix.pixelformat << endl;
+            if(!convertImage(ImageBuffer, newFrame.mImg))
                 grabSuccess = false;
-            }
 
         }
 
@@ -777,7 +748,7 @@
 
     }
 
-    void yuv2rgb_(int y, int u, int v, unsigned char *r, unsigned char *g, unsigned char *b) {
+    void CameraV4l2::yuv2rgb(int y, int u, int v, unsigned char *r, unsigned char *g, unsigned char *b) {
 
        int r1, g1, b1;
 
@@ -803,11 +774,26 @@
        *b = b1 ;
     }
 
+    void CameraV4l2::rgb565_to_bgr24(const unsigned char *src, unsigned char *dest, int width, int height) {
+
+        int j;
+        while (--height >= 0) {
+            for (j = 0; j < width; j++) {
+                unsigned short tmp = *(unsigned short *)src;
+
+                /* Original format: rrrrrggg gggbbbbb */
+                *dest++ = 0xf8 & (tmp << 3);
+                *dest++ = 0xfc & (tmp >> 3);
+                *dest++ = 0xf8 & (tmp >> 8);
+
+                src += 2;
+            }
+        }
+    }
+
     #define CLIP(color) (unsigned char)(((color) > 0xFF) ? 0xff : (((color) < 0) ? 0 : (color)))
     // https://github.com/gjasny/v4l-utils/blob/master/lib/libv4lconvert/rgbyuv.c
-    void v4lconvert_uyvy_to_bgr24(const unsigned char *src, unsigned char *dest,
-        int width, int height, int stride)
-    {
+    void CameraV4l2::uyvy2bgr24(const unsigned char *src, unsigned char *dest, int width, int height, int stride) {
         int j;
 
         while (--height >= 0) {
@@ -851,8 +837,8 @@
 
         }
 
-        cout << "H : " << mFormat.fmt.pix.height << endl;
-        cout << "V : " << mFormat.fmt.pix.width << endl;
+        cout << ">> Height : " << mFormat.fmt.pix.height << endl;
+        cout << ">> Width  : " << mFormat.fmt.pix.width << endl;
 
         if(!setPixelFormat(MONO_8))
             return false;
@@ -912,8 +898,10 @@
         if(grabSuccess) {
 
             ImageBuffer = (unsigned char*)buffers[buf.index].start;
+
             boost::posix_time::ptime time = boost::posix_time::microsec_clock::universal_time();
             frame.mDate = TimeDate::splitIsoExtendedDate(to_iso_extended_string(time));
+
             double fps = 0;
             if(getFPS(fps))
                 frame.mFps = fps;
@@ -921,51 +909,8 @@
             frame.mSaturatedValue = 255;
             frame.mFrameNumber = mFrameCounter;
 
-            if(mFormat.fmt.pix.pixelformat == V4L2_PIX_FMT_GREY) {
-
-                if(ImageBuffer != NULL) {
-
-                    memcpy(img.ptr(), ImageBuffer, s);
-                    img.copyTo(frame.mImg);
-
-                }
-
-            }else if(mFormat.fmt.pix.pixelformat == V4L2_PIX_FMT_YUYV) {
-
-                unsigned char bigbuffer[mFormat.fmt.pix.height * mFormat.fmt.pix.width*3];
-                int i, newi, newsize=0;
-                int y_temp, y2_temp, u_temp, v_temp;
-                unsigned char *pptr = (unsigned char *)buffers[buf.index].start;
-                Mat dispimg(mFormat.fmt.pix.height, mFormat.fmt.pix.width, CV_8UC3, bigbuffer);
-
-                // Pixels are YU and YV alternating, so YUYV which is 4 bytes
-                // We want RGB, so RGBRGB which is 6 bytes
-                //
-                for(i=0, newi=0; i<buf.bytesused; i=i+4, newi=newi+6) {
-                    y_temp=(int)pptr[i]; u_temp=(int)pptr[i+1]; y2_temp=(int)pptr[i+2]; v_temp=(int)pptr[i+3];
-                    yuv2rgb(y_temp, u_temp, v_temp, &bigbuffer[newi], &bigbuffer[newi+1], &bigbuffer[newi+2]);
-                    yuv2rgb(y2_temp, u_temp, v_temp, &bigbuffer[newi+3], &bigbuffer[newi+4], &bigbuffer[newi+5]);
-                }
-
-                cvtColor(dispimg,frame.mImg,CV_BGR2GRAY);
-
-            }else if( mFormat.fmt.pix.pixelformat == V4L2_PIX_FMT_UYVY){
-
-                unsigned char bigbuffer[mFormat.fmt.pix.height * mFormat.fmt.pix.width*3];
-                int i, newi, newsize=0;
-                int y_temp, y2_temp, u_temp, v_temp;
-                unsigned char *pptr = (unsigned char *)buffers[buf.index].start;
-
-                v4lconvert_uyvy_to_bgr24(ImageBuffer, bigbuffer, mFormat.fmt.pix.width, mFormat.fmt.pix.height, mFormat.fmt.pix.bytesperline);
-                Mat dispimg(mFormat.fmt.pix.height, mFormat.fmt.pix.width, CV_8UC3, bigbuffer);
-                cvtColor(dispimg,frame.mImg,CV_BGR2GRAY);
-
-
-            }else {
-
-                cout << "Format not supported." << mFormat.fmt.pix.pixelformat << endl;
+            if(!convertImage(ImageBuffer, frame.mImg))
                 grabSuccess = false;
-            }
 
         }
 
@@ -973,6 +918,87 @@
         grabCleanse();
 
         return grabSuccess;
+
+    }
+
+    bool CameraV4l2::convertImage(unsigned char* buffer, Mat &image) {
+
+        bool res = false;
+
+        if(buffer != NULL) {
+
+            switch(mFormat.fmt.pix.pixelformat) {
+
+                case V4L2_PIX_FMT_GREY :
+
+                    {
+
+                        memcpy(image.ptr(), buffer, mFormat.fmt.pix.width*mFormat.fmt.pix.height);
+                        res = true;
+
+                    }
+
+                    break;
+
+                case V4L2_PIX_FMT_YUYV :
+
+                    {
+
+                        unsigned char bigbuffer[mFormat.fmt.pix.height * mFormat.fmt.pix.width*3];
+                        int i, newi, newsize=0;
+                        int y_temp, y2_temp, u_temp, v_temp;
+                        unsigned char *pptr = (unsigned char *)buffers[buf.index].start;
+                        Mat dispimg(mFormat.fmt.pix.height, mFormat.fmt.pix.width, CV_8UC3, bigbuffer);
+
+                        // Pixels are YU and YV alternating, so YUYV which is 4 bytes
+                        // We want RGB, so RGBRGB which is 6 bytes
+                        //
+                        for(i=0, newi=0; i<buf.bytesused; i=i+4, newi=newi+6) {
+                            y_temp=(int)pptr[i]; u_temp=(int)pptr[i+1]; y2_temp=(int)pptr[i+2]; v_temp=(int)pptr[i+3];
+                            yuv2rgb(y_temp, u_temp, v_temp, &bigbuffer[newi], &bigbuffer[newi+1], &bigbuffer[newi+2]);
+                            yuv2rgb(y2_temp, u_temp, v_temp, &bigbuffer[newi+3], &bigbuffer[newi+4], &bigbuffer[newi+5]);
+                        }
+
+                        cvtColor(dispimg,image,CV_BGR2GRAY);
+                        res = true;
+
+                    }
+
+                    break;
+
+                case V4L2_PIX_FMT_UYVY :
+
+                    {
+
+                        unsigned char bigbuffer[mFormat.fmt.pix.height * mFormat.fmt.pix.width*3];
+                        uyvy2bgr24(buffer, bigbuffer, mFormat.fmt.pix.width, mFormat.fmt.pix.height, mFormat.fmt.pix.bytesperline);
+                        Mat dispimg(mFormat.fmt.pix.height, mFormat.fmt.pix.width, CV_8UC3, bigbuffer);
+                        cvtColor(dispimg,image,CV_BGR2GRAY);
+                        res = true;
+
+                    }
+
+                    break;
+
+                case V4L2_PIX_FMT_RGB565 :
+
+                    {
+
+                        unsigned char bigbuffer[mFormat.fmt.pix.height * mFormat.fmt.pix.width*3];
+                        rgb565_to_bgr24(buffer, bigbuffer, mFormat.fmt.pix.width, mFormat.fmt.pix.height);
+                        Mat dispimg(mFormat.fmt.pix.height, mFormat.fmt.pix.width, CV_8UC3, bigbuffer);
+                        cvtColor(dispimg,image,CV_BGR2GRAY);
+                        res = true;
+
+                    }
+
+                    break;
+
+            }
+
+        }
+
+        return res;
 
     }
 
@@ -991,7 +1017,7 @@
 
             } else {
 
-                printf("V4L2_CID_EXPOSURE_ABSOLUTE is not supported\n");
+                printf(">> V4L2_CID_EXPOSURE_ABSOLUTE is not supported\n");
                 eMin = -1;
                 eMax = -1;
 
@@ -999,7 +1025,7 @@
 
         } else if (queryctrl.flags & V4L2_CTRL_FLAG_DISABLED) {
 
-            printf("V4L2_CID_EXPOSURE_ABSOLUTE is not supported\n");
+            printf(">> V4L2_CID_EXPOSURE_ABSOLUTE is not supported\n");
             eMin = -1;
             eMax = -1;
 
@@ -1055,7 +1081,7 @@
 
             } else {
 
-                printf("V4L2_CID_GAIN is not supported\n");
+                printf(">> V4L2_CID_GAIN is not supported\n");
                 gainMin = -1;
                 gainMax = -1;
 
@@ -1063,7 +1089,7 @@
 
         } else if (queryctrl.flags & V4L2_CTRL_FLAG_DISABLED) {
 
-            printf("V4L2_CID_GAIN is not supported\n");
+            printf(">> V4L2_CID_GAIN is not supported\n");
             gainMin = -1;
             gainMax = -1;
 
@@ -1278,13 +1304,13 @@
 
                 }else {
 
-                    printf("V4L2_CID_EXPOSURE_AUTO is not supported\n");
+                    printf(">> V4L2_CID_EXPOSURE_AUTO is not supported\n");
 
                 }
 
             }else if (queryctrl.flags & V4L2_CTRL_FLAG_DISABLED) {
 
-                printf("V4L2_CID_EXPOSURE_AUTO is not supported\n");
+                printf(">> V4L2_CID_EXPOSURE_AUTO is not supported\n");
 
             }else {
 
@@ -1315,13 +1341,13 @@
 
                 }else {
 
-                    printf("V4L2_CID_EXPOSURE_ABSOLUTE is not supported\n");
+                    printf(">> V4L2_CID_EXPOSURE_ABSOLUTE is not supported\n");
 
                 }
 
             }else if (queryctrl.flags & V4L2_CTRL_FLAG_DISABLED) {
 
-                printf("V4L2_CID_EXPOSURE_ABSOLUTE is not supported\n");
+                printf(">> V4L2_CID_EXPOSURE_ABSOLUTE is not supported\n");
 
             }else {
 
@@ -1383,13 +1409,13 @@
 
                 }else {
 
-                    printf("V4L2_CID_GAIN is not supported\n");
+                    printf(">> V4L2_CID_GAIN is not supported\n");
 
                 }
 
             }else if (queryctrl.flags & V4L2_CTRL_FLAG_DISABLED) {
 
-                printf("V4L2_CID_GAIN is not supported\n");
+                printf(">> V4L2_CID_GAIN is not supported\n");
 
             }else {
 
@@ -1495,7 +1521,7 @@
         bool fmtYUYV = false;
         bool fmtUYVY = false;
         char c, e;
-        printf( "  FMT    : CE Desc\n");
+        //printf( "  FMT    : CE Desc\n");
 
         //memset(&mFormat, 0, sizeof(mFormat));
         //mFormat.type = V4L2_BUF_TYPE_VIDEO_CAPTURE;
@@ -1505,47 +1531,70 @@
 
             strncpy(fourcc, (char *)&fmtdesc.pixelformat, 4);
 
-            if(depth == MONO_8 && fmtdesc.pixelformat == V4L2_PIX_FMT_GREY) {
+            if(depth == MONO_8 && !fmtFound) {
 
-                mFormat.fmt.pix.pixelformat = V4L2_PIX_FMT_GREY;
-                fmtFound = true;
-                break;
+                switch(fmtdesc.pixelformat) {
 
-            }else if(depth == MONO_8 && fmtdesc.pixelformat == V4L2_PIX_FMT_YUYV) {
+                    case V4L2_PIX_FMT_RGB565 :
 
-                fmtYUYV = true;
-                fmtFound = true;
+                        {
 
-            }else if(depth == MONO_8 && fmtdesc.pixelformat == V4L2_PIX_FMT_UYVY) {
+                            mFormat.fmt.pix.pixelformat = V4L2_PIX_FMT_RGB565;
+                            cout << ">> Choose format : V4L2_PIX_FMT_RGB565" << endl;
+                            fmtFound = true;
+                            break;
 
-                fmtUYVY = true;
-                fmtFound = true;
+                        }
+
+                        break;
+
+                    case V4L2_PIX_FMT_GREY :
+
+                        {
+                            mFormat.fmt.pix.pixelformat = V4L2_PIX_FMT_GREY;
+                            cout << ">> Choose format : V4L2_PIX_FMT_GREY" << endl;
+                            fmtFound = true;
+                            break;
+                        }
+
+                        break;
+
+                    case V4L2_PIX_FMT_YUYV :
+
+                        {
+                            mFormat.fmt.pix.pixelformat = V4L2_PIX_FMT_YUYV;
+                            cout << ">> Choose format : V4L2_PIX_FMT_YUYV" << endl;
+                            fmtFound = true;
+                            break;
+                        }
+
+                        break;
+
+                    case V4L2_PIX_FMT_UYVY :
+
+                        {
+                            mFormat.fmt.pix.pixelformat = V4L2_PIX_FMT_UYVY;
+                            cout << ">> Choose format : V4L2_PIX_FMT_UYVY" << endl;
+                            fmtFound = true;
+                            break;
+                        }
+
+                        break;
+
+                }
 
             }
 
-
             c = fmtdesc.flags & 1? 'C' : ' ';
             e = fmtdesc.flags & 2? 'E' : ' ';
-            printf("  %s : %c%c %s\n", fourcc, c, e, fmtdesc.description);
+            //printf("  %s : %c%c %s\n", fourcc, c, e, fmtdesc.description);
             fmtdesc.index++;
         }
 
         if(!fmtFound) {
 
-            if(fmtYUYV) {
-
-                mFormat.fmt.pix.pixelformat = V4L2_PIX_FMT_YUYV;
-
-            }else if(fmtUYVY){
-
-                mFormat.fmt.pix.pixelformat = V4L2_PIX_FMT_UYVY;
-
-            }else{
-
-                BOOST_LOG_SEV(logger, critical) << "FORMAT NOT SUPPORTED !";
-                return false;
-            }
-
+            BOOST_LOG_SEV(logger, critical) << ">> FORMAT NOT SUPPORTED !";
+            return false;
         }
 
         strncpy(fourcc, (char *)&mFormat.fmt.pix.pixelformat, 4);
@@ -1568,32 +1617,6 @@
         } while (-1 == r && EINTR == errno);
 
         return r;
-    }
-
-    void CameraV4l2::yuv2rgb(int y, int u, int v, unsigned char *r, unsigned char *g, unsigned char *b) {
-
-       int r1, g1, b1;
-
-       // replaces floating point coefficients
-       int c = y-16, d = u - 128, e = v - 128;
-
-       // Conversion that avoids floating point
-       r1 = (298 * c           + 409 * e + 128) >> 8;
-       g1 = (298 * c - 100 * d - 208 * e + 128) >> 8;
-       b1 = (298 * c + 516 * d           + 128) >> 8;
-
-       // Computed values may need clipping.
-       if (r1 > 255) r1 = 255;
-       if (g1 > 255) g1 = 255;
-       if (b1 > 255) b1 = 255;
-
-       if (r1 < 0) r1 = 0;
-       if (g1 < 0) g1 = 0;
-       if (b1 < 0) b1 = 0;
-
-       *r = r1 ;
-       *g = g1 ;
-       *b = b1 ;
     }
 
     int CameraV4l2::read_frame (void) {

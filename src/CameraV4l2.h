@@ -173,9 +173,16 @@
 
             bool setPixelFormat(CamBitDepth depth);
 
+
         private :
 
             void yuv2rgb(int y, int u, int v, unsigned char *r, unsigned char *g, unsigned char *b);
+
+            void uyvy2bgr24(const unsigned char *src, unsigned char *dest, int width, int height, int stride);
+
+            void rgb565_to_bgr24(const unsigned char *src, unsigned char *dest, int width, int height);
+
+            bool convertImage(unsigned char* buffer, Mat &image);
 
             bool setSize();
 
