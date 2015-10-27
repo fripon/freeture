@@ -81,7 +81,6 @@ class AcqThread {
         bool                mThreadEndStatus;
         AcqSchedule         mNextAcq;               // Next scheduled acquisition.
         int                 mNextAcqIndex;
-        vector<AcqSchedule> mAcqScheduledList;      // List of scheduled acquisition.
         DetThread           *pDetection;            // Pointer on detection thread.
         StackThread         *pStack;                // Pointer on stack thread.
         string              mDataLocation;          // Complete dynamic location where to save data.

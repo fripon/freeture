@@ -724,7 +724,8 @@ void AcqThread::operator()(){
 
                         // Acquisiton at scheduled time is enabled.
                         if(mSchedule.size() != 0 && mScheduleEnabled && !mDevice->mVideoFramesInput) {
-
+                            cout << newFrame.mDate.hours << newFrame.mDate.minutes << (int)newFrame.mDate.seconds<< endl;
+                            cout << mNextAcq.getH() << mNextAcq.getM() << (int)mNextAcq.getS()<< endl;
                             // It's time to run scheduled acquisition.
                             if( mNextAcq.getH() == newFrame.mDate.hours &&
                                 mNextAcq.getM() == newFrame.mDate.minutes &&
@@ -894,26 +895,26 @@ void AcqThread::operator()(){
 
 void AcqThread::selectNextAcquisitionSchedule(TimeDate::Date date){
 
-    if(mAcqScheduledList.size() != 0){
+    if(mSchedule.size() != 0){
 
         // Search next acquisition
-        for(int i = 0; i < mAcqScheduledList.size(); i++){
+        for(int i = 0; i < mSchedule.size(); i++){
 
-            if(date.hours < mAcqScheduledList.at(i).getH()){
+            if(date.hours < mSchedule.at(i).getH()){
 
                mNextAcqIndex = i;
                break;
 
-            }else if(date.hours == mAcqScheduledList.at(i).getH()){
+            }else if(date.hours == mSchedule.at(i).getH()){
 
-                if(date.minutes < mAcqScheduledList.at(i).getM()){
+                if(date.minutes < mSchedule.at(i).getM()){
 
                     mNextAcqIndex = i;
                     break;
 
-                }else if(date.minutes == mAcqScheduledList.at(i).getM()){
+                }else if(date.minutes == mSchedule.at(i).getM()){
 
-                    if(date.seconds < mAcqScheduledList.at(i).getS()){
+                    if(date.seconds < mSchedule.at(i).getS()){
 
                         mNextAcqIndex = i;
                         break;
@@ -923,7 +924,7 @@ void AcqThread::selectNextAcquisitionSchedule(TimeDate::Date date){
             }
         }
 
-        mNextAcq = mAcqScheduledList.at(mNextAcqIndex);
+        mNextAcq = mSchedule.at(mNextAcqIndex);
 
     }
 
@@ -931,7 +932,7 @@ void AcqThread::selectNextAcquisitionSchedule(TimeDate::Date date){
 
 void AcqThread::sortAcquisitionSchedule(){
 
-    if(mAcqScheduledList.size() != 0){
+    if(mSchedule.size() != 0){
 
         // Sort time in list.
         vector<AcqSchedule> tempSchedule;
@@ -943,7 +944,7 @@ void AcqThread::sortAcquisitionSchedule(){
             vector<AcqSchedule>::iterator it;
             vector<AcqSchedule>::iterator it_select;
 
-            for(it = mAcqScheduledList.begin(); it != mAcqScheduledList.end(); ++it){
+            for(it = mSchedule.begin(); it != mSchedule.end(); ++it){
 
                 if(!init){
 
@@ -994,13 +995,13 @@ void AcqThread::sortAcquisitionSchedule(){
 
                 tempSchedule.push_back((*it_select));
                 cout << "-> " << (*it_select).getH() << "H " << (*it_select).getM() << "M " << (*it_select).getS() << "S " << endl;
-                mAcqScheduledList.erase(it_select);
+                mSchedule.erase(it_select);
 
             }
 
-        }while(mAcqScheduledList.size() != 0);
+        }while(mSchedule.size() != 0);
 
-        mAcqScheduledList = tempSchedule;
+        mSchedule = tempSchedule;
 
     }
 
