@@ -107,9 +107,8 @@ bool StackThread::interruptThread(){
 
     interruptionStatusMutex.lock();
     interruptionStatus = true;
-    cout << "interruptionStatus : " << interruptionStatus << endl;
+    BOOST_LOG_SEV(logger,notification) << "StackThread interruption.";
     interruptionStatusMutex.unlock();
-
     return true;
 
 }
@@ -161,8 +160,7 @@ bool StackThread::loadStackParameters(){
 
     }catch(exception& e){
 
-        cout << e.what() << endl;
-        BOOST_LOG_SEV(logger,critical) << "In function StackThread::loadStackParameters() : ";
+        cout << "An error occured. See log for details." << endl;
         BOOST_LOG_SEV(logger,critical) << e.what();
         return false;
 
@@ -173,10 +171,10 @@ bool StackThread::loadStackParameters(){
 bool StackThread::buildStackDataDirectory(TimeDate::Date date){
 
     namespace fs = boost::filesystem;
-    string	YYYYMMDD	= TimeDate::getYYYYMMDD(date);
-    string	root		= DATA_PATH + STATION_NAME + "_" + YYYYMMDD +"/";
-    string	subDir		= "astro/";
-    string	finalPath	= root + subDir;
+    string YYYYMMDD = TimeDate::getYYYYMMDD(date);
+    string root = DATA_PATH + STATION_NAME + "_" + YYYYMMDD +"/";
+    string subDir = "astro/";
+    string finalPath = root + subDir;
 
     completeDataPath	= finalPath;
     BOOST_LOG_SEV(logger,notification) << "Stack data path : " << completeDataPath;
@@ -308,7 +306,6 @@ void StackThread::operator()(){
             try {
 
                 // Thread is sleeping...
-                BOOST_LOG_SEV(logger,normal) << "Stack Thread is sleeping..." ;
                 boost::this_thread::sleep(boost::posix_time::millisec(STACK_INTERVAL*1000));
 
                 // Create a stack to accumulate n frames.
@@ -319,14 +316,12 @@ void StackThread::operator()(){
                 string cDate = to_simple_string(time);
                 string dateDelimiter = ".";
                 string refDate = cDate.substr(0, cDate.find(dateDelimiter));
-                BOOST_LOG_SEV(logger,normal) << "Stack Thread ref date : " << refDate;
 
                 long secTime = 0;
 
                 do {
 
                     // Communication with AcqThread. Wait for a new frame.
-                    BOOST_LOG_SEV(logger,normal) << "Wait for a new frame.";
                     boost::mutex::scoped_lock lock(*stackSignal_mutex);
                     while(!(*stackSignal)) stackSignal_condition->wait(lock);
                     *stackSignal = false;
@@ -344,7 +339,6 @@ void StackThread::operator()(){
 
                         // Fetch last frame grabbed.
                         boost::mutex::scoped_lock lock2(*frameBuffer_mutex);
-                        BOOST_LOG_SEV(logger,normal) << "Get last frame in circular buffer. SIZE : " << frameBuffer->size();
                         if(frameBuffer->size() == 0) {
                             throw "SHARED CIRCULAR BUFFER SIZE = 0 -> STACK INTERRUPTION.";
                         }
@@ -355,15 +349,13 @@ void StackThread::operator()(){
                         frameStack.addFrame(newFrame);
 
                         t = (((double)getTickCount() - t)/getTickFrequency())*1000;
-                        std::cout << "[ Stack time ] : " << std::setprecision(5) << std::fixed << t << " ms" << endl;
-                        BOOST_LOG_SEV(logger,normal) << "[ Stack time ] : " << std::setprecision(5) << std::fixed << t << " ms" ;
+                        std::cout << "[ TIME STACK ] : " << std::setprecision(5) << std::fixed << t << " ms" << endl;
+                        BOOST_LOG_SEV(logger,normal) << "[ TIME STACK ] : " << std::setprecision(5) << std::fixed << t << " ms" ;
 
                     }else{
 
                         // Interruption is active.
-
                         BOOST_LOG_SEV(logger,notification) << "Interruption status : " << forceToSave;
-                        cout << "Interruption status : " << forceToSave << endl;
 
                         // Interruption operations terminated. Rest interruption signal.
                         interruptionStatusMutex.lock();
@@ -381,7 +373,7 @@ void StackThread::operator()(){
                     boost::posix_time::ptime t2(boost::posix_time::time_from_string(nowDate));
                     boost::posix_time::time_duration td = t2 - t1;
                     secTime = td.total_seconds();
-                    cout << "STACK OPEN STATUS : " << secTime << "/" << STACK_TIME <<  endl;
+                    cout << "NEXT STACK : " << (int)(STACK_TIME - secTime) << "s" <<  endl;
 
                 }while(secTime <= STACK_TIME);
 
@@ -418,19 +410,17 @@ void StackThread::operator()(){
 
     }catch(const char * msg){
 
-        cout << msg << endl;
         BOOST_LOG_SEV(logger,critical) << msg;
 
     }catch(exception& e){
 
-        cout << "An exception occured : " << e.what() << endl;
         BOOST_LOG_SEV(logger, critical) << e.what();
 
     }
 
     isRunning = false;
 
-    BOOST_LOG_SEV(logger,notification) << "Stack thread TERMINATED";
+    BOOST_LOG_SEV(logger,notification) << "StackThread ended.";
 
 }
 

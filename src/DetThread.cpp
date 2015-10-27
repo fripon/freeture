@@ -64,7 +64,7 @@ DetThread::DetThread(   string                          cfg_p,
     Configuration cfg;
 
     if(!cfg.Load(cfg_p))
-        throw "Fail to load parameters for det thread from configuration file.";
+        throw "Fail to load parameters for detThread from configuration file.";
 
     //********************* ACQUISITION FORMAT.******************************
 
@@ -277,7 +277,7 @@ DetThread::~DetThread(void){
 
 bool DetThread::startThread(){
 
-    BOOST_LOG_SEV(logger, notification) << "Create detection thread.";
+    BOOST_LOG_SEV(logger, notification) << "Creating detThread...";
     pThread = new boost::thread(boost::ref(*this));
 
     return true;
@@ -293,10 +293,9 @@ void DetThread::stopThread(){
     mMustStopMutex.unlock();
 
     // Wait for the thread to finish.
-
     while(pThread->timed_join(boost::posix_time::seconds(2)) == false){
 
-        BOOST_LOG_SEV(logger, notification) << "DetThread interrupted.";
+        BOOST_LOG_SEV(logger, notification) << "Interrupting detThread...";
         pThread->interrupt();
 
     }
@@ -335,38 +334,37 @@ void DetThread::operator ()(){
             try {
 
                 /// Wait new frame from AcqThread.
-                BOOST_LOG_SEV(logger, normal) << "Waiting new frame from AcqThread.";
+                BOOST_LOG_SEV(logger, normal) << "Waiting new frame from AcqThread...";
                 boost::mutex::scoped_lock lock(*detSignal_mutex);
                 while (!(*detSignal)) detSignal_condition->wait(lock);
                 *detSignal = false;
                 lock.unlock();
-                BOOST_LOG_SEV(logger, normal) << "End to wait new frame from AcqThread.";
+                BOOST_LOG_SEV(logger, normal) << "Frame received from AcqThread.";
 
                 // Check interruption signal from AcqThread.
                 mForceToReset = false;
                 mInterruptionStatusMutex.lock();
-                if(mInterruptionStatus) mForceToReset = true;
+                if(mInterruptionStatus) {
+                    BOOST_LOG_SEV(logger, notification) << "Interruption status : " << mInterruptionStatus;
+                    BOOST_LOG_SEV(logger, notification) << "-> reset forced on detection method.";
+                    mForceToReset = true;
+                }
                 mInterruptionStatusMutex.unlock();
 
                 if(!mForceToReset){
 
-                    // Fetch the two last frames grabbed.
-                    BOOST_LOG_SEV(logger, normal) << "Fetch the two last frames grabbed.";
-                    Frame currentFrame, previousFrame;
+                    // Fetch the last grabbed frame.
+                    Frame lastFrame;
                     boost::mutex::scoped_lock lock2(*frameBuffer_mutex);
-                    if(frameBuffer->size() > 2){
-                        currentFrame    = frameBuffer->back();
-                    }
+                    if(frameBuffer->size() > 2) lastFrame = frameBuffer->back();
                     lock2.unlock();
 
                     double t = (double)getTickCount();
 
-                    if(currentFrame.mImg.data){
+                    if(lastFrame.mImg.data) {
 
-                        BOOST_LOG_SEV(logger, normal) << "Start detection process on frames : " << currentFrame.mFrameNumber;
-
-                        // Run detection.
-                        if(pDetMthd->run(currentFrame) && !mWaitFramesToCompleteEvent){
+                        // Run detection process.
+                        if(pDetMthd->run(lastFrame) && !mWaitFramesToCompleteEvent){
 
                             // Event detected.
                             BOOST_LOG_SEV(logger, notification) << "Event detected ! Waiting frames to complete the event..." << endl;
@@ -387,23 +385,19 @@ void DetThread::operator ()(){
                                 BOOST_LOG_SEV(logger, notification) << "Building event directory..." << endl;
 
                                 if(buildEventDataDirectory())
-                                    BOOST_LOG_SEV(logger, fail) << "Fail to build event directory !" << endl;
+                                    BOOST_LOG_SEV(logger, notification) << "Success to build event directory." << endl;
                                 else
-                                    BOOST_LOG_SEV(logger, notification) << "Success to build event directory !" << endl;
+                                    BOOST_LOG_SEV(logger, fail) << "Fail to build event directory." << endl;
 
                                 // Save event.
-                                BOOST_LOG_SEV(logger, notification) << "Start saving event..." << endl;
+                                BOOST_LOG_SEV(logger, notification) << "Saving event..." << endl;
                                 pDetMthd->saveDetectionInfos(mEventPath);
                                 boost::mutex::scoped_lock lock(*frameBuffer_mutex);
-                                if(!saveEventData(pDetMthd->getNumFirstEventFrame(), pDetMthd->getNumLastEventFrame())){
-                                    lock.unlock();
+                                if(!saveEventData(pDetMthd->getNumFirstEventFrame(), pDetMthd->getNumLastEventFrame()))
                                     BOOST_LOG_SEV(logger,critical) << "Error saving event data.";
-                                    throw "Error saving event data.";
-                                }else{
-
+                                else
                                     BOOST_LOG_SEV(logger, notification) << "Success to save event !" << endl;
-
-                                }
+                                
                                 lock.unlock();
 
                                 // Reset detection.
@@ -421,8 +415,8 @@ void DetThread::operator ()(){
                     }
 
                     t = (((double)getTickCount() - t)/getTickFrequency())*1000;
-                    cout << " [-DET TIME-] : " << std::setprecision(3) << std::fixed << t << " ms " << endl;
-                    BOOST_LOG_SEV(logger,normal) << " [-DET TIME-] : " << std::setprecision(3) << std::fixed << t << " ms ";
+                    cout << " [ TIME DET ] : " << std::setprecision(3) << std::fixed << t << " ms " << endl;
+                    BOOST_LOG_SEV(logger,normal) << " [ TIME DET ] : " << std::setprecision(3) << std::fixed << t << " ms ";
 
                 }else{
 
@@ -435,7 +429,6 @@ void DetThread::operator ()(){
 
                     mInterruptionStatusMutex.lock();
                     mInterruptionStatus = false;
-                    cout << "interruptionStatus in detection process : " << mInterruptionStatus << endl;
                     mInterruptionStatusMutex.unlock();
 
                 }
@@ -451,8 +444,6 @@ void DetThread::operator ()(){
             mMustStopMutex.unlock();
 
         }while(!stopThread);
-
-
 
         if(mDetectionResults.size() == 0) {
 
@@ -492,15 +483,14 @@ void DetThread::operator ()(){
 
     }catch(exception& e){
 
-        cout << "An exception occured : " << e.what() << endl;
+        cout << "An error occured. See log for details." << endl;
         BOOST_LOG_SEV(logger, critical) << e.what();
 
     }
 
     mIsRunning = false;
 
-    cout << "Detection Thread finished." << endl;
-    BOOST_LOG_SEV(logger,notification) << "Detection Thread terminated.";
+    BOOST_LOG_SEV(logger,notification) << "DetThread ended.";
 
 }
 
@@ -673,12 +663,10 @@ bool DetThread::saveEventData(int firstEvPosInFB, int lastEvPosInFB){
     // List of data path to attach to the mail notification.
     vector<string> mailAttachments;
 
-    // Number of the first frame to save.
-    // It depends of how many frames we want to keep before the event.
+    // Number of the first frame to save. It depends of how many frames we want to keep before the event.
     int numFirstFrameToSave = firstEvPosInFB - mTimeBeforeEvent;
 
-    // Number of the last frame to save.
-    // It depends of how many frames we want to keep after the event.
+    // Number of the last frame to save. It depends of how many frames we want to keep after the event.
     int numLastFrameToSave = lastEvPosInFB + mTimeAfterEvent;
 
     // If the number of the first frame to save for the event is not in the framebuffer.
@@ -698,20 +686,9 @@ bool DetThread::saveEventData(int firstEvPosInFB, int lastEvPosInFB){
     int nbDigitOnNbTotalFramesToSave = 0;
 
     while(n!=0){
-
-      n/=10;
-      ++nbDigitOnNbTotalFramesToSave;
-
+        n/=10;
+        ++nbDigitOnNbTotalFramesToSave;
     }
-
-    cout << "> First frame to save  : " << numFirstFrameToSave	<< endl;
-    cout << "> Last frame to save    : " << numLastFrameToSave	<< endl;
-    cout << "> First event frame    : " << firstEvPosInFB		<< endl;
-    cout << "> Last event frame     : " << lastEvPosInFB		<< endl;
-    cout << "> Time to keep before  : " << mTimeBeforeEvent		<< endl;
-    cout << "> Time to keep after   : " << mTimeAfterEvent		<< endl;
-    cout << "> Total frames to save : " << nbTotalFramesToSave << endl;
-    cout << "> Total digit          : " << nbDigitOnNbTotalFramesToSave << endl;
 
     BOOST_LOG_SEV(logger,notification) << "> First frame to save  : " << numFirstFrameToSave;
     BOOST_LOG_SEV(logger,notification) << "> Lst frame to save    : " << numLastFrameToSave;
@@ -787,18 +764,14 @@ bool DetThread::saveEventData(int firstEvPosInFB, int lastEvPosInFB){
         }
 
         // If the current frame read from the framebuffer has to be saved.
-        if((*it).mFrameNumber >= numFirstFrameToSave && (*it).mFrameNumber <= numLastFrameToSave){
+        if((*it).mFrameNumber >= numFirstFrameToSave && (*it).mFrameNumber <= numLastFrameToSave) {
 
             // Save fits2D.
-            if(mSaveFits2D){
+            if(mSaveFits2D) {
 
                 string fits2DPath = mEventPath + "fits2D/";
                 string fits2DName = "frame_" + Conversion::numbering(nbDigitOnNbTotalFramesToSave, c) + Conversion::intToString(c);
-                vector<string> DD;
-
-                cout << "Save fits 2D  : " << fits2DName << endl;
-
-                path p(fits2DPath);
+                BOOST_LOG_SEV(logger,notification) << ">> Saving fits2D : " << fits2DName;
 
                 Fits2D newFits(fits2DPath);
                 newFits.copyKeywords(mFitsHeader);
@@ -808,7 +781,6 @@ bool DetThread::saveEventData(int firstEvPosInFB, int lastEvPosInFB){
                 boost::posix_time::ptime time = boost::posix_time::second_clock::universal_time();
                 // YYYYMMDDTHHMMSS,fffffffff where T is the date-time separator
                 newFits.kDATE = to_iso_string(time);
-
                 // Name of the fits file.
                 newFits.kFILENAME = fits2DName;
                 // Exposure time.
@@ -824,30 +796,34 @@ bool DetThread::saveEventData(int firstEvPosInFB, int lastEvPosInFB){
                 double  julianCentury   = TimeDate::julianCentury(julianDate);
                 double  sideralT        = TimeDate::localSideralTime_2(julianCentury, (*it).mDate.hours, (*it).mDate.minutes, (*it).mDate.seconds, mFitsHeader.kSITELONG);
                 newFits.kCRVAL1 = sideralT;
-
                 newFits.kEXPOSURE = (*it).mExposure/1000000.0;
-
                 // Projection and reference system
                 newFits.kCTYPE1 = "RA---ARC";
                 newFits.kCTYPE2 = "DEC--ARC";
                 // Equinox
                 newFits.kEQUINOX = 2000.0;
 
-                if(!fs::exists(p)) {
+                if(!fs::exists(path(fits2DPath))) {
+                    if(fs::create_directory(path(fits2DPath)))
+                        BOOST_LOG_SEV(logger,notification) << "Success to create directory : " << fits2DPath;
+                }
 
-                    if(fs::create_directory(p))
-                        cout << "Success to create directory." << endl;
+                switch(mBitDepth) {
+
+                    case MONO_8 : 
+                        {
+                            newFits.writeFits((*it).mImg, UC8, fits2DName);
+                        }
+                        break;
+
+                    case MONO_12 : 
+                        {
+                            newFits.writeFits((*it).mImg, S16, fits2DName);
+                        }
+                        break;
 
                 }
 
-                if(mBitDepth == MONO_8){
-
-                    newFits.writeFits((*it).mImg, UC8, fits2DName);
-
-                }else{
-
-                    newFits.writeFits((*it).mImg, S16, fits2DName);
-                }
             }
 
             // Add a frame to fits cube.

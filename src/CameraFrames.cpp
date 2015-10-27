@@ -54,16 +54,20 @@ CameraFrames::~CameraFrames(void) {
 
 bool CameraFrames::loadNextDataSet(string &location) {
 
+    cout << mCurrDirId << endl;
+
     location = mFramesDir.at(mCurrDirId);
 
-    if(mCurrDirId !=0 ) {
+    cout << "load : nb : "<< mCurrDirId << "  path :  " << location << endl;
+
+    //if(mCurrDirId !=0 ) {
 
         mReadDataStatus = false;
 
         if(!searchMinMaxFramesNumber(mFramesDir.at(mCurrDirId)))
             return false;
 
-    }
+    //}
 
     return true;
 
@@ -77,7 +81,9 @@ bool CameraFrames::grabInitialization() {
 
 bool CameraFrames::getDataSetStatus() {
 
+    cout << "mCurrDirId incrementation" << endl;
     mCurrDirId++;
+    cout << "mFramesDir.size() : " <<  mFramesDir.size() << endl;
 
     if(mCurrDirId >= mFramesDir.size()) return false;
     else return true;

@@ -63,13 +63,7 @@ class Logger {
         Logger(string logPath, int timeLimit, int sizeLimit, vector<string> logFiles):
         mLogPath(logPath), mTimeLimit(timeLimit), mSizeLimit(sizeLimit), mLogFiles(logFiles) {
 
-            //mRefDate = TimeDate::splitStringToInt(TimeDate::localDateTime(microsec_clock::universal_time(),"%Y:%m:%d:%H:%M:%S"));
-            mRefDate.push_back(2015);
-            mRefDate.push_back(10);
-            mRefDate.push_back(17);
-            mRefDate.push_back(0);
-            mRefDate.push_back(0);
-            mRefDate.push_back(0);
+            mRefDate = TimeDate::splitStringToInt(TimeDate::localDateTime(microsec_clock::universal_time(),"%Y:%m:%d:%H:%M:%S"));
 
         }
 

@@ -70,7 +70,7 @@ void Stack::addFrame(Frame &i){
         Mat curr = Mat::zeros(i.mImg.rows, i.mImg.cols, CV_32FC1);
 
         i.mImg.convertTo(curr, CV_32FC1);
-        cout << "curFrames : " << curFrames << endl;
+
         accumulate(curr, stack);
         curFrames++;
         mDateLastFrame = i.mDate;

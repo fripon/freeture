@@ -162,6 +162,8 @@ mDataSetCounter(0), mCapCounter(0), mTimeBeforeEvent(timeBefore) {
         BOOST_LOG_SEV(logger, warning) << "Error about DET_DEBUG_PATH from configuration file. DET_DEBUG option disabled.";
     }
 
+    mDebugPath = mDebugPath + "/";
+
     mDebugCurrentPath = mDebugPath;
 
     //********************* DEBUG VIDEO OPTION ***********************
@@ -205,14 +207,14 @@ DetectionTemporal::~DetectionTemporal() {
 
 void DetectionTemporal::resetDetection(bool loadNewDataSet){
 
+    BOOST_LOG_SEV(logger, notification) << "Clear global events list.";
     mListGlobalEvents.clear();
     mSubdivisionStatus = false;
     mPrevThresholdedMap.release();
     mPrevFrame.release();
-    cout << "loadNewDataSet : "<< loadNewDataSet << endl;
+
     if(mDebugEnabled && loadNewDataSet) {
         mDataSetCounter++;
-        cout << "createDebugDirectories" <<endl;
         createDebugDirectories(false);
     }
 }

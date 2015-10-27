@@ -409,7 +409,7 @@ int main(int argc, const char ** argv){
                                 cout << "> Log directory created : " << pLog << endl;
                         }
 
-                        init_log(LOG_PATH, LOG_SEVERITY);
+                        init_log(LOG_PATH + "/", LOG_SEVERITY);
                         src::severity_logger< LogSeverityLevel > slg;
                         slg.add_attribute("ClassName", boost::log::attributes::constant<std::string>("main.cpp"));
                         BOOST_LOG_SCOPED_THREAD_TAG("LogName", "MAIN_THREAD");

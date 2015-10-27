@@ -689,7 +689,7 @@ void AcqThread::operator()(){
 
                             boost::posix_time::time_duration td = t2 - t1;
                             long secTime = td.total_seconds();
-                            cout << "NEXT CAPTURE IN : " << secTime << "/" << mRegularInterval <<  endl;
+                            cout << "NEXT REGCAP : " << (int)(mRegularInterval - secTime) << "s" <<  endl;
 
                             // Check it's time to run a regular capture.
                             if(secTime >= mRegularInterval) {
@@ -849,18 +849,13 @@ void AcqThread::operator()(){
                 mMustStopMutex.unlock();
 
             }while(stop == false && !mDevice->getCameraStatus());
-            cout << "QUIT"  << endl;
 
             // Reset detection process to prepare the analyse of a new data set.
             if(pDetection != NULL) {
 
-                if(mDevice->getCameraDataSetStatus())
-                    pDetection->getDetMethod()->resetDetection(true);
-                else
-                    pDetection->getDetMethod()->resetDetection(false);
+                pDetection->getDetMethod()->resetDetection(true);
                 pDetection->getDetMethod()->resetMask();
                 pDetection->updateDetectionReport();
-
                 if(!pDetection->getRunStatus()) break;
 
             }
@@ -870,12 +865,12 @@ void AcqThread::operator()(){
             frameBuffer->clear();
             lock.unlock();
 
-        }while(mDevice->getCameraDataSetStatus());
+        }while(mDevice->getCameraDataSetStatus() && stop == false);
 
     }catch(const boost::thread_interrupted&){
 
-        BOOST_LOG_SEV(logger,notification) << "Acquisition Thread INTERRUPTED";
-        cout << "Acquisition Thread INTERRUPTED" <<endl;
+        BOOST_LOG_SEV(logger,notification) << "AcqThread ended.";
+        cout << "AcqThread ended." <<endl;
 
     }catch(exception& e){
 
