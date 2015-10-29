@@ -67,7 +67,7 @@ class Frame {
         * Constructor.
         *
         */
-        Frame(Mat capImg, int g, int e, string acquisitionDate);
+        Frame(Mat capImg, int g, double e, string acquisitionDate);
 
         /**
         * Constructor.

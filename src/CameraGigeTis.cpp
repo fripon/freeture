@@ -438,6 +438,7 @@
                     // Here we set the the exposure value.
                     cout << ">> Set exposure time to : " << value << endl;
                     pExposureRange->setValue( value); 
+                    mExposure = value * 1000000.0;
                     bOK = true;
                 } 
             } 
@@ -672,7 +673,7 @@
                 if( pExposureValueElement != 0 ) { 
 
                     pExposureValueElement->getInterfacePtr( pExposureRange );
-                    return pExposureRange->getValue();
+                    return (pExposureRange->getValue()/1000000.0);
 
                 } 
             } 

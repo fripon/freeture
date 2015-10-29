@@ -64,7 +64,7 @@ void Stack::addFrame(Frame &i){
 
         if(expFirstFrame != i.mExposure)
             varExpTime = true;
-
+        cout << "i.mExposure : " << i.mExposure << endl;
         sumExpTime+=i.mExposure;
 
         Mat curr = Mat::zeros(i.mImg.rows, i.mImg.cols, CV_32FC1);

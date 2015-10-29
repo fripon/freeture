@@ -856,11 +856,12 @@
 
         if(camera != NULL){
 
-            if(val >= expMin && val <= expMax)
+            if(val >= expMin && val <= expMax) {
+                
+                exp = val;
+                arv_camera_set_exposure_time(camera, val);
 
-            arv_camera_set_exposure_time(camera, val);
-
-            else{
+            }else{
 
                 cout << "> Exposure value (" << val << ") is not in range [ " << expMin << " - " << expMax << " ]" << endl;
                 return false;
@@ -882,11 +883,12 @@
 
         if (camera != NULL){
 
-            if((double)val >= gMin && (double)val <= gMax)
+            if((double)val >= gMin && (double)val <= gMax){
 
+                gain = val;
                 arv_camera_set_gain (camera, (double)val);
 
-            else{
+            }else{
 
                 cout << "> Gain value (" << val << ") is not in range [ " << gMin << " - " << gMax << " ]" << endl;
                 BOOST_LOG_SEV(logger, fail) << "> Gain value (" << val << ") is not in range [ " << gMin << " - " << gMax << " ]";

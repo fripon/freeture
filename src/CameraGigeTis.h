@@ -97,7 +97,7 @@
 
             int mFrameCounter;
             int mGain;
-            int mExposure;
+            double mExposure;
             double mFPS;
             CamBitDepth mImgDepth;
             int mSaturateVal;
