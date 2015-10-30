@@ -60,7 +60,7 @@ AcqThread::AcqThread(   string                              cfgFile,
                         mNextAcqIndex(0), pExpCtrl(NULL) {
 
     Configuration cfg;
-    
+
     if(!cfg.Load(cfgFile))
         throw "Fail to load parameters for acq thread from configuration file.";
 
@@ -145,7 +145,7 @@ AcqThread::AcqThread(   string                              cfgFile,
 
             for(tokenizer::iterator tok_iter_ = tokens_.begin();tok_iter_ != tokens_.end(); ++tok_iter_)
                 sp.push_back(*tok_iter_);
-        
+
             if(sp.size() == 7) {
 
                 AcqSchedule r = AcqSchedule(atoi(sp.at(0).c_str()), atoi(sp.at(1).c_str()), atoi(sp.at(2).c_str()), atoi(sp.at(3).c_str()), atoi(sp.at(4).c_str()), atoi(sp.at(5).c_str()), atoi(sp.at(6).c_str()));
@@ -273,7 +273,7 @@ AcqThread::AcqThread(   string                              cfgFile,
                 mSunsetTime.push_back(atoi((*tok_iter).c_str()));
         }
 
-        
+
         // SUNRISE DURATION (used if ephemerise = false) --------------------------------
 
         if(!cfg.Get("SUNRISE_DURATION", mSunriseDuration))
@@ -454,7 +454,7 @@ void AcqThread::operator()(){
         bool exposureControlStatus = false;
         bool exposureControlActive = false;
         bool cleanStatus = false;
-            
+
         if(mDevice->getExposureStatus()) {
 
             pExpCtrl = new ExposureControl( mExpCtrlFrequency,
@@ -485,18 +485,17 @@ void AcqThread::operator()(){
             string dateDelimiter = ".";
             string refDate = cDate.substr(0, cDate.find(dateDelimiter));
 
+
             do {
 
                 // ############## UPDATE FPS ##############
 
-                // Get Fps from camera
-                double fps = 0; 
+                double fps = 0;
                 bool getFPS = mDevice->getCameraFPS(fps);
-
-                if(getFPS == false) {
+                if(!getFPS) {
                     fps = averageFPS;
                 }
-        
+
                 // Update timeBeforeEvent (in fps) and timeAfterEvent (in fps) according fps value.
                 if(pDetection != NULL) {
                     if(!mDevice->mVideoFramesInput) {
@@ -842,7 +841,7 @@ void AcqThread::operator()(){
                 }else{
                     std::cout << " [ TIME ACQ ] : " << tacq << " ms   FPS("  << fps << ")" <<  endl;
                 }
- 
+
                 BOOST_LOG_SEV(logger, normal) << " [ TIME ACQ ] : " << tacq << " ms";
 
                 mMustStopMutex.lock();
@@ -1383,7 +1382,7 @@ bool AcqThread::getSunTimes() {
             if(sunriseStartH + intpart1 < 24) {
 
                 sunriseStopH = sunriseStartH + intpart1;
-               
+
 
             }else {
 
@@ -1493,7 +1492,7 @@ bool AcqThread::configureInputDevice() {
     // SET SIZE
     if(!mDevice->setCameraSize())
         return false;
-    
+
     // SET FORMAT
     if(!mDevice->setCameraPixelFormat())
         return false;

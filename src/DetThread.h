@@ -90,8 +90,10 @@ class DetThread {
         bool                            mSaveSum;                   // Save sum of the event            (parameter from configuration file).
         bool                            mSaveGeMap;
         bool                            mSaveSumWithHistEqualization;
-        double                          mTimeBeforeEvent;           // Time to keep before an event     (parameter from configuration file).
-        double                          mTimeAfterEvent;            // Time to keep after an event      (parameter from configuration file).
+        double                          mTimeBeforeEvent;
+        double                          mTimeAfterEvent;
+        double                          mTimeBeforeEv;              // Time to keep before an event     (parameter from configuration file).
+        double                          mTimeAfterEv;
         string                          mDataPath;                  // Where to save data               (parameter from configuration file).
         string                          mStationName;               // Name of the station              (parameter from configuration file).
         CamBitDepth                     mBitDepth;                  // Acquisition bit depth            (parameter from configuration file).
@@ -218,13 +220,13 @@ class DetThread {
 
         void setTimeBeforeEvent(double fps) {
 
-            mTimeBeforeEvent = mTimeBeforeEvent * fps;
+            mTimeBeforeEvent = mTimeBeforeEv * fps;
 
         };
 
         void setTimeAfterEvent(double fps) {
 
-            mTimeAfterEvent = mTimeAfterEvent * fps;
+            mTimeAfterEvent = mTimeAfterEv * fps;
 
         };
 

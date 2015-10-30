@@ -47,7 +47,7 @@ DetThread::DetThread(   string                          cfg_p,
                         boost::condition_variable      *dSignal_c):
 
                         pDetMthd(NULL), mSaveAvi(false), mSaveFits3D(false), mSaveFits2D(false), mSaveSum(false),
-                        mTimeBeforeEvent(0), mTimeAfterEvent(0), mBitDepth(MONO_8), mMailAlertEnabled(false),
+                        mTimeBeforeEvent(0), mTimeAfterEvent(0), mTimeBeforeEv(0), mTimeAfterEv(0), mBitDepth(MONO_8), mMailAlertEnabled(false),
                         mSmtpSecurity(NO_SECURITY), mStackReduction(false), mStackMthd(SUM), mForceToReset(false), mMustStop(false),
                         mEventPath(""), mIsRunning(false), mNbDetection(0), mWaitFramesToCompleteEvent(false), mCurrentDataSetLocation(""),
                         mNbWaitFrames(0), mInterruptionStatus(false) {
@@ -129,15 +129,15 @@ DetThread::DetThread(   string                          cfg_p,
 
     //********************* TIME BEFORE.*************************************
 
-    if(!cfg.Get("DET_TIME_BEFORE", mTimeBeforeEvent)) {
-        mTimeBeforeEvent = 0;
+    if(!cfg.Get("DET_TIME_BEFORE", mTimeBeforeEv)) {
+        mTimeBeforeEv = 0;
         BOOST_LOG_SEV(logger, warning) << "Fail to load DET_TIME_BEFORE from configuration file. Set to 0";
     }
 
     //********************* TIME AFTER.**************************************
 
-    if(!cfg.Get("DET_TIME_AFTER", mTimeAfterEvent)) {
-        mTimeAfterEvent = 0;
+    if(!cfg.Get("DET_TIME_AFTER", mTimeAfterEv)) {
+        mTimeAfterEv = 0;
         BOOST_LOG_SEV(logger, warning) << "Fail to load DET_TIME_AFTER from configuration file. Set to 0";
     }
 
@@ -376,6 +376,8 @@ void DetThread::operator ()(){
                         // Wait frames to complete the detection.
                         if(mWaitFramesToCompleteEvent){
 
+                            BOOST_LOG_SEV(logger, notification) << "mNbWaitFrames : " << mNbWaitFrames <<    "       mTimeAfterEvent : " << mTimeAfterEvent;
+
                             if(mNbWaitFrames >= mTimeAfterEvent){
 
                                 BOOST_LOG_SEV(logger, notification) << "Event completed." << endl;
@@ -397,7 +399,7 @@ void DetThread::operator ()(){
                                     BOOST_LOG_SEV(logger,critical) << "Error saving event data.";
                                 else
                                     BOOST_LOG_SEV(logger, notification) << "Success to save event !" << endl;
-                                
+
                                 lock.unlock();
 
                                 // Reset detection.
@@ -810,13 +812,13 @@ bool DetThread::saveEventData(int firstEvPosInFB, int lastEvPosInFB){
 
                 switch(mBitDepth) {
 
-                    case MONO_8 : 
+                    case MONO_8 :
                         {
                             newFits.writeFits((*it).mImg, UC8, fits2DName);
                         }
                         break;
 
-                    case MONO_12 : 
+                    case MONO_12 :
                         {
                             newFits.writeFits((*it).mImg, S16, fits2DName);
                         }
