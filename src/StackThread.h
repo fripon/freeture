@@ -75,20 +75,19 @@ class StackThread {
         }initializer;
 
         boost::thread                   *thread;
-        string                          DATA_PATH;
-        bool                            STACK_REDUCTION;
-        int                             STACK_INTERVAL;
+        string                          mDataPath;
+        bool                            mStackReduction;
+        int                             mStackInterval;
         bool                            mFitsCompression;
         string                          mFitsCompressionMethod;
-        double                          STACK_TIME;
-        CamBitDepth                     ACQ_BIT_DEPTH;
-        StackMeth                       STACK_MTHD;
-        string                          STATION_NAME;
-        Fits                            fitsHeader;
+        double                          mStackTime;
+        CamBitDepth                     mAcqBitDepth;
+        StackMeth                       mStackMthd;
+        string                          mStationName;
+        Fits                            mFitsHeader;
         bool                            isRunning;
         bool                            mustStop;
         boost::mutex                    mustStopMutex;
-        string                          cfgPath;
         string                          completeDataPath;
         bool                            interruptionStatus;
         boost::mutex                    interruptionStatusMutex;
@@ -104,7 +103,7 @@ class StackThread {
         /**
         * Constructor.
         *
-        * @param cfg_p Path of the configuration file.
+        * @param cfgPath Path of the configuration file.
         * @param sS Pointer on a boolean used as a signal.
         * @param sS_m Pointer on a mutex.
         * @param sS_c Pointer on a condition variable.
@@ -112,7 +111,7 @@ class StackThread {
         * @param fb_m Pointer on the mutex to access to the framebuffer.
         * @param fb_c Pointer on a condition variable.
         */
-        StackThread(    string                          cfg_p,
+        StackThread(    string                          cfgPath,
                         bool                            *sS,
                         boost::mutex                    *sS_m,
                         boost::condition_variable       *sS_c,
@@ -157,12 +156,6 @@ class StackThread {
         bool interruptThread();
 
     private :
-
-        /**
-        * Load stack thread parameters.
-        *
-        */
-        bool loadStackParameters();
 
         /**
         * Build directory to save stack.
