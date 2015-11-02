@@ -859,7 +859,7 @@ bool Fits2D::writeKeywords(fitsfile *fptr){
 
 }
 
-bool Fits2D::writeFits(Mat img, ImgBitDepth imgType, string fileName) {
+bool Fits2D::writeFits(Mat img, ImgBitDepth imgType, string fileName, string compression) {
 
     int status = 0;
 
@@ -891,6 +891,8 @@ bool Fits2D::writeFits(Mat img, ImgBitDepth imgType, string fileName) {
     fitsfile *fptr;
 
     const char * filename;
+    const char * filename2;
+
 
     // Creation of the fits filename.
     string pathAndname = "";
@@ -908,6 +910,8 @@ bool Fits2D::writeFits(Mat img, ImgBitDepth imgType, string fileName) {
     }
 
     filename = pathAndname.c_str();
+    pathAndname += compression;
+    filename2 = pathAndname.c_str();
 
     switch(imgType){
 
@@ -942,7 +946,7 @@ bool Fits2D::writeFits(Mat img, ImgBitDepth imgType, string fileName) {
             remove(filename);
 
             // Create new FITS file.
-            if(fits_create_file(&fptr, filename, &status)){
+            if(fits_create_file(&fptr, filename2, &status)){
 
                  printerror(status);
                  free(tab[0]);
@@ -1016,7 +1020,7 @@ bool Fits2D::writeFits(Mat img, ImgBitDepth imgType, string fileName) {
             remove(filename);
 
             // Create new FITS file.
-            if(fits_create_file(&fptr, filename, &status)){
+            if(fits_create_file(&fptr, filename2, &status)){
 
                  printerror(status);
                  free(tab[0]);
@@ -1092,7 +1096,7 @@ bool Fits2D::writeFits(Mat img, ImgBitDepth imgType, string fileName) {
             remove(filename);
 
             // Create new FITS file.
-            if (fits_create_file(&fptr, filename, &status)){
+            if (fits_create_file(&fptr, filename2, &status)){
 
                  printerror(status);
                  free( *tab);
@@ -1169,7 +1173,7 @@ bool Fits2D::writeFits(Mat img, ImgBitDepth imgType, string fileName) {
             remove(filename);
 
             // Create new FITS file.
-            if (fits_create_file(&fptr, filename, &status)){
+            if (fits_create_file(&fptr, filename2, &status)){
 
                  printerror(status);
                  free( *tab);

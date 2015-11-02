@@ -125,6 +125,8 @@ class DetThread {
         string                          mCurrentDataSetLocation;
         vector<pair<string,int>>        mDetectionResults;
         bool                            mForceToReset;
+        bool                            mFitsCompression;
+        string                          mFitsCompressionMethod;
 
     public :
 

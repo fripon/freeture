@@ -78,6 +78,8 @@ class StackThread {
         string                          DATA_PATH;
         bool                            STACK_REDUCTION;
         int                             STACK_INTERVAL;
+        bool                            mFitsCompression;
+        string                          mFitsCompressionMethod;
         double                          STACK_TIME;
         CamBitDepth                     ACQ_BIT_DEPTH;
         StackMeth                       STACK_MTHD;

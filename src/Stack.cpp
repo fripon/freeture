@@ -39,7 +39,8 @@ boost::log::sources::severity_logger< LogSeverityLevel >  Stack::logger;
 
 Stack::Init Stack::initializer;
 
-Stack::Stack():
+Stack::Stack(string fitsCompression):
+mFitsCompressionMethod(fitsCompression),
 curFrames(0), varExpTime(false),
 sumExpTime(0.0), gainFirstFrame(0), expFirstFrame(0), fps(0), bitdepth(MONO_8){
 
@@ -176,7 +177,7 @@ bool Stack::saveStack(Fits fitsHeader, string path, StackMeth stackMthd, string 
 
                             // Create FITS image with BITPIX = BYTE_IMG (8-bits unsigned integers), pixel with TBYTE (8-bit unsigned byte)
                             BOOST_LOG_SEV(logger, notification) << "Writing FITS image with BITPIX = BYTE_IMG (8-bits unsigned integers), pixel with TBYTE (8-bit unsigned byte)";
-                            return newFits.writeFits(newMat, UC8, "" );
+                            return newFits.writeFits(newMat, UC8, "" , mFitsCompressionMethod);
 
                         }
 
@@ -219,7 +220,7 @@ bool Stack::saveStack(Fits fitsHeader, string path, StackMeth stackMthd, string 
                             }
 
                             BOOST_LOG_SEV(logger, notification) << "Writing FITS signed short image.";
-                            return newFits.writeFits(newMat, S16, "" );
+                            return newFits.writeFits(newMat, S16, "", mFitsCompressionMethod);
 
                         }
 
@@ -271,7 +272,7 @@ bool Stack::saveStack(Fits fitsHeader, string path, StackMeth stackMthd, string 
 
                             {
                                 BOOST_LOG_SEV(logger, notification) << "Writting Fits unsigned char.";
-                                return newFits.writeFits(newMat, UC8, "" );
+                                return newFits.writeFits(newMat, UC8, "", mFitsCompressionMethod);
 
                             }
 
@@ -281,7 +282,7 @@ bool Stack::saveStack(Fits fitsHeader, string path, StackMeth stackMthd, string 
 
                             {
                                 BOOST_LOG_SEV(logger, notification) << "Writting Fits signed short.";
-                                return newFits.writeFits(newMat, S16, "" );
+                                return newFits.writeFits(newMat, S16, "", mFitsCompressionMethod);
 
                             }
 

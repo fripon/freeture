@@ -62,6 +62,33 @@ StackThread::StackThread(   string                          cfg_p,
     isRunning = false;
     interruptionStatus = false;
 
+    Configuration cfg;
+
+    if(!cfg.Load(cfg_p))
+        throw "Fail to load parameters for stackThread from configuration file.";
+
+    if(!cfg.Get("FITS_COMPRESSION", mFitsCompression)) {
+
+        mFitsCompression = false;
+        mFitsCompressionMethod = "";
+        BOOST_LOG_SEV(logger, warning) << "Fail to load FITS_COMPRESSION from configuration file. Set to false.";
+
+    }else{
+
+        if(mFitsCompression) {
+
+            if(!cfg.Get("FITS_COMPRESSION_METHOD", mFitsCompressionMethod)) {
+                mFitsCompressionMethod = "[compress]";
+                BOOST_LOG_SEV(logger, warning) << "Fail to load FITS_COMPRESSION_METHOD from configuration file. Set to [compress].";
+            }
+
+        }else{
+
+            mFitsCompressionMethod = "";
+
+        }
+    }
+
 }
 
 StackThread::~StackThread(void){
@@ -309,7 +336,7 @@ void StackThread::operator()(){
                 boost::this_thread::sleep(boost::posix_time::millisec(STACK_INTERVAL*1000));
 
                 // Create a stack to accumulate n frames.
-                Stack frameStack = Stack();
+                Stack frameStack = Stack(mFitsCompressionMethod);
 
                 // First reference date.
                 boost::posix_time::ptime time = boost::posix_time::microsec_clock::universal_time();

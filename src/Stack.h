@@ -94,6 +94,7 @@ class Stack {
         CamBitDepth     bitdepth;
         bool            varExpTime;
         double          sumExpTime;
+        string          mFitsCompressionMethod;
 
     public :
 
@@ -101,7 +102,7 @@ class Stack {
         * Constructor.
         *
         */
-        Stack();
+        Stack(string fitsCompression);
 
         /**
         * Destructor.

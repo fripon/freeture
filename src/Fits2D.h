@@ -117,7 +117,7 @@ class Fits2D : public Fits {
         * @return Success status to create and write the file.
         *
         */
-        bool writeFits(Mat img, ImgBitDepth imgType, string fileName);
+        bool writeFits(Mat img, ImgBitDepth imgType, string fileName, string compression = "");
 
         /**
         * Read a Fits file in 32 bits float format.

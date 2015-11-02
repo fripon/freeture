@@ -197,6 +197,30 @@ DetThread::DetThread(   string                          cfg_p,
         mStackMthd = stack_mth.parseEnum("STACK_MTHD", stack_method);
     }
 
+    //********************* FITS COMPRESSION.********************************
+
+    if(!cfg.Get("FITS_COMPRESSION", mFitsCompression)) {
+
+        mFitsCompression = false;
+        mFitsCompressionMethod = "";
+        BOOST_LOG_SEV(logger, warning) << "Fail to load FITS_COMPRESSION from configuration file. Set to false.";
+
+    }else{
+
+        if(mFitsCompression) {
+
+            if(!cfg.Get("FITS_COMPRESSION_METHOD", mFitsCompressionMethod)) {
+                mFitsCompressionMethod = "[compress]";
+                BOOST_LOG_SEV(logger, warning) << "Fail to load FITS_COMPRESSION_METHOD from configuration file. Set to [compress].";
+            }
+
+        }else{
+
+            mFitsCompressionMethod = "";
+
+        }
+    }
+
     //********************* FITS KEYWORDS.***********************************
 
     mFitsHeader.loadKeywordsFromConfigFile(mCfgPath);
@@ -720,7 +744,7 @@ bool DetThread::saveEventData(int firstEvPosInFB, int lastEvPosInFB){
     }
 
     // Init sum.
-    Stack stack = Stack();
+    Stack stack = Stack(mFitsCompressionMethod);
 
     // Exposure time sum.
     double sumExpTime = 0.0;
@@ -814,13 +838,13 @@ bool DetThread::saveEventData(int firstEvPosInFB, int lastEvPosInFB){
 
                     case MONO_8 :
                         {
-                            newFits.writeFits((*it).mImg, UC8, fits2DName);
+                            newFits.writeFits((*it).mImg, UC8, fits2DName, mFitsCompressionMethod);
                         }
                         break;
 
                     case MONO_12 :
                         {
-                            newFits.writeFits((*it).mImg, S16, fits2DName);
+                            newFits.writeFits((*it).mImg, S16, fits2DName, mFitsCompressionMethod);
                         }
                         break;
 
