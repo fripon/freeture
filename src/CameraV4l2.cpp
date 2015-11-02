@@ -933,6 +933,7 @@
 
                     {
 
+                        image = Mat(mFormat.fmt.pix.height, mFormat.fmt.pix.width, CV_8UC1, Scalar(0));
                         memcpy(image.ptr(), buffer, mFormat.fmt.pix.width*mFormat.fmt.pix.height);
                         res = true;
 
