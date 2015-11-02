@@ -102,8 +102,8 @@
 
             const char* deviceName;
             int fd;
-            double expMin, expMax;
-            int gainMin, gainMax;
+            double expMin, expMax, exp;
+            int gainMin, gainMax, gain;
             int mWidth, mHeight;
             int mFrameCounter;
             struct v4l2_format mFormat;

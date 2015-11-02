@@ -71,6 +71,8 @@
         frame_number = 0;
         expMin = 0;
         expMax = 0;
+        exp =0;
+        gain = 0;
         gainMin = 0;
         gainMax = 0;
         mFrameCounter = 0;
@@ -737,6 +739,8 @@
             newFrame.mBitDepth = MONO_8;
             newFrame.mSaturatedValue = 255;
             newFrame.mFrameNumber = mFrameCounter;
+            newFrame.mExposure = exp;
+            newFrame.mGain = gain;
             mFrameCounter++;
 
             if(!convertImage(ImageBuffer, newFrame.mImg))
@@ -1366,6 +1370,7 @@
 
                 */
                 control.value = val/100;
+                exp = val;
 
                 if (-1 == ioctl(fd, VIDIOC_S_CTRL, &control)) {
                     perror("VIDIOC_S_CTRL");
@@ -1423,6 +1428,7 @@
                 memset(&control, 0, sizeof (control));
                 control.id = V4L2_CID_GAIN;
                 control.value = val;
+                gain = val;
 
                 if (-1 == ioctl(fd, VIDIOC_S_CTRL, &control)) {
                     perror("VIDIOC_S_CTRL");
