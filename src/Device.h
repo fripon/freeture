@@ -128,6 +128,7 @@ class Device {
         int         mGenCamID;      // General ID.
         Camera      *mCam;
         string      mCfgPath;
+        bool        mShiftBits;
 
     public :
 

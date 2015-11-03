@@ -87,7 +87,7 @@
         }
 
         return camerasList;
-        
+
     }
 
     // https://valelab.ucsf.edu/svn/micromanager2/branches/micromanager1.3/DeviceAdapters/TISCam/SimplePropertyAccess.cpp
@@ -179,7 +179,7 @@
 
             }
             cout << endl;
-        
+
             if(chooseValue != 0.0) {
                 mFPS = chooseValue;
                 cout << ">> Fps setted to the lower value : " << chooseValue << endl;
@@ -223,7 +223,7 @@
 
             }
             cout << endl;
-        
+
             if(chooseValue != 0.0) {
                 mFPS = chooseValue;
                 cout << ">> Set fps to : " << chooseValue << endl;
@@ -260,7 +260,7 @@
                 return false;
 
             }
-            
+
             // Open the selected video capture device.
             m_pGrabber->openDev(pVidCapDevList->at(id));
             return true;
@@ -301,7 +301,7 @@
 
             case MONO_8 :
 
-                if(mono8.size() == 0) 
+                if(mono8.size() == 0)
                     return false;
 
                 m_pGrabber->setVideoFormat(mono8.front());//"Y8 (1280x960-1280x960)");
@@ -314,11 +314,11 @@
 
             case MONO_12 :
 
-                if(mono12.size() == 0) 
+                if(mono12.size() == 0)
                     return false;
 
                 m_pGrabber->setVideoFormat(mono12.front());//"Y16 (1280x960-1280x960)");
-                
+
                 // Disable overlay.
                 // http://www.theimagingsourceforums.com/archive/index.php/t-319880.html
                 m_pGrabber->setOverlayBitmapPathPosition(DShowLib::ePP_NONE);
@@ -352,29 +352,29 @@
         DShowLib::tIVCDAbsoluteValuePropertyPtr pExposureRange;
 
         pExposureRange = NULL;
- 
+
         DShowLib::tIVCDPropertyItemsPtr pItems = m_pGrabber->getAvailableVCDProperties();
 
-        if( pItems != 0 ) { 
+        if( pItems != 0 ) {
 
-            // Try to find the exposure item. 
+            // Try to find the exposure item.
             DShowLib::tIVCDPropertyItemPtr pExposureItem = pItems->findItem( DShowLib::VCDID_Exposure );
 
-            if( pExposureItem != 0 ) { 
+            if( pExposureItem != 0 ) {
 
-                // Try to find the value and auto elements 
+                // Try to find the value and auto elements
                 DShowLib::tIVCDPropertyElementPtr pExposureValueElement = pExposureItem->findElement( DShowLib::VCDElement_Value );
 
-                // If a value element exists, try to acquire a range interface 
-                if( pExposureValueElement != 0 ) { 
+                // If a value element exists, try to acquire a range interface
+                if( pExposureValueElement != 0 ) {
 
                     pExposureValueElement->getInterfacePtr( pExposureRange );
 
                     eMin = pExposureRange->getRangeMin();
                     eMax = pExposureRange->getRangeMax();
 
-                } 
-            } 
+                }
+            }
         }
     }
 
@@ -402,23 +402,23 @@
         pExposureAuto = NULL;
 
         DShowLib::tIVCDPropertyItemsPtr pItems = m_pGrabber->getAvailableVCDProperties();
-        
-        if( pItems != 0 ) { 
-            // Try to find the exposure item. 
+
+        if( pItems != 0 ) {
+            // Try to find the exposure item.
             DShowLib::tIVCDPropertyItemPtr pExposureItem = pItems->findItem( DShowLib::VCDID_Exposure );
-            if( pExposureItem != 0 ) { 
-                // Try to find the value and auto elements 
+            if( pExposureItem != 0 ) {
+                // Try to find the value and auto elements
                 DShowLib::tIVCDPropertyElementPtr pExposureValueElement = pExposureItem->findElement( DShowLib::VCDElement_Value );
                 DShowLib::tIVCDPropertyElementPtr pExposureAutoElement = pExposureItem->findElement( DShowLib::VCDElement_Auto );
 
-                // If an auto element exists, try to acquire a switch interface 
-                if( pExposureAutoElement != 0 ) { 
+                // If an auto element exists, try to acquire a switch interface
+                if( pExposureAutoElement != 0 ) {
                     pExposureAutoElement->getInterfacePtr( pExposureAuto );
                     pExposureAuto->setSwitch(false); // Disable auto, otherwise we can not set exposure.
-                } 
+                }
 
-                // If a value element exists, try to acquire a range interface 
-                if( pExposureValueElement != 0 ) { 
+                // If a value element exists, try to acquire a range interface
+                if( pExposureValueElement != 0 ) {
 
                     pExposureValueElement->getInterfacePtr( pExposureRange );
 
@@ -434,14 +434,14 @@
                         value = mExposureMax;
                         BOOST_LOG_SEV(logger,warning) << "EXPOSURE TIME setted to " << value << ". Available range [" << mExposureMin << " - " << mExposureMax<< "]";
                     }
-                                
+
                     // Here we set the the exposure value.
                     cout << ">> Set exposure time to : " << value << endl;
-                    pExposureRange->setValue( value); 
+                    pExposureRange->setValue( value);
                     mExposure = value * 1000000.0;
                     bOK = true;
-                } 
-            } 
+                }
+            }
         }
 
         return bOK;
@@ -456,21 +456,21 @@
 
         DShowLib::tIVCDPropertyItemsPtr pItems = m_pGrabber->getAvailableVCDProperties();
 
-        if( pItems != 0 ) { 
+        if( pItems != 0 ) {
 
-            // Try to find the gain item. 
+            // Try to find the gain item.
             DShowLib::tIVCDPropertyItemPtr pGainItem = pItems->findItem( DShowLib::VCDID_Gain );
 
-            if( pGainItem != 0 ) { 
+            if( pGainItem != 0 ) {
 
-                // Try to find auto elements 
+                // Try to find auto elements
                 DShowLib::tIVCDPropertyElementPtr pGainAutoElement = pGainItem->findElement( DShowLib::VCDElement_Auto );
 
-                // If an auto element exists, try to acquire a switch interface 
-                if( pGainAutoElement != 0 ) { 
+                // If an auto element exists, try to acquire a switch interface
+                if( pGainAutoElement != 0 ) {
                     pGainAutoElement->getInterfacePtr( pGainAuto );
                     pGainAuto->setSwitch(false); // Disable auto, otherwise we can not set gain.
-                } 
+                }
 
                 mGainMin  = (int)getPropertyRangeMin(DShowLib::VCDID_Gain, pItems);
                 mGainMax  = (int)getPropertyRangeMax(DShowLib::VCDID_Gain, pItems);
@@ -488,8 +488,8 @@
                 cout << ">> Set gain to : " << value << endl;
                 mGain = value;
                 bOK = true;
-                
-            } 
+
+            }
         }
         return bOK;
 
@@ -595,6 +595,9 @@
 
                         }
                     }
+
+
+
                 }
 
                 break;
@@ -659,24 +662,24 @@
 
         DShowLib::tIVCDPropertyItemsPtr pItems = m_pGrabber->getAvailableVCDProperties();
 
-        if( pItems != 0 ) { 
+        if( pItems != 0 ) {
 
-            // Try to find the exposure item. 
+            // Try to find the exposure item.
 
             DShowLib::tIVCDPropertyItemPtr pExposureItem = pItems->findItem( DShowLib::VCDID_Exposure );
-            if( pExposureItem != 0 ) { 
+            if( pExposureItem != 0 ) {
 
-                // Try to find the value and auto elements 
+                // Try to find the value and auto elements
                 DShowLib::tIVCDPropertyElementPtr pExposureValueElement = pExposureItem->findElement( DShowLib::VCDElement_Value );
 
-                // If a value element exists, try to acquire a range interface 
-                if( pExposureValueElement != 0 ) { 
+                // If a value element exists, try to acquire a range interface
+                if( pExposureValueElement != 0 ) {
 
                     pExposureValueElement->getInterfacePtr( pExposureRange );
                     return (pExposureRange->getValue()/1000000.0);
 
-                } 
-            } 
+                }
+            }
         }
 
         return 0.0;
@@ -707,10 +710,10 @@
 
         if(!createDevice(camID))
             return false;
-  
+
         if(!setPixelFormat(frame.mBitDepth))
             return false;
-        
+
         // Set lower fps value.
         if(!setFpsToLowerValue())
             return false;
@@ -728,7 +731,7 @@
 
         // Set the sink.
         m_pGrabber->setSinkType(pSink);
-        
+
         // Disable live mode.
         m_pGrabber->prepareLive(false);
 
@@ -810,6 +813,10 @@
                                     ptr[j] = ptr[j] >> 4;
                                 }
                             }
+
+
+
+
                         }
                     }
                 }

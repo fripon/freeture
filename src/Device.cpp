@@ -69,6 +69,9 @@ Device::Device(string cfgPath) {
     if(!cfg.Get("ACQ_DAY_GAIN", mDayGain))
         throw "Fail to get ACQ_DAY_GAIN for device object.";
 
+    if(!cfg.Get("SHIFT_BITS", mShiftBits))
+        throw "Fail to get SHIFT_BITS for device object.";
+
     string acqBitDepth;
     cfg.Get("ACQ_BIT_DEPTH", acqBitDepth);
     EParser<CamBitDepth> camBitDepth;
@@ -111,6 +114,7 @@ Device::Device() {
     mSizeHeight     = 480;
     mCam            = NULL;
     mVideoFramesInput = false;
+    mShiftBits      = false;
 
 }
 
@@ -292,7 +296,7 @@ bool Device::createDevicesWith(CamSdkType sdk) {
 
             {
                 #ifdef LINUX
-                    mCam = new CameraGigeAravis();
+                    mCam = new CameraGigeAravis(mShiftBits);
                 #endif
             }
 

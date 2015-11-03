@@ -623,15 +623,15 @@
                     //Timestamping.
                     boost::posix_time::ptime time = boost::posix_time::microsec_clock::universal_time();
 
-                    Mat image;
-
                     if(pixFormat == ARV_PIXEL_FORMAT_MONO_8){
 
-                        image = Mat(mHeight, mWidth, CV_8UC1, buffer_data);
+                        Mat image = Mat(mHeight, mWidth, CV_8UC1, buffer_data);
+                        image.copyTo(frame.mImg);
 
                     }else if(pixFormat == ARV_PIXEL_FORMAT_MONO_12){
 
-                        image = Mat(mHeight, mWidth, CV_16UC1, buffer_data);
+                        // Unsigned short image.
+                        Mat image = Mat(mHeight, mWidth, CV_16UC1, buffer_data);
 
                         if(shiftBitsImage){
                             unsigned short * p;
@@ -641,9 +641,10 @@
                             }
                         }
 
+                        image.copyTo(frame.mImg);
+
                     }
 
-                    image.copyTo(frame.mImg);
                     frame.mDate = TimeDate::splitIsoExtendedDate(to_iso_extended_string(time));
                     frame.mFps = arv_camera_get_frame_rate(camera);
 
@@ -857,7 +858,7 @@
         if(camera != NULL){
 
             if(val >= expMin && val <= expMax) {
-                
+
                 exp = val;
                 arv_camera_set_exposure_time(camera, val);
 

@@ -1145,6 +1145,44 @@ bool Fits2D::writeFits(Mat img, ImgBitDepth imgType, string fileName, string com
         case 3 :
         {
 
+            Mat newMat;
+
+            if(img.type() == CV_16UC1) {
+
+                // Convert unsigned short type image in short type image.
+                newMat = Mat(img.rows, img.cols, CV_16SC1, Scalar(0));
+
+                // Set bzero and bscale for print unsigned short value in soft visualization.
+                kBZERO = 32768;
+                kBSCALE = 1;
+
+                unsigned short * ptr;
+                short * ptr2;
+
+                for(int i = 0; i < img.rows; i++){
+
+                    ptr = img.ptr<unsigned short>(i);
+                    ptr2 = newMat.ptr<short>(i);
+
+                    for(int j = 0; j < img.cols; j++){
+
+                        if(ptr[j] - 32768 > 32767){
+
+                            ptr2[j] = 32767;
+
+                        }else{
+
+                            ptr2[j] = ptr[j] - 32768;
+                        }
+                    }
+                }
+
+            }else{
+
+                img.copyTo(newMat);
+
+            }
+
             //https://www-n.oca.eu/pichon/Tableau_2D.pdf
             short ** tab = (short * *) malloc( img.rows * sizeof( short * ) ) ;
 
@@ -1193,12 +1231,12 @@ bool Fits2D::writeFits(Mat img, ImgBitDepth imgType, string fileName, string com
             // Initialize the values in the fits image with the mat's values.
             for ( int j = 0; j < naxes[1]; j++){
 
-                 short * matPtr = img.ptr<short>(j);
+                 short * matPtr = newMat.ptr<short>(j);
 
                  for ( int i = 0; i < naxes[0]; i++){
 
                      // Affect a value and inverse the image.
-                     tab[img.rows-1-j][i] = (short)matPtr[i];
+                     tab[newMat.rows-1-j][i] = (short)matPtr[i];
                 }
             }
 

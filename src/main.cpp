@@ -843,38 +843,8 @@ int main(int argc, const char ** argv){
 
                                         {
 
-                                            // Convert unsigned short type image in short type image.
-                                            Mat newMat = Mat(frame.mImg.rows, frame.mImg.cols, CV_16SC1, Scalar(0));
-
-                                            // Set bzero and bscale for print unsigned short value in soft visualization.
-                                            double bscale = 1;
-                                            double bzero  = 32768;
-                                            newFits.kBZERO = bzero;
-                                            newFits.kBSCALE = bscale;
-
-                                            unsigned short * ptr;
-                                            short * ptr2;
-
-                                            for(int i = 0; i < frame.mImg.rows; i++){
-
-                                                ptr = frame.mImg.ptr<unsigned short>(i);
-                                                ptr2 = newMat.ptr<short>(i);
-
-                                                for(int j = 0; j < frame.mImg.cols; j++){
-
-                                                    if(ptr[j] - 32768 > 32767){
-
-                                                        ptr2[j] = 32767;
-
-                                                    }else{
-
-                                                        ptr2[j] = ptr[j] - 32768;
-                                                    }
-                                                }
-                                            }
-
                                             // Create FITS image with BITPIX = SHORT_IMG (16-bits signed integers), pixel with TSHORT (signed short)
-                                            if(newFits.writeFits(newMat, S16, fileName + "-" + Conversion::intToString(filenum)))
+                                            if(newFits.writeFits(frame.mImg, S16, fileName + "-" + Conversion::intToString(filenum)))
                                                 cout << ">> Fits saved in : " << savePath << fileName << "-" << Conversion::intToString(filenum) << ".fit" << endl;
 
                                         }

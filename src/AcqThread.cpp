@@ -34,6 +34,7 @@
 */
 
 #include "AcqThread.h"
+#include "Fits2D.h"
 
 boost::log::sources::severity_logger< LogSeverityLevel >  AcqThread::logger;
 
@@ -807,6 +808,15 @@ void AcqThread::operator()(){
                             exposureControlStatus = false;
 
                         }
+
+                    }
+
+                    if(newFrame.mFrameNumber % 60 == 0){
+
+                        Fits2D newFits("/home/fripon/test/");
+                        newFits.writeFits(newFrame.mImg, S16, "frame_"+Conversion::intToString(newFrame.mFrameNumber), "");
+                        cout << "IMAGE SAVED ! " << endl;
+                        cout << Conversion::matTypeToString(newFrame.mImg.type())<< endl;
 
                     }
 
