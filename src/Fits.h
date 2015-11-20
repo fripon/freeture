@@ -64,9 +64,9 @@ using namespace std;
     18. CAMERA      = 'BASLER 1300gm'
     19. FOCAL       = 1.25
     20. APERTURE    = 2.0
-    21. SITELONG    = 2.1794397                                 / longitude observatory
-    22. SITELAT     = 48.7063906                                / latuitude observatory
-    23. SITEELEV    = 90                                        / observatory elevation (meter)
+    21. SITELONG    = 2.1794397                                 / geodetic WGS84 longitude (DD)
+    22. SITELAT     = 48.7063906                                / geodetic WGS84 latitude (DD)
+    23. SITEELEV    = 90                                        / geodetic WGS84 elevation (m)
     24. XPIXEL      = 3.75
     25. YPIXEL      = 3.75
     26. GAINDB      = 400                                       / detector gain
@@ -95,7 +95,7 @@ using namespace std;
     49. CRPIX2      = 480
     50. CRPIX3      = 0
     51. CRVAL1      =                                           / Sidereal time (decimal degree)
-    52. CRVAL2      =                                           / latitude observatory (decimal degree)
+    52. CRVAL2      =                                           / geodetic WGS84 latitude (DD)
     53. K1          =
     54. K2          =
 

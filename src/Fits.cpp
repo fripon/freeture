@@ -103,9 +103,9 @@ Fits::Fits() {
     cCAMERA     = "";
     cFOCAL      = "";
     cAPERTURE   = "";
-    cSITELONG   = "longitude observatory";
-    cSITELAT    = "latuitude observatory";
-    cSITEELEV   = "observatory elevation (meter)";
+    cSITELONG   = "geodetic WGS84 longitude (DD)";
+    cSITELAT    = "geodetic WGS84 latitude (DD)";
+    cSITEELEV   = "geodetic WGS84 elevation (m)";
     cXPIXEL     = "";
     cYPIXEL     = "";
     cGAINDB     = "detector gain";
@@ -134,7 +134,7 @@ Fits::Fits() {
     cCRPIX2     = "";
     cCRPIX3     = "";
     cCRVAL1     = "sidereal time (decimal degree)";
-    cCRVAL2     = "latitude observatory (decimal degree)";
+    cCRVAL2     = "geodetic WGS84 latitude (DD)";
     cK1         = "R = K1 * f * sin(theta/K2)";
     cK2         = "R = K1 * f * sin(theta/K2)";
     cCOMMENT    = "";

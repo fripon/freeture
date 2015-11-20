@@ -100,9 +100,9 @@ bool Fits2D::writeKeywords(fitsfile *fptr){
         18. CAMERA      = 'BASLER 1300gm'
         19. FOCAL       = 1.25
         20. APERTURE    = 2.0
-        21. SITELONG    = 2.1794397                                 / longitude observatory
-        22. SITELAT     = 48.7063906                                / latitude observatory
-        23. SITEELEV    = 90                                        / observatory elevation (meter)
+        21. SITELONG    = 2.1794397                                 / geodetic WGS84 longitude (DD)
+        22. SITELAT     = 48.7063906                                / geodetic WGS84 latitude (DD)
+        23. SITEELEV    = 90                                        / geodetic WGS84 elevation (m)
         24. XPIXEL      = 3.75
         25. YPIXEL      = 3.75
         26. GAINDB      = 400                                       / detector gain
@@ -125,7 +125,7 @@ bool Fits2D::writeKeywords(fitsfile *fptr){
         43. CRPIX1      = 640
         44. CRPIX2      = 480
         45. CRVAL1      =                                           / Sidereal time (decimal degree)
-        46. CRVAL2      =                                           / latitude observatory (decimal degree)
+        46. CRVAL2      =                                           / geodetic WGS84 latitude (DD)
         47. K1          =
         48. K2          =
 
