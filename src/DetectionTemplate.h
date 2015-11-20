@@ -72,6 +72,8 @@
 #include <iterator>
 #include <algorithm>
 #include <boost/filesystem.hpp>
+#include "ImgProcessing.h"
+#include "Mask.h"
 
 using namespace boost::filesystem;
 namespace logging = boost::log;
@@ -116,6 +118,13 @@ class DetectionTemplate : public Detection {
         int                             mDataSetCounter;
         Mat                             mOriginalMask;
         bool                            mMaskToCreate;
+
+        vector<int> accStatus;
+        vector<int> accMax;
+        vector<Mat> accImg;
+
+        Mask *mMaskControl;
+
 
     public :
 

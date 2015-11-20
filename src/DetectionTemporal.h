@@ -73,6 +73,7 @@
 #include <iterator>
 #include <algorithm>
 #include <boost/filesystem.hpp>
+#include "Mask.h"
 
 using namespace boost::filesystem;
 namespace logging = boost::log;
@@ -117,27 +118,17 @@ class DetectionTemporal : public Detection {
         bool                            mSaveGeInfos;           // Save GE informations         (parameter from configuration file).
         string                          mDebugPath;             // Debug location data          (parameter from configuration file).
         bool                            mDebugVideo;            // Create a video for debugging (parameter from configuration file).
-        string                          mMaskPath;              // Location of the mask to use  (parameter from configuration file).
-        bool                            mMaskEnabled;
         VideoWriter                     mVideoDebug;            // Video debug container.
         int                             mRoiSize[2];
         int                             mImgNum;                // Current frame number.
         Mat                             mPrevFrame;             // Previous frame.
         Mat                             mStaticMask;
-        Mat                             mOriginalMask;
-        Mat                             mHighIntensityMap;      // Map of pixel with high intensity.
-        Mat                             mMask;                  // Mask applied to frames.
-        bool                            mMaskToCreate;          // Mask must be created.
         string                          mDebugCurrentPath;
         int                             mDataSetCounter;
-        bool                            mUpdateMask;
         bool                            mDebugUpdateMask;
         double                          mTimeBeforeEvent;       // Time to keep before an event     (parameter from configuration file).
+        Mask                            *mMaskManager;
 
-        boost::circular_buffer<Mat>     mCapBuffer;
-
-        //boost::circular_buffer<Frame> frameBuffer(ACQ_BUFFER_SIZE * ACQ_FPS);
-        int                             mCapCounter;
         VideoWriter mVideoDebugAutoMask;
 
     public :

@@ -42,6 +42,13 @@
 using namespace std;
 using namespace cv;
 
+enum class Thresh {
+
+    MEAN,
+    STDEV
+
+};
+
 class ImgProcessing {
 
     public :
@@ -64,6 +71,9 @@ class ImgProcessing {
         */
         static Mat correctGammaOnMono12(Mat& img, double gamma);
 
+        static Mat buildSaturatedMap(Mat &img, int maxval);
+
+        static Mat thresholding(Mat &img, Mat &mask, int factor, Thresh threshType);
 
         static Mat subdivideFrame(Mat img, int n) {
 

@@ -510,6 +510,7 @@ void DetThread::operator ()(){
     }catch(exception& e){
 
         cout << "An error occured. See log for details." << endl;
+        cout << e.what() << endl;
         BOOST_LOG_SEV(logger, critical) << e.what();
 
     }

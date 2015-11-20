@@ -997,6 +997,29 @@ int main(int argc, const char ** argv){
 
                     break;
 
+
+                case 6 :
+
+                    {
+
+                        vector<string> mMailRecipients, mailAttachments;
+
+                        mMailRecipients.push_back("fripon@ceres.geol.u-psud.fr");
+                        SMTPClient::sendMail(   "10.8.0.1",
+                                                "",
+                                                "",
+                                                "freeture@test.fr",
+                                                mMailRecipients,
+                                                "ORSAY-20151116T191303",
+                                                "message",
+                                                mailAttachments,
+                                                NO_SECURITY);
+
+
+                    }
+
+                    break;
+
                 case 0 :
 
                     ///%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%

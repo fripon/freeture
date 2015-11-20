@@ -183,8 +183,12 @@ bool StackThread::buildStackDataDirectory(TimeDate::Date date){
     string root = mDataPath + mStationName + "_" + YYYYMMDD +"/";
     string subDir = "astro/";
     string finalPath = root + subDir;
-
     completeDataPath = finalPath;
+
+    if(YYYYMMDD == "00000000")
+        return false;
+
+
     BOOST_LOG_SEV(logger,notification) << "Stack data path : " << completeDataPath;
 
     path p(mDataPath);

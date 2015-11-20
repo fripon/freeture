@@ -37,18 +37,18 @@
 
 string Base64::encodeBase64(string data){
 
-	stringstream os;
+    stringstream os;
 
-	typedef boost::archive::iterators::base64_from_binary<						// Convert binary values to base64 characters.
-				boost::archive::iterators::transform_width<const char *, 6, 8>	// Retrieve 6 bit integers from a sequence of 8 bit bytes.
-			>base64_text;														// Compose all the above operations in to a new iterator.
+    typedef boost::archive::iterators::base64_from_binary<                      // Convert binary values to base64 characters.
+                boost::archive::iterators::transform_width<const char *, 6, 8>  // Retrieve 6 bit integers from a sequence of 8 bit bytes.
+            >base64_text;                                                       // Compose all the above operations in to a new iterator.
 
-	copy(
-		base64_text(data.c_str()),
-		base64_text(data.c_str() + data.size()),
-		boost::archive::iterators::ostream_iterator<char>(os)
-	);
+    copy(
+        base64_text(data.c_str()),
+        base64_text(data.c_str() + data.size()),
+        boost::archive::iterators::ostream_iterator<char>(os)
+    );
 
-	return os.str();
+    return os.str();
 
 }

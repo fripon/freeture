@@ -390,7 +390,7 @@ string TimeDate::getYYYYMMDDfromDateString(string date){
 // output : YYYYMMJJTHHMMSS
 string TimeDate::getYYYYMMDDThhmmss(Date date) {
 
-    string res =    Conversion::intToString(date.year) +
+    string res =    Conversion::numbering(4,date.year) + Conversion::intToString(date.year) +
                     Conversion::numbering(2,date.month) + Conversion::intToString(date.month) +
                     Conversion::numbering(2,date.day) + Conversion::intToString(date.day) + "T" +
                     Conversion::numbering(2,date.hours) + Conversion::intToString(date.hours) +
@@ -403,7 +403,7 @@ string TimeDate::getYYYYMMDDThhmmss(Date date) {
 
 string TimeDate::getYYYYMMDD(Date date) {
 
-    string res =    Conversion::intToString(date.year) +
+    string res =    Conversion::numbering(4,date.year) + Conversion::intToString(date.year) +
                     Conversion::numbering(2,date.month) + Conversion::intToString(date.month) +
                     Conversion::numbering(2,date.day) + Conversion::intToString(date.day);
 

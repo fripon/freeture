@@ -52,29 +52,33 @@ void Stack::addFrame(Frame &i){
 
     try{
 
-        if(curFrames == 0){
+        if(TimeDate::getYYYYMMDD(i.mDate) != "00000000") {
 
-            stack = Mat::zeros(i.mImg.rows, i.mImg.cols, CV_32FC1);
-            gainFirstFrame = i.mGain;
-            expFirstFrame = i.mExposure;
-            mDateFirstFrame = i.mDate;
-            fps = i.mFps;
-            bitdepth = i.mBitDepth;
+            if(curFrames == 0){
+
+                stack = Mat::zeros(i.mImg.rows, i.mImg.cols, CV_32FC1);
+                gainFirstFrame = i.mGain;
+                expFirstFrame = i.mExposure;
+                mDateFirstFrame = i.mDate;
+                fps = i.mFps;
+                bitdepth = i.mBitDepth;
+
+            }
+
+            if(expFirstFrame != i.mExposure)
+                varExpTime = true;
+
+            sumExpTime+=i.mExposure;
+
+            Mat curr = Mat::zeros(i.mImg.rows, i.mImg.cols, CV_32FC1);
+
+            i.mImg.convertTo(curr, CV_32FC1);
+
+            accumulate(curr, stack);
+            curFrames++;
+            mDateLastFrame = i.mDate;
 
         }
-
-        if(expFirstFrame != i.mExposure)
-            varExpTime = true;
-
-        sumExpTime+=i.mExposure;
-
-        Mat curr = Mat::zeros(i.mImg.rows, i.mImg.cols, CV_32FC1);
-
-        i.mImg.convertTo(curr, CV_32FC1);
-
-        accumulate(curr, stack);
-        curFrames++;
-        mDateLastFrame = i.mDate;
 
     }catch(exception& e){
 
@@ -86,6 +90,7 @@ void Stack::addFrame(Frame &i){
 }
 
 bool Stack::saveStack(Fits fitsHeader, string path, StackMeth stackMthd, string stationName, bool stackReduction){
+
 
     double  debObsInSeconds = mDateFirstFrame.hours*3600 + mDateFirstFrame.minutes*60 + mDateFirstFrame.seconds;
     double  endObsInSeconds = mDateLastFrame.hours*3600 + mDateLastFrame.minutes*60 + mDateLastFrame.seconds;

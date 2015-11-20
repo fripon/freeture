@@ -76,3 +76,106 @@ Mat ImgProcessing::correctGammaOnMono12(Mat& img, double gamma) {
     return result;
 
 }
+
+Mat ImgProcessing::buildSaturatedMap(Mat &img, int maxval) {
+
+    Mat saturatedMap = Mat::zeros(img.rows, img.cols, CV_8UC1);
+
+    unsigned short * ptr1;
+    unsigned char * ptr2;
+
+    for(int i = 0; i < img.rows; i++) {
+
+        ptr1 = img.ptr<unsigned short>(i);
+        ptr2 = saturatedMap.ptr<unsigned char>(i);
+
+        for(int j = 0; j < img.cols; j++){
+
+            if(ptr1[j] >= maxval) {
+                ptr2[j] = 255;
+            }
+        }
+    }
+
+    return saturatedMap;
+
+}
+
+Mat ImgProcessing::thresholding(Mat &img, Mat &mask, int factor, Thresh threshType) {
+
+    Mat thresholdedMap = Mat(img.rows,img.cols, CV_8UC1,Scalar(0));
+    Scalar mean, stddev;
+    cv::meanStdDev(img, mean, stddev, mask);
+    int threshold = 0;
+
+    switch(threshType) {
+
+        case Thresh::MEAN :
+
+            threshold = mean[0] * factor;
+
+            break;
+
+        case Thresh::STDEV :
+
+            threshold = stddev[0] * factor;
+
+            break;
+
+    }
+
+    switch(img.type()) {
+
+        case CV_16UC1 :
+            {
+                if(threshold == 0)
+                    threshold = 65535;
+
+                unsigned short * ptr1;
+                unsigned char * ptrMap;
+
+                for(int i = 0; i < img.rows; i++) {
+
+                    ptr1 = img.ptr<unsigned short>(i);
+                    ptrMap = thresholdedMap.ptr<unsigned char>(i);
+
+                    for(int j = 0; j < img.cols; j++){
+
+                        if(ptr1[j] > threshold) {
+                            ptrMap[j] = 255;
+                        }
+                    }
+                }
+            }
+
+            break;
+
+        case CV_8UC1 :
+
+            {
+                if(threshold == 0)
+                    threshold = 255;
+
+                unsigned char * ptr1;
+                unsigned char * ptrMap;
+
+                for(int i = 0; i < img.rows; i++) {
+
+                    ptr1 = img.ptr<unsigned char>(i);
+                    ptrMap = thresholdedMap.ptr<unsigned char>(i);
+
+                    for(int j = 0; j < img.cols; j++){
+
+                        if(ptr1[j] > threshold) {
+                            ptrMap[j] = 255;
+                        }
+                    }
+                }
+            }
+            break;
+
+    }
+
+    return thresholdedMap;
+
+}

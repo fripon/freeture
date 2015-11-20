@@ -170,7 +170,6 @@ bool CameraFrames::searchMinMaxFramesNumber(string location) {
                     lastFrame = number;
 
                 }
-
             }
 
         }
@@ -301,8 +300,6 @@ bool CameraFrames::grabImage(Frame &img) {
             case 16 :
 
                 frameFormat = MONO_12;
-
-                //newFits.readFits16S(resMat, filename);
                 newFits.readFits16US(resMat);
 
                 break;

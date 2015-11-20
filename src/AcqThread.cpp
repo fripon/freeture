@@ -811,15 +811,6 @@ void AcqThread::operator()(){
 
                     }
 
-                    if(newFrame.mFrameNumber % 60 == 0){
-
-                        Fits2D newFits("/home/fripon/test/");
-                        newFits.writeFits(newFrame.mImg, S16, "frame_"+Conversion::intToString(newFrame.mFrameNumber), "");
-                        cout << "IMAGE SAVED ! " << endl;
-                        cout << Conversion::matTypeToString(newFrame.mImg.type())<< endl;
-
-                    }
-
                 }else {
 
                     mNbGrabFail++;

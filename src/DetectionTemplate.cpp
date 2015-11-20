@@ -74,31 +74,18 @@ mDataSetCounter(0) {
         BOOST_LOG_SEV(logger, warning) << "Fail to load ACQ_MASK_ENABLED from configuration file. Set to false.";
     }
 
-    if(mMaskEnabled) {
+    //********************* MASK PATH *****************************
 
-        //********************* MASK PATH *****************************
-
-        if(!cfg.Get("ACQ_MASK_PATH", mMaskPath)) {
-            throw "Fail to load ACQ_MASK_PATH from configuration file.";
-        }
-
-        mMask = imread(mMaskPath, CV_LOAD_IMAGE_GRAYSCALE);
-
-        if(!mMask.data){
-            throw "Fail to read the mask specified in ACQ_MASK_PATH.";
-        }
-
-        if(mDownsampleEnabled){
-            pyrDown(mMask, mMask, Size(mMask.cols/2, mMask.rows/2));
-        }
-
-        mMask.copyTo(mOriginalMask);
-
-    }else{
-
-        mMaskToCreate = true;
-
+    if(!cfg.Get("ACQ_MASK_PATH", mMaskPath)) {
+        throw "Fail to load ACQ_MASK_PATH from configuration file.";
     }
+
+    string acqBitDepth;
+    cfg.Get("ACQ_BIT_DEPTH", acqBitDepth);
+    EParser<CamBitDepth> camBitDepth;
+    CamBitDepth bitDepth = camBitDepth.parseEnum("ACQ_BIT_DEPTH", acqBitDepth);
+
+    mMaskControl = new Mask(10, mMaskEnabled, mMaskPath, mDownsampleEnabled, bitDepth, true);
 
     //********************* DEBUG PATH ********************************
 
@@ -125,11 +112,17 @@ mDataSetCounter(0) {
     if(mDebugVideo)
         mVideoDebug = VideoWriter(mDebugCurrentPath + "debug-video.avi", CV_FOURCC('M', 'J', 'P', 'G'), 5, Size(static_cast<int>(1280), static_cast<int>(960)), true);
 
+    accStatus = {0,0,0,0,0,0,0,0,0,0,0,0};
+
+    accMax = {5,10,15,20,25,30,35,40,45,50,55,60};
+
+
 
 }
 
 DetectionTemplate::~DetectionTemplate() {
-
+    if(mMaskControl != nullptr)
+        delete mMaskControl;
 }
 
 void DetectionTemplate::createDebugDirectories(bool cleanDebugDirectory) {
@@ -138,78 +131,122 @@ void DetectionTemplate::createDebugDirectories(bool cleanDebugDirectory) {
 
 bool DetectionTemplate::run(Frame &c) {
 
-    int h = 1, w = 1;
-
-    // Current frame.
     Mat currImg;
 
-    if(mDownsampleEnabled) {
-
-        //mDownsampleTime = (double)getTickCount();
-        h = c.mImg.rows/2;
-        w = c.mImg.cols/2;
+    if(mDownsampleEnabled)
         pyrDown(c.mImg, currImg, Size(c.mImg.cols / 2, c.mImg.rows / 2));
-        //mDownsampleTime = ((double)getTickCount() - mDownsampleTime);
-
-    }else {
-
-        h = c.mImg.rows;
-        w = c.mImg.cols;
+    else
         c.mImg.copyTo(currImg);
-
-    }
-
-    // -------------------------------
-    //  Create default mask if needed.
-    // -------------------------------
-
-    if(mMaskToCreate && !mMaskEnabled) {
-
-        mMask = Mat(h, w, CV_8UC1,Scalar(255));
-        mMask.copyTo(mOriginalMask);
-        mMaskToCreate = false;
-
-    }
-
-    // --------------------------------
-    //           Apply mask.
-    // --------------------------------
-
-    if(currImg.rows == mMask.rows && currImg.cols == mMask.cols) {
-
-        Mat temp;
-        currImg.copyTo(temp, mMask);
-        temp.copyTo(currImg);
-
-    }else {
-
-        throw "ERROR : Mask size is not correct according to the frame size.";
-
-    }
-
-    // --------------------------------
-    //      Check previous frame.
-    // --------------------------------
-
-    if(!mPrevFrame.data) {
-
-        currImg.copyTo(mPrevFrame);
-        return false;
-
-    }
 
     // --------------------------------
     //          OPERATIONS
     // --------------------------------
 
-    cout << "Frame : "
-    << Conversion::intToString(c.mDate.year)
-    << Conversion::intToString(c.mDate.month)
-    << Conversion::intToString(c.mDate.day)
-    << Conversion::intToString(c.mDate.hours)
-    << Conversion::intToString(c.mDate.minutes)
-    << Conversion::intToString(c.mDate.seconds) << endl;
+    if(mMaskControl->applyMask(currImg)) {
 
+        // --------------------------------
+        //      Check previous frame.
+        // --------------------------------
+
+        if(!mPrevFrame.data) {
+
+            cout << "PrevFrame has no data ! " << endl;
+            currImg.copyTo(mPrevFrame);
+            return false;
+
+        }
+
+        //SaveImg::saveJPEG(currImg, "/home/fripon/debug/original/frame_"+Conversion::intToString(c.mFrameNumber));
+
+        Mat absdiffImg;
+        cv::absdiff(currImg, mPrevFrame, absdiffImg);
+        SaveImg::saveJPEG(Conversion::convertTo8UC1(absdiffImg), "/home/fripon/debug/absdiff/frame_" + Conversion::intToString(c.mFrameNumber));
+
+        // ---------------------------------
+        //  Dilatation absolute difference.
+        // ---------------------------------
+
+        int dilation_size = 2;
+        Mat element = getStructuringElement(MORPH_RECT, Size(2*dilation_size + 1, 2*dilation_size+1), Point(dilation_size, dilation_size));
+        cv::dilate(absdiffImg, absdiffImg, element);
+        SaveImg::saveJPEG(Conversion::convertTo8UC1(absdiffImg), "/home/fripon/debug/dilate/frame_" + Conversion::intToString(c.mFrameNumber));
+
+        // ----------------------------------
+        //   Threshold absolute difference.
+        // ----------------------------------
+
+        Mat absDiffBinaryMap = Mat(currImg.rows,currImg.cols, CV_8UC1,Scalar(0));
+        Scalar meanAbsDiff, stddevAbsDiff;
+        cv::meanStdDev(absdiffImg, meanAbsDiff, stddevAbsDiff, mMaskControl->mCurrentMask);
+        int absDiffThreshold = /*stddevAbsDiff[0] * 5 + 10;//*/meanAbsDiff[0] * 3;
+
+        if(absdiffImg.type() == CV_16UC1) {
+
+            unsigned short * ptrAbsDiff;
+            unsigned char * ptrMap;
+
+            for(int i = 0; i < absdiffImg.rows; i++) {
+
+                ptrAbsDiff = absdiffImg.ptr<unsigned short>(i);
+                ptrMap = absDiffBinaryMap.ptr<unsigned char>(i);
+
+                for(int j = 0; j < absdiffImg.cols; j++){
+
+                    if(ptrAbsDiff[j] > absDiffThreshold) {
+                        ptrMap[j] = 255;
+                    }
+                }
+            }
+
+            SaveImg::saveJPEG(absDiffBinaryMap, "/home/fripon/debug/thresh/frame_" + Conversion::intToString(c.mFrameNumber));
+
+        }
+
+        currImg.copyTo(mPrevFrame);
+
+    }else{
+
+        mPrevFrame.release();
+
+    }
+
+/*
+    for(int i =0; i < accStatus.size(); i++) {
+
+        int value = (int)((255/accMax.at(i)) * accStatus.at(i));
+        cout << "status : " << accStatus.at(i) << "/" << accMax.at(i) << " -> value : " << value << endl;
+
+        if(accStatus.at(i) == 0 ) {
+
+            Mat t = Mat(currImg.rows,currImg.cols, CV_8UC1,Scalar(0));
+            accImg.push_back(t);
+            Mat temp = Mat(currImg.rows,currImg.cols, CV_8UC1,Scalar(value));
+            Mat res;
+            temp.copyTo(res,absDiffBinaryMap);
+            res.copyTo(accImg.at(i), absDiffBinaryMap);
+            accStatus.at(i)++;
+
+        }else{
+
+            if(accStatus.at(i) == accMax.at(i)) {
+
+                SaveImg::saveJPEG(accImg.at(i), "/home/fripon/debug/acc/frame_" + Conversion::intToString(c.mFrameNumber) + "_" + Conversion::intToString(accMax.at(i)));
+                accStatus.at(i) = 1;
+
+            }else{
+
+                Mat temp = Mat(currImg.rows,currImg.cols, CV_8UC1,Scalar(value));
+                Mat res;
+                temp.copyTo(res,absDiffBinaryMap);
+                res.copyTo(accImg.at(i), absDiffBinaryMap);
+                accStatus.at(i)++;
+
+            }
+
+        }
+
+    }
+*/
     // No detection : return false
     return false;
 
