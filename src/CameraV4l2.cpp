@@ -1369,7 +1369,8 @@
                 for 1 second and 100000 for 10 seconds.
 
                 */
-                control.value = val/100;
+                printf(">> V4L2_CID_EXPOSURE_ABSOLUTE setted to %f\n",val);
+                control.value = val;
                 exp = val;
 
                 if (-1 == ioctl(fd, VIDIOC_S_CTRL, &control)) {
