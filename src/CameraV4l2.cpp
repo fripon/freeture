@@ -846,6 +846,11 @@
 
         acqStart();
 
+	if(expMin != -1 && expMax != -1)
+            setExposureTime(frame.mExposure);
+        if(expMin != -1 && expMax != -1)
+            setGain(frame.mGain);
+
         unsigned char* ImageBuffer = NULL;
 
         Mat img = Mat(mFormat.fmt.pix.height,mFormat.fmt.pix.width,CV_8UC1, Scalar(0));
@@ -855,11 +860,7 @@
 
         for(int i = 0; i< 3; i++) {
 
-            if(expMin != -1 && expMax != -1)
-                setExposureTime(frame.mExposure);
-            if(expMin != -1 && expMax != -1)
-                setGain(frame.mGain);
-
+           
             for(;;) {
 
                 fd_set fds;
@@ -1295,12 +1296,12 @@
 
             // ************************ DISABLE AUTO EXPOSURE *****************************
 
-            struct v4l2_queryctrl queryctrl;
-            struct v4l2_control control;
-            memset(&queryctrl, 0, sizeof(queryctrl));
-            queryctrl.id = V4L2_CID_EXPOSURE_AUTO;
+	    struct v4l2_queryctrl queryctrl1;
+            struct v4l2_control control1;
+            memset(&queryctrl1, 0, sizeof(queryctrl1));
+            queryctrl1.id = V4L2_CID_EXPOSURE_AUTO;
 
-            if(-1 == ioctl(fd, VIDIOC_QUERYCTRL, &queryctrl)) {
+            if(-1 == ioctl(fd, VIDIOC_QUERYCTRL, &queryctrl1)) {
 
                 if(errno != EINVAL) {
 
@@ -1313,17 +1314,17 @@
 
                 }
 
-            }else if (queryctrl.flags & V4L2_CTRL_FLAG_DISABLED) {
+            }else if (queryctrl1.flags & V4L2_CTRL_FLAG_DISABLED) {
 
                 printf(">> V4L2_CID_EXPOSURE_AUTO is not supported\n");
 
             }else {
 
-                memset(&control, 0, sizeof (control));
-                control.id = V4L2_CID_EXPOSURE_AUTO;
-                control.value = V4L2_EXPOSURE_MANUAL;
+                memset(&control1, 0, sizeof (control1));
+                control1.id = V4L2_CID_EXPOSURE_AUTO;
+                control1.value = V4L2_EXPOSURE_MANUAL;
 
-                if (-1 == ioctl(fd, VIDIOC_S_CTRL, &control)) {
+                if (-1 == ioctl(fd, VIDIOC_S_CTRL, &control1)) {
                     perror("VIDIOC_S_CTRL");
                     return false;
                 }
@@ -1334,6 +1335,8 @@
 
             // ************************ SET AUTO EXPOSURE *****************************
 
+	    struct v4l2_queryctrl queryctrl;
+            struct v4l2_control control;
             memset(&queryctrl, 0, sizeof(queryctrl));
             queryctrl.id = V4L2_CID_EXPOSURE_ABSOLUTE;
 
@@ -1360,18 +1363,17 @@
                 control.id = V4L2_CID_EXPOSURE_ABSOLUTE;
 
                 /*
-
-                V4L2_CID_EXPOSURE_ABSOLUTE 	integer
+                V4L2_CID_EXPOSURE_ABSOLUTE integer
                 Determines the exposure time of the camera sensor.
                 The exposure time is limited by the frame interval.
                 Drivers should interpret the values as 100 µs units, w
                 here the value 1 stands for 1/10000th of a second, 10000
                 for 1 second and 100000 for 10 seconds.
-
                 */
+
                 control.value = val/100;
                 exp = val;
-                printf(">> V4L2_CID_EXPOSURE_ABSOLUTE setted to %d (%d)\n", exp, val);
+                printf(">> V4L2_CID_EXPOSURE_ABSOLUTE setted to %f (%f with V4L2)\n", val, val/100);
 
                 if (-1 == ioctl(fd, VIDIOC_S_CTRL, &control)) {
                     perror("VIDIOC_S_CTRL");
