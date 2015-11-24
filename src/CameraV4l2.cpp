@@ -826,11 +826,6 @@
 
         createDevice(camID);
 
-        if(expMin != -1 && expMax != -1)
-            setExposureTime(frame.mExposure);
-        if(expMin != -1 && expMax != -1)
-            setGain(frame.mGain);
-
         if(frame.mHeight > 0 && frame.mWidth > 0) {
 
             setSize(frame.mWidth, frame.mHeight, true);
@@ -858,7 +853,12 @@
 
         bool grabSuccess = false;
 
-        for(int i = 0; i< 2; i++) {
+        for(int i = 0; i< 3; i++) {
+
+            if(expMin != -1 && expMax != -1)
+                setExposureTime(frame.mExposure);
+            if(expMin != -1 && expMax != -1)
+                setGain(frame.mGain);
 
             for(;;) {
 
@@ -1369,9 +1369,9 @@
                 for 1 second and 100000 for 10 seconds.
 
                 */
-                printf(">> V4L2_CID_EXPOSURE_ABSOLUTE setted to %f\n",val);
-                control.value = val;
+                control.value = val/100;
                 exp = val;
+                printf(">> V4L2_CID_EXPOSURE_ABSOLUTE setted to %d (%d)\n", exp, val);
 
                 if (-1 == ioctl(fd, VIDIOC_S_CTRL, &control)) {
                     perror("VIDIOC_S_CTRL");
