@@ -72,10 +72,10 @@ Device::Device(string cfgPath) {
     if(!cfg.Get("SHIFT_BITS", mShiftBits))
         throw "Fail to get SHIFT_BITS for device object.";
 
-    string acqBitDepth;
-    cfg.Get("ACQ_BIT_DEPTH", acqBitDepth);
-    EParser<CamBitDepth> camBitDepth;
-    mBitDepth = camBitDepth.parseEnum("ACQ_BIT_DEPTH", acqBitDepth);
+    string acqFormat;
+    cfg.Get("ACQ_FORMAT", acqFormat);
+    EParser<CamPixFmt> camPixFmt;
+    mFormat = camPixFmt.parseEnum("ACQ_FORMAT", acqFormat);
 
     if(!cfg.Get("ACQ_RES_CUSTOM_SIZE", mCustomSize))
         throw "Fail to get ACQ_RES_CUSTOM_SIZE for device object.";
@@ -101,7 +101,7 @@ Device::Device(string cfgPath) {
 
 Device::Device() {
 
-    mBitDepth       = MONO_8;
+    mFormat         = MONO8;
     mNightExposure  = 0;
     mNightGain      = 0;
     mDayExposure    = 0;
@@ -141,6 +141,8 @@ bool Device::createCamera(int id, bool create) {
                     BOOST_LOG_SEV(logger, fail) << "Fail to create device with ID  : " << id;
                     mCam->grabCleanse();
                     return false;
+                }else{
+                    //BOOST_LOG_SEV(logger, fail) << "Success to create device with ID  : " << id;
                 }
             }
             return true;
@@ -437,13 +439,21 @@ void Device::listDevices(bool printInfos) {
 
 bool Device::setCameraPixelFormat() {
 
-    if(!mCam->setPixelFormat(mBitDepth)){
+    if(!mCam->setPixelFormat(mFormat)){
         mCam->grabCleanse();
         BOOST_LOG_SEV(logger,fail) << "Fail to set camera format.";
         return false;
     }
 
     return true;
+}
+
+bool Device::getSupportedPixelFormats() {
+
+
+    mCam->getAvailablePixelFormats();
+    return true;
+
 }
 
 bool Device::getCameraExposureBounds(double &min, double &max) {
@@ -532,6 +542,7 @@ bool Device::setCameraGain(int value) {
 
 bool Device::setCameraFPS() {
 
+    cout << "mFPS : " << mFPS << endl;
     if(!mCam->setFPS(mFPS)) {
         BOOST_LOG_SEV(logger, fail) << "Fail to set FPS to " << mFPS;
         mCam->grabCleanse();
@@ -575,7 +586,7 @@ bool Device::runContinuousCapture(Frame &img) {
     double tacq = (double)getTickCount();
     if(mCam->grabImage(img)) {
         tacq = (((double)getTickCount() - tacq)/getTickFrequency())*1000;
-        //std::cout << " >> [ TIME ACQ ] : " << tacq << " ms" << endl;
+        std::cout << " >> [ TIME ACQ RCC] : " << tacq << " ms" << endl;
         return true;
     }
 

@@ -55,7 +55,7 @@
 #include <boost/log/core.hpp>
 #include "ELogSeverityLevel.h"
 #include "EImgBitDepth.h"
-#include "ECamBitDepth.h"
+#include "ECamPixFmt.h"
 #include "EParser.h"
 #include "Conversion.h"
 #include "Camera.h"
@@ -118,7 +118,6 @@ class Device {
         bool        mCustomSize;
         int         mSizeWidth;
         int         mSizeHeight;
-        CamBitDepth mBitDepth;
         int         mNightExposure;
         int         mNightGain;
         int         mDayExposure;
@@ -129,6 +128,10 @@ class Device {
         Camera      *mCam;
         string      mCfgPath;
         bool        mShiftBits;
+
+    public :
+
+        CamPixFmt   mFormat;
 
     public :
 
@@ -181,6 +184,8 @@ class Device {
         bool getCameraStatus();
 
         bool getCameraDataSetStatus();
+
+        bool getSupportedPixelFormats();
 
         bool loadNextCameraDataSet(string &location);
 

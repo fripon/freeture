@@ -87,13 +87,13 @@ StackThread::StackThread(   string                          cfgPath,
     }
 
     // Get camera format.
-    string acq_bit_depth;
-    if(!cfg.Get("ACQ_BIT_DEPTH", acq_bit_depth)){
-        throw "Fail to load ACQ_BIT_DEPTH from configuration file !";
+    string acqFormat;
+    if(!cfg.Get("ACQ_FORMAT", acqFormat)){
+        throw "Fail to load ACQ_FORMAT from configuration file !";
     }
-    EParser<CamBitDepth> cam_bit_depth;
-    mAcqBitDepth = cam_bit_depth.parseEnum("ACQ_BIT_DEPTH", acq_bit_depth);
-    BOOST_LOG_SEV(logger,notification) << "Load ACQ_BIT_DEPTH : " << acq_bit_depth;
+    EParser<CamPixFmt> camFormat;
+    mAcqBitDepth = camFormat.parseEnum("ACQ_FORMAT", acqFormat);
+    BOOST_LOG_SEV(logger,notification) << "Load ACQ_FORMAT : " << acqFormat;
 
     // Get time of stacking frames.
     if(!cfg.Get("STACK_TIME", mStackTime)){

@@ -63,7 +63,7 @@
 #include "Fits.h"
 #include "Frame.h"
 #include "EStackMeth.h"
-#include "ECamBitDepth.h"
+#include "ECamPixFmt.h"
 #include <boost/filesystem.hpp>
 
 using namespace boost::filesystem;

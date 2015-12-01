@@ -40,7 +40,7 @@
 #include <boost/tokenizer.hpp>
 #include "Conversion.h"
 #include "SaveImg.h"
-#include "ECamBitDepth.h"
+#include "ECamPixFmt.h"
 #include "TimeDate.h"
 
 using namespace std;
@@ -49,11 +49,11 @@ using namespace cv;
 class Frame {
 
     public :
-         
+
         TimeDate::Date      mDate;               // Acquisition date.
         double              mExposure;           // Camera's exposure value used to grab the frame.
         int                 mGain;               // Camera's gain value used to grab the frame.
-        CamBitDepth         mBitDepth;           // Image format.
+        CamPixFmt           mFormat;             // Pixel format.
         Mat                 mImg;                // Frame's image data.
         string              mFileName;           // Frame's name.
         int                 mFrameNumber;        // Each frame is identified by a number corresponding to the acquisition order.
@@ -63,22 +63,10 @@ class Frame {
         int                 mWidth;
         int                 mHeight;
 
-        /**
-        * Constructor.
-        *
-        */
         Frame(Mat capImg, int g, double e, string acquisitionDate);
 
-        /**
-        * Constructor.
-        *
-        */
         Frame();
 
-        /**
-        * Destructor.
-        *
-        */
         ~Frame();
 
 };

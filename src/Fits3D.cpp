@@ -39,7 +39,7 @@ boost::log::sources::severity_logger< LogSeverityLevel >  Fits3D::logger;
 
 Fits3D::Init Fits3D::initializer;
 
-Fits3D::Fits3D(CamBitDepth depth, int imgHeight, int imgWidth, int numberOfImages, string fileName){
+Fits3D::Fits3D(CamPixFmt depth, int imgHeight, int imgWidth, int numberOfImages, string fileName){
 
     fptr = NULL;
     mFileName    = fileName.c_str();
@@ -58,11 +58,11 @@ Fits3D::Fits3D(CamBitDepth depth, int imgHeight, int imgWidth, int numberOfImage
     array3D_MONO_8 = NULL;
     array3D_MONO_12 = NULL;
 
-    if(depth == MONO_8){
+    if(depth == MONO8){
 
         array3D_MONO_8 = (unsigned char *)malloc(size3d * sizeof(unsigned char));
 
-    }else if(depth == MONO_12){
+    }else if(depth == MONO12){
 
         array3D_MONO_12 = (unsigned short *)malloc(size3d * sizeof(unsigned short));
 
@@ -101,7 +101,7 @@ void Fits3D::copyKeywords(const Fits &fits) {
 
 void Fits3D::addImageToFits3D(Mat frame){
 
-    if(imgDepth == MONO_8){
+    if(imgDepth == MONO8){
 
         for (int j = 0 ; j < naxes[1] ; j++){ // cols
 
@@ -114,7 +114,7 @@ void Fits3D::addImageToFits3D(Mat frame){
             }
         }
 
-    }else if(imgDepth == MONO_12){
+    }else if(imgDepth == MONO12){
 
         for (int j = 0 ; j < naxes[1] ; j++){ // cols
 
@@ -1030,7 +1030,7 @@ bool Fits3D::writeFits3D(){
 
     }
 
-    if(imgDepth == MONO_8){
+    if(imgDepth == MONO8){
 
         if(fits_create_img(fptr, BYTE_IMG, naxis, naxes, &status)){
 
@@ -1047,7 +1047,7 @@ bool Fits3D::writeFits3D(){
 
         free(array3D_MONO_8);
 
-    }else if(imgDepth == MONO_12){
+    }else if(imgDepth == MONO12){
 
         if(fits_create_img(fptr, SHORT_IMG, naxis, naxes, &status)){
 

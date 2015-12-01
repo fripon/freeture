@@ -142,7 +142,7 @@ bool  CameraWindows::createDevice(int id){
 
 }
 
-bool  CameraWindows::setPixelFormat(CamBitDepth format){
+bool  CameraWindows::setPixelFormat(CamPixFmt format){
     cout << ">> (WARNING) Can't set format with VI." << endl;
     return true;
 }
@@ -250,7 +250,7 @@ void  CameraWindows::grabCleanse(){
 
 }
 
-bool  CameraWindows::getPixelFormat(CamBitDepth &format){
+bool  CameraWindows::getPixelFormat(CamPixFmt &format){
     return false;
 }
 

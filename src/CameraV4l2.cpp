@@ -33,6 +33,7 @@
 */
 
 #include "CameraV4l2.h"
+//#define CLIP(X) ( (X) > 255 ? 255 : (X) < 0 ? 0 : X)
 
 #ifdef LINUX
 
@@ -78,9 +79,11 @@
         mFrameCounter = 0;
         mWidth = 640;
         mHeight = 480;
+        n_buffers = 3;
 
         mExposureAvailable = true;
         mGainAvailable = true;
+        mCustomSize = false;
 
     }
 
@@ -692,7 +695,7 @@
         size_t s = mFormat.fmt.pix.width*mFormat.fmt.pix.height;
 
         bool grabSuccess = false;
-
+        double tget = (double)getTickCount();
         for(;;) {
 
             fd_set fds;
@@ -725,6 +728,8 @@
             }
             /* EAGAIN - continue select loop. */
         }
+        tget = (((double)getTickCount() - tget)/getTickFrequency())*1000;
+            std::cout << " >> [ TIME GET ] : " << tget << " ms" << endl;
 
        if(grabSuccess) {
 
@@ -736,90 +741,22 @@
             double fps = 0;
             if(getFPS(fps))
                 newFrame.mFps = fps;
-            newFrame.mBitDepth = MONO_8;
+            newFrame.mFormat = MONO8;
             newFrame.mSaturatedValue = 255;
             newFrame.mFrameNumber = mFrameCounter;
             newFrame.mExposure = exp;
             newFrame.mGain = gain;
             mFrameCounter++;
-
+            double tconv = (double)getTickCount();
             if(!convertImage(ImageBuffer, newFrame.mImg))
                 grabSuccess = false;
+            tconv = (((double)getTickCount() - tconv)/getTickFrequency())*1000;
+            std::cout << " >> [ TIME CONV ] : " << tconv << " ms" << endl;
 
         }
 
         return grabSuccess;
 
-    }
-
-    void CameraV4l2::yuv2rgb(int y, int u, int v, unsigned char *r, unsigned char *g, unsigned char *b) {
-
-       int r1, g1, b1;
-
-       // replaces floating point coefficients
-       int c = y-16, d = u - 128, e = v - 128;
-
-       // Conversion that avoids floating point
-       r1 = (298 * c           + 409 * e + 128) >> 8;
-       g1 = (298 * c - 100 * d - 208 * e + 128) >> 8;
-       b1 = (298 * c + 516 * d           + 128) >> 8;
-
-       // Computed values may need clipping.
-       if (r1 > 255) r1 = 255;
-       if (g1 > 255) g1 = 255;
-       if (b1 > 255) b1 = 255;
-
-       if (r1 < 0) r1 = 0;
-       if (g1 < 0) g1 = 0;
-       if (b1 < 0) b1 = 0;
-
-       *r = r1 ;
-       *g = g1 ;
-       *b = b1 ;
-    }
-
-    void CameraV4l2::rgb565_to_bgr24(const unsigned char *src, unsigned char *dest, int width, int height) {
-
-        int j;
-        while (--height >= 0) {
-            for (j = 0; j < width; j++) {
-                unsigned short tmp = *(unsigned short *)src;
-
-                /* Original format: rrrrrggg gggbbbbb */
-                *dest++ = 0xf8 & (tmp << 3);
-                *dest++ = 0xfc & (tmp >> 3);
-                *dest++ = 0xf8 & (tmp >> 8);
-
-                src += 2;
-            }
-        }
-    }
-
-    #define CLIP(color) (unsigned char)(((color) > 0xFF) ? 0xff : (((color) < 0) ? 0 : (color)))
-    // https://github.com/gjasny/v4l-utils/blob/master/lib/libv4lconvert/rgbyuv.c
-    void CameraV4l2::uyvy2bgr24(const unsigned char *src, unsigned char *dest, int width, int height, int stride) {
-        int j;
-
-        while (--height >= 0) {
-            for (j = 0; j + 1 < width; j += 2) {
-                int u = src[0];
-                int v = src[2];
-                int u1 = (((u - 128) << 7) +  (u - 128)) >> 6;
-                int rg = (((u - 128) << 1) +  (u - 128) +
-                        ((v - 128) << 2) + ((v - 128) << 1)) >> 3;
-                int v1 = (((v - 128) << 1) +  (v - 128)) >> 1;
-
-                *dest++ = CLIP(src[1] + u1);
-                *dest++ = CLIP(src[1] - rg);
-                *dest++ = CLIP(src[1] + v1);
-
-                *dest++ = CLIP(src[3] + u1);
-                *dest++ = CLIP(src[3] - rg);
-                *dest++ = CLIP(src[3] + v1);
-                src += 4;
-            }
-            src += stride - width * 2;
-        }
     }
 
     bool CameraV4l2::grabSingleImage(Frame &frame, int camID){
@@ -828,25 +765,24 @@
 
         if(frame.mHeight > 0 && frame.mWidth > 0) {
 
-            setSize(frame.mWidth, frame.mHeight, true);
-
-        }else {
-
-            setSize(0, 0, false);
+            cout << "Setting size to : " << frame.mWidth << "x" << frame.mHeight << endl;
+            mWidth = frame.mWidth;
+            mHeight = frame.mHeight;
+            mCustomSize = true;
 
         }
-
-        cout << ">> Height : " << mFormat.fmt.pix.height << endl;
-        cout << ">> Width  : " << mFormat.fmt.pix.width << endl;
-
-        if(!setPixelFormat(MONO_8))
-            return false;
 
         grabInitialization();
 
         acqStart();
 
-	if(expMin != -1 && expMax != -1)
+        cout << ">> Height : " << mFormat.fmt.pix.height << endl;
+        cout << ">> Width  : " << mFormat.fmt.pix.width << endl;
+
+        if(!setPixelFormat(frame.mFormat))
+            return false;
+
+        if(expMin != -1 && expMax != -1)
             setExposureTime(frame.mExposure);
         if(expMin != -1 && expMax != -1)
             setGain(frame.mGain);
@@ -858,9 +794,9 @@
 
         bool grabSuccess = false;
 
-        for(int i = 0; i< 3; i++) {
+        for(int i = 0; i< n_buffers; i++) {
 
-           
+
             for(;;) {
 
                 fd_set fds;
@@ -883,7 +819,7 @@
 
                 if(-1 == r) {
                   if (EINTR == errno)
-                  continue;
+                    continue;
                   errno_exit("select");
                 }
 
@@ -904,16 +840,17 @@
 
             ImageBuffer = (unsigned char*)buffers[buf.index].start;
 
+
             boost::posix_time::ptime time = boost::posix_time::microsec_clock::universal_time();
             frame.mDate = TimeDate::splitIsoExtendedDate(to_iso_extended_string(time));
 
             double fps = 0;
             if(getFPS(fps))
                 frame.mFps = fps;
-            frame.mBitDepth = MONO_8;
             frame.mSaturatedValue = 255;
             frame.mFrameNumber = mFrameCounter;
-
+            cout << "Convert" << endl;
+            cout << "size image buffer : " << sizeof(buffers[buf.index].start)  << endl;
             if(!convertImage(ImageBuffer, frame.mImg))
                 grabSuccess = false;
 
@@ -949,24 +886,12 @@
                 case V4L2_PIX_FMT_YUYV :
 
                     {
-
-                        unsigned char bigbuffer[mFormat.fmt.pix.height * mFormat.fmt.pix.width*3];
-                        int i, newi, newsize=0;
-                        int y_temp, y2_temp, u_temp, v_temp;
-                        unsigned char *pptr = (unsigned char *)buffers[buf.index].start;
+                        unsigned char* bigbuffer = (unsigned char*)malloc(mFormat.fmt.pix.height * mFormat.fmt.pix.width*3*sizeof(char));
                         Mat dispimg(mFormat.fmt.pix.height, mFormat.fmt.pix.width, CV_8UC3, bigbuffer);
-
-                        // Pixels are YU and YV alternating, so YUYV which is 4 bytes
-                        // We want RGB, so RGBRGB which is 6 bytes
-                        //
-                        for(i=0, newi=0; i<buf.bytesused; i=i+4, newi=newi+6) {
-                            y_temp=(int)pptr[i]; u_temp=(int)pptr[i+1]; y2_temp=(int)pptr[i+2]; v_temp=(int)pptr[i+3];
-                            yuv2rgb(y_temp, u_temp, v_temp, &bigbuffer[newi], &bigbuffer[newi+1], &bigbuffer[newi+2]);
-                            yuv2rgb(y2_temp, u_temp, v_temp, &bigbuffer[newi+3], &bigbuffer[newi+4], &bigbuffer[newi+5]);
-                        }
-
+                        PixFmtConv::YUYV_to_BGR24(buffer, bigbuffer, mFormat.fmt.pix.width, mFormat.fmt.pix.height, mFormat.fmt.pix.bytesperline);
                         cvtColor(dispimg,image,CV_BGR2GRAY);
                         res = true;
+                        free(bigbuffer);
 
                     }
 
@@ -975,13 +900,11 @@
                 case V4L2_PIX_FMT_UYVY :
 
                     {
-
                         unsigned char bigbuffer[mFormat.fmt.pix.height * mFormat.fmt.pix.width*3];
-                        uyvy2bgr24(buffer, bigbuffer, mFormat.fmt.pix.width, mFormat.fmt.pix.height, mFormat.fmt.pix.bytesperline);
+                        PixFmtConv::UYVY_to_BGR24(buffer, bigbuffer, mFormat.fmt.pix.width, mFormat.fmt.pix.height, mFormat.fmt.pix.bytesperline);
                         Mat dispimg(mFormat.fmt.pix.height, mFormat.fmt.pix.width, CV_8UC3, bigbuffer);
                         cvtColor(dispimg,image,CV_BGR2GRAY);
                         res = true;
-
                     }
 
                     break;
@@ -991,8 +914,30 @@
                     {
 
                         unsigned char bigbuffer[mFormat.fmt.pix.height * mFormat.fmt.pix.width*3];
-                        rgb565_to_bgr24(buffer, bigbuffer, mFormat.fmt.pix.width, mFormat.fmt.pix.height);
+                        PixFmtConv::RGB565_to_BGR24(buffer, bigbuffer, mFormat.fmt.pix.width, mFormat.fmt.pix.height);
                         Mat dispimg(mFormat.fmt.pix.height, mFormat.fmt.pix.width, CV_8UC3, bigbuffer);
+                        cvtColor(dispimg,image,CV_BGR2GRAY);
+                        res = true;
+
+                    }
+
+                    break;
+
+                case V4L2_PIX_FMT_BGR24 :
+
+                    {
+                        Mat dispimg = Mat(mFormat.fmt.pix.height, mFormat.fmt.pix.width, CV_8UC3, buffer);
+                        cvtColor(dispimg,image,CV_BGR2GRAY);
+                        res = true;
+
+                    }
+
+                    break;
+
+                case V4L2_PIX_FMT_RGB24 :
+
+                    {
+                        Mat dispimg = Mat(mFormat.fmt.pix.height, mFormat.fmt.pix.width, CV_8UC3, buffer);
                         cvtColor(dispimg,image,CV_BGR2GRAY);
                         res = true;
 
@@ -1115,7 +1060,7 @@
 
     }
 
-    bool CameraV4l2::getPixelFormat(CamBitDepth &format){
+    bool CameraV4l2::getPixelFormat(CamPixFmt &format){
 
         /*char fourcc[5] = {0};
 
@@ -1460,7 +1405,7 @@
     }
 
     bool CameraV4l2::setFPS(double fps){
-
+        cout << "Set fps v4l2 function " << endl;
         bool res = true;
         struct v4l2_frmivalenum temp;
         memset(&temp, 0, sizeof(temp));
@@ -1469,13 +1414,15 @@
         temp.height = mFormat.fmt.pix.height;
 
         ioctl(fd, VIDIOC_ENUM_FRAMEINTERVALS, &temp);
+
         if (temp.type == V4L2_FRMIVAL_TYPE_DISCRETE) {
+
             vector<double> frameIntervals;
             while (ioctl(fd, VIDIOC_ENUM_FRAMEINTERVALS, &temp) != -1) {
 
                 if(fps == (float(temp.discrete.denominator)/temp.discrete.numerator)) {
 
-                    cout << "Set fps value to "<< fps << " fps" << endl;
+
 
                     struct v4l2_streamparm setfps;
                     struct v4l2_fract *tpf;
@@ -1502,114 +1449,200 @@
 
             }
         }
+
         float stepval = 0;
         if (temp.type == V4L2_FRMIVAL_TYPE_CONTINUOUS) {
             stepval = 1;
+            cout << "V4L2_FRMIVAL_TYPE_CONTINUOUS" << endl;
+            struct v4l2_streamparm setfps;
+            struct v4l2_fract *tpf;
+            memset (&setfps, 0, sizeof (setfps));
+            setfps.type = V4L2_BUF_TYPE_VIDEO_CAPTURE;
+            tpf = &setfps.parm.capture.timeperframe;
+
+            tpf->numerator = 1000;
+            //cout << "numerator : " << tpf->numerator << endl;
+            tpf->denominator = fps*1000;//cvRound(fps);
+            //cout << "denominator : " << tpf->denominator << endl;
+            //retval=1;
+            if (ioctl(fd, VIDIOC_S_PARM, &setfps) < 0) {
+                cout << "Failed to set camera FPS:"  << strerror(errno) << endl;
+                res = false;
+
+            }else{
+
+                if (!tpf->denominator || !tpf->numerator)
+                    printf("Invalid frame rate\n");
+                else
+				printf("Frame rate set to %.3f fps\n",
+					1.0 * tpf->denominator / tpf->numerator);
+            }
         }
-        if (temp.type == V4L2_FRMIVAL_TYPE_STEPWISE || temp.type == V4L2_FRMIVAL_TYPE_CONTINUOUS) {
+
+        if (temp.type == V4L2_FRMIVAL_TYPE_STEPWISE) {
+            cout << "V4L2_FRMIVAL_TYPE_STEPWISE" << endl;
             float minval = float(temp.stepwise.min.numerator)/temp.stepwise.min.denominator;
             float maxval = float(temp.stepwise.max.numerator)/temp.stepwise.max.denominator;
             if (stepval == 0) {
                 stepval = float(temp.stepwise.step.numerator)/temp.stepwise.step.denominator;
             }
-            for (float cval = minval; cval <= maxval; cval += stepval) {
+            /*for (float cval = minval; cval <= maxval; cval += stepval) {
                 cout << 1/cval << " fps" << endl;
 
-            }
+            }*/
+
+
+
         }
 
         return res;
 
     }
 
-    bool CameraV4l2::setPixelFormat(CamBitDepth depth){
+    bool CameraV4l2::setPixelFormat(CamPixFmt depth){
 
         struct v4l2_fmtdesc fmtdesc = {0};
         fmtdesc.type = V4L2_BUF_TYPE_VIDEO_CAPTURE;
         char fourcc[5] = {0};
         bool fmtFound = false;
-        bool fmtYUYV = false;
-        bool fmtUYVY = false;
         char c, e;
-        //printf( "  FMT    : CE Desc\n");
-
-        //memset(&mFormat, 0, sizeof(mFormat));
-        //mFormat.type = V4L2_BUF_TYPE_VIDEO_CAPTURE;
         mFormat.fmt.pix.field = V4L2_FIELD_NONE;
+        EParser<CamPixFmt> fmt;
+        string fstring = fmt.getStringEnum(depth);
 
         while (0 == xioctl(fd, VIDIOC_ENUM_FMT, &fmtdesc)) {
 
             strncpy(fourcc, (char *)&fmtdesc.pixelformat, 4);
 
-            if(depth == MONO_8 && !fmtFound) {
+            if(string(fourcc) == fstring) {
 
-                switch(fmtdesc.pixelformat) {
+                fmtFound = true;
 
-                    case V4L2_PIX_FMT_RGB565 :
+                switch(depth) {
+
+                    case GREY :
+
+                        {
+
+                            mFormat.fmt.pix.pixelformat = V4L2_PIX_FMT_GREY;
+
+                        }
+
+                        break;
+
+                    case YUYV :
+
+                        {
+
+                            mFormat.fmt.pix.pixelformat = V4L2_PIX_FMT_YUYV;
+
+                        }
+
+                        break;
+
+                    case UYVY :
+
+                        {
+
+                            mFormat.fmt.pix.pixelformat = V4L2_PIX_FMT_UYVY;
+
+                        }
+
+                        break;
+
+                    case RGB565 :
 
                         {
 
                             mFormat.fmt.pix.pixelformat = V4L2_PIX_FMT_RGB565;
-                            cout << ">> Choose format : V4L2_PIX_FMT_RGB565" << endl;
-                            fmtFound = true;
-                            break;
 
                         }
 
                         break;
 
-                    case V4L2_PIX_FMT_GREY :
+                    case BGR3 :
 
                         {
-                            mFormat.fmt.pix.pixelformat = V4L2_PIX_FMT_GREY;
-                            cout << ">> Choose format : V4L2_PIX_FMT_GREY" << endl;
-                            fmtFound = true;
-                            break;
+
+                            mFormat.fmt.pix.pixelformat = V4L2_PIX_FMT_BGR24;
+
                         }
 
                         break;
 
-                    case V4L2_PIX_FMT_YUYV :
+                    case RGB3 :
 
                         {
-                            mFormat.fmt.pix.pixelformat = V4L2_PIX_FMT_YUYV;
-                            cout << ">> Choose format : V4L2_PIX_FMT_YUYV" << endl;
-                            fmtFound = true;
-                            break;
-                        }
 
-                        break;
+                            mFormat.fmt.pix.pixelformat = V4L2_PIX_FMT_RGB24;
 
-                    case V4L2_PIX_FMT_UYVY :
-
-                        {
-                            mFormat.fmt.pix.pixelformat = V4L2_PIX_FMT_UYVY;
-                            cout << ">> Choose format : V4L2_PIX_FMT_UYVY" << endl;
-                            fmtFound = true;
-                            break;
                         }
 
                         break;
 
                 }
 
+
+                break;
             }
 
-            c = fmtdesc.flags & 1? 'C' : ' ';
-            e = fmtdesc.flags & 2? 'E' : ' ';
-            //printf("  %s : %c%c %s\n", fourcc, c, e, fmtdesc.description);
             fmtdesc.index++;
         }
 
         if(!fmtFound) {
 
-            BOOST_LOG_SEV(logger, critical) << ">> FORMAT NOT SUPPORTED !";
+            BOOST_LOG_SEV(logger, critical) << ">> FORMAT " << fstring << " NOT SUPPORTED !";
             return false;
         }
 
-        strncpy(fourcc, (char *)&mFormat.fmt.pix.pixelformat, 4);
+        //strncpy(fourcc, (char *)&mFormat.fmt.pix.pixelformat, 4);
 
         return true;
+
+    }
+
+    void CameraV4l2::getAvailablePixelFormats(){
+
+        struct v4l2_fmtdesc fmtdesc = {0};
+        fmtdesc.type = V4L2_BUF_TYPE_VIDEO_CAPTURE;
+        char fourcc[5] = {0};
+        vector<string> pixfmt;
+        char c, e;
+        struct v4l2_format pfmt;
+        memset(&pfmt, 0, sizeof(pfmt));
+        pfmt.type = V4L2_BUF_TYPE_VIDEO_CAPTURE;
+        pfmt.fmt.pix.field = V4L2_FIELD_NONE;
+
+        cout << ">> Device pixel formats :" << endl;
+
+        while (0 == xioctl(fd, VIDIOC_ENUM_FMT, &fmtdesc)) {
+
+            strncpy(fourcc, (char *)&fmtdesc.pixelformat, 4);
+
+            c = fmtdesc.flags & 1? 'C' : ' ';
+            e = fmtdesc.flags & 2? 'E' : ' ';
+            //printf("  %s : %c%c %s\n", fourcc, c, e, fmtdesc.description);
+            string fmt = string(fourcc);
+            std::transform(fmt.begin(), fmt.end(),fmt.begin(), ::toupper);
+            pixfmt.push_back(fmt);
+            cout << "- " << fmt << endl;
+            fmtdesc.index++;
+        }
+
+        // Compare found pixel formats to currently formats supported by freeture
+
+        cout << endl <<  ">> Available pixel formats :" << endl;
+        EParser<CamPixFmt> fmt;
+
+        for( int i = 0; i != pixfmt.size(); i++ ) {
+
+            if(fmt.isEnumValue(pixfmt.at(i))) {
+
+                cout << "- " << pixfmt.at(i) << " available --> ID : " << fmt.parseEnum(pixfmt.at(i)) << endl;
+
+            }
+
+        }
 
     }
 

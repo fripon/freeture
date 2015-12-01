@@ -160,7 +160,7 @@ class CameraVideo : public Camera{
         bool setFPS(double fps){return true;};
 
         // Fake format.
-        bool setPixelFormat(CamBitDepth format){return true;};
+        bool setPixelFormat(CamPixFmt format){return true;};
 
         // Fake size.
         bool setSize(int width, int height, bool customSize) {return true;};

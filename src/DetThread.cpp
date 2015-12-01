@@ -47,7 +47,7 @@ DetThread::DetThread(   string                          cfg_p,
                         boost::condition_variable      *dSignal_c):
 
                         pDetMthd(NULL), mSaveAvi(false), mSaveFits3D(false), mSaveFits2D(false), mSaveSum(false),
-                        mTimeBeforeEvent(0), mTimeAfterEvent(0), mTimeBeforeEv(0), mTimeAfterEv(0), mBitDepth(MONO_8), mMailAlertEnabled(false),
+                        mTimeBeforeEvent(0), mTimeAfterEvent(0), mTimeBeforeEv(0), mTimeAfterEv(0), mFormat(MONO8), mMailAlertEnabled(false),
                         mSmtpSecurity(NO_SECURITY), mStackReduction(false), mStackMthd(SUM), mForceToReset(false), mMustStop(false),
                         mEventPath(""), mIsRunning(false), mNbDetection(0), mWaitFramesToCompleteEvent(false), mCurrentDataSetLocation(""),
                         mNbWaitFrames(0), mInterruptionStatus(false) {
@@ -68,10 +68,10 @@ DetThread::DetThread(   string                          cfg_p,
 
     //********************* ACQUISITION FORMAT.******************************
 
-    string acq_bit_depth;
-    cfg.Get("ACQ_BIT_DEPTH", acq_bit_depth);
-    EParser<CamBitDepth> cam_bit_depth;
-    mBitDepth = cam_bit_depth.parseEnum("ACQ_BIT_DEPTH", acq_bit_depth);
+    string acqFormat;
+    cfg.Get("ACQ_FORMAT", acqFormat);
+    EParser<CamPixFmt> camFormat;
+    mFormat = camFormat.parseEnum("ACQ_FORMAT", acqFormat);
 
     //********************* STATION NAME.************************************
 
@@ -735,7 +735,7 @@ bool DetThread::saveEventData(int firstEvPosInFB, int lastEvPosInFB){
 
     if(mSaveFits3D) {
 
-        fits3d = Fits3D(mBitDepth, frameBuffer->front().mImg.rows, frameBuffer->front().mImg.cols, (numLastFrameToSave - numFirstFrameToSave +1), mEventPath + "fits3D");
+        fits3d = Fits3D(mFormat, frameBuffer->front().mImg.rows, frameBuffer->front().mImg.cols, (numLastFrameToSave - numFirstFrameToSave +1), mEventPath + "fits3D");
         boost::posix_time::ptime time = boost::posix_time::microsec_clock::universal_time();
         fits3d.kDATE = to_iso_extended_string(time);
 
@@ -835,19 +835,19 @@ bool DetThread::saveEventData(int firstEvPosInFB, int lastEvPosInFB){
                         BOOST_LOG_SEV(logger,notification) << "Success to create directory : " << fits2DPath;
                 }
 
-                switch(mBitDepth) {
+                switch(mFormat) {
 
-                    case MONO_8 :
-                        {
-                            newFits.writeFits((*it).mImg, UC8, fits2DName, mFitsCompressionMethod);
-                        }
-                        break;
-
-                    case MONO_12 :
+                    case MONO12 :
                         {
                             newFits.writeFits((*it).mImg, S16, fits2DName, mFitsCompressionMethod);
                         }
                         break;
+
+                    default :
+
+                        {
+                            newFits.writeFits((*it).mImg, UC8, fits2DName, mFitsCompressionMethod);
+                        }
 
                 }
 
@@ -909,7 +909,7 @@ bool DetThread::saveEventData(int firstEvPosInFB, int lastEvPosInFB){
         float bzero  = 0.0;
         float bscale = 1.0;
         s = stack.reductionByFactorDivision(bzero,bscale);
-        if(mBitDepth != MONO_8)
+        if(mFormat != MONO8)
             Conversion::convertTo8UC1(s).copyTo(s);
 
         equalizeHist(s, eqHist);

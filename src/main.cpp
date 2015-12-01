@@ -21,7 +21,7 @@
 *   You should have received a copy of the GNU General Public License
 *   along with FreeTure. If not, see <http://www.gnu.org/licenses/>.
 *
-*   Last modified:      20/07/2015
+*   Last modified:      02/12/2015
 *
 *%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%*/
 
@@ -95,6 +95,7 @@
 #include <boost/filesystem.hpp>
 #include "Logger.h"
 #include "CameraWindows.h"
+#include "ECamPixFmt.h"
 
 #define BOOST_NO_SCOPED_ENUMS
 
@@ -215,93 +216,92 @@ void init_log(string path, LogSeverityLevel sev) {
 int main(int argc, const char ** argv){
 
     // Program options.
-    po::options_description desc("Available options");
+    po::options_description desc("FreeTure options");
     desc.add_options()
-      ("mode,m",        po::value<int>()->default_value(1),                                             "Execution mode of the program")
-      ("time,t",        po::value<int>(),                                                               "Execution time of the program in seconds")
-      ("width",         po::value<int>(),                                                               "Camera image width.")
-      ("height",        po::value<int>(),                                                               "Camera image height")
-      ("help,h",                                                                                        "Print help messages")
-      ("cfg,c",         po::value<string>()->default_value(string(CFG_PATH) + "configuration.cfg"),     "Configuration file's path")
-      ("bitdepth,f",    po::value<int>()->default_value(8),                                             "Bit depth of a frame")
-      ("bmp",           po::value<bool>()->default_value(false),                                        "Save .bmp")
-      ("fits",          po::value<bool>()->default_value(false),                                        "Save fits2D")
-      ("gain,g",        po::value<int>(),                                                               "Define gain")
-      ("exposure,e",    po::value<double>(),                                                            "Define exposure")
-      ("version,v",                                                                                     "Get program version")
-      ("display",       po::value<bool>()->default_value(false),                                        "In mode 4 : Display the grabbed frame")
-      ("id,i",          po::value<int>(),                                                               "Camera ID. Run mode 1 to know the ID.")
-      ("filename,n",    po::value<string>()->default_value("snap"),                                     "Name to use when a single frame is captured")
-      ("sendbymail,s",  po::value<bool>()->default_value(false),                                        "Send capture in fits by mail (option --fits must be enabledd). Require -c option with correct configuration for mail.")
-      ("savepath,p",    po::value<string>()->default_value("./"),                                       "Save path");
+      ("mode,m",        po::value<int>(),                                                               "FreeTure modes :\n- MODE 1 : Check configuration file.\n- MODE 2 : Continuous acquisition.\n- MODE 3 : Meteor detection.\n- MODE 4 : Single acquisition.\n- MODE 5 : Clean logs.")
+      ("time,t",        po::value<int>(),                                                               "Execution time (s) of meteor detection mode.")
+      ("width",         po::value<int>(),                                                               "Image width.")
+      ("height",        po::value<int>(),                                                               "Image height.")
+      ("cfg,c",         po::value<string>()->default_value(string(CFG_PATH) + "configuration.cfg"),     "Configuration file's path.")
+      ("format,f",      po::value<int>()->default_value(0),                                             "Index of pixel format.")
+      ("bmp",                                                                                           "Save .bmp.")
+      ("fits",                                                                                          "Save fits2D.")
+      ("gain,g",        po::value<int>(),                                                               "Define gain.")
+      ("exposure,e",    po::value<double>(),                                                            "Define exposure.")
+      ("version,v",                                                                                     "Print FreeTure version.")
+      ("display",                                                                                       "Display the grabbed frame.")
+      ("listdevices,l",                                                                                 "List connected devices.")
+      ("listformats",                                                                                   "List device's available pixel formats.")
+      ("id,d",          po::value<int>(),                                                               "Camera to use. List devices to get IDs.")
+      ("filename,n",    po::value<string>()->default_value("snap"),                                     "Name to use when a single frame is captured.")
+      ("sendbymail,s",                                                                                  "Send single capture by mail. Require -c option.")
+      ("savepath,p",    po::value<string>()->default_value("./"),                                       "Save path.");
 
     po::variables_map vm;
 
     try{
 
-        int     mode            = 1;
-        int     executionTime   = 0;
-        string  configPath      = string(CFG_PATH) + "configuration.cfg";
-        string  savePath        = "./";
-        int     acqFormat       = 8;
-        int     acqWidth        = 0;
-        int     acqHeight       = 0;
-        bool    saveBmp         = false;
-        bool    saveFits2D      = false;
-        int     gain            = 0;
-        double  exp             = 0;
-        string  version         = string(VERSION);
-        bool    display         = false;
-        int     devID           = 0;
-        string  fileName        = "snap";
-        bool    sendByMail      = false;
+        int         mode            = -1;
+        int         executionTime   = 0;
+        string      configPath      = string(CFG_PATH) + "configuration.cfg";
+        string      savePath        = "./";
+        int         acqFormat       = 0;
+        int         acqWidth        = 0;
+        int         acqHeight       = 0;
+        int         gain            = 0;
+        double      exp             = 0;
+        string      version         = string(VERSION);
+        int         devID           = 0;
+        string      fileName        = "snap";
+        bool        listFormats     = false;
 
         po::store(po::parse_command_line(argc, argv, desc), vm);
 
-        if(vm.count("mode"))
-            mode = vm["mode"].as<int>();
-
-        if(vm.count("time"))
-            executionTime = vm["time"].as<int>();
-
-        if(vm.count("cfg"))
-            configPath = vm["cfg"].as<string>();
+        ///%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+        ///%%%%%%%%%%%%%%%%%%%%%%% PRINT FREETURE VERSION %%%%%%%%%%%%%%%%%%%%%%%%
+        ///%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
         if(vm.count("version")){
 
             std::cout << "Current version : " << version << endl;
 
-        }else if(vm.count("help")){
+        ///%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+        ///%%%%%%%%%%%%%%%%%%%%%%% LIST CONNECTED DEVICES %%%%%%%%%%%%%%%%%%%%%%%%
+        ///%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
-            std::cout << desc;
+        }else if(vm.count("listdevices")){
 
-        }else{
+            Device device;
+            device.listDevices(true);
+
+        ///%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+        ///%%%%%%%%%%%%%%%%%%%%%%% GET AVAILABLE PIXEL FORMATS %%%%%%%%%%%%%%%%%%%
+        ///%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+         }else if(vm.count("listformats")){
+
+            if(vm.count("id")) devID = vm["id"].as<int>();
+
+            Device *device = new Device();
+            device->listDevices(false);
+
+            if(!device->createCamera(devID, true))
+                delete device;
+
+            device->getSupportedPixelFormats();
+            delete device;
+
+        }else if(vm.count("mode")){
+
+            mode = vm["mode"].as<int>();
+            if(vm.count("cfg")) configPath = vm["cfg"].as<string>();
 
             switch(mode){
 
                 case 1 :
 
                     ///%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-                    ///%%%%%%%%%%%%%%%%%%%% MODE 1 : LIST CONNECTED CAMERAS %%%%%%%%%%%%%%%%%%
-                    ///%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-
-                    {
-
-                        std::cout << "================================================" << endl;
-                        std::cout << "========= FREETURE - Available cameras =========" << endl;
-                        std::cout << "================================================" << endl << endl;
-
-                        Device device;
-                        device.listDevices(true);
-
-                    }
-
-                    break;
-
-                case 2 :
-
-                    ///%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-                    ///%%%%%%%%%%%%%%% MODE 2 : TEST/CHECK CONFIGURATION %%%%%%%%%%%%%%%%%%%%%
+                    ///%%%%%%%%%%%% MODE 1 : TEST/CHECK CONFIGURATION FILE %%%%%%%%%%%%%%%%%%%
                     ///%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
                     {
@@ -310,18 +310,122 @@ int main(int argc, const char ** argv){
                         std::cout << "====== FREETURE - Test/Check configuration =====" << endl;
                         std::cout << "================================================" << endl << endl;
 
-                        std::cout << "Mode 2 disabled in this version." << endl;
+                        std::cout << "Mode 1 disabled in this version." << endl;
 
-                        /*
+                    }
 
-                        //The static member function boost::thread::hardware_concurrency() returns the number
-                        //of threads that can physically be executed at the same time, based on the underlying
-                        //number of CPUs or CPU cores. Calling this function on a dual-core processor returns a
-                        //value of 2. This function provides a simple method to identify the theoretical maximum
-                        //number of threads that should be used.
-                        std::cout << "CORE DETECTED : " << boost::thread::hardware_concurrency()<< endl << endl;
+                    break;
 
-                        */
+                case 2 :
+
+                    ///%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+                    ///%%%%%%%%%%%%%%%% MODE 2 : CONTINUOUS ACQUISITION %%%%%%%%%%%%%%%%%%%%%%
+                    ///%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+                    {
+
+                        std::cout << "================================================" << endl;
+                        std::cout << "========== FREETURE - Continuous mode ==========" << endl;
+                        std::cout << "================================================" << endl << endl;
+
+                        /// --------------------- Manage program options -----------------------
+
+                        // Acquisition format.
+                        if(vm.count("format")) acqFormat = vm["format"].as<int>();
+                        // Cam id.
+                        if(vm.count("id")) devID = vm["id"].as<int>();
+                        // Cam width size
+                        if(vm.count("width")) acqWidth = vm["width"].as<int>();
+                        // Cam height size
+                        if(vm.count("height")) acqHeight = vm["height"].as<int>();
+                        // Gain value.
+                        if(vm.count("gain")) gain = vm["gain"].as<int>();
+                        // Exposure value.
+                        if(vm.count("exposure")) exp = vm["exposure"].as<double>();
+
+                        EParser<CamPixFmt> fmt;
+                        string fstring = fmt.getStringEnum(static_cast<CamPixFmt>(acqFormat));
+                        if(fstring == "")
+                            throw ">> Pixel format specified not found.";
+
+                        cout << "------------------------------------------------" << endl;
+                        cout << "CAM ID    : " << devID << endl;
+                        cout << "FORMAT    : " << fstring << endl;
+                        cout << "GAIN      : " << gain << endl;
+                        cout << "EXPOSURE  : " << exp << endl;
+                        cout << "------------------------------------------------" << endl << endl;
+
+                        Device *device = new Device();
+                        device->listDevices(false);
+                        device->mFormat = static_cast<CamPixFmt>(acqFormat);
+                        if(!device->createCamera(devID, true)) {
+                            delete device;
+                            throw ">> Fail to create device.";
+                        }
+
+                        if(acqWidth != 0 && acqHeight != 0)
+                            device->setCameraSize(acqWidth, acqHeight);
+                        else
+                            device->setCameraSize();
+
+                        device->setCameraPixelFormat();
+                        device->setCameraFPS();
+                        device->setCameraExposureTime(exp);
+                        device->setCameraGain(gain);
+                        device->initializeCamera();
+                        device->startCamera();
+                        namedWindow("FreeTure (ESC to stop)", WINDOW_NORMAL);
+
+                        #ifdef LINUX
+                        nonblock(1);
+                        #endif
+
+                        char hitKey;
+                        int interruption = 0;
+
+                        while(!interruption) {
+
+                            Frame frame;
+
+                            double tacq = (double)getTickCount();
+                            if(device->runContinuousCapture(frame)){
+                                tacq = (((double)getTickCount() - tacq)/getTickFrequency())*1000;
+                                std::cout << " >> [ TIME ACQ ] : " << tacq << " ms" << endl;
+
+                                if(vm.count("display")) {
+                                    imshow("FreeTure (ESC to stop)", frame.mImg);
+                                    waitKey(10);
+                                }
+                            }
+
+                            /// Stop freeture if escape is pressed.
+                            #ifdef WINDOWS
+
+                            //Sleep(1000);
+                            // Exit if ESC is pressed.
+                            if(GetAsyncKeyState(VK_ESCAPE)!=0)
+                                interruption = 1;
+
+                            #else
+                            #ifdef LINUX
+
+                            interruption = kbhit();
+                            if(interruption !=0) {
+                                hitKey = fgetc(stdin);
+                                if(hitKey == 27) interruption = 1;
+                                else interruption = 0;
+                            }
+
+                            #endif
+                            #endif
+                        }
+
+                        #ifdef LINUX
+                        nonblock(0);
+                        #endif
+
+                        device->stopCamera();
+                        delete device;
 
                     }
 
@@ -330,7 +434,7 @@ int main(int argc, const char ** argv){
                 case 3 :
 
                     ///%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-                    ///%%%%%%%%%%%%%%%%%%%% MODE 3 : RUN METEOR DETECTION %%%%%%%%%%%%%%%%%%%%
+                    ///%%%%%%%%%%%%%%%%%%%% MODE 3 : METEOR DETECTION %%%%%%%%%%%%%%%%%%%%%%%%
                     ///%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
                     {
@@ -642,49 +746,36 @@ int main(int argc, const char ** argv){
                         /// --------------------- MANAGE PROGRAM OPTIONS ---------------------
                         /// ------------------------------------------------------------------
 
-                        // Display or not the grabbed frame.
-                        if(vm.count("display")) display = vm["display"].as<bool>();
                         // Path where to save files.
                         if(vm.count("savepath")) savePath = vm["savepath"].as<string>();
-                        // Acquisition format.
-                        if(vm.count("bitdepth")) acqFormat = vm["bitdepth"].as<int>();
-                        CamBitDepth camFormat;
-                        Conversion::intBitDepthToCamBitDepthEnum(acqFormat, camFormat);
+                        // Acquisition pixel format.
+                        if(vm.count("format")) acqFormat = vm["format"].as<int>();
                         // Cam width size.
                         if(vm.count("width")) acqWidth = vm["width"].as<int>();
                         // Cam height size
                         if(vm.count("height")) acqHeight = vm["height"].as<int>();
                         // Cam id.
                         if(vm.count("id")) devID = vm["id"].as<int>();
-                        // Save bmp.
-                        if(vm.count("bmp")) saveBmp = vm["bmp"].as<bool>();
-                        // Save fits.
-                        if(vm.count("fits")) saveFits2D = vm["fits"].as<bool>();
                         // Gain value.
                         if(vm.count("gain")) gain = vm["gain"].as<int>();
                         // Exposure value.
                         if(vm.count("exposure")) exp = vm["exposure"].as<double>();
                         // Filename.
                         if(vm.count("filename")) fileName = vm["filename"].as<string>();
-                        // Send mail.
-                        if(vm.count("sendbymail")) sendByMail = vm["sendbymail"].as<bool>();
+
+                        EParser<CamPixFmt> fmt;
+                        string fstring = fmt.getStringEnum(static_cast<CamPixFmt>(acqFormat));
+                        if(fstring == "")
+                            throw ">> Pixel format specified not found.";
 
                         cout << "------------------------------------------------" << endl;
                         cout << "CAM ID    : " << devID << endl;
-                        EParser<CamBitDepth> fmt;
-                        cout << "FORMAT    : " << fmt.getStringEnum(camFormat) << endl;
+                        cout << "FORMAT    : " << fstring << endl;
                         cout << "GAIN      : " << gain << endl;
                         cout << "EXPOSURE  : " << exp << endl;
-
-                        if(acqWidth > 0 && acqHeight > 0)
-                            cout << "SIZE      : " << acqWidth << "x" << acqHeight << endl;
-
-                        cout << "SAVE BMP  : " << saveBmp << endl;
-                        cout << "SAVE FITS : " << saveFits2D << endl;
-                        cout << "DISPLAY   : " << display << endl;
+                        if(acqWidth > 0 && acqHeight > 0) cout << "SIZE      : " << acqWidth << "x" << acqHeight << endl;
                         cout << "SAVE PATH : " << savePath << endl;
                         cout << "FILENAME  : " << fileName << endl;
-                        cout << "SEND BY MAIL : " << sendByMail << endl;
                         cout << "------------------------------------------------" << endl << endl;
 
                         /// ------------------------------------------------------------------
@@ -735,7 +826,7 @@ int main(int argc, const char ** argv){
                         Frame frame;
                         frame.mExposure = exp;
                         frame.mGain = gain;
-                        frame.mBitDepth = camFormat;
+                        frame.mFormat = static_cast<CamPixFmt>(acqFormat);
                         frame.mHeight = acqHeight;
                         frame.mWidth = acqWidth;
 
@@ -763,20 +854,17 @@ int main(int argc, const char ** argv){
                         if(frame.mImg.data) {
 
                             // Save the frame in BMP.
-                            if(saveBmp) {
+                            if(vm.count("bmp")) {
 
                                 cout << ">> Saving bmp file ..." << endl;
 
                                 Mat temp1, newMat;
                                 frame.mImg.copyTo(temp1);
 
-                                if(camFormat == MONO_12){
-
+                                if(frame.mFormat == MONO12){
                                     newMat = ImgProcessing::correctGammaOnMono12(temp1, 2.2);
                                     Mat temp = Conversion::convertTo8UC1(newMat);
-
                                 }else {
-
                                     newMat = ImgProcessing::correctGammaOnMono8(temp1, 2.2);
                                 }
 
@@ -786,7 +874,7 @@ int main(int argc, const char ** argv){
                             }
 
                             // Save the frame in Fits 2D.
-                            if(saveFits2D) {
+                            if(vm.count("fits")) {
 
                                 cout << ">> Saving fits file ..." << endl;
 
@@ -826,32 +914,19 @@ int main(int argc, const char ** argv){
 
                                 }
 
-                                switch(camFormat){
+                                if(frame.mFormat == MONO12){
+                                    // Create FITS image with BITPIX = SHORT_IMG (16-bits signed integers), pixel with TSHORT (signed short)
+                                    if(newFits.writeFits(frame.mImg, S16, fileName + "-" + Conversion::intToString(filenum)))
+                                        cout << ">> Fits saved in : " << savePath << fileName << "-" << Conversion::intToString(filenum) << ".fit" << endl;
+                                }else{
+                                    // Create FITS image with BITPIX = BYTE_IMG (8-bits unsigned integers), pixel with TBYTE (8-bit unsigned byte)
+                                    if(newFits.writeFits(frame.mImg, UC8, fileName + "-" + Conversion::intToString(filenum)))
+                                        cout << ">> Fits saved in : " << savePath << fileName << "-" << Conversion::intToString(filenum) << ".fit" << endl;
 
-                                    case MONO_8 :
-
-                                        {
-                                            // Create FITS image with BITPIX = BYTE_IMG (8-bits unsigned integers), pixel with TBYTE (8-bit unsigned byte)
-                                            if(newFits.writeFits(frame.mImg, UC8, fileName + "-" + Conversion::intToString(filenum)))
-                                                cout << ">> Fits saved in : " << savePath << fileName << "-" << Conversion::intToString(filenum) << ".fit" << endl;
-
-                                        }
-
-                                        break;
-
-                                    case MONO_12 :
-
-                                        {
-
-                                            // Create FITS image with BITPIX = SHORT_IMG (16-bits signed integers), pixel with TSHORT (signed short)
-                                            if(newFits.writeFits(frame.mImg, S16, fileName + "-" + Conversion::intToString(filenum)))
-                                                cout << ">> Fits saved in : " << savePath << fileName << "-" << Conversion::intToString(filenum) << ".fit" << endl;
-
-                                        }
                                 }
 
                                 // Send fits by mail if configuration file is correct.
-                                if(sendByMail && useCfg) {
+                                if(vm.count("sendbymail") && useCfg) {
 
                                     string smtpServer, smtpLogin = "", smtpPassword = "", smtpConnectionType, mailRecipients;
                                     SmtpSecurity smtpSec;
@@ -916,7 +991,7 @@ int main(int argc, const char ** argv){
                                                             "freeture@snap",
                                                             to,
                                                             fileName + "-" + Conversion::intToString(filenum) + ".fit",
-                                                            " Exposure time : " + Conversion::intToString((int)exp) + "\n Gain : " + Conversion::intToString((int)gain) + "\n Format : " + Conversion::intToString(acqFormat),
+                                                            " Exposure time : " + Conversion::intToString((int)exp) + "\n Gain : " + Conversion::intToString((int)gain),
                                                             mailAttachments,
                                                             smtpSec);
 
@@ -932,20 +1007,17 @@ int main(int argc, const char ** argv){
                             }
 
                             // Display the frame in an opencv window
-                            if(display) {
+                            if(vm.count("display")) {
 
                                 cout << ">> Display single capture." << endl;
 
                                 Mat temp, temp1;
                                 frame.mImg.copyTo(temp1);
 
-                                if(camFormat == MONO_12) {
-
+                                if(frame.mFormat == MONO12) {
                                     Mat gammaCorrected = ImgProcessing::correctGammaOnMono12(temp1,2.2);
                                     temp = Conversion::convertTo8UC1(gammaCorrected);
-
                                 }else{
-
                                     temp = ImgProcessing::correctGammaOnMono8(temp1,2.2);
                                 }
 
@@ -997,139 +1069,16 @@ int main(int argc, const char ** argv){
 
                     break;
 
-
                 case 6 :
 
                     {
+                        cout << "-- WORKSHOP --" << endl << endl;
+                        EParser<CamPixFmt> fmt;
+                        string f = fmt.getStringEnum(static_cast<CamPixFmt>(25));
+                        cout << "FORMAT    : " << f << endl;
 
-                        vector<string> mMailRecipients, mailAttachments;
-
-                        mMailRecipients.push_back("fripon@ceres.geol.u-psud.fr");
-                        SMTPClient::sendMail(   "10.8.0.1",
-                                                "",
-                                                "",
-                                                "freeture@test.fr",
-                                                mMailRecipients,
-                                                "ORSAY-20151116T191303",
-                                                "message",
-                                                mailAttachments,
-                                                NO_SECURITY);
-
-
-                    }
-
-                    break;
-
-                case 0 :
-
-                    ///%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-                    ///%%%%%%%%%%%%%%%%%%%%%% MODE 0 : RUN ACQ TEST %%%%%%%%%%%%%%%%%%%%%%%%%%
-                    ///%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-
-                    {
-
-                        std::cout << "================================================" << endl;
-                        std::cout << "======= FREETURE - Acquisition test mode =======" << endl;
-                        std::cout << "================================================" << endl << endl;
-
-                        /// --------------------- Manage program options -----------------------
-
-                        // Display or not the grabbed frame.
-                        if(vm.count("display")) display = vm["display"].as<bool>();
-                        // Acquisition format.
-                        if(vm.count("bitdepth")) acqFormat = vm["bitdepth"].as<int>();
-                        CamBitDepth camFormat;
-                        Conversion::intBitDepthToCamBitDepthEnum(acqFormat, camFormat);
-                        // Cam id.
-                        if(vm.count("id")) devID = vm["id"].as<int>();
-                        // Cam width size
-                        if(vm.count("width")) acqWidth = vm["width"].as<int>();
-                        // Cam height size
-                        if(vm.count("height")) acqHeight = vm["height"].as<int>();
-                        // Gain value.
-                        if(vm.count("gain")) gain = vm["gain"].as<int>();
-                        // Exposure value.
-                        if(vm.count("exposure")) exp = vm["exposure"].as<double>();
-
-                        cout << "------------------------------------------------" << endl;
-                        cout << "CAM ID    : " << devID << endl;
-                        EParser<CamBitDepth> fmt;
-                        cout << "FORMAT    : " << fmt.getStringEnum(camFormat) << endl;
-                        cout << "GAIN      : " << gain << endl;
-                        cout << "EXPOSURE  : " << exp << endl;
-                        cout << "DISPLAY   : " << display << endl;
-                        cout << "------------------------------------------------" << endl << endl;
-
-                        Device *device = new Device();
-                        device->listDevices(false);
-                        if(!device->createCamera(devID, true)) {
-                            delete device;
-                            throw ">> Fail to create device.";
-                        }
-
-                        if(acqWidth != 0 && acqHeight != 0)
-                            device->setCameraSize(acqWidth, acqHeight);
-                        else
-                            device->setCameraSize();
-
-                        device->setCameraPixelFormat();
-                        device->setCameraFPS();
-                        device->setCameraExposureTime(exp);
-                        device->setCameraGain(gain);
-                        device->initializeCamera();
-                        device->startCamera();
-                        namedWindow("FreeTure (ESC to stop)", WINDOW_NORMAL);
-
-                        #ifdef LINUX
-                        nonblock(1);
-                        #endif
-
-                        char hitKey;
-                        int interruption = 0;
-
-                        while(!interruption) {
-
-                            Frame frame;
-
-                            double tacq = (double)getTickCount();
-                            if(device->runContinuousCapture(frame)){
-                                tacq = (((double)getTickCount() - tacq)/getTickFrequency())*1000;
-                                std::cout << " >> [ TIME ACQ ] : " << tacq << " ms" << endl;
-
-                                if(display) {
-                                    imshow("FreeTure (ESC to stop)", frame.mImg);
-                                    waitKey(10);
-                                }
-                            }
-
-                            /// Stop freeture if escape is pressed.
-                            #ifdef WINDOWS
-
-                            //Sleep(1000);
-                            // Exit if ESC is pressed.
-                            if(GetAsyncKeyState(VK_ESCAPE)!=0)
-                                interruption = 1;
-
-                            #else
-                            #ifdef LINUX
-
-                            interruption = kbhit();
-                            if(interruption !=0) {
-                                hitKey = fgetc(stdin);
-                                if(hitKey == 27) interruption = 1;
-                                else interruption = 0;
-                            }
-
-                            #endif
-                            #endif
-                        }
-
-                        #ifdef LINUX
-                        nonblock(0);
-                        #endif
-
-                        device->stopCamera();
-                        delete device;
+                        if (f =="")
+                        cout << "is empty" << endl;
 
                     }
 
@@ -1139,21 +1088,28 @@ int main(int argc, const char ** argv){
 
                     {
 
-                        cout << "PLEASE CHOOSE A MODE (e.g. freeture -m 1) "            << endl
+                        cout << "MODE " << mode << " is not available. Correct modes are : " << endl
                                                                                         << endl;
-                        cout << "[1] Show detected cameras."                            << endl;
-                        cout << "[2] Check configuration file."                         << endl;
+                        cout << "[1] Check configuration file."                         << endl;
+                        cout << "[2] Run continous acquisition."                        << endl;
                         cout << "[3] Run meteor detection."                             << endl;
                         cout << "[4] Run single capture."                               << endl;
                         cout << "[5] Clean logs."                                       << endl << endl;
 
-                        cout << "Try help option (-h) for more informations." << endl;
-
+                        cout << "Execute freeture command to see options." << endl;
                     }
 
                     break;
 
             }
+
+        ///%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+        ///%%%%%%%%%%%%%%%%%%%%%%%%%%%%% PRINT HELP %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+        ///%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+        }else {
+
+            std::cout << desc;
 
         }
 
@@ -1169,8 +1125,27 @@ int main(int argc, const char ** argv){
 
     po::notify(vm);
 
-    //cout << endl << ">> FreeTure ended." << endl << endl;
-
     return 0 ;
 
 }
+
+/*
+case 6 :
+
+    {
+    vector<string> mMailRecipients, mailAttachments;
+
+    mMailRecipients.push_back("fripon@ceres.geol.u-psud.fr");
+    SMTPClient::sendMail(   "10.8.0.1",
+                            "",
+                            "",
+                            "freeture@sendmail.com",
+                            mMailRecipients,
+                            "ORSAY-20151116T191303",
+                            "message",
+                            mailAttachments,
+                            NO_SECURITY);
+    }
+
+    break;
+*/

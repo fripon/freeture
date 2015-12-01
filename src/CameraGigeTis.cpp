@@ -51,7 +51,7 @@
         mGain = 0;
         mExposure = 0;
         mFPS = 30;
-        mImgDepth = MONO_8;
+        mImgDepth = MONO8;
         mSaturateVal = 0;
         mGainMin = -1;
         mGainMax = -1;
@@ -268,7 +268,7 @@
         }
     }
 
-    bool CameraGigeTis::setPixelFormat(CamBitDepth format) {
+    bool CameraGigeTis::setPixelFormat(CamPixFmt format) {
 
         mImgDepth = format;
 
@@ -614,7 +614,7 @@
             newFrame = Frame(newImg, mGain, mExposure, to_iso_extended_string(time));
 
             newFrame.mFps = mFPS;
-            newFrame.mBitDepth = mImgDepth;
+            newFrame.mFormat = mImgDepth;
             newFrame.mSaturatedValue = mSaturateVal;
 
             newFrame.mFrameNumber = mFrameCounter;
@@ -686,15 +686,15 @@
 
     }
 
-    bool CameraGigeTis::getPixelFormat(CamBitDepth &format) {
+    bool CameraGigeTis::getPixelFormat(CamPixFmt &format) {
 
         if(m_pGrabber->getVideoFormat().getBitsPerPixel() == 8) {
 
-            format = MONO_8;
+            format = MONO8;
 
         }else if(m_pGrabber->getVideoFormat().getBitsPerPixel() == 16 || m_pGrabber->getVideoFormat().getBitsPerPixel() == 12) {
 
-            format = MONO_12;
+            format = MONO12;
 
         }else {
 

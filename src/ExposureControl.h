@@ -39,7 +39,7 @@
 #include <opencv2/imgproc/imgproc.hpp>
 #include <iostream>
 #include "Conversion.h"
-#include "ECamBitDepth.h"
+#include "ECamPixFmt.h"
 #include "Device.h"
 #include "SaveImg.h"
 #include <boost/filesystem.hpp>

@@ -34,7 +34,7 @@
 
 #include "Mask.h"
 
-Mask::Mask(int timeInterval, bool customMask, string customMaskPath, bool downsampleMask, CamBitDepth format, bool updateMask):
+Mask::Mask(int timeInterval, bool customMask, string customMaskPath, bool downsampleMask, CamPixFmt format, bool updateMask):
 mUpdateInterval(timeInterval), mUpdateMask(updateMask) {
 
     mMaskToCreate = false;
@@ -64,21 +64,15 @@ mUpdateInterval(timeInterval), mUpdateMask(updateMask) {
     // Estimate saturated value.
     switch(format) {
 
-        case MONO_12 :
+        case MONO12 :
 
                 saturatedValue = 4000;
 
             break;
 
-        case MONO_8 :
-
-                saturatedValue = 250;
-
-            break;
-
         default :
 
-            throw "Fail to find saturated value for this format.";
+                saturatedValue = 250;
 
     }
 

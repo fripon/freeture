@@ -41,7 +41,7 @@
     #define BOOST_LOG_DYN_LINK 1
 #endif
 
-#include "ECamBitDepth.h"
+#include "ECamPixFmt.h"
 #include "AcqSchedule.h"
 #include "DetThread.h"
 #include "StackThread.h"
@@ -107,7 +107,7 @@ class AcqThread {
         int                 mRegularInterval;
         int                 mRegularExposure;
         int                 mRegularGain;
-        CamBitDepth         mRegularFormat;
+        CamPixFmt           mRegularFormat;
         int                 mRegularRepetition;
         bool                mVideoFramesInInput;
         bool                mDetectionEnabled;
@@ -121,7 +121,7 @@ class AcqThread {
         double              mSunHorizon2;
         double              mStationLongitude;
         double              mStationLatitude;
-        
+
         bool                mEphemerisUpdated;
         bool                mEphemerisEnabled;
         string              mCurrentDate;
@@ -246,7 +246,7 @@ class AcqThread {
 
         void saveImageCaptured(Frame &img, int imgNum, ImgFormat outputType);
 
-        void runImageCapture(int imgNumber, int imgExposure, int imgGain, CamBitDepth imgFormat, ImgFormat imgOutput);
+        void runImageCapture(int imgNumber, int imgExposure, int imgGain, CamPixFmt imgFormat, ImgFormat imgOutput);
 
         bool configureInputDevice();
 };

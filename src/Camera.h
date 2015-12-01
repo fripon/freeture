@@ -37,7 +37,7 @@
 #include "config.h"
 #include "opencv2/highgui/highgui.hpp"
 #include <opencv2/imgproc/imgproc.hpp>
-#include "ECamBitDepth.h"
+#include "ECamPixFmt.h"
 #include "Frame.h"
 #include "ETimeMeasureUnit.h"
 
@@ -45,7 +45,7 @@ using namespace cv;
 using namespace std;
 
 class Camera {
-    
+
     public :
 
         bool mExposureAvailable;
@@ -62,6 +62,8 @@ class Camera {
             return v;
 
         }
+
+        virtual void getAvailablePixelFormats() {};
 
         /**
         * List connected GigE devices.
@@ -150,7 +152,7 @@ class Camera {
 
 
         virtual TimeMeasureUnit getExposureUnit() {return SEC;};
-        
+
         /**
         * Get device's gain bounds.
         *
@@ -165,7 +167,7 @@ class Camera {
         * @param format Return image format.
         * @return Success status to get format.
         */
-        virtual bool getPixelFormat(CamBitDepth &format) {return false;};
+        virtual bool getPixelFormat(CamPixFmt &format) {return false;};
 
         /**
         * Get device's frame size.
@@ -243,7 +245,7 @@ class Camera {
         * @param format New format.
         * @return Success status to set format.
         */
-        virtual bool setPixelFormat(CamBitDepth format) {return false;};
+        virtual bool setPixelFormat(CamPixFmt format) {return false;};
 
         /**
         * Get data status if a set of directories or videos are used in input.

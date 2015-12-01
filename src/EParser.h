@@ -39,13 +39,13 @@
 #include <iostream>
 #include <map>
 #include <stdexcept>
-#include "ECamBitDepth.h"
 #include "EDetMeth.h"
 #include "EStackMeth.h"
 #include "ELogSeverityLevel.h"
 #include "ESmtpSecurity.h"
 #include "ETimeMode.h"
 #include "EImgFormat.h"
+#include "ECamPixFmt.h"
 
 
 using namespace std;
@@ -94,6 +94,32 @@ template<typename T> class EParser {
             }
 
             return iValue->second;
+
+        }
+
+        T parseEnum(const string value){
+
+            typename map<string, T>::const_iterator iValue = enumMap.find(value);
+
+            if(iValue == enumMap.end()){
+
+                throw "Enum not found";
+
+            }
+
+            return iValue->second;
+
+        }
+
+        bool isEnumValue(const string value){
+
+            typename map<string, T>::const_iterator iValue = enumMap.find(value);
+
+            if(iValue == enumMap.end()){
+                return false;
+            }
+
+            return true;
 
         }
 

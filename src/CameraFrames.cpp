@@ -286,20 +286,20 @@ bool CameraFrames::grabImage(Frame &img) {
         /// Read the frame.
 
         Mat resMat;
-        CamBitDepth frameFormat = MONO_8;
+        CamPixFmt frameFormat = MONO8;
 
         switch(bitpix){
 
             case 8 :
 
-                frameFormat = MONO_8;
+                frameFormat = MONO8;
                 newFits.readFits8UC(resMat);
 
                 break;
 
             case 16 :
 
-                frameFormat = MONO_12;
+                frameFormat = MONO12;
                 newFits.readFits16US(resMat);
 
                 break;
@@ -315,7 +315,7 @@ bool CameraFrames::grabImage(Frame &img) {
         img.mFrameNumber = mFirstFrameNum -1 ;
         img.mFrameRemaining = mLastFrameNum - mFirstFrameNum-1;
         img.mFps = 1;
-        img.mBitDepth = frameFormat;
+        img.mFormat = frameFormat;
 
         //waitKey(1000);
 

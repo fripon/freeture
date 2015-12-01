@@ -36,14 +36,14 @@ freeture_SOURCES	= EImgBitDepth.h EParser.h EParser.cpp \
 			Fits.h Fits2D.h Fits3D.h Frame.h GlobalEvent.h Histogram.h DetectionTemplate.h \
 			LocalEvent.h EStackMeth.h DetectionTemplate.cpp DetectionTemporal.h DetectionTemporal.cpp \
 			TimeDate.h Device.h Device.cpp Stack.h Stack.cpp Ephemeris.cpp \
-			SaveImg.h ECamBitDepth.h StackThread.h StackThread.cpp Mask.h Mask.cpp \
-			Base64.cpp ESmtpSecurity.h OpenSSL.h OpenSSL.cpp Socket.h \
+			SaveImg.h StackThread.h StackThread.cpp Mask.h Mask.cpp \
+			Base64.cpp ESmtpSecurity.h OpenSSL.h OpenSSL.cpp Socket.h PixFmtConv.cpp \
 			CameraFrames.cpp SMTPClient.cpp HistogramGray.h HistogramGray.cpp \
 			CameraVideo.cpp Configuration.cpp Conversion.cpp Ephemeris.h \
-			DetThread.cpp Fits.cpp Fits2D.cpp Fits3D.cpp Logger.h \
+			DetThread.cpp Fits.cpp Fits2D.cpp Fits3D.cpp Logger.h PixFmtConv.h \
 			Frame.cpp GlobalEvent.cpp Histogram.cpp AcqSchedule.h AcqSchedule.cpp \
 			LocalEvent.cpp main.cpp HistogramRGB.h HistogramRGB.cpp EImgFormat.h \
-			TimeDate.cpp ExposureControl.cpp ExposureControl.h ETimeMode.h \
+			TimeDate.cpp ExposureControl.cpp ExposureControl.h ETimeMode.h ECamPixFmt.h \
 			SaveImg.cpp ELogSeverityLevel.h ImgProcessing.cpp ImgProcessing.h
 
 DATE=`date +"%Y-%m-%d"`

@@ -379,21 +379,21 @@
                     //BOOST_LOG_SEV(logger, normal) << "Date : " << acqDateInMicrosec;
 
                     Mat image;
-                    CamBitDepth imgDepth = MONO_8;
+                    CamPixFmt imgDepth = MONO8;
                     int saturateVal = 0;
 
                     if(pixFormat == ARV_PIXEL_FORMAT_MONO_8){
 
                         //BOOST_LOG_SEV(logger, normal) << "Creating Mat 8 bits ...";
                         image = Mat(mHeight, mWidth, CV_8UC1, buffer_data);
-                        imgDepth = MONO_8;
+                        imgDepth = MONO8;
                         saturateVal = 255;
 
                     }else if(pixFormat == ARV_PIXEL_FORMAT_MONO_12){
 
                         //BOOST_LOG_SEV(logger, normal) << "Creating Mat 16 bits ...";
                         image = Mat(mHeight, mWidth, CV_16UC1, buffer_data);
-                        imgDepth = MONO_12;
+                        imgDepth = MONO12;
                         saturateVal = 4095;
 
                         //double t3 = (double)getTickCount();
@@ -425,7 +425,7 @@
                     //newFrame.setAcqDateMicro(acqDateInMicrosec);
                     //BOOST_LOG_SEV(logger, normal) << "Setting fps of frame ...";
                     newFrame.mFps = fps;
-                    newFrame.mBitDepth = imgDepth;
+                    newFrame.mFormat = imgDepth;
                     //BOOST_LOG_SEV(logger, normal) << "Setting saturated value of frame ...";
                     newFrame.mSaturatedValue = saturateVal;
                     newFrame.mFrameNumber = frameCounter;
@@ -490,7 +490,7 @@
         if(!createDevice(camID))
             return false;
 
-        if(!setPixelFormat(frame.mBitDepth))
+        if(!setPixelFormat(frame.mFormat))
             return false;
 
         if(!setExposureTime(frame.mExposure))
@@ -633,6 +633,8 @@
                         // Unsigned short image.
                         Mat image = Mat(mHeight, mWidth, CV_16UC1, buffer_data);
 
+                        // http://www.theimagingsource.com/en_US/support/documentation/icimagingcontrol-class/PixelformatY16.htm
+                        // Some sensors only support 10-bit or 12-bit pixel data. In this case, the least significant bits are don't-care values.
                         if(shiftBitsImage){
                             unsigned short * p;
                             for(int i = 0; i < image.rows; i++){
@@ -756,6 +758,71 @@
 
     }
 
+    //https://github.com/GNOME/aravis/blob/b808d34691a18e51eee72d8cac6cfa522a945433/src/arvtool.c
+    void CameraGigeAravis::getAvailablePixelFormats() {
+
+        ArvGc *genicam;
+        ArvDevice *device;
+        ArvGcNode *node;
+
+        if(camera != NULL) {
+
+            device = arv_camera_get_device(camera);
+            genicam = arv_device_get_genicam(device);
+            node = arv_gc_get_node(genicam, "PixelFormat");
+
+            if (ARV_IS_GC_ENUMERATION (node)) {
+
+                const GSList *childs;
+                const GSList *iter;
+                vector<string> pixfmt;
+
+                cout << ">> Device pixel formats :" << endl;
+
+                childs = arv_gc_enumeration_get_entries (ARV_GC_ENUMERATION (node));
+                for (iter = childs; iter != NULL; iter = iter->next) {
+                    if (arv_gc_feature_node_is_implemented (ARV_GC_FEATURE_NODE (iter->data), NULL)) {
+
+                        if(arv_gc_feature_node_is_available (ARV_GC_FEATURE_NODE (iter->data), NULL)) {
+
+                            {
+                                string fmt = string(arv_gc_feature_node_get_name(ARV_GC_FEATURE_NODE (iter->data)));
+                                std::transform(fmt.begin(), fmt.end(),fmt.begin(), ::toupper);
+                                pixfmt.push_back(fmt);
+                                cout << "- " << fmt << endl;
+
+                            }
+                        }
+                    }
+                }
+
+                // Compare found pixel formats to currently formats supported by freeture
+
+                cout << endl <<  ">> Available pixel formats :" << endl;
+                EParser<CamPixFmt> fmt;
+
+                for( int i = 0; i != pixfmt.size(); i++ ) {
+
+                    if(fmt.isEnumValue(pixfmt.at(i))) {
+
+                        cout << "- " << pixfmt.at(i) << " available --> ID : " << fmt.parseEnum(pixfmt.at(i)) << endl;
+
+                    }
+
+                }
+
+            }else {
+
+                cout << ">> Available pixel formats not found." << endl;
+
+            }
+
+            g_object_unref(device);
+
+        }
+
+    }
+
     void CameraGigeAravis::getExposureBounds(double &eMin, double &eMax){
 
         double exposureMin = 0.0;
@@ -786,7 +853,7 @@
 
     }
 
-    bool CameraGigeAravis::getPixelFormat(CamBitDepth &format){
+    bool CameraGigeAravis::getPixelFormat(CamPixFmt &format){
 
         ArvPixelFormat pixFormat = arv_camera_get_pixel_format(camera);
 
@@ -794,13 +861,13 @@
 
             case ARV_PIXEL_FORMAT_MONO_8 :
 
-                format = MONO_8;
+                format = MONO8;
 
                 break;
 
             case ARV_PIXEL_FORMAT_MONO_12 :
 
-                format = MONO_12;
+                format = MONO12;
 
                 break;
 
@@ -814,6 +881,7 @@
 
         return true;
     }
+
 
     bool CameraGigeAravis::getFrameSize(int &w, int &h) {
 
@@ -919,19 +987,19 @@
 
     }
 
-    bool CameraGigeAravis::setPixelFormat(CamBitDepth depth){
+    bool CameraGigeAravis::setPixelFormat(CamPixFmt depth){
 
         if (camera != NULL){
 
             switch(depth){
 
-                case MONO_8 :
+                case MONO8 :
 
                     arv_camera_set_pixel_format(camera, ARV_PIXEL_FORMAT_MONO_8);
 
                     break;
 
-                case MONO_12 :
+                case MONO12 :
 
                     arv_camera_set_pixel_format(camera, ARV_PIXEL_FORMAT_MONO_12);
 

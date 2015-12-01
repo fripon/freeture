@@ -40,7 +40,7 @@
 #include "ImgProcessing.h"
 #include "SaveImg.h"
 #include "Conversion.h"
-#include "ECamBitDepth.h"
+#include "ECamPixFmt.h"
 
 using namespace std;
 
@@ -64,7 +64,7 @@ class Mask {
 
     public :
 
-        Mask(int timeInterval, bool customMask, string customMaskPath, bool downsampleMask, CamBitDepth format, bool updateMask);
+        Mask(int timeInterval, bool customMask, string customMaskPath, bool downsampleMask, CamPixFmt format, bool updateMask);
 
         bool applyMask(Mat &currFrame);
 

@@ -49,10 +49,11 @@
     #include "arv.h"
     #include "arvinterface.h"
     #include <time.h>
+    #include <algorithm>
+    #include "EParser.h"
 
     #define BOOST_LOG_DYN_LINK 1
 
-    #include "ECamBitDepth.h"
     #include <boost/log/common.hpp>
     #include <boost/log/expressions.hpp>
     #include <boost/log/utility/setup/file.hpp>
@@ -140,7 +141,7 @@
 
             void getGainBounds(int &gMin, int &gMax);
 
-            bool getPixelFormat(CamBitDepth &format);
+            bool getPixelFormat(CamPixFmt &format);
 
             bool getFrameSize(int &w, int &h);
 
@@ -156,11 +157,13 @@
 
             bool setFPS(double fps);
 
-            bool setPixelFormat(CamBitDepth depth);
+            bool setPixelFormat(CamPixFmt depth);
 
             void saveGenicamXml(string p);
 
             bool setSize(int width, int height, bool customSize);
+
+            void getAvailablePixelFormats();
 
     };
 

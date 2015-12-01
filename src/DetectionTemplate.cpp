@@ -80,10 +80,10 @@ mDataSetCounter(0) {
         throw "Fail to load ACQ_MASK_PATH from configuration file.";
     }
 
-    string acqBitDepth;
-    cfg.Get("ACQ_BIT_DEPTH", acqBitDepth);
-    EParser<CamBitDepth> camBitDepth;
-    CamBitDepth bitDepth = camBitDepth.parseEnum("ACQ_BIT_DEPTH", acqBitDepth);
+    string acqFormat;
+    cfg.Get("ACQ_FORMAT", acqFormat);
+    EParser<CamPixFmt> camFormat;
+    CamPixFmt bitDepth = camFormat.parseEnum("ACQ_FORMAT", acqFormat);
 
     mMaskControl = new Mask(10, mMaskEnabled, mMaskPath, mDownsampleEnabled, bitDepth, true);
 

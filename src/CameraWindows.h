@@ -42,7 +42,6 @@
 #include "opencv2/highgui/highgui.hpp"
 #include "videoInput.h"
 #include "Frame.h"
-#include "ECamBitDepth.h"
 #include "Camera.h"
 
 class CameraWindows: public Camera {
@@ -93,7 +92,7 @@ class CameraWindows: public Camera {
 
         bool createDevice(int id);
 
-        bool setPixelFormat(CamBitDepth format);
+        bool setPixelFormat(CamPixFmt format);
 
         void getExposureBounds(double &eMin, double &eMax);
 
@@ -121,7 +120,7 @@ class CameraWindows: public Camera {
 
         void grabCleanse();
 
-        bool getPixelFormat(CamBitDepth &format);
+        bool getPixelFormat(CamPixFmt &format);
 
         double getExposureTime();
 

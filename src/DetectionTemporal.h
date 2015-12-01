@@ -62,7 +62,7 @@
 #include "Fits.h"
 #include "Frame.h"
 #include "EStackMeth.h"
-#include "ECamBitDepth.h"
+#include "ECamPixFmt.h"
 #include "GlobalEvent.h"
 #include "LocalEvent.h"
 #include "Detection.h"

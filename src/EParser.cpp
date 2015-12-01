@@ -35,10 +35,18 @@
 
 #include "EParser.h"
 
-template<> EParser<CamBitDepth>::EParser() {
+template<> EParser<CamPixFmt>::EParser() {
 
-    enumMap["MONO_8"]   = MONO_8;
-    enumMap["MONO_12"]  = MONO_12;
+    enumMap["MONO8"]   = MONO8;
+    enumMap["GREY"]    = GREY;
+    enumMap["Y800"]    = Y800;
+    enumMap["MONO12"]  = MONO12;
+    enumMap["YUYV"]    = YUYV;
+    enumMap["UYVY"]    = UYVY;
+    enumMap["RGB565"]  = RGB565;
+    enumMap["BGR3"]    = BGR3;
+    enumMap["RGB3"]    = RGB3;
+    enumMap["MONO16"]  = MONO16;
 
 }
 

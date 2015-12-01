@@ -36,7 +36,7 @@
 
 Frame::Frame(Mat capImg, int g, double e, string acquisitionDate):
 mExposure(e), mGain(g), mFileName("noFileName"), mFrameRemaining(0),
-mFrameNumber(0), mFps(0), mBitDepth(MONO_8), mSaturatedValue(255) {
+mFrameNumber(0), mFps(0), mFormat(MONO8), mSaturatedValue(255) {
 
     capImg.copyTo(mImg);
     mDate = TimeDate::splitIsoExtendedDate(acquisitionDate);
@@ -47,7 +47,7 @@ mFrameNumber(0), mFps(0), mBitDepth(MONO_8), mSaturatedValue(255) {
 
 Frame::Frame():
 mExposure(0), mGain(0), mFileName("noFileName"), mFrameRemaining(0),
-mFrameNumber(0), mFps(0), mBitDepth(MONO_8), mSaturatedValue(255) {
+mFrameNumber(0), mFps(0), mFormat(MONO8), mSaturatedValue(255) {
 
    mWidth = 0;
    mHeight = 0;

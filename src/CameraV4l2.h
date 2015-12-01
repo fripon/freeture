@@ -65,7 +65,6 @@
 
     #define BOOST_LOG_DYN_LINK 1
 
-    #include "ECamBitDepth.h"
     #include "EParser.h"
     #include <boost/log/common.hpp>
     #include <boost/log/expressions.hpp>
@@ -78,6 +77,8 @@
     #include <boost/log/sources/logger.hpp>
     #include <boost/log/core.hpp>
     #include "ELogSeverityLevel.h"
+    #include "PixFmtConv.h"
+    #include <algorithm>
 
     using namespace cv;
     using namespace std;
@@ -151,7 +152,7 @@
 
             void getGainBounds(int &gMin, int &gMax);
 
-            bool getPixelFormat(CamBitDepth &format);
+            bool getPixelFormat(CamPixFmt &format);
 
             bool getFrameSize(int &w, int &h);
 
@@ -171,7 +172,9 @@
 
             bool setFPS(double fps);
 
-            bool setPixelFormat(CamBitDepth depth);
+            bool setPixelFormat(CamPixFmt depth);
+
+            void getAvailablePixelFormats();
 
 
         private :

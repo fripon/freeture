@@ -113,7 +113,7 @@ vector<pair<int,string>> CameraGigePylon::getCamerasList() {
                         }
 
                         id++;
-                        
+
                     }
                 }
             }
@@ -195,7 +195,7 @@ bool CameraGigePylon::listCameras() {
                         }
 
                         id++;
-                        
+
                     }
                 }
             }
@@ -587,7 +587,7 @@ bool CameraGigePylon::setSize(int width, int height, bool customSize) {
 
                 // Default is maximum size
                 }else {
-                    
+
                     BOOST_LOG_SEV(logger,notification) << "Set size to : " << pCamera->Width.GetMax() << "x" << pCamera->Height.GetMax();
                     pCamera->Width.SetValue(pCamera->Width.GetMax());
                     pCamera->Height.SetValue(pCamera->Height.GetMax());
@@ -638,7 +638,7 @@ bool CameraGigePylon::grabSingleImage(Frame &frame, int camID){
         CInstantCamera camera( CTlFactory::GetInstance().CreateDevice(devices[camID].GetFullName()));
 
         INodeMap& nodemap = camera.GetNodeMap();
- 
+
         // Open the camera for accessing the parameters.
         camera.Open();
 
@@ -830,16 +830,16 @@ void CameraGigePylon::getGainBounds(int &gMin, int &gMax){
 
 }
 
-bool CameraGigePylon::getPixelFormat(CamBitDepth &format){
+bool CameraGigePylon::getPixelFormat(CamPixFmt &format){
 
     if(pCamera->PixelFormat.GetValue() == PixelFormat_Mono8){
 
-        format = MONO_8;
+        format = MONO8;
         return true;
 
     }else if(pCamera->PixelFormat.GetValue() == PixelFormat_Mono12){
 
-        format = MONO_12;
+        format = MONO12;
 
         return true;
 
@@ -903,7 +903,7 @@ bool CameraGigePylon::setExposureTime(double exposition) {
         try{
 
             if( pCamera->IsAttached() && pCamera->IsOpen() ){
-               
+
                 // Check whether auto exposure is available
                 if (IsWritable( pCamera->ExposureAuto)){
 
@@ -980,16 +980,16 @@ bool CameraGigePylon::setFPS(double fps){
     return true;
 }
 
-bool CameraGigePylon::setPixelFormat(CamBitDepth format){
+bool CameraGigePylon::setPixelFormat(CamPixFmt format){
 
     Basler_GigECamera::PixelFormatEnums fpix;
 
-    if(format == MONO_8 ){
+    if(format == MONO8 ){
 
         fpix = PixelFormat_Mono8;
 
     }
-    else if (format == MONO_12 ){
+    else if (format == MONO12 ){
 
         fpix = PixelFormat_Mono12;
 

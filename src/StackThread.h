@@ -81,7 +81,7 @@ class StackThread {
         bool                            mFitsCompression;
         string                          mFitsCompressionMethod;
         double                          mStackTime;
-        CamBitDepth                     mAcqBitDepth;
+        CamPixFmt                       mAcqBitDepth;
         StackMeth                       mStackMthd;
         string                          mStationName;
         Fits                            mFitsHeader;

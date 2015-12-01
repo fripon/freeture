@@ -63,7 +63,7 @@
 #include "Configuration.h"
 #include "TimeDate.h"
 #include "Fits.h"
-#include "ECamBitDepth.h"
+#include "ECamPixFmt.h"
 
 using namespace cv;
 using namespace std;
@@ -94,7 +94,7 @@ class Fits3D : public Fits {
         int             size3d;
         long            fpixel[3];
         int             imgSize;
-        CamBitDepth     imgDepth;
+        CamPixFmt       imgDepth;
         int             n;                  // Index for the number of images
         unsigned char   *array3D_MONO_8;
         unsigned short  *array3D_MONO_12;
@@ -110,7 +110,7 @@ class Fits3D : public Fits {
         * @param fileName Name od the fits cube.
         *
         */
-        Fits3D(CamBitDepth depth, int imgHeight, int imgWidth, int numberOfImages, string fileName);
+        Fits3D(CamPixFmt depth, int imgHeight, int imgWidth, int numberOfImages, string fileName);
 
         /**
         * Constructor.
@@ -118,7 +118,7 @@ class Fits3D : public Fits {
         */
         Fits3D():
         fptr(NULL), mFileName("noFileName"), status(0), naxis(3), size3d(0), imgSize(0),
-        imgDepth(MONO_8), n(0), array3D_MONO_12(NULL), array3D_MONO_8(NULL) {
+        imgDepth(MONO8), n(0), array3D_MONO_12(NULL), array3D_MONO_8(NULL) {
 
         };
 

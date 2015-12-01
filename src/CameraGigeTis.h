@@ -44,7 +44,6 @@
     #include "Frame.h"
     #include "TimeDate.h"
     #include "Camera.h"
-    #include "ECamBitDepth.h"
     #include <boost/log/common.hpp>
     #include <boost/log/expressions.hpp>
     #include <boost/log/utility/setup/file.hpp>
@@ -99,7 +98,7 @@
             int mGain;
             double mExposure;
             double mFPS;
-            CamBitDepth mImgDepth;
+            CamPixFmt mImgDepth;
             int mSaturateVal;
             int mGainMin;
             int mGainMax;
@@ -118,7 +117,7 @@
 
             bool createDevice(int id);
 
-            bool setPixelFormat(CamBitDepth format);
+            bool setPixelFormat(CamPixFmt format);
 
             void getExposureBounds(double &eMin, double &eMax);
 
@@ -144,7 +143,7 @@
 
             void grabCleanse();
 
-            bool getPixelFormat(CamBitDepth &format);
+            bool getPixelFormat(CamPixFmt &format);
 
             double getExposureTime();
 

@@ -91,7 +91,7 @@ class Stack {
         TimeDate::Date  mDateFirstFrame;
         TimeDate::Date  mDateLastFrame;
         int             fps;
-        CamBitDepth     bitdepth;
+        CamPixFmt       format;
         bool            varExpTime;
         double          sumExpTime;
         string          mFitsCompressionMethod;

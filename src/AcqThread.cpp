@@ -207,15 +207,15 @@ AcqThread::AcqThread(   string                              cfgFile,
         mRegularRepetition = atoi(res1.at(6).c_str());
 
         // Get regular acquisition format.
-        EParser<CamBitDepth> format;
-        Conversion::intBitDepthToCamBitDepthEnum(atoi(res1.at(5).c_str()), mRegularFormat);
+        mRegularFormat = static_cast<CamPixFmt>(atoi(res1.at(5).c_str()));
+        EParser<CamPixFmt> fmt;
 
         BOOST_LOG_SEV(logger, notification) << "ACQ REGULAR : ";
         BOOST_LOG_SEV(logger, notification) << "  - Each : " << mRegularInterval << " seconds.";
         BOOST_LOG_SEV(logger, notification) << "  - " << mRegularExposure << " exposure time.";
         BOOST_LOG_SEV(logger, notification) << "  - " << mRegularGain << " gain.";
         BOOST_LOG_SEV(logger, notification) << "  - " << mRegularRepetition << " repetition.";
-        BOOST_LOG_SEV(logger, notification) << "  - " << format.getStringEnum(mRegularFormat) << " format.";
+        BOOST_LOG_SEV(logger, notification) << "  - " << fmt.getStringEnum(mRegularFormat) << " format.";
 
     }else {
         throw "Fail to get ACQ_REGULAR_CFG for acq thread";
@@ -733,8 +733,8 @@ void AcqThread::operator()(){
 
                                 mNextAcq.setDate(TimeDate::getIsoExtendedFormatDate(newFrame.mDate));
 
-                                CamBitDepth format;
-                                Conversion::intBitDepthToCamBitDepthEnum(mNextAcq.getF(), format);
+                                CamPixFmt format;
+                                format = static_cast<CamPixFmt>(mNextAcq.getF());
 
                                 runImageCapture(    mNextAcq.getN(),
                                                     mNextAcq.getE(),
@@ -1121,7 +1121,7 @@ bool AcqThread::buildAcquisitionDirectory(string YYYYMMDD){
     return true;
 }
 
-void AcqThread::runImageCapture(int imgNumber, int imgExposure, int imgGain, CamBitDepth imgFormat, ImgFormat imgOutput) {
+void AcqThread::runImageCapture(int imgNumber, int imgExposure, int imgGain, CamPixFmt imgFormat, ImgFormat imgOutput) {
 
     // Stop camera
     mDevice->stopCamera();
@@ -1166,9 +1166,9 @@ void AcqThread::runImageCapture(int imgNumber, int imgExposure, int imgGain, Cam
         frame.mExposure  = imgExposure;
         BOOST_LOG_SEV(logger, notification) << "Gain : " << imgGain;
         frame.mGain = imgGain;
-        EParser<CamBitDepth> format;
+        EParser<CamPixFmt> format;
         BOOST_LOG_SEV(logger, notification) << "Format : " << format.getStringEnum(imgFormat);
-        frame.mBitDepth = imgFormat;
+        frame.mFormat = imgFormat;
 
         // Run single capture.
         BOOST_LOG_SEV(logger, notification) << "Run single capture.";
@@ -1215,22 +1215,9 @@ void AcqThread::saveImageCaptured(Frame &img, int imgNum, ImgFormat outputType) 
 
                     {
 
-                        switch(img.mBitDepth) {
+                        switch(img.mFormat) {
 
-                            case MONO_8 :
-
-                                {
-
-                                    Mat temp;
-                                    img.mImg.copyTo(temp);
-                                    Mat newMat = ImgProcessing::correctGammaOnMono8(temp, 2.2);
-                                    SaveImg::saveJPEG(newMat, mDataLocation + fileName);
-
-                                }
-
-                                break;
-
-                            case MONO_12 :
+                            case MONO12 :
 
                                 {
 
@@ -1243,6 +1230,18 @@ void AcqThread::saveImageCaptured(Frame &img, int imgNum, ImgFormat outputType) 
                                 }
 
                                 break;
+
+                            default :
+
+                                {
+
+                                    Mat temp;
+                                    img.mImg.copyTo(temp);
+                                    Mat newMat = ImgProcessing::correctGammaOnMono8(temp, 2.2);
+                                    SaveImg::saveJPEG(newMat, mDataLocation + fileName);
+
+                                }
+
                         }
                     }
 
@@ -1269,20 +1268,9 @@ void AcqThread::saveImageCaptured(Frame &img, int imgNum, ImgFormat outputType) 
                         newFits.kCTYPE2 = "DEC--ARC";
                         newFits.kEQUINOX = 2000.0;
 
-                        switch(img.mBitDepth) {
+                        switch(img.mFormat) {
 
-                            case MONO_8 :
-
-                                {
-
-                                   if(newFits.writeFits(img.mImg, UC8, fileName))
-                                        cout << ">> Fits saved in : " << mDataLocation << fileName << endl;
-
-                                }
-
-                                break;
-
-                            case MONO_12 :
+                            case MONO12 :
 
                                 {
 
@@ -1321,6 +1309,16 @@ void AcqThread::saveImageCaptured(Frame &img, int imgNum, ImgFormat outputType) 
                                 }
 
                                 break;
+
+                            default :
+
+                                {
+
+                                   if(newFits.writeFits(img.mImg, UC8, fileName))
+                                        cout << ">> Fits saved in : " << mDataLocation << fileName << endl;
+
+                                }
+
                         }
 
                     }

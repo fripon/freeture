@@ -40,7 +40,6 @@
 #include <string>
 #include "opencv2/highgui/highgui.hpp"
 #include <opencv2/imgproc/imgproc.hpp>
-#include "ECamBitDepth.h"
 
 using namespace std;
 using namespace cv;
@@ -100,14 +99,6 @@ class Conversion {
         * @return Number of 0 to add to reach maximum of available digits.
         */
         static string numbering(int totalDigit, int n);
-
-        /**
-        * Convert an integer format to an enum format.
-        *
-        * @param acqFormat Integer format : 8, 12.
-        * @param camFormat Enum format : MONO_8, MONO_12.
-        */
-        static void intBitDepthToCamBitDepthEnum(int acqFormat, CamBitDepth &camFormat);
 
         /**
         * Count number of digit in a value.

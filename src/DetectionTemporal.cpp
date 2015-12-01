@@ -147,11 +147,11 @@ mDataSetCounter(0), mTimeBeforeEvent(timeBefore) {
         throw "Fail to load ACQ_MASK_PATH from configuration file.";
     }
 
-    string acqBitDepth;
-    cfg.Get("ACQ_BIT_DEPTH", acqBitDepth);
-    EParser<CamBitDepth> camBitDepth;
+    string acqFormat;
+    cfg.Get("ACQ_FORMAT", acqFormat);
+    EParser<CamPixFmt> camFormat;
 
-    mMaskManager = new Mask(updateMaskFrequency, maskEnabled, maskPath, mDownsampleEnabled, camBitDepth.parseEnum("ACQ_BIT_DEPTH", acqBitDepth), updateMask);
+    mMaskManager = new Mask(updateMaskFrequency, maskEnabled, maskPath, mDownsampleEnabled, camFormat.parseEnum("ACQ_FORMAT", acqFormat), updateMask);
 
     // Create local mask to eliminate single white pixels.
     Mat maskTemp(3,3,CV_8UC1,Scalar(255));

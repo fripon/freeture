@@ -96,7 +96,7 @@ class DetThread {
         double                          mTimeAfterEv;
         string                          mDataPath;                  // Where to save data               (parameter from configuration file).
         string                          mStationName;               // Name of the station              (parameter from configuration file).
-        CamBitDepth                     mBitDepth;                  // Acquisition bit depth            (parameter from configuration file).
+        CamPixFmt                       mFormat;                    // Acquisition bit depth            (parameter from configuration file).
         Fits                            mFitsHeader;
         bool                            mMailAlertEnabled;          // Enable to send mail alert        (parameter from configuration file).
         string                          mMailSmtpServer;            // SMTP server                      (parameter from configuration file).

@@ -217,34 +217,3 @@ string Conversion::numbering(int totalDigit, int n) {
 
     return ch;
 }
-
-void Conversion::intBitDepthToCamBitDepthEnum(int acqFormat, CamBitDepth &camFormat){
-
-    switch(acqFormat){
-
-        case 8 :
-
-            {
-                camFormat = MONO_8;
-
-            }
-
-            break;
-
-        case 12 :
-
-            {
-                camFormat = MONO_12;
-            }
-
-            break;
-
-        default :
-
-            throw "> The specified bitdepth is not allowed.";
-
-            break;
-
-    }
-
-}

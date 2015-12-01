@@ -42,7 +42,7 @@ Stack::Init Stack::initializer;
 Stack::Stack(string fitsCompression):
 mFitsCompressionMethod(fitsCompression),
 curFrames(0), varExpTime(false),
-sumExpTime(0.0), gainFirstFrame(0), expFirstFrame(0), fps(0), bitdepth(MONO_8){
+sumExpTime(0.0), gainFirstFrame(0), expFirstFrame(0), fps(0), format(MONO8){
 
 }
 
@@ -61,7 +61,7 @@ void Stack::addFrame(Frame &i){
                 expFirstFrame = i.mExposure;
                 mDateFirstFrame = i.mDate;
                 fps = i.mFps;
-                bitdepth = i.mBitDepth;
+                format = i.mFormat;
 
             }
 
@@ -153,42 +153,9 @@ bool Stack::saveStack(Fits fitsHeader, string path, StackMeth stackMthd, string 
                 newFits.kOBSMODE = "AVERAGE";
                 stack = stack/curFrames;
 
-                switch(bitdepth){
+                switch(format){
 
-                    case MONO_8 :
-
-                        {
-                            BOOST_LOG_SEV(logger, notification) << "Mono8 format";
-
-                            BOOST_LOG_SEV(logger, notification) << "Setting fits SATURATE key : 255";
-                            newFits.kSATURATE = 255;
-
-                            Mat newMat = Mat(stack.rows,stack.cols, CV_8UC1, Scalar(0));
-
-                            float * ptr;
-                            unsigned char * ptr2;
-
-                            for(int i = 0; i < stack.rows; i++){
-
-                                ptr = stack.ptr<float>(i);
-                                ptr2 = newMat.ptr<unsigned char>(i);
-
-                                for(int j = 0; j < stack.cols; j++){
-
-                                    ptr2[j] = (unsigned char)ptr[j];
-
-                                }
-                            }
-
-                            // Create FITS image with BITPIX = BYTE_IMG (8-bits unsigned integers), pixel with TBYTE (8-bit unsigned byte)
-                            BOOST_LOG_SEV(logger, notification) << "Writing FITS image with BITPIX = BYTE_IMG (8-bits unsigned integers), pixel with TBYTE (8-bit unsigned byte)";
-                            return newFits.writeFits(newMat, UC8, "" , mFitsCompressionMethod);
-
-                        }
-
-                        break;
-
-                    case MONO_12 :
+                    case MONO12 :
 
                         {
                             BOOST_LOG_SEV(logger, notification) << "Mono12 format";
@@ -231,6 +198,37 @@ bool Stack::saveStack(Fits fitsHeader, string path, StackMeth stackMthd, string 
 
                         break;
 
+                    default :
+
+                        {
+                            BOOST_LOG_SEV(logger, notification) << "Mono8 format";
+
+                            BOOST_LOG_SEV(logger, notification) << "Setting fits SATURATE key : 255";
+                            newFits.kSATURATE = 255;
+
+                            Mat newMat = Mat(stack.rows,stack.cols, CV_8UC1, Scalar(0));
+
+                            float * ptr;
+                            unsigned char * ptr2;
+
+                            for(int i = 0; i < stack.rows; i++){
+
+                                ptr = stack.ptr<float>(i);
+                                ptr2 = newMat.ptr<unsigned char>(i);
+
+                                for(int j = 0; j < stack.cols; j++){
+
+                                    ptr2[j] = (unsigned char)ptr[j];
+
+                                }
+                            }
+
+                            // Create FITS image with BITPIX = BYTE_IMG (8-bits unsigned integers), pixel with TBYTE (8-bit unsigned byte)
+                            BOOST_LOG_SEV(logger, notification) << "Writing FITS image with BITPIX = BYTE_IMG (8-bits unsigned integers), pixel with TBYTE (8-bit unsigned byte)";
+                            return newFits.writeFits(newMat, UC8, "" , mFitsCompressionMethod);
+
+                        }
+
                 }
 
             }
@@ -245,13 +243,14 @@ bool Stack::saveStack(Fits fitsHeader, string path, StackMeth stackMthd, string 
                 // 'SINGLE' 'SUM' 'AVERAGE' ('MEDIAN')
                 newFits.kOBSMODE = "SUM";
 
-                if(bitdepth == MONO_8){
-                    BOOST_LOG_SEV(logger, notification) << "Setting fits SATURATE key : 255 * curFrames";
-                    newFits.kSATURATE = 255 * curFrames;
-                }
-                else if(bitdepth == MONO_12){
+
+                if(format == MONO12){
                     BOOST_LOG_SEV(logger, notification) << "Setting fits SATURATE key : 4095 * curFrames";
                     newFits.kSATURATE = 4095 * curFrames;
+                }
+                else {
+                    BOOST_LOG_SEV(logger, notification) << "Setting fits SATURATE key : 255 * curFrames";
+                    newFits.kSATURATE = 255 * curFrames;
                 }
 
                 if(stackReduction){
@@ -271,19 +270,9 @@ bool Stack::saveStack(Fits fitsHeader, string path, StackMeth stackMthd, string 
                     BOOST_LOG_SEV(logger, notification) << "Setting fits BSCALE key : " << bscale;
                     newFits.kBSCALE = bscale;
 
-                    switch(bitdepth){
+                    switch(format){
 
-                        case MONO_8 :
-
-                            {
-                                BOOST_LOG_SEV(logger, notification) << "Writting Fits unsigned char.";
-                                return newFits.writeFits(newMat, UC8, "", mFitsCompressionMethod);
-
-                            }
-
-                            break;
-
-                        case MONO_12 :
+                        case MONO12 :
 
                             {
                                 BOOST_LOG_SEV(logger, notification) << "Writting Fits signed short.";
@@ -292,6 +281,14 @@ bool Stack::saveStack(Fits fitsHeader, string path, StackMeth stackMthd, string 
                             }
 
                             break;
+
+                        default :
+
+                            {
+                                BOOST_LOG_SEV(logger, notification) << "Writting Fits unsigned char.";
+                                return newFits.writeFits(newMat, UC8, "", mFitsCompressionMethod);
+
+                            }
 
                     }
 
@@ -315,36 +312,9 @@ Mat Stack::reductionByFactorDivision(float &bzero, float &bscale){
 
     Mat newMat;
 
-    switch(bitdepth){
+    switch(format){
 
-        case MONO_8 :
-
-            {
-
-                newMat = Mat(stack.rows,stack.cols, CV_8UC1, Scalar(0));
-                float factor = curFrames;
-                bscale = factor;
-                bzero  = 0;
-
-                float * ptr;
-                unsigned char * ptr2;
-
-                for(int i = 0; i < stack.rows; i++){
-
-                    ptr = stack.ptr<float>(i);
-                    ptr2 = newMat.ptr<unsigned char>(i);
-
-                    for(int j = 0; j < stack.cols; j++){
-
-                        ptr2[j] = cvRound(ptr[j] / factor) ;
-
-                    }
-                }
-            }
-
-            break;
-
-        case MONO_12 :
+        case MONO12 :
 
             {
 
@@ -377,6 +347,31 @@ Mat Stack::reductionByFactorDivision(float &bzero, float &bscale){
             }
 
             break;
+
+        default :
+
+            {
+
+                newMat = Mat(stack.rows,stack.cols, CV_8UC1, Scalar(0));
+                float factor = curFrames;
+                bscale = factor;
+                bzero  = 0;
+
+                float * ptr;
+                unsigned char * ptr2;
+
+                for(int i = 0; i < stack.rows; i++){
+
+                    ptr = stack.ptr<float>(i);
+                    ptr2 = newMat.ptr<unsigned char>(i);
+
+                    for(int j = 0; j < stack.cols; j++){
+
+                        ptr2[j] = cvRound(ptr[j] / factor) ;
+
+                    }
+                }
+            }
 
     }
 
