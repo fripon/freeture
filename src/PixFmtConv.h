@@ -44,7 +44,7 @@
 using namespace std;
 using namespace cv;
 
-class ColorFormat {
+class PixFmtConv {
 
     public :
 
