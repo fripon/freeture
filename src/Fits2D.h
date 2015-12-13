@@ -103,13 +103,6 @@ class Fits2D : public Fits {
         ~Fits2D(void);
 
         /**
-        * Copy fits keywords from a Fits object.
-        * @param fits Fits object.
-        *
-        */
-        void copyKeywords(const Fits &fits);
-
-        /**
         * Create and write Fits image.
         * @param img Image to save in fits format.
         * @param imgType Format of the image (8 bits signed/unsigned char, 16 bits signed/unsigned char, 32 bits float).

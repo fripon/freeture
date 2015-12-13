@@ -78,7 +78,7 @@ class Logger {
             if(mRefDate.at(0) != currDate.at(0) || mRefDate.at(1) != currDate.at(1) || mRefDate.at(2) != currDate.at(2)) {
 
                 string rDate = Conversion::numbering(2, mRefDate.at(0)) + Conversion::intToString(mRefDate.at(0)) + Conversion::numbering(2, mRefDate.at(1)) + Conversion::intToString(mRefDate.at(1)) + Conversion::numbering(2, mRefDate.at(2)) + Conversion::intToString(mRefDate.at(2));
-                cout << rDate << endl;
+                //cout << rDate << endl;
                 if(create_directory(path(mLogPath + "/LOG_" + rDate)) || exists(path(mLogPath + "/LOG_" + rDate))) {
 
                     //cout << mLogPath << "/LOG_" << rDate << " created." << endl;
@@ -128,7 +128,7 @@ class Logger {
 
                                 boost::posix_time::time_duration td = t1 - t2;
                                 long secTime = td.total_seconds();
-                                cout << secTime << endl;
+                                //cout << secTime << endl;
 
                                 if(abs(secTime) > mTimeLimit * 24 * 3600) {
                                     dirToRemove.push_back(curr.string());

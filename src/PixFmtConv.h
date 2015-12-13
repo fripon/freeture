@@ -36,13 +36,10 @@
 
 #include <iostream>
 #include <string>
-#include "opencv2/highgui/highgui.hpp"
-#include <opencv2/imgproc/imgproc.hpp>
 
 #define CLIP(color) (unsigned char)(((color) > 0xFF) ? 0xff : (((color) < 0) ? 0 : (color)))
 
 using namespace std;
-using namespace cv;
 
 class PixFmtConv {
 

@@ -1,5 +1,5 @@
 /*
-                                ETimeMode.h
+                            ECamSdkType.h
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 *
@@ -21,17 +21,21 @@
 *   You should have received a copy of the GNU General Public License
 *   along with FreeTure. If not, see <http://www.gnu.org/licenses/>.
 *
-*   Last modified:      17/07/2015
+*   Last modified:      01/12/2014
 *
 *%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%*/
 
 #pragma once
 
-enum TimeMode{
+enum CamSdkType{
 
-    DAY,
-    NIGHT,
-    DAYNIGHT,
-    NONE
+    ARAVIS,
+    PYLONGIGE,
+    TIS,
+    VIDEOFILE,
+    FRAMESDIR,
+    V4L2,
+    VIDEOINPUT,
+    UNKNOWN
+
 };
-

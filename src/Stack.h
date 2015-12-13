@@ -95,6 +95,8 @@ class Stack {
         bool            varExpTime;
         double          sumExpTime;
         string          mFitsCompressionMethod;
+        stationParam mstp;
+        fitskeysParam mfkp;
 
     public :
 
@@ -102,7 +104,7 @@ class Stack {
         * Constructor.
         *
         */
-        Stack(string fitsCompression);
+        Stack(string fitsCompression, fitskeysParam fkp, stationParam stp);
 
         /**
         * Destructor.
@@ -134,7 +136,7 @@ class Stack {
         * @param stackReduction Enable stack reduction.
         * @return Success status.
         */
-        bool saveStack(Fits fitsHeader, string path, StackMeth stackMthd, string stationName, bool stackReduction);
+        bool saveStack(string path, StackMeth stackMthd, bool stackReduction);
 
         /**
         * Get number of frames in the stack.

@@ -103,106 +103,40 @@ class DetectionTemplate : public Detection {
 
         }initializer;
 
-        bool                            mDownsampleEnabled;     // Use downsampling or not      (parameter from configuration file).
-        bool                            mSavePos;               // Save GE positions            (parameter from configuration file).
-        bool                            mDebugEnabled;          // Enable or disable debugging  (parameter from configuration file).
-        string                          mDebugPath;             // Debug location data          (parameter from configuration file).
-        bool                            mDebugVideo;            // Create a video for debugging (parameter from configuration file).
-        string                          mMaskPath;              // Location of the mask to use  (parameter from configuration file).
-        bool                            mMaskEnabled;
-        VideoWriter                     mVideoDebug;            // Video debug container.
-        int                             mImgNum;                // Current frame number.
-        Mat                             mPrevFrame;             // Previous frame.
-        Mat                             mMask;                  // Mask applied to frames.
-        string                          mDebugCurrentPath;
-        int                             mDataSetCounter;
-        Mat                             mOriginalMask;
-        bool                            mMaskToCreate;
-
-        vector<int> accStatus;
-        vector<int> accMax;
-        vector<Mat> accImg;
-
-        Mask *mMaskControl;
+        int                 mImgNum;                // Current frame number.
+        Mat                 mPrevFrame;             // Previous frame.
+        Mat                 mMask;                  // Mask applied to frames.
+        int                 mDataSetCounter;
+        detectionParam      mdtp;
+        Mask                *mMaskControl;
 
 
     public :
 
-        /**
-        * Constructor.
-        *
-        */
-        DetectionTemplate(string cfgPath);
+        DetectionTemplate(detectionParam dtp, CamPixFmt fmt);
 
-        /**
-        * Destructor.
-        *
-        */
         ~DetectionTemplate();
 
-        /**
-        * Initialize detection method.
-        *
-        * @param cfgPath Configuration file path.
-        */
         void initMethod(string cfgPath);
 
-        /**
-        * Run meteor detection.
-        *
-        * @param c Current frame.
-        * @return Success to analysis.
-        */
-        bool run(Frame &c);
+        bool runDetection(Frame &c);
 
-        /**
-        * Save infos on the detected event.
-        *
-        */
-        void saveDetectionInfos(string p);
+        void saveDetectionInfos(string p, int nbFramesAround);
 
-        /**
-        * Reset detection method.
-        *
-        */
         void resetDetection(bool loadNewDataSet);
 
-        /**
-        * Reset mask.
-        *
-        */
         void resetMask();
 
-        /**
-        * Get frame's number (in frame buffer) of the first frame which belongs to the detected event.
-        *
-        * @return Frame number.
-        */
-        int getNumFirstEventFrame();
+        int getEventFirstFrameNb();
 
-        /**
-        * Get date of the detected event.
-        *
-        * @return Date of the event : YYYY-MM-DDTHH:MM:SS,fffffffff
-        */
-        TimeDate::Date getDateEvent();
+        TimeDate::Date getEventDate();
 
-        /**
-        * Get frame's number (in frame buffer) of the last frame which belongs to the detected event.
-        *
-        * @return Frame number.
-        */
-        int getNumLastEventFrame();
+        int getEventLastFrameNb();
 
     private :
 
-        /**
-        * Initialize debug.
-        *
-        */
         void createDebugDirectories(bool cleanDebugDirectory);
 
 };
-
 
 

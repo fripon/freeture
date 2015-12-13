@@ -75,30 +75,6 @@ Fits3D::Fits3D(CamPixFmt depth, int imgHeight, int imgWidth, int numberOfImages,
 
 }
 
-void Fits3D::copyKeywords(const Fits &fits) {
-
-    kFILTER     = fits.kFILTER;
-    kTELESCOP   = fits.kTELESCOP;
-    kOBSERVER   = fits.kOBSERVER;
-    kINSTRUME   = fits.kINSTRUME;
-    kCAMERA     = fits.kCAMERA;
-    kFOCAL      = fits.kFOCAL;
-    kAPERTURE   = fits.kAPERTURE;
-    kSITELONG   = fits.kSITELONG;
-    kSITELAT    = fits.kSITELAT;
-    kSITEELEV   = fits.kSITEELEV;
-    kK1         = fits.kK1;
-    kK2         = fits.kK2;
-    kCOMMENT    = fits.kCOMMENT;
-    kCD1_1      = fits.kCD1_1;
-    kCD1_2      = fits.kCD1_2;
-    kCD2_1      = fits.kCD2_1;
-    kCD2_2      = fits.kCD2_2;
-    kXPIXEL     = fits.kXPIXEL;
-    kYPIXEL     = fits.kYPIXEL;
-
-}
-
 void Fits3D::addImageToFits3D(Mat frame){
 
     if(imgDepth == MONO8){
@@ -1020,8 +996,7 @@ bool Fits3D::writeKeywords(){
 
 bool Fits3D::writeFits3D(){
 
-    if(remove(mFileName)!=0)
-        return false;
+    remove(mFileName);
 
     if(fits_create_file(&fptr, mFileName, &status)){
 
@@ -1049,12 +1024,15 @@ bool Fits3D::writeFits3D(){
 
     }else if(imgDepth == MONO12){
 
+        // Set bzero and bscale for print unsigned short value in soft visualization.
+        kBZERO = 32768;
+        kBSCALE = 1;
+
         if(fits_create_img(fptr, SHORT_IMG, naxis, naxes, &status)){
 
              printerror(status);
              return false;
         }
-
 
         if(fits_write_pix(fptr, TSHORT, fpixel, size3d, array3D_MONO_12, &status)){
 

@@ -95,43 +95,20 @@ class CameraVideo : public Camera{
 
     public:
 
-        /**
-        * Constructor.
-        *
-        *
-        */
-        CameraVideo(vector<string> videoList);
+        CameraVideo(vector<string> videoList, bool verbose);
 
-        /**
-         * Destructor.
-         *
-         */
         ~CameraVideo(void);
 
         bool createDevice(int id);
 
+        bool acqStart() {return true;};
+
         bool listCameras() {return true;};
 
-        /**
-        * Read the next frame in the current video.
-        *
-        * @param img New frame's container object.
-        * @return Success status to get a frame.
-        */
         bool grabImage(Frame &img);
 
-        /**
-        * Prepare acquisition on the first video.
-        *
-        * @return Success status to prepare acquisition.
-        */
         bool grabInitialization();
 
-        /**
-        * Get status : End to read a video.
-        *
-        * @return Reading end status.
-        */
         bool getStopStatus();
 
         /**
@@ -150,19 +127,14 @@ class CameraVideo : public Camera{
 
         bool getFPS(double &value) {value = 0; return false;};
 
-        // Fake exposure.
         bool setExposureTime(double exp){return true;};
 
-        // Fake gain.
         bool setGain(int gain) {return true;};
 
-        // Fake fps.
         bool setFPS(double fps){return true;};
 
-        // Fake format.
         bool setPixelFormat(CamPixFmt format){return true;};
 
-        // Fake size.
         bool setSize(int width, int height, bool customSize) {return true;};
 
 };

@@ -1,5 +1,5 @@
 /*
-                            ETimeMeasureUnit.h
+                            EInputDeviceType.h
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 *
@@ -21,17 +21,17 @@
 *   You should have received a copy of the GNU General Public License
 *   along with FreeTure. If not, see <http://www.gnu.org/licenses/>.
 *
-*   Last modified:      20/10/2014
+*   Last modified:      01/12/2014
 *
 *%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%*/
 
 #pragma once
 
-enum TimeMeasureUnit {
+enum InputDeviceType{
 
-    SEC,
-    MSEC,
-    USEC
+    SINGLE_FITS_FRAME,
+    VIDEO,
+    CAMERA,
+    UNDEFINED_INPUT_TYPE
 
 };
-

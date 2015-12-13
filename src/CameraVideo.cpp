@@ -39,17 +39,20 @@ boost::log::sources::severity_logger< LogSeverityLevel >  CameraVideo::logger;
 
 CameraVideo::Init CameraVideo::initializer;
 
-CameraVideo::CameraVideo(vector<string> videoList):mVideoID(0), mFrameWidth(0), mFrameHeight(0), mReadDataStatus(false){
+CameraVideo::CameraVideo(vector<string> videoList, bool verbose):mVideoID(0), mFrameWidth(0), mFrameHeight(0), mReadDataStatus(false){
 
     mVideoList = videoList;
 
-    BOOST_LOG_SEV(logger,notification) << "Number of video in input : " << mVideoList.size();
-
     // Open the video file for reading.
-    mCap = VideoCapture(videoList.front());
+    if(mVideoList.size()>0)
+        mCap = VideoCapture(videoList.front());
+    else 
+        throw "No video path in input.";
 
     mExposureAvailable = false;
     mGainAvailable = false;
+    mInputDeviceType = VIDEO;
+    mVerbose = verbose;
 
 }
 
@@ -61,8 +64,8 @@ bool CameraVideo::grabInitialization(){
 
     if(!mCap.isOpened()) {
 
-         BOOST_LOG_SEV(logger,fail) << "Cannot open the video file";
-         cout << "Cannot open the video file" << endl;
+         if(mVerbose) BOOST_LOG_SEV(logger,fail) << "Cannot open the video file";
+         if(mVerbose) cout << "Cannot open the video file" << endl;
          return false;
     }
 
@@ -138,7 +141,7 @@ bool CameraVideo::grabImage(Frame &img){
         return true;
 
     }
-    
+
     if(mCap.get(CV_CAP_PROP_FRAME_COUNT) - mCap .get(CV_CAP_PROP_POS_FRAMES) <=0) {
 
         mVideoID++;
@@ -148,4 +151,5 @@ bool CameraVideo::grabImage(Frame &img){
 
     return false;
 }
+
 

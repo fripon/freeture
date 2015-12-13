@@ -39,12 +39,19 @@ boost::log::sources::severity_logger< LogSeverityLevel > CameraFrames::logger;
 
 CameraFrames::Init CameraFrames::initializer;
 
-CameraFrames::CameraFrames(vector<string> locationList, int numPos):
-mFramesDir(locationList), mNumFramePos(numPos), mReadDataStatus(false), mCurrDirId(0),
+CameraFrames::CameraFrames(vector<string> locationList, int numPos, bool verbose):
+mNumFramePos(numPos), mReadDataStatus(false), mCurrDirId(0),
 mFirstFrameNum(0), mLastFrameNum(0) {
+
+    if(locationList.size()>0)
+        mFramesDir = locationList;
+    else
+        throw "No frames directory in input.";
 
     mExposureAvailable = false;
     mGainAvailable = false;
+    mInputDeviceType = SINGLE_FITS_FRAME;
+    mVerbose = verbose;
 
 }
 
@@ -57,8 +64,6 @@ bool CameraFrames::loadNextDataSet(string &location) {
     cout << mCurrDirId << endl;
 
     location = mFramesDir.at(mCurrDirId);
-
-    cout << "load : nb : "<< mCurrDirId << "  path :  " << location << endl;
 
     //if(mCurrDirId !=0 ) {
 
@@ -81,12 +86,15 @@ bool CameraFrames::grabInitialization() {
 
 bool CameraFrames::getDataSetStatus() {
 
-    cout << "mCurrDirId incrementation" << endl;
     mCurrDirId++;
-    cout << "mFramesDir.size() : " <<  mFramesDir.size() << endl;
 
     if(mCurrDirId >= mFramesDir.size()) return false;
     else return true;
+}
+
+bool CameraFrames::getCameraName() {
+    cout << "Fits frames data." << endl;
+    return true;
 }
 
 bool CameraFrames::searchMinMaxFramesNumber(string location) {
@@ -97,7 +105,7 @@ bool CameraFrames::searchMinMaxFramesNumber(string location) {
 
     if(fs::exists(p)){
 
-        BOOST_LOG_SEV(logger, normal) << "Frame's directory exists : " << location;
+        if(mVerbose) BOOST_LOG_SEV(logger, normal) << "Frame's directory exists : " << location;
 
         int firstFrame = -1, lastFrame = 0;
         string filename = "";
@@ -174,8 +182,8 @@ bool CameraFrames::searchMinMaxFramesNumber(string location) {
 
         }
 
-        BOOST_LOG_SEV(logger, normal) << "First frame number in frame's directory : " << firstFrame;
-        BOOST_LOG_SEV(logger, normal) << "Last frame number in frame's directory : " << lastFrame;
+        if(mVerbose) BOOST_LOG_SEV(logger, normal) << "First frame number in frame's directory : " << firstFrame;
+        if(mVerbose) BOOST_LOG_SEV(logger, normal) << "Last frame number in frame's directory : " << lastFrame;
 
         mLastFrameNum = lastFrame;
         mFirstFrameNum = firstFrame;
@@ -184,8 +192,8 @@ bool CameraFrames::searchMinMaxFramesNumber(string location) {
 
     }else{
 
-        BOOST_LOG_SEV(logger, fail) << "Frame's directory not found.";
-        cout << "Frame's directory not found." << endl;
+        if(mVerbose) BOOST_LOG_SEV(logger, fail) << "Frame's directory not found.";
+        if(mVerbose) cout << "Frame's directory not found." << endl;
         return false;
 
     }
@@ -300,7 +308,7 @@ bool CameraFrames::grabImage(Frame &img) {
             case 16 :
 
                 frameFormat = MONO12;
-                newFits.readFits16US(resMat);
+                newFits.readFits16S(resMat);
 
                 break;
 

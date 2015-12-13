@@ -50,6 +50,7 @@
     #endif
 #endif
 
+#include "EInputDeviceType.h"
 #include "CameraV4l2.h"
 #include "Ephemeris.h"
 #include "Circle.h"
@@ -96,6 +97,7 @@
 #include "Logger.h"
 #include "CameraWindows.h"
 #include "ECamPixFmt.h"
+#include "CfgParam.h"
 
 #define BOOST_NO_SCOPED_ENUMS
 
@@ -295,6 +297,7 @@ int main(int argc, const char ** argv){
 
             mode = vm["mode"].as<int>();
             if(vm.count("cfg")) configPath = vm["cfg"].as<string>();
+            CfgParam cfg(configPath);
 
             switch(mode){
 
@@ -310,7 +313,8 @@ int main(int argc, const char ** argv){
                         std::cout << "====== FREETURE - Test/Check configuration =====" << endl;
                         std::cout << "================================================" << endl << endl;
 
-                        std::cout << "Mode 1 disabled in this version." << endl;
+                        cfg.showErrors = true;
+                        cfg.allParamAreCorrect();
 
                     }
 
@@ -374,7 +378,8 @@ int main(int argc, const char ** argv){
                         device->setCameraGain(gain);
                         device->initializeCamera();
                         device->startCamera();
-                        namedWindow("FreeTure (ESC to stop)", WINDOW_NORMAL);
+                        if(vm.count("display"))
+                            namedWindow("FreeTure (ESC to stop)", WINDOW_NORMAL);
 
                         #ifdef LINUX
                         nonblock(1);
@@ -394,7 +399,7 @@ int main(int argc, const char ** argv){
 
                                 if(vm.count("display")) {
                                     imshow("FreeTure (ESC to stop)", frame.mImg);
-                                    waitKey(10);
+                                    waitKey(1);
                                 }
                             }
 
@@ -447,43 +452,9 @@ int main(int argc, const char ** argv){
                         /// --------------------- LOAD FREETURE PARAMETERS -------------------
                         /// ------------------------------------------------------------------
 
-                        int ACQ_BUFFER_SIZE, ACQ_FPS, LOG_ARCHIVE_DAY, LOG_SIZE_LIMIT;
-                        bool DET_ENABLED, STACK_ENABLED;
-                        string LOG_PATH, log_severity;
-
-                        boost::filesystem::path pcfg(configPath);
-                        if(!boost::filesystem::exists(pcfg))
-                            throw "Configuration file not found.";
-
-                        Configuration cfg;
-                        if(!cfg.Load(configPath))
-                            throw "Fail to load parameters from configuration file.";
-
-                        // Get size of the frame buffer.
-                        if(!cfg.Get("ACQ_BUFFER_SIZE", ACQ_BUFFER_SIZE))
-                            throw "Fail to load ACQ_BUFFER_SIZE from configuration file.";
-
-                        // Get acquisition frequency.
-                        if(!cfg.Get("ACQ_FPS", ACQ_FPS))
-                            throw "Fail to load ACQ_BUFFER_SIZE from configuration file.";
-
-                        // Detection enabled or not.
-                        if(!cfg.Get("DET_ENABLED", DET_ENABLED))
-                            throw "Fail to load DET_ENABLED from configuration file.";
-
-                        // Stack enabled or not.
-                        if(!cfg.Get("STACK_ENABLED", STACK_ENABLED))
-                            throw "Fail to load STACK_ENABLED from configuration file.";
-
-                        // Get log path.
-                        if(!cfg.Get("LOG_PATH", LOG_PATH))
-                            throw "Fail to load LOG_PATH from configuration file.";
-
-                        if(!cfg.Get("LOG_ARCHIVE_DAY", LOG_ARCHIVE_DAY))
-                            throw "Fail to load LOG_ARCHIVE_DAY from configuration file.";
-
-                        if(!cfg.Get("LOG_SIZE_LIMIT", LOG_SIZE_LIMIT))
-                            throw "Fail to load LOG_SIZE_LIMIT from configuration file.";
+                        cfg.showErrors = true;
+                        if(!cfg.allParamAreCorrect())
+                            throw "Configuration file is not correct. Fail to launch detection mode.";
 
                         vector<string> logFiles;
                         logFiles.push_back("MAIN_THREAD.log");
@@ -491,19 +462,13 @@ int main(int argc, const char ** argv){
                         logFiles.push_back("DET_THREAD.log");
                         logFiles.push_back("STACK_THREAD.log");
 
-                        Logger logSystem(LOG_PATH, LOG_ARCHIVE_DAY, LOG_SIZE_LIMIT, logFiles);
-
-                        // Get log severity.
-                        if(!cfg.Get("LOG_SEVERITY", log_severity))
-                            throw "Fail to load LOG_SEVERITY from configuration file.";
-                        EParser<LogSeverityLevel> log_sev;
-                        LogSeverityLevel LOG_SEVERITY = log_sev.parseEnum("LOG_SEVERITY", log_severity);
+                        Logger logSystem(cfg.getLogParam().LOG_PATH, cfg.getLogParam().LOG_ARCHIVE_DAY, cfg.getLogParam().LOG_SIZE_LIMIT, logFiles);
 
                         /// ------------------------------------------------------------------
                         /// -------------------------- MANAGE LOG ----------------------------
                         /// ------------------------------------------------------------------
 
-                        path pLog(LOG_PATH);
+                        path pLog(cfg.getLogParam().LOG_PATH);
 
                         if(!boost::filesystem::exists(pLog)){
 
@@ -513,7 +478,7 @@ int main(int argc, const char ** argv){
                                 cout << "> Log directory created : " << pLog << endl;
                         }
 
-                        init_log(LOG_PATH + "/", LOG_SEVERITY);
+                        init_log(cfg.getLogParam().LOG_PATH + "/", cfg.getLogParam().LOG_SEVERITY);
                         src::severity_logger< LogSeverityLevel > slg;
                         slg.add_attribute("ClassName", boost::log::attributes::constant<std::string>("main.cpp"));
                         BOOST_LOG_SCOPED_THREAD_TAG("LogName", "MAIN_THREAD");
@@ -527,7 +492,7 @@ int main(int argc, const char ** argv){
                         /// ------------------------------------------------------------------
 
                         // Circular buffer to store last n grabbed frames.
-                        boost::circular_buffer<Frame> frameBuffer(ACQ_BUFFER_SIZE * ACQ_FPS);
+                        boost::circular_buffer<Frame> frameBuffer(cfg.getDetParam().ACQ_BUFFER_SIZE * cfg.getCamParam().ACQ_FPS);
                         boost::mutex frameBuffer_m;
                         boost::condition_variable frameBuffer_c;
 
@@ -552,17 +517,22 @@ int main(int argc, const char ** argv){
                         try {
 
                             // Create detection thread.
-                            if(DET_ENABLED) {
+                            if(cfg.getDetParam().DET_ENABLED) {
 
                                 BOOST_LOG_SEV(slg, normal) << "Start to create detection thread.";
 
-                                detThread = new DetThread(  configPath,
-                                                            &frameBuffer,
+                                detThread = new DetThread(  &frameBuffer,
                                                             &frameBuffer_m,
                                                             &frameBuffer_c,
                                                             &signalDet,
                                                             &signalDet_m,
-                                                            &signalDet_c);
+                                                            &signalDet_c,
+                                                            cfg.getDetParam(),
+                                                            cfg.getDataParam(),
+                                                            cfg.getMailParam(),
+                                                            cfg.getStationParam(),
+                                                            cfg.getFitskeysParam(),
+                                                            cfg.getCamParam().ACQ_FORMAT);
 
                                 if(!detThread->startThread())
                                     throw "Fail to start detection thread.";
@@ -570,17 +540,21 @@ int main(int argc, const char ** argv){
                             }
 
                             // Create stack thread.
-                            if(STACK_ENABLED) {
+                            if(cfg.getStackParam().STACK_ENABLED) {
 
                                 BOOST_LOG_SEV(slg, normal) << "Start to create stack Thread.";
 
-                                stackThread = new StackThread(  configPath,
-                                                                &signalStack,
+                                stackThread = new StackThread(  &signalStack,
                                                                 &signalStack_m,
                                                                 &signalStack_c,
                                                                 &frameBuffer,
                                                                 &frameBuffer_m,
-                                                                &frameBuffer_c);
+                                                                &frameBuffer_c,
+                                                                cfg.getDataParam(),
+                                                                cfg.getStackParam(),
+                                                                cfg.getStationParam(),
+                                                                cfg.getCamParam().ACQ_FORMAT,
+                                                                cfg.getFitskeysParam());
 
                                 if(!stackThread->startThread())
                                     throw "Fail to start stack thread.";
@@ -588,8 +562,7 @@ int main(int argc, const char ** argv){
                             }
 
                             // Create acquisition thread.
-                            acqThread = new AcqThread(  configPath,
-                                                        &frameBuffer,
+                            acqThread = new AcqThread(  &frameBuffer,
                                                         &frameBuffer_m,
                                                         &frameBuffer_c,
                                                         &signalStack,
@@ -599,7 +572,16 @@ int main(int argc, const char ** argv){
                                                         &signalDet_m,
                                                         &signalDet_c,
                                                         detThread,
-                                                        stackThread);
+                                                        stackThread,
+                                                        cfg.getDeviceID(),
+                                                        cfg.getDataParam(),
+                                                        cfg.getStackParam(),
+                                                        cfg.getStationParam(),
+                                                        cfg.getDetParam(),
+                                                        cfg.getCamParam(),
+                                                        cfg.getFramesParam(),
+                                                        cfg.getVidParam(),
+                                                        cfg.getFitskeysParam());
 
                             if(!acqThread->startThread()) {
 
@@ -662,9 +644,6 @@ int main(int argc, const char ** argv){
                                     if(executionTime != 0) {
 
                                         if(cptTime > executionTime){
-
-                                            std::cout << "Break main loop"<< endl;
-
                                             break;
                                         }
 
@@ -673,8 +652,7 @@ int main(int argc, const char ** argv){
                                     }
 
                                     /// Stop freeture if one of the thread is stopped.
-                                    if(acqThread->getThreadEndStatus()){
-                                        std::cout << "Break main loop" << endl;
+                                    if(acqThread->getThreadStatus()){
                                         break;
                                     }
 
@@ -878,23 +856,22 @@ int main(int argc, const char ** argv){
 
                                 cout << ">> Saving fits file ..." << endl;
 
-                                Fits fitsHeader;
-
-                                // Load keywords from cfg file
+                                Fits fh;
                                 bool useCfg = false;
-
-                                path c(configPath);
-
-                                if(is_regular_file(c)){
-
-                                    useCfg = true;
-                                    fitsHeader.loadKeywordsFromConfigFile(configPath);
-
-                                }else
-                                    cout << ">> Can't load fits keywords from configuration file (not found or not exist)." << endl;
-
                                 Fits2D newFits(savePath);
-                                newFits.copyKeywords(fitsHeader);
+
+                                cfg.showErrors = true;
+                                if(cfg.stationParamIsCorrect() && cfg.fitskeysParamIsCorrect()) {
+                                    useCfg = true;
+                                    double  debObsInSeconds = frame.mDate.hours*3600 + frame.mDate.minutes*60 + frame.mDate.seconds;
+                                    double  julianDate      = TimeDate::gregorianToJulian(frame.mDate);
+                                    double  julianCentury   = TimeDate::julianCentury(julianDate);
+                                    double  sideralT        = TimeDate::localSideralTime_2(julianCentury, frame.mDate.hours, frame.mDate.minutes, (int)frame.mDate.seconds, fh.kSITELONG);
+                                    newFits.kCRVAL1 = sideralT;
+                                    newFits.loadKeys(cfg.getFitskeysParam(), cfg.getStationParam());
+                                    
+                                }
+
                                 newFits.kGAINDB = (int)gain;
                                 newFits.kELAPTIME = exp/1000000.0;
                                 newFits.kEXPOSURE = exp/1000000.0;
@@ -903,16 +880,6 @@ int main(int argc, const char ** argv){
                                 newFits.kCTYPE1 = "RA---ARC";
                                 newFits.kCTYPE2 = "DEC--ARC";
                                 newFits.kEQUINOX = 2000.0;
-
-                                if(useCfg){
-
-                                    double  debObsInSeconds = frame.mDate.hours*3600 + frame.mDate.minutes*60 + frame.mDate.seconds;
-                                    double  julianDate      = TimeDate::gregorianToJulian(frame.mDate);
-                                    double  julianCentury   = TimeDate::julianCentury(julianDate);
-                                    double  sideralT        = TimeDate::localSideralTime_2(julianCentury, frame.mDate.hours, frame.mDate.minutes, (int)frame.mDate.seconds, fitsHeader.kSITELONG);
-                                    newFits.kCRVAL1 = sideralT;
-
-                                }
 
                                 if(frame.mFormat == MONO12){
                                     // Create FITS image with BITPIX = SHORT_IMG (16-bits signed integers), pixel with TSHORT (signed short)
@@ -928,81 +895,22 @@ int main(int argc, const char ** argv){
                                 // Send fits by mail if configuration file is correct.
                                 if(vm.count("sendbymail") && useCfg) {
 
-                                    string smtpServer, smtpLogin = "", smtpPassword = "", smtpConnectionType, mailRecipients;
-                                    SmtpSecurity smtpSec;
-                                    vector<string> mailAttachments, to;
-                                    mailAttachments.push_back(savePath + fileName + "-" + Conversion::intToString(filenum) + ".fit");
-                                    bool sendMailStatus = true;
+                                    if(cfg.mailParamIsCorrect()) {
 
-                                    Configuration cfg;
-                                    if(!cfg.Load(configPath)) {
-                                        cout << "Fail to load parameters from configuration file." << endl;
-                                        sendMailStatus = false;
-                                    }
-
-                                    if(!cfg.Get("MAIL_SMTP_SERVER", smtpServer)) {
-                                        cout << "Fail to load MAIL_SMTP_SERVER from configuration file." << endl;
-                                        sendMailStatus = false;
-                                    }
-
-                                    if(!cfg.Get("MAIL_CONNECTION_TYPE", smtpConnectionType)) {
-                                        cout << "Fail to load MAIL_CONNECTION_TYPE from configuration file.";
-                                        sendMailStatus = false;
-                                    }else {
-                                        EParser<SmtpSecurity> smtp_security;
-                                        smtpSec = smtp_security.parseEnum("MAIL_CONNECTION_TYPE", smtpConnectionType);
-                                    }
-
-                                    if(smtpSec == USE_SSL) {
-
-                                        if(!cfg.Get("MAIL_SMTP_LOGIN", smtpLogin)) {
-                                            cout << "Fail to load MAIL_SMTP_LOGIN from configuration file." << endl;
-                                            sendMailStatus = false;
-                                        }
-
-                                        if(!cfg.Get("MAIL_SMTP_PASSWORD", smtpPassword)) {
-                                            cout << "Fail to load MAIL_SMTP_PASSWORD from configuration file." << endl;
-                                            sendMailStatus = false;
-                                        }
-
-                                    }
-
-                                    if(!cfg.Get("MAIL_RECIPIENT", mailRecipients)) {
-                                        cout << "Fail to load MAIL_RECIPIENT from configuration file." << endl;
-                                        sendMailStatus = false;
-                                    }else {
-
-                                        typedef boost::tokenizer<boost::char_separator<char> > tokenizer;
-                                        boost::char_separator<char> sep(",");
-                                        tokenizer tokens(mailRecipients, sep);
-
-                                        for (tokenizer::iterator tok_iter = tokens.begin();tok_iter != tokens.end(); ++tok_iter){
-                                            to.push_back(*tok_iter);
-                                        }
-                                    }
-
-                                    cout << ">> Sending fits by mail..." << endl;
-
-                                    if(sendMailStatus) {
-
-                                        SMTPClient::sendMail(smtpServer,
-                                                            smtpLogin,
-                                                            smtpPassword,
+                                        vector<string> mailAttachments;
+                                        mailAttachments.push_back(savePath + fileName + "-" + Conversion::intToString(filenum) + ".fit");
+                                        
+                                        SMTPClient::sendMail(cfg.getMailParam().MAIL_SMTP_SERVER,
+                                                            cfg.getMailParam().MAIL_SMTP_LOGIN,
+                                                            cfg.getMailParam().MAIL_SMTP_PASSWORD,
                                                             "freeture@snap",
-                                                            to,
+                                                            cfg.getMailParam().MAIL_RECIPIENTS,
                                                             fileName + "-" + Conversion::intToString(filenum) + ".fit",
                                                             " Exposure time : " + Conversion::intToString((int)exp) + "\n Gain : " + Conversion::intToString((int)gain),
                                                             mailAttachments,
-                                                            smtpSec);
-
-                                        cout << ">> Mail successfully sent." << endl;
-
-                                    }else {
-
-                                        cout << ">> Fail to send mail." << endl;
+                                                            cfg.getMailParam().MAIL_CONNECTION_TYPE);
 
                                     }
-
                                 }
                             }
 
@@ -1041,17 +949,7 @@ int main(int argc, const char ** argv){
 
                     {
 
-                        boost::filesystem::path pcfg(configPath);
-                        if(!boost::filesystem::exists(pcfg))
-                            throw "Configuration.cfg not found.";
-
-                        Configuration cfg;
-                        cfg.Load(configPath);
-
-                        // Get log path.
-                        string LOG_PATH; cfg.Get("LOG_PATH", LOG_PATH);
-
-                        boost::filesystem::path p(LOG_PATH);
+                        boost::filesystem::path p(cfg.getLogParam().LOG_PATH);
 
                         if(boost::filesystem::exists(p)){
 
@@ -1072,14 +970,7 @@ int main(int argc, const char ** argv){
                 case 6 :
 
                     {
-                        cout << "-- WORKSHOP --" << endl << endl;
-                        EParser<CamPixFmt> fmt;
-                        string f = fmt.getStringEnum(static_cast<CamPixFmt>(25));
-                        cout << "FORMAT    : " << f << endl;
-
-                        if (f =="")
-                        cout << "is empty" << endl;
-
+                       
                     }
 
                     break;
@@ -1115,11 +1006,11 @@ int main(int argc, const char ** argv){
 
     }catch(exception& e) {
 
-        cout << ">> Error " << e.what() << endl;
+        cout << ">> Error : " << e.what() << endl;
 
     }catch(const char * msg) {
 
-        cout << ">> Error " << msg << endl;
+        cout << ">> Error : " << msg << endl;
 
     }
 

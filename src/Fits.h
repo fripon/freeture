@@ -30,12 +30,12 @@
 * \author  Yoan Audureau -- FRIPON-GEOPS-UPSUD
 * \version 1.0
 * \date    04/12/2014
-* \brief   Parent class of fits file (2D/3D) with the keywords and their comments.
 */
 
 #pragma once
 
-#include "Configuration.h"
+#include "SParam.h"
+#include "config.h"
 
 #include <boost/filesystem.hpp>
 
@@ -213,25 +213,10 @@ class Fits {
 
     public :
 
-        /**
-        * Constructor.
-        *
-        */
         Fits();
 
-        /**
-        * Destructor.
-        *
-        */
         ~Fits();
 
-        /**
-        * Load keywords.
-        *
-        * @param configFile Path of the configuration file.
-        * @return Succes to load keywords.
-        */
-        bool loadKeywordsFromConfigFile(string configFile);
-
+        void loadKeys(fitskeysParam fkp, stationParam sp);
 };
 

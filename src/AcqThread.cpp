@@ -34,14 +34,12 @@
 */
 
 #include "AcqThread.h"
-#include "Fits2D.h"
 
 boost::log::sources::severity_logger< LogSeverityLevel >  AcqThread::logger;
 
 AcqThread::Init AcqThread::initializer;
 
-AcqThread::AcqThread(   string                              cfgFile,
-                        boost::circular_buffer<Frame>       *fb,
+AcqThread::AcqThread(   boost::circular_buffer<Frame>       *fb,
                         boost::mutex                        *fb_m,
                         boost::condition_variable           *fb_c,
                         bool                                *sSignal,
@@ -51,320 +49,42 @@ AcqThread::AcqThread(   string                              cfgFile,
                         boost::mutex                        *dSignal_m,
                         boost::condition_variable           *dSignal_c,
                         DetThread                           *detection,
-                        StackThread                         *stack):
-
-                        mCfgPath(cfgFile), frameBuffer(fb), frameBuffer_mutex(fb_m),
-                        frameBuffer_condition(fb_c), stackSignal(sSignal), stackSignal_mutex(sSignal_m),
-                        stackSignal_condition(sSignal_c), detSignal(dSignal), detSignal_mutex(dSignal_m),
-                        detSignal_condition(dSignal_c), pDetection(detection), pStack(stack), mThread(NULL),
-                        mMustStop(false), mDevice(NULL), mNbGrabFail(0), mNbGrabSuccess(0), mThreadEndStatus(false),
-                        mNextAcqIndex(0), pExpCtrl(NULL) {
-
-    Configuration cfg;
-
-    if(!cfg.Load(cfgFile))
-        throw "Fail to load parameters for acq thread from configuration file.";
-
-    // DATA LOCATION -----------------------------------------------------------
-
-    if(!cfg.Get("DATA_PATH", mDataPath))
-        throw "Fail to get DATA_PATH for acq thread.";
-    BOOST_LOG_SEV(logger, notification) << "DATA_PATH : " << mDataPath;
-
-    // STATION NAME ------------------------------------------------------------
-
-    if(!cfg.Get("STATION_NAME", mStationName))
-        throw "Fail to get STATION_NAME for acq thread.";
-    BOOST_LOG_SEV(logger, notification) << "STATION_NAME : " << mStationName;
-
-    // DETECTION MODE ----------------------------------------------------------
-
-    string detection_mode;
-    if(!cfg.Get("DET_MODE", detection_mode))
-        throw "Fail to get DET_MODE for acq thread.";
-    BOOST_LOG_SEV(logger, notification) << "DET_MODE : " << detection_mode;
-    EParser<TimeMode> detMode;
-    mDetectionMode = detMode.parseEnum("DET_MODE", detection_mode);
-
-    // STACK MODE --------------------------------------------------------------
-
-    string stack_mode;
-    if(!cfg.Get("STACK_MODE", stack_mode))
-        throw "Fail to get STACK_MODE for acq thread.";
-    BOOST_LOG_SEV(logger, notification) << "STACK_MODE : " << stack_mode;
-    EParser<TimeMode> stackMode;
-    mStackMode = stackMode.parseEnum("STACK_MODE", stack_mode);
-
-    // SCHEDULE STATUS ---------------------------------------------------------
-
-    if(!cfg.Get("ACQ_SCHEDULE_ENABLED", mScheduleEnabled))
-        throw "Fail to get ACQ_SCHEDULE_ENABLED for acq thread.";
-    BOOST_LOG_SEV(logger, notification) << "ACQ_SCHEDULE_ENABLED : " << mScheduleEnabled;
-
-    // SCHEDULE OUTPUT TYPE ----------------------------------------------------
-
-    string sOutput;
-    if(!cfg.Get("ACQ_SCHEDULE_OUTPUT", sOutput))
-        throw "Fail to get ACQ_SCHEDULE_OUTPUT for acq thread.";
-    BOOST_LOG_SEV(logger, notification) << "ACQ_SCHEDULE_OUTPUT : " << sOutput;
-    EParser<ImgFormat> sOutput1;
-    mScheduleOutput = sOutput1.parseEnum("ACQ_SCHEDULE_OUTPUT", sOutput);
-
-    // SCHEDULE CFG ------------------------------------------------------------
-
-    if(mScheduleEnabled) {
-
-        string sACQ_SCHEDULE;
-        if(!cfg.Get("ACQ_SCHEDULE", sACQ_SCHEDULE))
-            throw "Fail to get ACQ_SCHEDULE for acq thread.";
-
-        vector<string> sch1;
-
-        typedef boost::tokenizer<boost::char_separator<char> > tokenizer;
-        boost::char_separator<char> sep(",");
-        tokenizer tokens(sACQ_SCHEDULE, sep);
-
-        int n = 1;
-        BOOST_LOG_SEV(logger, notification) << "SCHEDULE : ";
-        for(tokenizer::iterator tok_iter = tokens.begin();tok_iter != tokens.end(); ++tok_iter) {
-            string s = *tok_iter;
-            std::transform(s.begin(), s.end(),s.begin(), ::toupper);
-            sch1.push_back(s);
-            cout << "-> " << Conversion::intToString(n) << " - " << s << endl;
-            BOOST_LOG_SEV(logger, notification) << "-> " << Conversion::intToString(n) << " - " << s;
-            n++;
-        }
-
-        //23h25m00s10000000e400g12f1n
-        for(int i = 0; i < sch1.size(); i++) {
-
-            typedef boost::tokenizer<boost::char_separator<char> > tokenizer_;
-            boost::char_separator<char> sep_("HMSEGFN");
-            tokenizer tokens_(sch1.at(i), sep_);
-
-            vector<string> sp;
-
-            for(tokenizer::iterator tok_iter_ = tokens_.begin();tok_iter_ != tokens_.end(); ++tok_iter_)
-                sp.push_back(*tok_iter_);
-
-            if(sp.size() == 7) {
-
-                AcqSchedule r = AcqSchedule(atoi(sp.at(0).c_str()), atoi(sp.at(1).c_str()), atoi(sp.at(2).c_str()), atoi(sp.at(3).c_str()), atoi(sp.at(4).c_str()), atoi(sp.at(5).c_str()), atoi(sp.at(6).c_str()));
-                int scheduledTimeInSec = atoi(sp.at(0).c_str()) * 3600 + atoi(sp.at(1).c_str()) * 60 + atoi(sp.at(2).c_str());
-                mSchedule.push_back(r);
-
-            }
-        }
-    }
-
-    // REGULAR STATUS ---------------------------------------------------------------
-
-    if(!cfg.Get("ACQ_REGULAR_ENABLED", mRegularAcqEnabled))
-        throw "Fail to get ACQ_REGULAR_ENABLED for acq thread.";
-    BOOST_LOG_SEV(logger, notification) << "ACQ_REGULAR_ENABLED : " << mRegularAcqEnabled;
-
-    // REGULAR AND SCHEDULE CAN'T BE BOTH ACTIVE ------------------------------------
-
-    if(mScheduleEnabled && mRegularAcqEnabled)
-        throw "Check configuration file : \n \"You can enable ACQ_SCHEDULE_ENABLED or ACQ_REGULAR_ENABLED (not both)\"\n";
-
-    // REGULAR ACQUISITION MODE -----------------------------------------------------
-
-    string regular_mode;
-    if(!cfg.Get("ACQ_REGULAR_MODE", regular_mode))
-        throw "Fail to get ACQ_REGULAR_MODE for acq thread.";
-    BOOST_LOG_SEV(logger, notification) << "ACQ_REGULAR_MODE : " << regular_mode;
-    EParser<TimeMode> regMode;
-    mRegularMode = regMode.parseEnum("ACQ_REGULAR_MODE", regular_mode);
-
-    // REGULAR ACQUISITION CONFIGURATION --------------------------------------------
-
-    string regAcqParam;
-    if(!cfg.Get("ACQ_REGULAR_CFG", regAcqParam))
-        throw "Fail to get ACQ_REGULAR_CFG for acq thread.";
-    std::transform(regAcqParam.begin(), regAcqParam.end(),regAcqParam.begin(), ::toupper);
-
-    typedef boost::tokenizer<boost::char_separator<char> > tokenizer1;
-    boost::char_separator<char> sep1("HMSEGFN");
-    tokenizer1 tokens1(regAcqParam, sep1);
-
-    vector<string> res1;
-    for(tokenizer1::iterator tokIter = tokens1.begin();tokIter != tokens1.end(); ++tokIter)
-        res1.push_back(*tokIter);
-
-    if(res1.size() == 7) {
-
-        // Get regular acquisition time interval.
-        mRegularInterval = atoi(res1.at(0).c_str()) * 3600 + atoi(res1.at(1).c_str()) * 60 + atoi(res1.at(2).c_str());
-
-        // Get regular acquisition exposure time.
-        mRegularExposure = atoi(res1.at(3).c_str());
-
-        // Get regular acquisition gain.
-        mRegularGain = atoi(res1.at(4).c_str());
-
-        // Get regular acquisition repetition.
-        mRegularRepetition = atoi(res1.at(6).c_str());
-
-        // Get regular acquisition format.
-        mRegularFormat = static_cast<CamPixFmt>(atoi(res1.at(5).c_str()));
-        EParser<CamPixFmt> fmt;
-
-        BOOST_LOG_SEV(logger, notification) << "ACQ REGULAR : ";
-        BOOST_LOG_SEV(logger, notification) << "  - Each : " << mRegularInterval << " seconds.";
-        BOOST_LOG_SEV(logger, notification) << "  - " << mRegularExposure << " exposure time.";
-        BOOST_LOG_SEV(logger, notification) << "  - " << mRegularGain << " gain.";
-        BOOST_LOG_SEV(logger, notification) << "  - " << mRegularRepetition << " repetition.";
-        BOOST_LOG_SEV(logger, notification) << "  - " << fmt.getStringEnum(mRegularFormat) << " format.";
-
-    }else {
-        throw "Fail to get ACQ_REGULAR_CFG for acq thread";
-    }
-
-    // REGULAR ACQUISITION OUTPUT TYPE ---------------------------------------------
-
-    string rOutput;
-    if(!cfg.Get("ACQ_REGULAR_OUTPUT", rOutput))
-        throw "Fail to get ACQ_REGULAR_OUTPUT for acq thread.";
-    BOOST_LOG_SEV(logger, notification) << "ACQ_REGULAR_OUTPUT : " << rOutput;
-    EParser<ImgFormat> rOutput1;
-    mRegularOutput = rOutput1.parseEnum("ACQ_REGULAR_OUTPUT", rOutput);
-
-    // EPHEMERIS STATUS ------------------------------------------------------------
-
-    if(!cfg.Get("EPHEMERIS_ENABLED", mEphemerisEnabled))
-        throw "Fail to get EPHEMERIS_ENABLED for acq thread.";
-
-    if(mEphemerisEnabled)
-        BOOST_LOG_SEV(logger, notification) << "EPHEMERIS_ENABLED : ON";
-    else
-        BOOST_LOG_SEV(logger, notification) << "EPHEMERIS_ENABLED : OFF";
-
-    if(!mEphemerisEnabled) {
-
-        // GET SUNRISE TIME --------------------------------------------------------
-
-        string sunrise_time;
-        if(!cfg.Get("SUNRISE_TIME", sunrise_time))
-            throw "Fail to get SUNRISE_TIME for acq thread.";
-        BOOST_LOG_SEV(logger, notification) << "SUNRISE_TIME : " << sunrise_time;
-
-        {
-            typedef boost::tokenizer<boost::char_separator<char> > tokenizer;
-            boost::char_separator<char> sep(":");
-            tokenizer tokens(sunrise_time, sep);
-
-            for(tokenizer::iterator tok_iter = tokens.begin();tok_iter != tokens.end(); ++tok_iter)
-                mSunriseTime.push_back(atoi((*tok_iter).c_str()));
-        }
-
-        // GET SUNSET TIME ---------------------------------------------------------
-
-        string sunset_time;
-        if(!cfg.Get("SUNSET_TIME", sunset_time))
-            throw "Fail to get SUNSET_TIME for acq thread.";
-        BOOST_LOG_SEV(logger, notification) << "SUNSET_TIME : " << sunset_time;
-
-        {
-            typedef boost::tokenizer<boost::char_separator<char> > tokenizer;
-            boost::char_separator<char> sep(":");
-            tokenizer tokens(sunset_time, sep);
-
-            for(tokenizer::iterator tok_iter = tokens.begin();tok_iter != tokens.end(); ++tok_iter)
-                mSunsetTime.push_back(atoi((*tok_iter).c_str()));
-        }
-
-
-        // SUNRISE DURATION (used if ephemerise = false) --------------------------------
-
-        if(!cfg.Get("SUNRISE_DURATION", mSunriseDuration))
-            throw "Fail to get SUNRISE_DURATION for acq thread.";
-        BOOST_LOG_SEV(logger, notification) << "SUNRISE_DURATION : " << mSunriseDuration;
-
-        // SUNSET DURATION (used if ephemerise = false) -----------------------------
-
-        if(!cfg.Get("SUNSET_DURATION", mSunsetDuration))
-            throw "Fail to get SUNSET_DURATION for acq thread.";
-        BOOST_LOG_SEV(logger, notification) << "SUNSET_DURATION : " << mSunsetDuration;
-
-    }else {
-
-        // SUN HORIZON POSITION AT SUNRISE ------------------------------------------
-
-        if(!cfg.Get("SUN_HORIZON_1", mSunHorizon1))
-            throw "Fail to get SUN_HORIZON_1 for acq thread.";
-        BOOST_LOG_SEV(logger, notification) << "SUN_HORIZON_1 : " << mSunHorizon1;
-
-        // SUN HORIZON POSITION AT SUNSET -------------------------------------------
-
-        if(!cfg.Get("SUN_HORIZON_2", mSunHorizon2))
-            throw "Fail to get SUN_HORIZON_2 for acq thread.";
-        BOOST_LOG_SEV(logger, notification) << "SUN_HORIZON_2 : " << mSunHorizon2;
-
-        // LATITUDE -----------------------------------------------------------------
-
-        if(!cfg.Get("SITELAT", mStationLatitude))
-            throw "Fail to get SITELAT for acq thread.";
-
-        // LONGITUDE ----------------------------------------------------------------
-
-        if(!cfg.Get("SITELONG", mStationLongitude))
-            throw "Fail to get SITELONG for acq thread.";
-
-    }
-
-    // SAVE INFOS ABOUT EXPOSURE CONTROL --------------------------------------------
-
-    if(!cfg.Get("EXPOSURE_CONTROL_SAVE_INFOS", mExpCtrlSaveInfos))
-        throw "Fail to get EXPOSURE_CONTROL_SAVE_INFOS for acq thread.";
-    BOOST_LOG_SEV(logger, notification) << "EXPOSURE_CONTROL_SAVE_INFOS : " << mExpCtrlSaveInfos;
-
-    // SAVE IMAGE ABOUT EXPOSURE CONTROL --------------------------------------------
-
-    if(!cfg.Get("EXPOSURE_CONTROL_SAVE_IMAGE", mExpCtrlSaveImg))
-        throw "Fail to get EXPOSURE_CONTROL_SAVE_IMAGE for acq thread.";
-    BOOST_LOG_SEV(logger, notification) << "EXPOSURE_CONTROL_SAVE_IMAGE : " << mExpCtrlSaveImg;
-
-    // EXPOSURE CONTROL FREQUENCY ---------------------------------------------------
-
-    if(!cfg.Get("EXPOSURE_CONTROL_FREQUENCY", mExpCtrlFrequency))
-        throw "Fail to get EXPOSURE_CONTROL_FREQUENCY for acq thread.";
-    BOOST_LOG_SEV(logger, notification) << "EXPOSURE_CONTROL_FREQUENCY : " << mExpCtrlFrequency;
-
-    // MASK STATUS ------------------------------------------------------------------
-
-    if(!cfg.Get("ACQ_MASK_ENABLED", mMaskEnabled))
-        throw "Fail to get ACQ_MASK_ENABLED for acq thread.";
-    BOOST_LOG_SEV(logger, notification) << "ACQ_MASK_ENABLED : " << mMaskEnabled;
-
-    if(mMaskEnabled) {
-
-        // MASK PATH ----------------------------------------------------------------
-
-        if(!cfg.Get("ACQ_MASK_PATH", mMaskPath))
-            throw "Fail to get ACQ_MASK_PATH for acq thread.";
-        BOOST_LOG_SEV(logger, notification) << "ACQ_MASK_PATH : " << mMaskPath;
-
-        mMask = imread(mMaskPath, CV_LOAD_IMAGE_GRAYSCALE);
-
-        if(!mMask.data) {
-
-            throw "Failed to load the mask for acq thread.";
-
-        }
-    }
-
-    // FITS KEYS ----------------------------------------------------------------
-
-    mFitsHeader.loadKeywordsFromConfigFile(mCfgPath);
-
-    // OTHERS INITIALIZATION ----------------------------------------------------
-
-    mMaxGain = 0; mMaxGain = 0;
-    mMinExposureTime = 0; mMaxExposureTime = 0;
-
-    fpsBuffer = boost::circular_buffer<double>(100);
-    averageFPS = 30; // Default
+                        StackThread                         *stack,
+                        int                                 cid,
+                        dataParam                           dp,
+                        stackParam                          sp,
+                        stationParam                        stp,
+                        detectionParam                      dtp,
+                        cameraParam                         acq,
+                        framesParam                         fp,
+                        videoParam                          vp,
+                        fitskeysParam                       fkp) {
+
+    frameBuffer             = fb;
+    frameBuffer_mutex       = fb_m;
+    frameBuffer_condition   = fb_c;
+    stackSignal             = sSignal;
+    stackSignal_mutex       = sSignal_m;
+    stackSignal_condition   = sSignal_c;
+    detSignal               = dSignal;
+    detSignal_mutex         = dSignal_m;
+    detSignal_condition     = dSignal_c;
+    pDetection              = detection;
+    pStack                  = stack;
+    mThread                 = NULL;
+    mMustStop               = false;
+    mDevice                 = NULL;
+    mThreadTerminated       = false;
+    mNextAcqIndex           = 0;
+    pExpCtrl                = NULL;
+    mDeviceID               = cid;
+    mdp                     = dp;
+    msp                     = sp;
+    mstp                    = stp;
+    mdtp                    = dtp;
+    mcp                     = acq;
+    mvp                     = vp;
+    mfp                     = fp;
 
 }
 
@@ -383,47 +103,38 @@ AcqThread::~AcqThread(void){
 
 void AcqThread::stopThread(){
 
-    // Signal the thread to stop (thread-safe)
     mMustStopMutex.lock();
     mMustStop = true;
     mMustStopMutex.unlock();
 
-    if(mThread != NULL){
-
-        while(mThread->timed_join(boost::posix_time::seconds(2)) == false){
-
+    if(mThread != NULL)
+        while(mThread->timed_join(boost::posix_time::seconds(2)) == false)
             mThread->interrupt();
-
-        }
-
-    }
 
 }
 
 bool AcqThread::startThread() {
 
-    // CREATE DEVICE
-    mDevice = new Device(mCfgPath);
+    // Create a device.
+    mDevice = new Device(mcp, mfp, mvp, mDeviceID);
 
-    // SEARCH DEVICES
+    // Search available devices.
     mDevice->listDevices(false);
 
-    // PREPARE DEVICES
-    if(!configureInputDevice())
+    // Prepare continuous acquisition.
+    if(!prepareAcquisitionOnDevice())
         return false;
 
-    BOOST_LOG_SEV(logger,normal) << "Success to prepare device.";
-    BOOST_LOG_SEV(logger,normal) << "Create acquisition thread.";
-
+    // Create acquisition thread.
     mThread = new boost::thread(boost::ref(*this));
 
     return true;
 
 }
 
-bool AcqThread::getThreadEndStatus(){
+bool AcqThread::getThreadStatus(){
 
-    return mThreadEndStatus;
+    return mThreadTerminated;
 
 }
 
@@ -439,36 +150,27 @@ void AcqThread::operator()(){
 
     try {
 
-        /// Prepare scheduled long acquisition.
-        sortAcquisitionSchedule(); // Order schedule times.
-
-        boost::posix_time::ptime time = boost::posix_time::microsec_clock::universal_time();
-
         // Search next acquisition according to the current time.
-        selectNextAcquisitionSchedule(TimeDate::splitIsoExtendedDate(to_iso_extended_string(time)));
+        selectNextAcquisitionSchedule(TimeDate::splitIsoExtendedDate(to_iso_extended_string(boost::posix_time::microsec_clock::universal_time())));
 
-        bool scheduleTaskStatus = false;
-        bool scheduleTaskActive = false;
-
-        /// Exposure adjustment variables.
-
+        // Exposure adjustment variables.
         bool exposureControlStatus = false;
         bool exposureControlActive = false;
         bool cleanStatus = false;
 
+        // If exposure can be setted on the input device.
         if(mDevice->getExposureStatus()) {
 
-            pExpCtrl = new ExposureControl( mExpCtrlFrequency,
-                                            mExpCtrlSaveImg,
-                                            mExpCtrlSaveInfos,
-                                            mDataPath,
-                                            mStationName);
+            pExpCtrl = new ExposureControl( mcp.EXPOSURE_CONTROL_FREQUENCY,
+                                            mcp.EXPOSURE_CONTROL_SAVE_IMAGE,
+                                            mcp.EXPOSURE_CONTROL_SAVE_INFOS,
+                                            mdp.DATA_PATH,
+                                            mstp.STATION_NAME);
         }
 
         TimeMode previousTimeMode = NONE;
 
         /// Acquisition process.
-
         do {
 
             // Location of a video or frames if input type is FRAMES or VIDEO.
@@ -479,34 +181,11 @@ void AcqThread::operator()(){
 
             if(pDetection != NULL) pDetection->setCurrentDataSet(location);
 
-            /// Reference time to compute interval between regular captures.
-
-            time = boost::posix_time::microsec_clock::universal_time();
-            string cDate = to_simple_string(time);
-            string dateDelimiter = ".";
-            string refDate = cDate.substr(0, cDate.find(dateDelimiter));
-
-
+            // Reference time to compute interval between regular captures.
+            string cDate = to_simple_string(boost::posix_time::microsec_clock::universal_time());
+            string refDate = cDate.substr(0, cDate.find("."));
+            
             do {
-
-                // ############## UPDATE FPS ##############
-
-                double fps = 0;
-                bool getFPS = mDevice->getCameraFPS(fps);
-                if(!getFPS) {
-                    fps = averageFPS;
-                }
-
-                // Update timeBeforeEvent (in fps) and timeAfterEvent (in fps) according fps value.
-                if(pDetection != NULL) {
-                    if(!mDevice->mVideoFramesInput) {
-                        pDetection->setTimeAfterEvent(fps);
-                        pDetection->setTimeBeforeEvent(fps);
-                    }else {
-                        pDetection->setTimeAfterEvent(0);
-                        pDetection->setTimeBeforeEvent(0);
-                    }
-                }
 
                 // Container for the grabbed image.
                 Frame newFrame;
@@ -520,7 +199,7 @@ void AcqThread::operator()(){
                     BOOST_LOG_SEV(logger, normal)   << "============= FRAME " << newFrame.mFrameNumber << " ============= ";
                     cout                            << "============= FRAME " << newFrame.mFrameNumber << " ============= " << endl;
 
-                    // Camera type in input is FRAMES or VIDEO.
+                    // If camera type in input is FRAMES or VIDEO.
                     if(mDevice->mVideoFramesInput) {
 
                         // Push the new frame in the framebuffer.
@@ -539,13 +218,12 @@ void AcqThread::operator()(){
                         }
 
                         // Slow down the time in order to give more time to the detection process.
-
-                        #ifdef WINDOWS
+                        #ifdef WINDOWS 
                             Sleep(500);
-                        #else
-                            #ifdef LINUX
-                                usleep(500000);
-                            #endif
+                        #else 
+                            #ifdef LINUX 
+                                usleep(500000); 
+                            #endif 
                         #endif
 
                     }else {
@@ -553,7 +231,7 @@ void AcqThread::operator()(){
                         // Get current time in seconds.
                         int currentTimeInSec = newFrame.mDate.hours * 3600 + newFrame.mDate.minutes * 60 + (int)newFrame.mDate.seconds;
 
-                        // Detect day or night status.
+                        // Detect day or night.
                         TimeMode currentTimeMode = NONE;
 
                         if((currentTimeInSec > mStopSunsetTime) || (currentTimeInSec < mStartSunriseTime)) {
@@ -573,7 +251,7 @@ void AcqThread::operator()(){
                             // Notify detection thread.
                             if(pDetection != NULL) {
 
-                                if(previousTimeMode != NONE && previousTimeMode != currentTimeMode && mDetectionMode != DAYNIGHT) {
+                                if(previousTimeMode != currentTimeMode && mdtp.DET_MODE != DAYNIGHT) {
 
                                     BOOST_LOG_SEV(logger, notification) << "TimeMode has changed ! ";
                                     boost::mutex::scoped_lock lock(*detSignal_mutex);
@@ -582,7 +260,7 @@ void AcqThread::operator()(){
                                     cout << "Send interruption signal to detection process " << endl;
                                     pDetection->interruptThread();
 
-                                }else if(mDetectionMode == currentTimeMode || mDetectionMode == DAYNIGHT) {
+                                }else if(mdtp.DET_MODE == currentTimeMode || mdtp.DET_MODE == DAYNIGHT) {
 
                                     boost::mutex::scoped_lock lock2(*detSignal_mutex);
                                     *detSignal = true;
@@ -596,7 +274,7 @@ void AcqThread::operator()(){
                             if(pStack != NULL) {
 
                                 // TimeMode has changed.
-                                if(previousTimeMode != NONE && previousTimeMode != currentTimeMode && mStackMode != DAYNIGHT) {
+                                if(previousTimeMode != currentTimeMode && msp.STACK_MODE != DAYNIGHT) {
 
                                     BOOST_LOG_SEV(logger, notification) << "TimeMode has changed ! ";
                                     boost::mutex::scoped_lock lock(*stackSignal_mutex);
@@ -607,7 +285,7 @@ void AcqThread::operator()(){
                                     cout << "Send interruption signal to stack " << endl;
                                     pStack->interruptThread();
 
-                                }else if(mStackMode == currentTimeMode || mStackMode == DAYNIGHT) {
+                                }else if(msp.STACK_MODE == currentTimeMode || msp.STACK_MODE == DAYNIGHT) {
 
                                     boost::mutex::scoped_lock lock3(*stackSignal_mutex);
                                     *stackSignal = true;
@@ -664,7 +342,7 @@ void AcqThread::operator()(){
 
                         // Adjust exposure time.
                         if(pExpCtrl != NULL && exposureControlActive)
-                            exposureControlStatus = pExpCtrl->controlExposureTime(mDevice, newFrame.mImg, newFrame.mDate, mMask, mMinExposureTime, fps);
+                            exposureControlStatus = pExpCtrl->controlExposureTime(mDevice, newFrame.mImg, newFrame.mDate, mdtp.MASK, mDevice->mMinExposureTime, mcp.ACQ_FPS);
 
                         // Get current date YYYYMMDD.
                         string currentFrameDate =   TimeDate::getYYYYMMDD(newFrame.mDate);
@@ -673,74 +351,80 @@ void AcqThread::operator()(){
                         if(currentFrameDate != mCurrentDate) {
 
                             BOOST_LOG_SEV(logger, notification) << "Date has changed. Former Date is " << mCurrentDate << ". New Date is " << currentFrameDate << "." ;
-                            getSunTimes();
+                            computeSunTimes();
 
                         }
 
                         // Acquisition at regular time interval is enabled.
-                        if(mRegularAcqEnabled && !mDevice->mVideoFramesInput) {
+                        if(mcp.regcap.ACQ_REGULAR_ENABLED && !mDevice->mVideoFramesInput) {
 
-                            time = boost::posix_time::microsec_clock::universal_time();
-                            cDate = to_simple_string(time);
-                            string nowDate = cDate.substr(0, cDate.find(dateDelimiter));
+                            cDate = to_simple_string(boost::posix_time::microsec_clock::universal_time());
+                            string nowDate = cDate.substr(0, cDate.find("."));
 
                             boost::posix_time::ptime t1(boost::posix_time::time_from_string(refDate));
                             boost::posix_time::ptime t2(boost::posix_time::time_from_string(nowDate));
 
                             boost::posix_time::time_duration td = t2 - t1;
                             long secTime = td.total_seconds();
-                            cout << "NEXT REGCAP : " << (int)(mRegularInterval - secTime) << "s" <<  endl;
+                            cout << "NEXT REGCAP : " << (int)(mcp.regcap.ACQ_REGULAR_CFG.interval - secTime) << "s" <<  endl;
 
                             // Check it's time to run a regular capture.
-                            if(secTime >= mRegularInterval) {
+                            if(secTime >= mcp.regcap.ACQ_REGULAR_CFG.interval) {
 
                                 // Current time is after the sunset stop and before the sunrise start = NIGHT
-                                if((currentTimeMode == NIGHT) && (mRegularMode == NIGHT || mRegularMode == DAYNIGHT)) {
+                                if((currentTimeMode == NIGHT) && (mcp.regcap.ACQ_REGULAR_MODE == NIGHT || mcp.regcap.ACQ_REGULAR_MODE == DAYNIGHT)) {
 
                                         BOOST_LOG_SEV(logger, notification) << "Run regular acquisition.";
 
-                                        runImageCapture(    mRegularRepetition,
-                                                            mRegularExposure,
-                                                            mRegularGain,
-                                                            mRegularFormat,
-                                                            mRegularOutput);
+                                        runImageCapture(    mcp.regcap.ACQ_REGULAR_CFG.rep,
+                                                            mcp.regcap.ACQ_REGULAR_CFG.exp,
+                                                            mcp.regcap.ACQ_REGULAR_CFG.gain,
+                                                            mcp.regcap.ACQ_REGULAR_CFG.fmt,
+                                                            mcp.regcap.ACQ_REGULAR_OUTPUT);
 
                                 // Current time is between sunrise start and sunset stop = DAY
-                                }else if(currentTimeMode == DAY && (mRegularMode == DAY || mRegularMode == DAYNIGHT)) {
+                                }else if(currentTimeMode == DAY && (mcp.regcap.ACQ_REGULAR_MODE == DAY || mcp.regcap.ACQ_REGULAR_MODE == DAYNIGHT)) {
 
                                     BOOST_LOG_SEV(logger, notification) << "Run regular acquisition.";
-                                    saveImageCaptured(newFrame, 0, mRegularOutput);
+                                    saveImageCaptured(newFrame, 0, mcp.regcap.ACQ_REGULAR_OUTPUT);
 
                                 }
 
                                 // Reset reference time in case a long exposure has been done.
-                                time = boost::posix_time::microsec_clock::universal_time();
-                                cDate = to_simple_string(time);
-                                refDate = cDate.substr(0, cDate.find(dateDelimiter));
+                                cDate = to_simple_string(boost::posix_time::microsec_clock::universal_time());
+                                refDate = cDate.substr(0, cDate.find("."));
 
                             }
 
                         }
 
                         // Acquisiton at scheduled time is enabled.
-                        if(mSchedule.size() != 0 && mScheduleEnabled && !mDevice->mVideoFramesInput) {
-                            cout << newFrame.mDate.hours << newFrame.mDate.minutes << (int)newFrame.mDate.seconds<< endl;
-                            cout << mNextAcq.getH() << mNextAcq.getM() << (int)mNextAcq.getS()<< endl;
-                            // It's time to run scheduled acquisition.
-                            if( mNextAcq.getH() == newFrame.mDate.hours &&
-                                mNextAcq.getM() == newFrame.mDate.minutes &&
-                                (int)newFrame.mDate.seconds == mNextAcq.getS()) {
+                        if(mcp.schcap.ACQ_SCHEDULE.size() != 0 && mcp.schcap.ACQ_SCHEDULE_ENABLED && !mDevice->mVideoFramesInput) {
 
-                                mNextAcq.setDate(TimeDate::getIsoExtendedFormatDate(newFrame.mDate));
+                            int next = (mNextAcq.hours * 3600 + mNextAcq.min * 60 + mNextAcq.sec) - (newFrame.mDate.hours * 3600 + newFrame.mDate.minutes * 60 + newFrame.mDate.seconds);
+                            
+                            if(next < 0) {
+                                next = (24 * 3600) - (newFrame.mDate.hours * 3600 + newFrame.mDate.minutes * 60 + newFrame.mDate.seconds) + (mNextAcq.hours * 3600 + mNextAcq.min * 60 + mNextAcq.sec);
+                                cout << "next : " << next << endl;
+                            }
+
+                            vector<int>tsch = TimeDate::HdecimalToHMS(next/3600.0);
+
+                            cout << "NEXT SCHCAP : " << tsch.at(0) << "h" << tsch.at(1) << "m" << tsch.at(2) << "s" <<  endl;
+
+                            // It's time to run scheduled acquisition.
+                            if( mNextAcq.hours == newFrame.mDate.hours &&
+                                mNextAcq.min == newFrame.mDate.minutes &&
+                                (int)newFrame.mDate.seconds == mNextAcq.sec) {
 
                                 CamPixFmt format;
-                                format = static_cast<CamPixFmt>(mNextAcq.getF());
+                                format = mNextAcq.fmt;
 
-                                runImageCapture(    mNextAcq.getN(),
-                                                    mNextAcq.getE(),
-                                                    mNextAcq.getG(),
+                                runImageCapture(    mNextAcq.rep,
+                                                    mNextAcq.exp,
+                                                    mNextAcq.gain,
                                                     format,
-                                                    mScheduleOutput);
+                                                    mcp.schcap.ACQ_SCHEDULE_OUTPUT);
 
                                 // Update mNextAcq
                                 selectNextAcquisitionSchedule(newFrame.mDate);
@@ -748,19 +432,19 @@ void AcqThread::operator()(){
                             }else {
 
                                 // The current time has elapsed.
-                                if(newFrame.mDate.hours > mNextAcq.getH()) {
+                                if(newFrame.mDate.hours > mNextAcq.hours) {
 
                                    selectNextAcquisitionSchedule(newFrame.mDate);
 
-                                }else if(newFrame.mDate.hours == mNextAcq.getH()) {
+                                }else if(newFrame.mDate.hours == mNextAcq.hours) {
 
-                                    if(newFrame.mDate.minutes > mNextAcq.getM()) {
+                                    if(newFrame.mDate.minutes > mNextAcq.min) {
 
                                         selectNextAcquisitionSchedule(newFrame.mDate);
 
-                                    }else if(newFrame.mDate.minutes == mNextAcq.getM()) {
+                                    }else if(newFrame.mDate.minutes == mNextAcq.min) {
 
-                                        if(newFrame.mDate.seconds > mNextAcq.getS()) {
+                                        if(newFrame.mDate.seconds > mNextAcq.sec) {
 
                                             selectNextAcquisitionSchedule(newFrame.mDate);
 
@@ -780,9 +464,28 @@ void AcqThread::operator()(){
 
                             exposureControlActive = true;
 
-
                         }else {
 
+                            // Print time before sunrise.
+                            if(currentTimeInSec < mStartSunriseTime || currentTimeInSec > mStopSunsetTime ) {
+                                vector<int> nextSunrise;
+                                if(currentTimeInSec < mStartSunriseTime)
+                                    nextSunrise = TimeDate::HdecimalToHMS((mStartSunriseTime - currentTimeInSec) / 3600.0);
+                                if(currentTimeInSec > mStopSunsetTime)
+                                    nextSunrise = TimeDate::HdecimalToHMS(((24*3600 - currentTimeInSec) + mStartSunriseTime ) / 3600.0);
+
+                                cout << "NEXT SUNRISE : " << nextSunrise.at(0) << "h" << nextSunrise.at(1) << "m" << nextSunrise.at(2) << "s" << endl;
+                            }
+
+                            // Print time before sunset.
+                            if(currentTimeInSec > mStopSunriseTime && currentTimeInSec < mStartSunsetTime){
+                                vector<int> nextSunset;
+                                nextSunset = TimeDate::HdecimalToHMS((mStartSunsetTime - currentTimeInSec) / 3600.0);
+                                cout << "NEXT SUNSET : " << nextSunset.at(0) << "h" << nextSunset.at(1) << "m" << nextSunset.at(2) << "s" << endl;
+
+                            }
+
+                            // Reset exposure time when sunrise or sunset is finished.
                             if(exposureControlActive) {
 
                                 // In DAYTIME : Apply minimum available exposure time.
@@ -811,38 +514,10 @@ void AcqThread::operator()(){
 
                     }
 
-                }else {
-
-                    mNbGrabFail++;
-
                 }
 
                 tacq = (((double)getTickCount() - tacq)/getTickFrequency())*1000;
-
-                if(!getFPS) {
-
-                    fpsBuffer.push_back((1.0/(tacq/1000.0)));
-
-                    if(fpsBuffer.size() != 100) {
-
-                        std::cout << " [ TIME ACQ ] : " << tacq << " ms   FPS("  << (1.0/(tacq/1000.0)) << ")" <<  endl;
-                        averageFPS = (1.0/(tacq/1000.0));
-
-                    }else {
-
-                        std::cout << " [ TIME ACQ ] : " << tacq << " ms  ";
-                        double ff = 0.0;
-                        for(int i = 0; i< fpsBuffer.size(); i++)
-                            ff += fpsBuffer.at(i);
-                        averageFPS = ff / fpsBuffer.size();
-                        cout << " (FPS : " << averageFPS << ")" << endl;
-
-                    }
-
-                }else{
-                    std::cout << " [ TIME ACQ ] : " << tacq << " ms   FPS("  << fps << ")" <<  endl;
-                }
-
+                std::cout << " [ TIME ACQ ] : " << tacq << " ms   ~cFPS("  << (1.0/(tacq/1000.0)) << ")" <<  endl;
                 BOOST_LOG_SEV(logger, normal) << " [ TIME ACQ ] : " << tacq << " ms";
 
                 mMustStopMutex.lock();
@@ -857,7 +532,8 @@ void AcqThread::operator()(){
                 pDetection->getDetMethod()->resetDetection(true);
                 pDetection->getDetMethod()->resetMask();
                 pDetection->updateDetectionReport();
-                if(!pDetection->getRunStatus()) break;
+                if(!pDetection->getRunStatus()) 
+                    break;
 
             }
 
@@ -886,7 +562,7 @@ void AcqThread::operator()(){
 
     mDevice->stopCamera();
 
-    mThreadEndStatus = true;
+    mThreadTerminated = true;
 
     std::cout << "Acquisition Thread TERMINATED." << endl;
     BOOST_LOG_SEV(logger,notification) << "Acquisition Thread TERMINATED";
@@ -895,26 +571,26 @@ void AcqThread::operator()(){
 
 void AcqThread::selectNextAcquisitionSchedule(TimeDate::Date date){
 
-    if(mSchedule.size() != 0){
+    if(mcp.schcap.ACQ_SCHEDULE.size() != 0){
 
         // Search next acquisition
-        for(int i = 0; i < mSchedule.size(); i++){
+        for(int i = 0; i < mcp.schcap.ACQ_SCHEDULE.size(); i++){
 
-            if(date.hours < mSchedule.at(i).getH()){
+            if(date.hours < mcp.schcap.ACQ_SCHEDULE.at(i).hours){
 
                mNextAcqIndex = i;
                break;
 
-            }else if(date.hours == mSchedule.at(i).getH()){
+            }else if(date.hours == mcp.schcap.ACQ_SCHEDULE.at(i).hours){
 
-                if(date.minutes < mSchedule.at(i).getM()){
+                if(date.minutes < mcp.schcap.ACQ_SCHEDULE.at(i).min){
 
                     mNextAcqIndex = i;
                     break;
 
-                }else if(date.minutes == mSchedule.at(i).getM()){
+                }else if(date.minutes == mcp.schcap.ACQ_SCHEDULE.at(i).min){
 
-                    if(date.seconds < mSchedule.at(i).getS()){
+                    if(date.seconds < mcp.schcap.ACQ_SCHEDULE.at(i).sec){
 
                         mNextAcqIndex = i;
                         break;
@@ -924,84 +600,7 @@ void AcqThread::selectNextAcquisitionSchedule(TimeDate::Date date){
             }
         }
 
-        mNextAcq = mSchedule.at(mNextAcqIndex);
-
-    }
-
-}
-
-void AcqThread::sortAcquisitionSchedule(){
-
-    if(mSchedule.size() != 0){
-
-        // Sort time in list.
-        vector<AcqSchedule> tempSchedule;
-
-        do{
-
-            int minH; int minM; int minS; bool init = false;
-
-            vector<AcqSchedule>::iterator it;
-            vector<AcqSchedule>::iterator it_select;
-
-            for(it = mSchedule.begin(); it != mSchedule.end(); ++it){
-
-                if(!init){
-
-                    minH = (*it).getH();
-                    minM = (*it).getM();
-                    minS = (*it).getS();
-                    it_select = it;
-                    init = true;
-
-                }else{
-
-                    if((*it).getH() < minH){
-
-                        minH = (*it).getH();
-                        minM = (*it).getM();
-                        minS = (*it).getS();
-                        it_select = it;
-
-                    }else if((*it).getH() == minH){
-
-                        if((*it).getM() < minM){
-
-                            minH = (*it).getH();
-                            minM = (*it).getM();
-                            minS = (*it).getS();
-                            it_select = it;
-
-                        }else if((*it).getM() == minM){
-
-                            if((*it).getS() < minS){
-
-                                minH = (*it).getH();
-                                minM = (*it).getM();
-                                minS = (*it).getS();
-                                it_select = it;
-
-                            }
-
-                        }
-
-                    }
-
-                }
-
-            }
-
-            if(init){
-
-                tempSchedule.push_back((*it_select));
-                cout << "-> " << (*it_select).getH() << "H " << (*it_select).getM() << "M " << (*it_select).getS() << "S " << endl;
-                mSchedule.erase(it_select);
-
-            }
-
-        }while(mSchedule.size() != 0);
-
-        mSchedule = tempSchedule;
+        mNextAcq = mcp.schcap.ACQ_SCHEDULE.at(mNextAcqIndex);
 
     }
 
@@ -1010,15 +609,15 @@ void AcqThread::sortAcquisitionSchedule(){
 bool AcqThread::buildAcquisitionDirectory(string YYYYMMDD){
 
     namespace fs = boost::filesystem;
-    string root = mDataPath + mStationName + "_" + YYYYMMDD +"/";
+    string root = mdp.DATA_PATH + mstp.STATION_NAME + "_" + YYYYMMDD +"/";
 
     string subDir = "captures/";
     string finalPath = root + subDir;
 
-    mDataLocation = finalPath;
-    BOOST_LOG_SEV(logger,notification) << "CompleteDataPath : " << mDataLocation;
+    mOutputDataPath = finalPath;
+    BOOST_LOG_SEV(logger,notification) << "CompleteDataPath : " << mOutputDataPath;
 
-    path p(mDataPath);
+    path p(mdp.DATA_PATH);
     path p1(root);
     path p2(root + subDir);
 
@@ -1170,6 +769,11 @@ void AcqThread::runImageCapture(int imgNumber, int imgExposure, int imgGain, Cam
         BOOST_LOG_SEV(logger, notification) << "Format : " << format.getStringEnum(imgFormat);
         frame.mFormat = imgFormat;
 
+        if(mcp.ACQ_RES_CUSTOM_SIZE) {
+            frame.mHeight = mcp.ACQ_HEIGHT;
+            frame.mWidth = mcp.ACQ_WIDTH;
+        }
+
         // Run single capture.
         BOOST_LOG_SEV(logger, notification) << "Run single capture.";
         if(mDevice->runSingleCapture(frame)) {
@@ -1195,7 +799,7 @@ void AcqThread::runImageCapture(int imgNumber, int imgExposure, int imgGain, Cam
     #endif
 
     BOOST_LOG_SEV(logger, notification) << "Restarting camera in continuous mode...";
-    configureInputDevice();
+    prepareAcquisitionOnDevice();
 
 }
 
@@ -1225,7 +829,7 @@ void AcqThread::saveImageCaptured(Frame &img, int imgNum, ImgFormat outputType) 
                                     img.mImg.copyTo(temp);
                                     Mat newMat = ImgProcessing::correctGammaOnMono12(temp, 2.2);
                                     Mat newMat2 = Conversion::convertTo8UC1(newMat);
-                                    SaveImg::saveJPEG(newMat2, mDataLocation + fileName);
+                                    SaveImg::saveJPEG(newMat2, mOutputDataPath + fileName);
 
                                 }
 
@@ -1238,7 +842,7 @@ void AcqThread::saveImageCaptured(Frame &img, int imgNum, ImgFormat outputType) 
                                     Mat temp;
                                     img.mImg.copyTo(temp);
                                     Mat newMat = ImgProcessing::correctGammaOnMono8(temp, 2.2);
-                                    SaveImg::saveJPEG(newMat, mDataLocation + fileName);
+                                    SaveImg::saveJPEG(newMat, mOutputDataPath + fileName);
 
                                 }
 
@@ -1251,8 +855,8 @@ void AcqThread::saveImageCaptured(Frame &img, int imgNum, ImgFormat outputType) 
 
                     {
 
-                        Fits2D newFits(mDataLocation);
-                        newFits.copyKeywords(mFitsHeader);
+                        Fits2D newFits(mOutputDataPath);
+                        newFits.loadKeys(mfkp, mstp);
                         newFits.kGAINDB = img.mGain;
                         newFits.kEXPOSURE = img.mExposure/1000000.0;
                         newFits.kONTIME = img.mExposure/1000000.0;
@@ -1263,7 +867,7 @@ void AcqThread::saveImageCaptured(Frame &img, int imgNum, ImgFormat outputType) 
                         double  julianDate      = TimeDate::gregorianToJulian(img.mDate);
                         double  julianCentury   = TimeDate::julianCentury(julianDate);
 
-                        newFits.kCRVAL1 = TimeDate::localSideralTime_2(julianCentury, img.mDate.hours, img.mDate.minutes, (int)img.mDate.seconds, mFitsHeader.kSITELONG);
+                        newFits.kCRVAL1 = TimeDate::localSideralTime_2(julianCentury, img.mDate.hours, img.mDate.minutes, (int)img.mDate.seconds, mstp.SITELONG);
                         newFits.kCTYPE1 = "RA---ARC";
                         newFits.kCTYPE2 = "DEC--ARC";
                         newFits.kEQUINOX = 2000.0;
@@ -1304,7 +908,7 @@ void AcqThread::saveImageCaptured(Frame &img, int imgNum, ImgFormat outputType) 
 
                                     // Create FITS image with BITPIX = SHORT_IMG (16-bits signed integers), pixel with TSHORT (signed short)
                                     if(newFits.writeFits(newMat, S16, fileName))
-                                        cout << ">> Fits saved in : " << mDataLocation << fileName << endl;
+                                        cout << ">> Fits saved in : " << mOutputDataPath << fileName << endl;
 
                                 }
 
@@ -1315,7 +919,7 @@ void AcqThread::saveImageCaptured(Frame &img, int imgNum, ImgFormat outputType) 
                                 {
 
                                    if(newFits.writeFits(img.mImg, UC8, fileName))
-                                        cout << ">> Fits saved in : " << mDataLocation << fileName << endl;
+                                        cout << ">> Fits saved in : " << mOutputDataPath << fileName << endl;
 
                                 }
 
@@ -1332,7 +936,7 @@ void AcqThread::saveImageCaptured(Frame &img, int imgNum, ImgFormat outputType) 
 
 }
 
-bool AcqThread::getSunTimes() {
+bool AcqThread::computeSunTimes() {
 
     int sunriseStartH = 0, sunriseStartM = 0, sunriseStopH = 0, sunriseStopM = 0,
         sunsetStartH = 0, sunsetStartM = 0, sunsetStopH = 0, sunsetStopM = 0;
@@ -1350,9 +954,9 @@ bool AcqThread::getSunTimes() {
 
     cout << "LOCAL DATE      :  " << mCurrentDate << endl;
 
-    if(mEphemerisEnabled) {
+    if(mcp.ephem.EPHEMERIS_ENABLED) {
 
-        Ephemeris ephem1 = Ephemeris(mCurrentDate, mSunHorizon1, mStationLongitude, mStationLatitude );
+        Ephemeris ephem1 = Ephemeris(mCurrentDate, mcp.ephem.SUN_HORIZON_1, mstp.SITELONG, mstp.SITELAT);
 
         if(!ephem1.computeEphemeris(sunriseStartH, sunriseStartM,sunsetStopH, sunsetStopM)) {
 
@@ -1360,7 +964,7 @@ bool AcqThread::getSunTimes() {
 
         }
 
-        Ephemeris ephem2 = Ephemeris(mCurrentDate, mSunHorizon2, mStationLongitude, mStationLatitude );
+        Ephemeris ephem2 = Ephemeris(mCurrentDate, mcp.ephem.SUN_HORIZON_2, mstp.SITELONG, mstp.SITELAT );
 
         if(!ephem2.computeEphemeris(sunriseStopH, sunriseStopM,sunsetStartH, sunsetStartM)) {
 
@@ -1370,11 +974,11 @@ bool AcqThread::getSunTimes() {
 
     }else {
 
-        sunriseStartH = mSunriseTime.at(0);
-        sunriseStartM = mSunriseTime.at(1);
+        sunriseStartH = mcp.ephem.SUNRISE_TIME.at(0);
+        sunriseStartM = mcp.ephem.SUNRISE_TIME.at(1);
 
         double intpart1 = 0;
-        double fractpart1 = modf((double)mSunriseDuration/3600.0 , &intpart1);
+        double fractpart1 = modf((double)mcp.ephem.SUNRISE_DURATION/3600.0 , &intpart1);
 
         if(intpart1!=0) {
 
@@ -1420,11 +1024,11 @@ bool AcqThread::getSunTimes() {
 
         }
 
-        sunsetStartH = mSunsetTime.at(0);
-        sunsetStartM = mSunsetTime.at(1);
+        sunsetStartH = mcp.ephem.SUNSET_TIME.at(0);
+        sunsetStartM = mcp.ephem.SUNSET_TIME.at(1);
 
         double intpart3 = 0;
-        double fractpart3 = modf((double)mSunsetDuration/3600.0 , &intpart3);
+        double fractpart3 = modf((double)mcp.ephem.SUNSET_DURATION/3600.0 , &intpart3);
 
         if(intpart3!=0) {
 
@@ -1482,7 +1086,7 @@ bool AcqThread::getSunTimes() {
 
 }
 
-bool AcqThread::configureInputDevice() {
+bool AcqThread::prepareAcquisitionOnDevice() {
 
     // CREATE CAMERA
     if(!mDevice->createCamera())
@@ -1496,12 +1100,12 @@ bool AcqThread::configureInputDevice() {
     if(!mDevice->setCameraPixelFormat())
         return false;
 
-    // GET BOUNDS
-    mDevice->getCameraExposureBounds(mMinExposureTime, mMaxExposureTime);
-    mDevice->getCameraGainBounds(mMinGain, mMaxGain);
+    // LOAD GET BOUNDS
+    mDevice->getCameraExposureBounds();
+    mDevice->getCameraGainBounds();
 
     // Get Sunrise start/stop, Sunset start/stop. ---
-    getSunTimes();
+    computeSunTimes();
 
     // CHECK SUNRISE AND SUNSET TIMES.
 
@@ -1535,13 +1139,13 @@ bool AcqThread::configureInputDevice() {
 
         BOOST_LOG_SEV(logger, notification) << "DAYTIME         :  NO";
         BOOST_LOG_SEV(logger, notification) << "AUTO EXPOSURE   :  YES";
-        BOOST_LOG_SEV(logger, notification) << "EXPOSURE TIME   :  Minimum (" << mMinExposureTime << ")"<< mDevice->getNightExposureTime();
-        BOOST_LOG_SEV(logger, notification) << "GAIN            :  Minimum (" << mMinGain << ")";
+        BOOST_LOG_SEV(logger, notification) << "EXPOSURE TIME   :  Minimum (" << mDevice->mMinExposureTime << ")"<< mDevice->getNightExposureTime();
+        BOOST_LOG_SEV(logger, notification) << "GAIN            :  Minimum (" << mDevice->mMinGain << ")";
 
-        if(!mDevice->setCameraExposureTime(mMinExposureTime))
+        if(!mDevice->setCameraExposureTime(mDevice->mMinExposureTime))
             return false;
 
-        if(!mDevice->setCameraGain(mMinGain))
+        if(!mDevice->setCameraGain(mDevice->mMinGain))
             return false;
 
     }

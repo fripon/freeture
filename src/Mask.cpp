@@ -139,6 +139,11 @@ bool Mask::applyMask(Mat &currFrame) {
         }
     }
 
+    if(!mCurrentMask.data || (mCurrentMask.rows != currFrame.rows && mCurrentMask.cols != currFrame.cols)) {
+        mMaskToCreate = true;
+        return true;
+    }
+
     Mat temp; currFrame.copyTo(temp, mCurrentMask);
     temp.copyTo(currFrame);
 

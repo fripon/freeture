@@ -50,6 +50,7 @@
 #include <boost/filesystem.hpp>
 #include <boost/circular_buffer.hpp>
 #include <assert.h>
+#include "SParam.h"
 
 using namespace boost::filesystem;
 using namespace std;
@@ -74,23 +75,13 @@ class StackThread {
 
         }initializer;
 
-        boost::thread                   *thread;
-        string                          mDataPath;
-        bool                            mStackReduction;
-        int                             mStackInterval;
-        bool                            mFitsCompression;
-        string                          mFitsCompressionMethod;
-        double                          mStackTime;
-        CamPixFmt                       mAcqBitDepth;
-        StackMeth                       mStackMthd;
-        string                          mStationName;
-        Fits                            mFitsHeader;
-        bool                            isRunning;
-        bool                            mustStop;
-        boost::mutex                    mustStopMutex;
-        string                          completeDataPath;
-        bool                            interruptionStatus;
-        boost::mutex                    interruptionStatusMutex;
+        boost::thread   *mThread;
+        bool            mustStop;
+        boost::mutex    mustStopMutex;
+        bool            isRunning;
+        bool            interruptionStatus;
+        boost::mutex    interruptionStatusMutex;
+ 
         boost::condition_variable       *frameBuffer_condition;
         boost::mutex                    *frameBuffer_mutex;
         boost::circular_buffer<Frame>   *frameBuffer;
@@ -98,136 +89,42 @@ class StackThread {
         boost::mutex                    *stackSignal_mutex;
         boost::condition_variable       *stackSignal_condition;
 
+        stationParam    mstp;
+        fitskeysParam   mfkp;
+        dataParam       mdp;
+        stackParam      msp;
+        CamPixFmt       mPixfmt;
+
+        string completeDataPath;
+
     public :
 
-        /**
-        * Constructor.
-        *
-        * @param cfgPath Path of the configuration file.
-        * @param sS Pointer on a boolean used as a signal.
-        * @param sS_m Pointer on a mutex.
-        * @param sS_c Pointer on a condition variable.
-        * @param fb Pointer on the framebuffer.
-        * @param fb_m Pointer on the mutex to access to the framebuffer.
-        * @param fb_c Pointer on a condition variable.
-        */
-        StackThread(    string                          cfgPath,
-                        bool                            *sS,
+        StackThread(    bool                            *sS,
                         boost::mutex                    *sS_m,
                         boost::condition_variable       *sS_c,
                         boost::circular_buffer<Frame>   *fb,
                         boost::mutex                    *fb_m,
-                        boost::condition_variable       *fb_c);
+                        boost::condition_variable       *fb_c,
+                        dataParam       dp,
+                        stackParam      sp,
+                        stationParam    stp,
+                        CamPixFmt       pfmt,
+                        fitskeysParam   fkp);
 
-        /**
-        * Destructor.
-        *
-        */
         ~StackThread(void);
 
-        /**
-        * Start thread.
-        *
-        */
         bool startThread();
 
-        /**
-        * Stop thread.
-        *
-        */
         void stopThread();
 
-        /**
-        * Stack thread.
-        *
-        */
         void operator()();
 
-        /**
-        * Get stack thread running status.
-        *
-        */
         bool getRunStatus();
 
-        /**
-        * Interrupt stack thread.
-        *
-        */
         bool interruptThread();
 
     private :
 
-        /**
-        * Build directory to save stack.
-        *
-        * @param date
-        * @return Success to create directory.
-        */
         bool buildStackDataDirectory(TimeDate::Date date);
-
-
-        /* /* if(ft.CFG_FILECOPY_ENABLED){
-
-            namespace fs = boost::filesystem;
-
-            string dateNow = TimeDate::localDateTime(second_clock::universal_time(),"%Y:%m:%d:%H:%M:%S");
-            vector<string> dateString;
-
-            typedef boost::tokenizer<boost::char_separator<char> > tokenizer;
-            boost::char_separator<char> sep(":");
-            tokenizer tokens(dateNow, sep);
-
-            for (tokenizer::iterator tok_iter = tokens.begin();tok_iter != tokens.end(); ++tok_iter){
-                dateString.push_back(*tok_iter);
-            }
-
-            string root = ft.DATA_PATH + ft.STATION_NAME + "_" + dateString.at(0) + dateString.at(1) + dateString.at(2) +"/";
-
-            string cFile = root + "configuration.cfg";
-
-            cout << cFile << endl;
-
-            path p(ft.DATA_PATH);
-
-            path p1(root);
-
-            path p2(cFile);
-
-            // /home/fripon/data/
-            if(fs::exists(p)){
-
-                // /home/fripon/data/STATION_AAAAMMDD/
-                if(fs::exists(p1)){
-
-                    path p3(configPath);
-
-                    if(fs::exists(p3)){
-
-                        fs::copy_file(p3,p2,copy_option::overwrite_if_exists);
-
-                    }
-
-                }else{
-
-                    if(!fs::create_directory(p1)){
-
-                        cout << "Unable to create destination directory" << p1.string();
-
-                    }else{
-
-                        path p3(configPath);
-
-                        if(fs::exists(p3)){
-
-                            fs::copy_file(p3,p2,copy_option::overwrite_if_exists);
-
-                        }
-                    }
-                }
-
-            }
-        }*/
-
-
 
 };

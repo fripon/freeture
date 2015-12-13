@@ -75,39 +75,11 @@ class ImgProcessing {
 
         static Mat thresholding(Mat &img, Mat &mask, int factor, Thresh threshType);
 
-        static Mat subdivideFrame(Mat img, int n) {
+        // Subdivise a frame in n regions and fetch their coordinates.
+        static void subdivideFrame(vector<Point> &sub, int n, int imgH, int imgW);
 
-            vector<Point> listSubPos;
-
-            int subW = img.cols/n;
-            int subH = img.rows/n;
-
-            cout << "subW : " << subW << endl;
-            cout << "subH : " << subH << endl;
-
-            for(int j = 0; j < n; j++) {
-
-                for(int i = 0; i < n; i++) {
-
-                    listSubPos.push_back(Point(i*subW, j*subH));
-                   // cout << Point(i*subW, j*subH)<< endl;
-
-                }
-
-            }
-
-            Mat imgSubdivided;
-            img.copyTo(imgSubdivided);
-
-            for(int i = 0; i < n; i++)
-                line(imgSubdivided, Point(i * subW, 0), Point(i*subW, subH * n), Scalar(255), 1, 8);
-
-            for(int j = 0; j < n; j++)
-                line(imgSubdivided, Point(0, j * subH), Point(subW * n, j * subH), Scalar(255), 1, 8);
-
-            return imgSubdivided;
-
-        };
+        // Subdivise a frame in n regions and draw them.
+        static Mat subdivideFrame(Mat img, int n);
 
 
 };

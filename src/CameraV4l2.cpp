@@ -33,7 +33,6 @@
 */
 
 #include "CameraV4l2.h"
-//#define CLIP(X) ( (X) > 255 ? 255 : (X) < 0 ? 0 : X)
 
 #ifdef LINUX
 
@@ -84,6 +83,7 @@
         mExposureAvailable = true;
         mGainAvailable = true;
         mCustomSize = false;
+        mInputDeviceType = CAMERA;
 
     }
 
@@ -300,24 +300,24 @@
     bool CameraV4l2::createDevice(int id){
 
         string deviceNameStr = "/dev/video" + Conversion::intToString(id);
-        deviceName = deviceNameStr.c_str();
+        mDeviceName = deviceNameStr.c_str();
 
         struct stat st;
 
-        if (-1 == stat(deviceName, &st)) {
-            fprintf(stderr, "Cannot identify '%s': %d, %s\n", deviceName, errno, strerror(errno));
+        if (-1 == stat(mDeviceName, &st)) {
+            fprintf(stderr, "Cannot identify '%s': %d, %s\n", mDeviceName, errno, strerror(errno));
             return false;
         }
 
         if (!S_ISCHR(st.st_mode)) {
-            fprintf(stderr, "%s is no device\n", deviceName);
+            fprintf(stderr, "%s is no device\n", mDeviceName);
             return false;
         }
 
-        fd = open(deviceName, O_RDWR /* required */ | O_NONBLOCK, 0);
+        fd = open(mDeviceName, O_RDWR /* required */ | O_NONBLOCK, 0);
 
         if (-1 == fd) {
-            fprintf(stderr, "Cannot open '%s': %d, %s\n", deviceName, errno, strerror(errno));
+            fprintf(stderr, "Cannot open '%s': %d, %s\n", mDeviceName, errno, strerror(errno));
             return false;
         }
 
@@ -445,6 +445,33 @@
 
     }
 
+    bool CameraV4l2::getCameraName() {
+
+        if(fd != -1) {
+
+            struct v4l2_capability caps = {};
+
+            // http://linuxtv.org/downloads/v4l-dvb-apis/vidioc-querycap.html
+
+            if (-1 == xioctl(fd, VIDIOC_QUERYCAP, &caps)) {
+                perror("Querying Capabilities");
+                return false;
+            }
+
+            cout << "Driver name     : " << caps.driver << endl;
+            cout << "Device name     : " << caps.card << endl;
+            cout << "Device location : " << caps.bus_info << endl;
+            printf ("Driver version  : %u.%u.%u\n",(caps.version >> 16) & 0xFF, (caps.version >> 8) & 0xFF, caps.version & 0xFF);
+            cout << "Capabilities    : " << caps.capabilities << endl;
+
+            return true;
+
+        }
+
+        return false;
+
+    }
+
     bool CameraV4l2::grabInitialization(){
 
         struct v4l2_capability cap;
@@ -459,7 +486,7 @@
             {
                 fprintf(stderr,
                         "%s is no V4L2 device\n",
-                        deviceName);
+                        mDeviceName);
                 exit(EXIT_FAILURE);
             }
             else
@@ -472,7 +499,7 @@
         {
             fprintf(stderr,
                     "%s is no video capture device\n",
-                    deviceName);
+                    mDeviceName);
             exit(EXIT_FAILURE);
         }
 
@@ -484,7 +511,7 @@
                 {
                     fprintf(stderr,
                             "%s does not support read i/o\n",
-                            deviceName);
+                            mDeviceName);
                     exit(EXIT_FAILURE);
                 }
                 break;
@@ -495,7 +522,7 @@
                 if (!(cap.capabilities & V4L2_CAP_STREAMING))
                 {
                     fprintf(stderr, "%s does not support streaming i/o\n",
-                            deviceName);
+                            mDeviceName);
                     exit(EXIT_FAILURE);
                 }
                 break;
@@ -584,7 +611,7 @@
 
     }
 
-    void CameraV4l2::acqStart(){
+    bool CameraV4l2::acqStart(){
 
         // INIT DEVICE
 
@@ -627,12 +654,14 @@
                     if (-1 == xioctl(fd, VIDIOC_QBUF, &buf))
                     {
                         errno_exit("VIDIOC_QBUF");
+                        return false;
                     }
                 }
                 type = V4L2_BUF_TYPE_VIDEO_CAPTURE;
                 if (-1 == xioctl(fd, VIDIOC_STREAMON, &type))
                 {
                     errno_exit("VIDIOC_STREAMON");
+                    return false;
                 }
                 break;
             }
@@ -652,16 +681,20 @@
                     if (-1 == xioctl(fd, VIDIOC_QBUF, &buf))
                     {
                         errno_exit("VIDIOC_QBUF");
+                        return false;
                     }
                 }
                 type = V4L2_BUF_TYPE_VIDEO_CAPTURE;
                 if (-1 == xioctl(fd, VIDIOC_STREAMON, &type))
                 {
                     errno_exit("VIDIOC_STREAMON");
+                    return false;
                 }
                 break;
             }
         }
+
+        return true;
     }
 
     void CameraV4l2::acqStop(){
@@ -695,7 +728,7 @@
         size_t s = mFormat.fmt.pix.width*mFormat.fmt.pix.height;
 
         bool grabSuccess = false;
-        double tget = (double)getTickCount();
+
         for(;;) {
 
             fd_set fds;
@@ -728,8 +761,6 @@
             }
             /* EAGAIN - continue select loop. */
         }
-        tget = (((double)getTickCount() - tget)/getTickFrequency())*1000;
-            std::cout << " >> [ TIME GET ] : " << tget << " ms" << endl;
 
        if(grabSuccess) {
 
@@ -747,11 +778,9 @@
             newFrame.mExposure = exp;
             newFrame.mGain = gain;
             mFrameCounter++;
-            double tconv = (double)getTickCount();
+
             if(!convertImage(ImageBuffer, newFrame.mImg))
                 grabSuccess = false;
-            tconv = (((double)getTickCount() - tconv)/getTickFrequency())*1000;
-            std::cout << " >> [ TIME CONV ] : " << tconv << " ms" << endl;
 
         }
 
@@ -849,7 +878,7 @@
                 frame.mFps = fps;
             frame.mSaturatedValue = 255;
             frame.mFrameNumber = mFrameCounter;
-            cout << "Convert" << endl;
+
             cout << "size image buffer : " << sizeof(buffers[buf.index].start)  << endl;
             if(!convertImage(ImageBuffer, frame.mImg))
                 grabSuccess = false;
@@ -1513,12 +1542,22 @@
         while (0 == xioctl(fd, VIDIOC_ENUM_FMT, &fmtdesc)) {
 
             strncpy(fourcc, (char *)&fmtdesc.pixelformat, 4);
-
+cout << "fourcc : " << string(fourcc)<< endl;
             if(string(fourcc) == fstring) {
 
                 fmtFound = true;
 
                 switch(depth) {
+
+                    case MONO8 :
+
+                        {
+
+                            mFormat.fmt.pix.pixelformat = V4L2_PIX_FMT_GREY;
+
+                        }
+
+                        break;
 
                     case GREY :
 
@@ -1799,7 +1838,7 @@
             if (EINVAL == errno)
             {
                 fprintf(stderr, "%s does not support "
-                        "memory mapping\n", deviceName);
+                        "memory mapping\n", mDeviceName);
                 exit(EXIT_FAILURE);
             }
             else
@@ -1811,7 +1850,7 @@
         if (req.count < 2)                          \
         {
             fprintf(stderr, "Insufficient buffer memory on %s\n",
-                    deviceName);
+                    mDeviceName);
             exit(EXIT_FAILURE);
         }
 
@@ -1866,7 +1905,7 @@
             if (EINVAL == errno)
             {
                 fprintf(stderr, "%s does not support "
-                        "user pointer i/o\n", deviceName);
+                        "user pointer i/o\n", mDeviceName);
                 exit(EXIT_FAILURE);
             }
             else

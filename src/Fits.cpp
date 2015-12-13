@@ -145,44 +145,27 @@ Fits::~Fits(){
     //dtor
 }
 
-bool Fits::loadKeywordsFromConfigFile(string configFile){
+void Fits::loadKeys(fitskeysParam fkp, stationParam sp) {
 
-    path p(configFile);
-
-    if(boost::filesystem::exists(p)){
-
-        Configuration cfg;
-        cfg.Load(configFile);
-
-        cfg.Get("STATION_NAME", STATION);
-        cfg.Get("TELESCOP", kTELESCOP);
-        cfg.Get("OBSERVER", kOBSERVER);
-        cfg.Get("INSTRUME", kINSTRUME);
-        cfg.Get("CAMERA",   kCAMERA);
-        cfg.Get("FOCAL",    kFOCAL);
-        cfg.Get("APERTURE", kAPERTURE);
-        cfg.Get("SITELONG", kSITELONG);
-        cfg.Get("SITELAT",  kSITELAT);
-        cfg.Get("SITEELEV", kSITEELEV);
-        cfg.Get("K1",       kK1);
-        cfg.Get("K2",       kK2);
-        cfg.Get("FILTER",   kFILTER);
-        cfg.Get("CD1_1",    kCD1_1);
-        cfg.Get("CD1_2",    kCD1_2);
-        cfg.Get("CD2_1",    kCD2_1);
-        cfg.Get("CD2_2",    kCD2_2);
-        cfg.Get("XPIXEL",   kXPIXEL);
-        cfg.Get("YPIXEL",   kYPIXEL);
-        cfg.Get("COMMENT",  kCOMMENT);
-
-        return true;
-
-    }else{
-
-        cout << " The path of the configuration file (" << configFile << ") doesn't exists" << endl;
-
-        return false;
-
-    }
+    STATION = sp.STATION_NAME;
+    kTELESCOP = sp.TELESCOP;
+    kOBSERVER = sp.OBSERVER;
+    kINSTRUME = sp.INSTRUME;
+    kCAMERA = sp.CAMERA;
+    kFOCAL = sp.FOCAL;
+    kAPERTURE = sp.APERTURE;
+    kSITELONG = sp.SITELONG;
+    kSITELAT = sp.SITELAT;
+    kSITEELEV = sp.SITEELEV;
+    kK1 = fkp.K1;
+    kK2 = fkp.K2;
+    kFILTER = fkp.FILTER;
+    kCD1_1 = fkp.CD1_1;
+    kCD1_2 = fkp.CD1_2;
+    kCD2_1 = fkp.CD2_1;
+    kCD2_2 = fkp.CD2_2;
+    kXPIXEL = fkp.XPIXEL;
+    kYPIXEL = fkp.YPIXEL;
+    kCOMMENT = fkp.COMMENT;
 
 }

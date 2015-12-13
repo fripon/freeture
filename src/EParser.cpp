@@ -58,6 +58,15 @@ template<> EParser<SmtpSecurity>::EParser() {
 
 }
 
+template<> EParser<InputDeviceType>::EParser() {
+
+    enumMap["CAMERA"]               = CAMERA;
+    enumMap["VIDEO"]                = VIDEO;
+    enumMap["UNDEFINED_INPUT_TYPE"] = UNDEFINED_INPUT_TYPE;
+    enumMap["SINGLE_FITS_FRAME"]    = SINGLE_FITS_FRAME;
+
+}
+
 template<> EParser<StackMeth>::EParser() {
 
     enumMap["SUM"]      = SUM;
@@ -87,7 +96,6 @@ template<> EParser<TimeMode>::EParser() {
     enumMap["DAY"]          = DAY;
     enumMap["NIGHT"]        = NIGHT;
     enumMap["DAYNIGHT"]     = DAYNIGHT;
-    enumMap["NONE"]         = NONE;
 
 }
 
@@ -97,3 +105,17 @@ template<> EParser<ImgFormat>::EParser() {
     enumMap["FITS"]        = FITS;
 
 }
+
+template<> EParser<CamSdkType>::EParser() {
+
+    enumMap["ARAVIS"]        = ARAVIS;
+    enumMap["PYLONGIGE"]     = PYLONGIGE;
+    enumMap["TIS"]           = TIS;
+    enumMap["VIDEOFILE"]     = VIDEOFILE;
+    enumMap["FRAMESDIR"]     = FRAMESDIR;
+    enumMap["V4L2"]          = V4L2;
+    enumMap["VIDEOINPUT"]    = VIDEOINPUT;
+    enumMap["UNKNOWN"]       = UNKNOWN;
+
+}
+

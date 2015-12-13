@@ -56,6 +56,7 @@
 #include <boost/circular_buffer.hpp>
 #include <boost/filesystem.hpp>
 #include "ESmtpSecurity.h"
+#include "SParam.h"
 
 using namespace boost::filesystem;
 using namespace cv;
@@ -84,29 +85,9 @@ class DetThread {
         Detection                       *pDetMthd;                  // Pointer on detection method.
         bool                            mMustStop;
         boost::mutex                    mMustStopMutex;
-        bool                            mSaveAvi;                   // Save event as avi                (parameter from configuration file).
-        bool                            mSaveFits3D;                // Save event as fits 3D            (parameter from configuration file).
-        bool                            mSaveFits2D;                // Save event as fits 2D            (parameter from configuration file).
-        bool                            mSaveSum;                   // Save sum of the event            (parameter from configuration file).
-        bool                            mSaveGeMap;
-        bool                            mSaveSumWithHistEqualization;
-        double                          mTimeBeforeEvent;
-        double                          mTimeAfterEvent;
-        double                          mTimeBeforeEv;              // Time to keep before an event     (parameter from configuration file).
-        double                          mTimeAfterEv;
-        string                          mDataPath;                  // Where to save data               (parameter from configuration file).
         string                          mStationName;               // Name of the station              (parameter from configuration file).
         CamPixFmt                       mFormat;                    // Acquisition bit depth            (parameter from configuration file).
         Fits                            mFitsHeader;
-        bool                            mMailAlertEnabled;          // Enable to send mail alert        (parameter from configuration file).
-        string                          mMailSmtpServer;            // SMTP server                      (parameter from configuration file).
-        string                          mMailSmtpLogin;
-        string                          mMailSmtpPassword;
-        SmtpSecurity                    mSmtpSecurity;
-        vector<string>                  mMailRecipients;            // Mail recipients                  (parameter from configuration file).
-        bool                            mStackReduction;            // Reduce sum fits to 16 bits.      (parameter from configuration file).
-        StackMeth                       mStackMthd;                 // Reduction method                 (parameter from configuration file).
-        DetMeth                         mDetMthd;                   // Enumeration of the detection method used.
         bool                            mIsRunning;                 // Detection thread running status.
         bool                            mWaitFramesToCompleteEvent;
         int                             mNbWaitFrames;
@@ -125,53 +106,37 @@ class DetThread {
         string                          mCurrentDataSetLocation;
         vector<pair<string,int>>        mDetectionResults;
         bool                            mForceToReset;
-        bool                            mFitsCompression;
-        string                          mFitsCompressionMethod;
+        detectionParam                  mdtp;
+        dataParam                       mdp;
+        mailParam                       mmp;
+        fitskeysParam                   mfkp;
+        stationParam                    mstp;
+        int                             mNbFramesAround; // Number of frames to keep around an event.
+
 
     public :
 
-        /**
-        * Constructor.
-        *
-        */
-        DetThread(  string                          cfg_p,
-                    boost::circular_buffer<Frame>   *fb,
-                    boost::mutex                    *fb_m,
-                    boost::condition_variable       *fb_c,
-                    bool                            *dSignal,
-                    boost::mutex                    *dSignal_m,
-                    boost::condition_variable       *dSignal_c);
+         DetThread(  boost::circular_buffer<Frame>   *fb,
+                            boost::mutex                    *fb_m,
+                            boost::condition_variable       *fb_c,
+                            bool                            *dSignal,
+                            boost::mutex                    *dSignal_m,
+                            boost::condition_variable       *dSignal_c,
+                            detectionParam                  dtp,
+                            dataParam                       dp,
+                            mailParam mp,
+                            stationParam sp,
+                            fitskeysParam fkp,
+                            CamPixFmt pfmt);
 
-        /**
-        * Destructor.
-        *
-        */
         ~DetThread();
 
-        /**
-        * Detection Thread loop.
-        *
-        */
         void operator()();
 
-        /**
-        * Start thread.
-        *
-        * @return Success status to start thread.
-        */
         bool startThread();
 
-        /**
-        * Stop thread.
-        *
-        */
         void stopThread();
 
-        /**
-        * Build directory "events".
-        *
-        * @return Success to create directory.
-        */
         bool buildEventDataDirectory();
 
         /**
@@ -211,7 +176,6 @@ class DetThread {
                 mNbDetection = 0;
 
             }
-
         };
 
         void setCurrentDataSet(string location) {
@@ -219,19 +183,6 @@ class DetThread {
             mCurrentDataSetLocation = location;
 
         };
-
-        void setTimeBeforeEvent(double fps) {
-
-            mTimeBeforeEvent = mTimeBeforeEv * fps;
-
-        };
-
-        void setTimeAfterEvent(double fps) {
-
-            mTimeAfterEvent = mTimeAfterEv * fps;
-
-        };
-
 
 };
 

@@ -74,22 +74,13 @@
 #include <algorithm>
 #include <boost/tokenizer.hpp>
 #include <boost/circular_buffer.hpp>
+#include "EInputDeviceType.h"
+#include "ECamSdkType.h"
+#include "SParam.h"
 
 using namespace boost::filesystem;
 using namespace cv;
 using namespace std;
-
- enum CamSdkType{
-
-    ARAVIS,
-    PYLONGIGE,
-    TIS,
-    VIDEOFILE,
-    FRAMESDIR,
-    V4L2,
-    VIDEOINPUT
-
-};
 
 class Device {
 
@@ -126,20 +117,33 @@ class Device {
         int         mCamID;         // ID in a specific sdk.
         int         mGenCamID;      // General ID.
         Camera      *mCam;
-        string      mCfgPath;
         bool        mShiftBits;
+        bool        mVerbose;
+        framesParam mfp;
+        videoParam  mvp;
 
     public :
 
+        int         mNbDev;
         CamPixFmt   mFormat;
+        string      mCfgPath;
+        InputDeviceType mDeviceType;
+        double      mMinExposureTime;
+        double      mMaxExposureTime;
+        int         mMinGain;
+        int         mMaxGain;
 
     public :
 
-        Device(string cfgPath);
+        Device(cameraParam cp, framesParam fp, videoParam vp, int cid);
 
         Device();
 
         ~Device();
+
+        InputDeviceType getDeviceType(CamSdkType t);
+
+        CamSdkType getDeviceSdk(int id);
 
         void listDevices(bool printInfos);
 
@@ -161,7 +165,15 @@ class Device {
 
         bool getCameraGainBounds(int &min, int &max);
 
+        void getCameraGainBounds();
+
         bool getCameraExposureBounds(double &min, double &max);
+
+        void getCameraExposureBounds();
+
+        bool getDeviceName();
+
+        InputDeviceType getDeviceType();
 
         bool setCameraNightExposureTime();
 
@@ -199,6 +211,8 @@ class Device {
         int getNightGain() {return mNightGain;};
         int getDayExposureTime() {return mDayExposure;};
         int getDayGain() {return mDayGain;};
+
+        void setVerbose(bool status);
 
     private :
 

@@ -101,7 +101,7 @@
 
             }initializer;
 
-            const char* deviceName;
+            const char* mDeviceName;
             int fd;
             double expMin, expMax, exp;
             int gainMin, gainMax, gain;
@@ -138,7 +138,7 @@
 
             void grabCleanse();
 
-            void acqStart();
+            bool acqStart();
 
             void acqStop();
 
@@ -147,6 +147,8 @@
             bool grabSingleImage(Frame &frame, int camID);
 
             bool getDeviceNameById(int id, string &device);
+
+            bool getCameraName();
 
             void getExposureBounds(double &eMin, double &eMax);
 
@@ -178,12 +180,6 @@
 
 
         private :
-
-            void yuv2rgb(int y, int u, int v, unsigned char *r, unsigned char *g, unsigned char *b);
-
-            void uyvy2bgr24(const unsigned char *src, unsigned char *dest, int width, int height, int stride);
-
-            void rgb565_to_bgr24(const unsigned char *src, unsigned char *dest, int width, int height);
 
             bool convertImage(unsigned char* buffer, Mat &image);
 

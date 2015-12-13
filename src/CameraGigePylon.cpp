@@ -43,18 +43,18 @@ CameraGigePylon::Init CameraGigePylon::initializer;
 
 CameraGigePylon::CameraGigePylon(){
 
-    pTlFactory = NULL;
     pCamera = NULL;
-    pDevice = NULL;
-    pEventGrabber = NULL;
-    pEventAdapter = NULL;
     pStreamGrabber = NULL;
-    nbEventBuffers = 20;
     connectionStatus = false;
     mFrameCounter = 0;
-
     mExposureAvailable = true;
     mGainAvailable = true;
+    mInputDeviceType = CAMERA;
+    
+    // Enumerate GigE cameras
+    pTlFactory = &CTlFactory::GetInstance();
+    pTl = pTlFactory->CreateTl(CBaslerGigECamera ::DeviceClass());
+    pTl->EnumerateDevices(devices);
 
 }
 
@@ -64,60 +64,20 @@ vector<pair<int,string>> CameraGigePylon::getCamerasList() {
 
     try {
 
-        if(!pTlFactory) {
-
-            pTlFactory=&CTlFactory::GetInstance();
-
-        }
-
-        // Exit the application if the specific transport layer is not available
-        if(!pTlFactory) {
-            BOOST_LOG_SEV(logger,fail) << "Fail to create TransportLayer.";
-            return camerasList;
-        }
-
-        if(!connectionStatus) {
-
-            devices.clear();
-
-            if(pTlFactory) {
-
-                if (0 == pTlFactory->EnumerateDevices(devices)) {
-
-                    return camerasList;
-
-                }
-
-                int id=0;
-
-                if( !devices.empty() && !connectionStatus) {
-
-                    DeviceInfoList_t::const_iterator it;
-
-                    for(it = devices.begin(); it != devices.end(); ++it ) {
-
-                        if(!devices.empty()){
-
-                            if(devices[id].GetFullName().find_first_of("Basler")==0||devices[id].GetFullName().find_first_of("Prosilica")==0) {
-
-                                /*list<string> ch;
-                                Conversion::stringTok(ch,devices[id].GetFullName().c_str(), "#");*/
-                                pair<int,string> c;
-                                c.first = id;
-                                //string infoDev = devices[id].GetModelName() + " - " + devices[id].GetSerialNumber();
-                                c.second = "NAME[" + devices[id].GetModelName() + "] S/N[" + devices[id].GetSerialNumber() + "] SDK[PYLON]";
-                                camerasList.push_back(c);
-                                //cout << "-> ID[" << id << "]  NAME[" << devices[id].GetModelName().c_str() << "]  S/N[" << devices[id].GetSerialNumber().c_str() <<"]"/* ADRESS[" << ch.back() << "]"*/ << endl;
-
-                            }
-                        }
-
-                        id++;
-
+        int id = 0;
+        if(!devices.empty()) {
+            DeviceInfoList_t::const_iterator it;
+            for(it = devices.begin(); it != devices.end(); ++it ) {
+                if(!devices.empty()){
+                    if(devices[id].GetFullName().find_first_of("Basler")==0||devices[id].GetFullName().find_first_of("Prosilica")==0) {
+                        pair<int,string> c;
+                        c.first = id;
+                        c.second = "NAME[" + devices[id].GetModelName() + "] S/N[" + devices[id].GetSerialNumber() + "] SDK[PYLON]";
+                        camerasList.push_back(c);
                     }
                 }
+                id++;
             }
-
         }
 
     }catch (GenICam::GenericException &e){
@@ -133,12 +93,17 @@ vector<pair<int,string>> CameraGigePylon::getCamerasList() {
 
 CameraGigePylon::~CameraGigePylon(void){
 
-    if(pEventAdapter != NULL) delete pEventAdapter;
-    if(pEventGrabber != NULL) delete pEventGrabber;
-    if(pStreamGrabber != NULL) delete pStreamGrabber;
-    if(pDevice != NULL) delete pDevice;
-    if(pCamera != NULL) delete pCamera;
-    if(pTlFactory != NULL) delete pTlFactory;
+    if(pStreamGrabber != NULL){ 
+        delete pStreamGrabber;
+    }
+
+    if(pCamera != NULL) {
+        if(pCamera->IsOpen()) pCamera->Close();
+        delete pCamera;
+    }
+
+    if(pTlFactory != NULL) 
+        pTlFactory->ReleaseTl(pTl);
 
 }
 
@@ -146,157 +111,74 @@ bool CameraGigePylon::listCameras() {
 
     try {
 
-        if(!pTlFactory) {
+        cout << endl << "------------ GIGE CAMERAS WITH PYLON -----------" << endl << endl;
 
-            pTlFactory=&CTlFactory::GetInstance();
+        int id = 0;
+        DeviceInfoList_t::const_iterator it;
 
-        }
-
-        // Exit the application if the specific transport layer is not available
-        if(!pTlFactory) {
-            BOOST_LOG_SEV(logger,fail) << "Fail to create TransportLayer.";
-            return false;
-        }
-
-        if(!connectionStatus) {
-
-            devices.clear();
-
-            if(pTlFactory) {
-
-                cout << endl << "------------ GIGE CAMERAS WITH PYLON -----------" << endl << endl;
-
-                if (0 == pTlFactory->EnumerateDevices(devices)) {
-
-                    cout << "-> No cameras detected..." << endl;
-                    cout << endl << "------------------------------------------------" << endl << endl;
-                    return false;
-
-                }
-
-                int id=0;
-
-                if( !devices.empty() && !connectionStatus) {
-
-                    DeviceInfoList_t::const_iterator it;
-
-                    for(it = devices.begin(); it != devices.end(); ++it ) {
-
-                        if(!devices.empty()){
-
-                            if(devices[id].GetFullName().find_first_of("Basler")==0||devices[id].GetFullName().find_first_of("Prosilica")==0) {
-
-                                /*list<string> ch;
-                                Conversion::stringTok(ch,devices[id].GetFullName().c_str(), "#");*/
-
-                                cout << "-> ID[" << id << "]  NAME[" << devices[id].GetModelName().c_str() << "]  S/N[" << devices[id].GetSerialNumber().c_str() <<"]"/* ADRESS[" << ch.back() << "]"*/ << endl;
-
-                            }
-                        }
-
-                        id++;
-
-                    }
+        for(it = devices.begin(); it != devices.end(); ++it ) {
+            if(!devices.empty()){
+                if(devices[id].GetFullName().find_first_of("Basler")==0||devices[id].GetFullName().find_first_of("Prosilica")==0) {
+                    cout << "-> ID[" << id << "]  NAME[" << devices[id].GetModelName().c_str() << "]  S/N[" << devices[id].GetSerialNumber().c_str() <<"]"<< endl;
                 }
             }
-
-            cout << endl << "------------------------------------------------" << endl << endl;
-
+            id++;
         }
 
-        return true;
+        cout << endl << "------------------------------------------------" << endl << endl;
 
     }catch (GenICam::GenericException &e){
 
         BOOST_LOG_SEV(logger,fail) << "An exception occured : " << e.GetDescription() ;
         cout << "An exception occured : " << e.GetDescription() << endl;
-
+        return false;
     }
+
+    return true;
+
 }
 
 bool CameraGigePylon::createDevice(int id){
 
-    bool chooseState  = false;
+    try {
+        
+        if(!devices.empty()) {
 
-    try{
-
-        listCameras();
-
-        if(!devices.empty()){
-
-            if(!pDevice){
-
-                if(id >= 0 && id < devices.size()){
-
-                    pDevice = pTlFactory->CreateDevice(devices[id]);
-
-                }else{
-
-                    cout << "No camera with id : " << id << endl;
-
-                }
+            // Create a camera object
+            if(id >= 0 && id < devices.size()){
+                pCamera = new CBaslerGigECamera( pTl->CreateDevice((devices[id]) ));
+            }else {
+                return false;
             }
 
-            if(pDevice){
+            // Open the camera object
+            pCamera->Open();
 
-                if(!pDevice->IsOpen()) pDevice->Open();
+            if(pCamera->IsOpen())
+                BOOST_LOG_SEV(logger,notification) << "Success to open the device.";
 
-                if(pDevice->IsOpen()){
-
-                    connectionStatus = true;
-                    chooseState = true;
-                    BOOST_LOG_SEV(logger,notification) << "Success to open the device.";
-
-                }
-            }
-
-            if (pDevice && ! pCamera){
-
-                pCamera=new CBaslerGigECamera(pDevice,true);
-                BOOST_LOG_SEV(logger,notification) << "Basler GigE camera created." << endl;
-            }
-
-        }else{
-            BOOST_LOG_SEV(logger,fail) << "Devices list is empty. " << endl;
+            return true;
         }
 
     }catch (GenICam::GenericException &e){
 
-        cout << e.GetDescription() << endl;
-
+        std::cout << e.GetDescription() << endl;
+        return false;
     }
 
-    if(!chooseState){
-
-        cout << "Camera is not accesible. " << endl << " (You can try to disconnect and reconnect ethernet link.)" << endl;
-
-    }
-
-    return chooseState;
+    return false;
 
 }
 
-bool CameraGigePylon::getDeviceNameById(int id, string &device){
+bool CameraGigePylon::getDeviceNameById(int id, string &device) {
 
-    pTlFactory = &CTlFactory::GetInstance();
-
-    devices.clear();
-
-    if(pTlFactory){
-
-        if (0 == pTlFactory->EnumerateDevices(devices)){
-
-            cout <<"No cameras detected..." << endl;
-            return false;
-
-        }else{
-
-            cout << " Camera (ID:" << id << ") detected " << endl;
-            cout << " Name :        " << devices[id].GetModelName().c_str() << endl;
-            return true;
-        }
-    }else
-        return false;
+    if(!devices.empty()) {
+        cout << " Camera (ID:" << id << ") detected " << endl;
+        cout << " Name :        " << devices[id].GetModelName().c_str() << endl;
+        return true;
+    }
+    
+    return false;
 
 }
 
@@ -307,30 +189,6 @@ bool CameraGigePylon::grabInitialization(){
         if(pCamera->IsOpen()){
 
             try{
-
-                // Check if the device supports events.
-                if (!GenApi::IsAvailable( pCamera->EventSelector)){
-
-                    throw RUNTIME_EXCEPTION( "The device doesn't support events.");
-
-                }
-
-                // Create the event grabber
-                pEventGrabber = new (CBaslerGigECamera::EventGrabber_t) (pCamera->GetEventGrabber());
-
-                // parametrize and open it
-                pEventGrabber->NumBuffer.SetValue(nbEventBuffers);
-
-                // Enable resending of event messages when lossed messages are detected:
-                // Loss of messages is detected by sending acknowledges for every event messages.
-                // When the camera doesn't receive the acknowledge it will resend the message up to
-                // 'RetryCount' times.
-                pEventGrabber->RetryCount = 3;
-
-                pEventGrabber->Open();
-
-                // Create an event adaptater
-                pEventAdapter = pCamera->CreateEventAdapter();
 
                 //Disable acquisition start trigger if available
                 {
@@ -401,18 +259,54 @@ bool CameraGigePylon::grabInitialization(){
                     pStreamGrabber->QueueBuffer(handles[i], NULL);
                 }
 
+                return true;
+
             }catch (GenICam::GenericException &e){
 
                 // Error handling.
                 BOOST_LOG_SEV(logger,fail) << "An exception occurred." << e.GetDescription();
                 cout << "An exception occurred." << e.GetDescription() << endl;
+                return false;
 
             }
+
+
         }
     }
 
-    return true;
+    return false;
 
+}
+
+void CameraGigePylon::getAvailablePixelFormats() {
+
+    vector<string> pixfmt;
+
+    if(pCamera != NULL) {
+
+        if(pCamera->IsOpen()) {
+
+            INodeMap *nodemap = pCamera->GetNodeMap();
+            // Access the PixelFormat enumeration type node.
+            CEnumerationPtr pixelFormat( nodemap->GetNode( "PixelFormat"));
+            // Check if the pixel format Mono8 is available.
+            if(IsAvailable(pixelFormat->GetEntryByName( "Mono8")))
+                pixfmt.push_back("MONO8");
+
+            // Check if the pixel format Mono12 is available.
+            if(IsAvailable(pixelFormat->GetEntryByName( "Mono12")))
+                pixfmt.push_back("MONO12");
+
+            std::cout << endl <<  ">> Available pixel formats :" << endl;
+            EParser<CamPixFmt> fmt;
+
+            for( int i = 0; i != pixfmt.size(); i++ ) {
+                if(fmt.isEnumValue(pixfmt.at(i))) {
+                    std::cout << "- " << pixfmt.at(i) << " available --> ID : " << fmt.parseEnum(pixfmt.at(i)) << endl;
+                }
+            }
+        }
+    }
 }
 
 void CameraGigePylon::grabCleanse(){
@@ -437,8 +331,8 @@ void CameraGigePylon::grabCleanse(){
 
                             pStreamGrabber->RetrieveResult(Result);
 
-                            if (Result.Status() == Canceled)
-                                BOOST_LOG_SEV(logger,notification) << "Got canceled buffer.";
+                            //if (Result.Status() == Canceled)
+                                //BOOST_LOG_SEV(logger,notification) << "Got canceled buffer.";
 
                         }
 
@@ -447,7 +341,7 @@ void CameraGigePylon::grabCleanse(){
 
                             pStreamGrabber->DeregisterBuffer(handles[i]);
 
-                            BOOST_LOG_SEV(logger,notification) << "Deregister and free buffer n° "<< i ;
+                            //BOOST_LOG_SEV(logger,notification) << "Deregister and free buffer n° "<< i ;
 
                             if(pCamera->PixelFormat.GetValue() == PixelFormat_Mono8){
 
@@ -464,11 +358,22 @@ void CameraGigePylon::grabCleanse(){
                     pStreamGrabber->FinishGrab();
                     pStreamGrabber->Close();
 
-                }
+                    if(pStreamGrabber != NULL){
+                        delete pStreamGrabber;
+                        pStreamGrabber = NULL;
+                    }
 
-                if(pEventGrabber!=NULL)
-                    pEventGrabber->Close();
+                    if(pCamera != NULL) {
+                        pCamera->Close();
+                        delete pCamera;
+                        pCamera = NULL;
+                    }
 
+                    if(pTlFactory != NULL) 
+                        pTlFactory->ReleaseTl(pTl);
+                        pTlFactory = NULL;
+                    }
+ 
             }catch (GenICam::GenericException &e){
 
                 // Error handling.
@@ -477,15 +382,17 @@ void CameraGigePylon::grabCleanse(){
 
             }
         }
-
-        BOOST_LOG_SEV(logger,notification) << "Close device.";
-        pCamera->Close();
     }
 }
 
-void CameraGigePylon::acqStart(){
+bool CameraGigePylon::acqStart(){
 
-    pCamera->AcquisitionStart.Execute();
+    if(pCamera!=NULL) {
+        pCamera->AcquisitionStart.Execute();
+        return true;
+    }
+
+    return false;
 
 }
 
@@ -541,12 +448,12 @@ bool CameraGigePylon::grabImage(Frame &newFrame){
 
             if(pCamera->PixelFormat.GetValue() == PixelFormat_Mono8){
 
-                newFrame.mBitDepth = MONO_8;
+                newFrame.mFormat = MONO8;
                 newFrame.mSaturatedValue = 255;
 
             }else if(pCamera->PixelFormat.GetValue() == PixelFormat_Mono12){
 
-                newFrame.mBitDepth = MONO_12;
+                newFrame.mFormat = MONO12;
                 newFrame.mSaturatedValue = 4095;
 
             }
@@ -616,22 +523,19 @@ bool CameraGigePylon::setSize(int width, int height, bool customSize) {
 bool CameraGigePylon::grabSingleImage(Frame &frame, int camID){
 
     try {
-        cout << "id : " << camID << endl;
+
+        // Enumerate GigE cameras
         pTlFactory = &CTlFactory::GetInstance();
+        pTl = pTlFactory->CreateTl(CBaslerGigECamera ::DeviceClass());
 
-        devices.clear();
+        if (((camID + 1 ) > pTl->EnumerateDevices(devices)) || camID < 0){
 
-        if(pTlFactory) {
+            throw "Camera ID not correct. Can't be found.";
 
-            if (((camID + 1 ) > pTlFactory->EnumerateDevices(devices)) || camID < 0){
+        }else {
 
-                throw "Camera ID not correct. Can't be found.";
+            cout << ">> Camera (ID:" << camID << ") found. " << endl;
 
-            }else {
-
-                cout << ">> Camera (ID:" << camID << ") found. " << endl;
-
-            }
         }
 
         // Create an instant camera object with the correct id camera device.
@@ -662,7 +566,7 @@ bool CameraGigePylon::grabSingleImage(Frame &frame, int camID){
         // Access the PixelFormat enumeration type node.
         CEnumerationPtr pixelFormat(nodemap.GetNode("PixelFormat"));
 
-        if(frame.mBitDepth == MONO_8) {
+        if(frame.mFormat == MONO8) {
 
             if(IsAvailable(pixelFormat->GetEntryByName("Mono8"))){
                 pixelFormat->FromString("Mono8");
@@ -672,7 +576,7 @@ bool CameraGigePylon::grabSingleImage(Frame &frame, int camID){
             return false;
         }
 
-        }else if(frame.mBitDepth == MONO_12){
+        }else if(frame.mFormat == MONO12){
 
             if(IsAvailable(pixelFormat->GetEntryByName("Mono12"))){
                 pixelFormat->FromString("Mono12");
@@ -795,6 +699,11 @@ bool CameraGigePylon::grabSingleImage(Frame &frame, int camID){
         cout << msg << endl;
         BOOST_LOG_SEV(logger,fail) << msg;
 
+    }
+
+    if(pTlFactory != NULL) {
+        pTlFactory->ReleaseTl(pTl);
+        pTlFactory = NULL;
     }
 
     return false;
@@ -1023,7 +932,6 @@ bool CameraGigePylon::setPixelFormat(CamPixFmt format){
 
 }
 
-
 double CameraGigePylon::getExposureTime(){
 
     if(pCamera!=0)
@@ -1033,11 +941,6 @@ double CameraGigePylon::getExposureTime(){
 
 }
 
-TimeMeasureUnit CameraGigePylon::getExposureUnit() {
-
-    return USEC;
-
-}
 /*
 int CameraGigePylon::getGain(){
 

@@ -44,6 +44,8 @@
     #include "Conversion.h"
     #include "SaveImg.h"
     #include "Camera.h"
+    #include "ECamPixFmt.h"
+    #include "EParser.h"
     #include <boost/log/common.hpp>
     #include <boost/log/attributes.hpp>
     #include <boost/log/sources/logger.hpp>
@@ -80,18 +82,18 @@
 
             } initializer;
 
+            // Automagically call PylonInitialize and PylonTerminate to ensure the pylon runtime system
+            // is initialized during the lifetime of this object.
             Pylon::PylonAutoInitTerm                autoInitTerm;
+
             uint8_t*                                ppBuffersUC[nbBuffers];         // Buffer for the grabbed images in 8 bits format.
-            uint16_t*                               ppBuffersUS[nbBuffers];         // Buffer for the grabbed images in 8 bits format.
+            uint16_t*                               ppBuffersUS[nbBuffers];         // Buffer for the grabbed images in 16 bits format.
             StreamBufferHandle                      handles[nbBuffers];
-            CTlFactory                              *pTlFactory;                    // Pointer on the transport layer.
+            CTlFactory                              *pTlFactory;
+            ITransportLayer                         *pTl;                    // Pointer on the transport layer.
             CBaslerGigECamera                       *pCamera;                       // Pointer on basler camera.
-            IPylonDevice                            *pDevice;                       // Pointer on device.
-            DeviceInfoList_t                        devices;
-            CBaslerGigECamera::EventGrabber_t       *pEventGrabber;
-            IEventAdapter                           *pEventAdapter;
             CBaslerGigECamera::StreamGrabber_t      *pStreamGrabber;
-            int                                     nbEventBuffers;
+            DeviceInfoList_t                        devices;
             GrabResult                              result;
             bool                                    connectionStatus;
             int                                     mFrameCounter;
@@ -114,7 +116,7 @@
 
             void grabCleanse();
 
-            void acqStart();
+            bool acqStart();
 
             void acqStop();
 
@@ -144,9 +146,9 @@
 
             double getExposureTime();
 
-            TimeMeasureUnit getExposureUnit();
-
             bool setSize(int width, int height, bool customSize);
+
+            void getAvailablePixelFormats();
 
     };
 

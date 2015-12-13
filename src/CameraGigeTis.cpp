@@ -60,6 +60,7 @@
 
         mExposureAvailable = true;
         mGainAvailable = true;
+        mInputDeviceType = CAMERA;
 
     }
 
@@ -299,7 +300,7 @@
 
         switch(format){
 
-            case MONO_8 :
+            case MONO8 :
 
                 if(mono8.size() == 0)
                     return false;
@@ -312,7 +313,7 @@
 
                 break;
 
-            case MONO_12 :
+            case MONO12 :
 
                 if(mono12.size() == 0)
                     return false;
@@ -370,8 +371,8 @@
 
                     pExposureValueElement->getInterfacePtr( pExposureRange );
 
-                    eMin = pExposureRange->getRangeMin();
-                    eMax = pExposureRange->getRangeMax();
+                    eMin = pExposureRange->getRangeMin() * 1000000.0; // in us
+                    eMax = pExposureRange->getRangeMax() * 1000000.0; // in us
 
                 }
             }
@@ -388,6 +389,7 @@
 
     }
 
+    // http://www.theimagingsourceforums.com/faq.php?faq=ic_programming
     bool CameraGigeTis::setExposureTime(double value) {
 
         // Conversion in seconds
@@ -445,6 +447,40 @@
         }
 
         return bOK;
+    }
+
+    void CameraGigeTis::getAvailablePixelFormats() {
+
+        if(m_pGrabber != NULL) {
+
+            vector<string> pixfmt;
+            EParser<CamPixFmt> fmt;
+            DShowLib::Grabber::tVidFmtListPtr pVidFmtList  = m_pGrabber->getAvailableVideoFormats();
+
+            // List the available video formats.
+            for(DShowLib::Grabber::tVidFmtListPtr::value_type::iterator it = pVidFmtList->begin(); it != pVidFmtList->end(); ++it)
+            {
+                string pf = it->c_str();
+
+                if(pf.find("Y8") != std::string::npos) {
+                    pixfmt.push_back("MONO8");
+                }
+
+                if(pf.find("Y16") != std::string::npos) {
+                    pixfmt.push_back("MONO12");
+                }
+
+            }
+
+            std::cout << endl <<  ">> Available pixel formats :" << endl;
+
+            for( int i = 0; i != pixfmt.size(); i++ ) {
+                if(fmt.isEnumValue(pixfmt.at(i))) {
+                    std::cout << "- " << pixfmt.at(i) << " available --> ID : " << fmt.parseEnum(pixfmt.at(i)) << endl;
+                }
+            }
+        }
+
     }
 
     bool CameraGigeTis::setGain(int value) {
@@ -529,10 +565,11 @@
 
         if (!m_pGrabber->startLive(false)) return false;
 
+        return true;
 
     }
 
-    void CameraGigeTis::acqStart() {
+    bool CameraGigeTis::acqStart() {
 
         if (!m_pGrabber->isLive()) {
 
@@ -541,6 +578,8 @@
         }
 
         pSink->snapImages(1,(DWORD)-1);
+
+        return true;
 
     }
 
@@ -711,7 +750,7 @@
         if(!createDevice(camID))
             return false;
 
-        if(!setPixelFormat(frame.mBitDepth))
+        if(!setPixelFormat(frame.mFormat))
             return false;
 
         // Set lower fps value.
@@ -813,10 +852,6 @@
                                     ptr[j] = ptr[j] >> 4;
                                 }
                             }
-
-
-
-
                         }
                     }
                 }
@@ -848,13 +883,9 @@
 
     CameraGigeTis::~CameraGigeTis(){
 
-         delete m_pGrabber;
-
-    }
-
-    TimeMeasureUnit CameraGigeTis::getExposureUnit() {
-
-        return SEC;
+        DShowLib::ExitLibrary();
+        if(m_pGrabber != NULL)
+            delete m_pGrabber;
 
     }
 

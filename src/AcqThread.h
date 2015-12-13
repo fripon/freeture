@@ -42,14 +42,15 @@
 #endif
 
 #include "ECamPixFmt.h"
-#include "AcqSchedule.h"
+#include "EImgFormat.h"
 #include "DetThread.h"
 #include "StackThread.h"
 #include "Device.h"
 #include "ExposureControl.h"
 #include "ImgProcessing.h"
-#include "EImgFormat.h"
 #include "Ephemeris.h"
+#include "Fits2D.h"
+#include "SParam.h"
 
 using namespace cv;
 using namespace std;
@@ -73,73 +74,33 @@ class AcqThread {
         }initializer;
 
         bool                mMustStop;              // Signal to stop thread.
-        boost::mutex        mMustStopMutex;
+        boost::mutex        mMustStopMutex;         
         boost::thread       *mThread;               // Acquisition thread.
-        Device              *mDevice;               // Input device.
-        int                 mNbGrabFail;            // Fail number to grab frames.
-        int                 mNbGrabSuccess;         // Success number to grab frames.
-        bool                mThreadEndStatus;
-        AcqSchedule         mNextAcq;               // Next scheduled acquisition.
+        bool                mThreadTerminated;      // Terminated status of the thread.
+        Device              *mDevice;               // Device used for acquisition.
+        int                 mDeviceID;              // Index of the device to use.
+        scheduleParam       mNextAcq;               // Next scheduled acquisition.
         int                 mNextAcqIndex;
-        DetThread           *pDetection;            // Pointer on detection thread.
-        StackThread         *pStack;                // Pointer on stack thread.
-        string              mDataLocation;          // Complete dynamic location where to save data.
-        ExposureControl     *pExpCtrl;              // Pointer on exposure time adjustment object.
-        string              mCfgPath;               // Configuration file path.
-
-
-
-        vector<AcqSchedule> mSchedule;
-        bool                mScheduleEnabled;
-        string              mDataPath;
-        string              mStationName;
-        Mat                 mMask;
-        bool                mMaskEnabled;
-        string              mMaskPath;
-        bool                mExpCtrlSaveImg;
-        bool                mExpCtrlSaveInfos;
-        int                 mExpCtrlFrequency;
-        vector<int>         mSunriseTime;
-        vector<int>         mSunsetTime;
-        int                 mSunsetDuration;
-        int                 mSunriseDuration;
-        bool                mRegularAcqEnabled;
-        int                 mRegularInterval;
-        int                 mRegularExposure;
-        int                 mRegularGain;
-        CamPixFmt           mRegularFormat;
-        int                 mRegularRepetition;
-        bool                mVideoFramesInInput;
-        bool                mDetectionEnabled;
-        double              mMinExposureTime;
-        double              mMaxExposureTime;
-        int                 mMinGain;
-        int                 mMaxGain;
-        Fits                mFitsHeader;
-        bool                mDebugEnabled;
-        double              mSunHorizon1;
-        double              mSunHorizon2;
-        double              mStationLongitude;
-        double              mStationLatitude;
-
-        bool                mEphemerisUpdated;
-        bool                mEphemerisEnabled;
+        DetThread           *pDetection;            // Pointer on detection thread in order to stop it or reset it when a regular capture occurs.
+        StackThread         *pStack;                // Pointer on stack thread in order to save and reset a stack when a regular capture occurs.
+        ExposureControl     *pExpCtrl;              // Pointer on exposure time control object while sunrise and sunset.
+        string              mOutputDataPath;        // Dynamic location where to save data (regular captures etc...).
         string              mCurrentDate;
+        int                 mStartSunriseTime;      // In seconds.
+        int                 mStopSunriseTime;       // In seconds.
+        int                 mStartSunsetTime;       // In seconds.
+        int                 mStopSunsetTime;        // In seconds.
+        int                 mCurrentTime;           // In seconds.
 
-        int mStartSunriseTime;
-        int mStopSunriseTime;
-        int mStartSunsetTime;
-        int mStopSunsetTime;
-        int mCurrentTime; // In seconds.
-
-        TimeMode            mRegularMode;
-        ImgFormat           mRegularOutput;
-        ImgFormat           mScheduleOutput;
-        TimeMode            mDetectionMode;
-        TimeMode            mStackMode;
-
-        boost::circular_buffer<double> fpsBuffer;
-        double averageFPS;
+        // Parameters from configuration file.
+        stackParam          msp;
+        stationParam        mstp;
+        detectionParam      mdtp;
+        cameraParam         mcp;
+        dataParam           mdp;
+        fitskeysParam       mfkp;
+        framesParam         mfp;
+        videoParam          mvp;
 
         // Communication with the shared framebuffer.
         boost::condition_variable *frameBuffer_condition;
@@ -156,29 +117,9 @@ class AcqThread {
         boost::mutex *detSignal_mutex;
         boost::condition_variable *detSignal_condition;
 
-
-
     public :
 
-        /**
-         * Constructor.
-         *
-         * @param camType Camera type in input.
-         * @param cfg Configuration file.
-         * @param fb Pointer on framebuffer.
-         * @param fb_m Pointer on framebuffer's mutex.
-         * @param fb_c Pointer on framebuffer's condition.
-         * @param sSignal Pointer on stack's signal.
-         * @param sSignal_m Pointer on stack's signal mutex.
-         * @param sSignal_c Pointer on stack's signal condition.
-         * @param dSignal Pointer on detection's signal.
-         * @param dSignal_m Pointer on detection's signal mutex.
-         * @param dSignal_c Pointer on detection's signal condition.
-         * @param detection Pointer on detection thread.
-         * @param stack Pointer on stack thread.
-         */
-        AcqThread(  string                          cfgFile,
-                    boost::circular_buffer<Frame>   *fb,
+        AcqThread(  boost::circular_buffer<Frame>   *fb,
                     boost::mutex                    *fb_m,
                     boost::condition_variable       *fb_c,
                     bool                            *sSignal,
@@ -188,67 +129,47 @@ class AcqThread {
                     boost::mutex                    *dSignal_m,
                     boost::condition_variable       *dSignal_c,
                     DetThread                       *detection,
-                    StackThread                     *stack);
+                    StackThread                     *stack,
+                    int                                 cid,
+                    dataParam                           dp,
+                    stackParam                          sp,
+                    stationParam                        stp,
+                    detectionParam                      dtp,
+                    cameraParam                         acq,
+                    framesParam                         fp,
+                    videoParam                          vp,
+                    fitskeysParam                       fkp);
 
-        /**
-         * Destructor.
-         */
         ~AcqThread(void);
 
-        /**
-         * Acquisition thread loop.
-         */
         void operator()();
 
-        /**
-         * Stop acquisition thread.
-         */
         void stopThread();
 
-        /**
-         * Start acquisition thread.
-         *
-         * @return Success status to start thread.
-         */
         bool startThread();
 
-        /**
-         * Get thread status.
-         *
-         * @return Acquisition thread running status.
-         */
-        bool getThreadEndStatus();
-
-        bool getSunTimes();
-
+        // Return activity status.
+        bool getThreadStatus();
 
     private :
 
-        /**
-         * Build single acquisition directory.
-         *
-         * @param YYYYMMDD Acquisition date.
-         * @return Success to create directory.
-         */
+        // Compute in seconds the sunrise start/stop times and the sunset start/stop times.
+        bool computeSunTimes();
+
+        // Build the directory where the data will be saved.
         bool buildAcquisitionDirectory(string YYYYMMDD);
 
-        /**
-         * Sort schedule acquisition date.
-         *
-         */
-        void sortAcquisitionSchedule();
-
-        /**
-         * Select next scheduled acquisition.
-         *
-         */
+        // Analyse the scheduled acquisition list to find the next one according to the current time.
         void selectNextAcquisitionSchedule(TimeDate::Date date);
 
+        // Save a capture on disk.
         void saveImageCaptured(Frame &img, int imgNum, ImgFormat outputType);
 
+        // Run a regular or scheduled acquisition.
         void runImageCapture(int imgNumber, int imgExposure, int imgGain, CamPixFmt imgFormat, ImgFormat imgOutput);
 
-        bool configureInputDevice();
+        // Prepare the device for a continuous acquisition.
+        bool prepareAcquisitionOnDevice();
 };
 
 #endif

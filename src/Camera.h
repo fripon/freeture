@@ -39,7 +39,7 @@
 #include <opencv2/imgproc/imgproc.hpp>
 #include "ECamPixFmt.h"
 #include "Frame.h"
-#include "ETimeMeasureUnit.h"
+#include "EInputDeviceType.h"
 
 using namespace cv;
 using namespace std;
@@ -48,13 +48,24 @@ class Camera {
 
     public :
 
-        bool mExposureAvailable;
-        bool mGainAvailable;
-        bool mCamSizeToMax;
-        int mCamSizeWidth;
-        int mCamSizeHeight;
+        bool                mExposureAvailable;
+        bool                mGainAvailable;
+        bool                mCamSizeToMax;
+        int                 mCamSizeWidth;
+        int                 mCamSizeHeight;
+        InputDeviceType     mInputDeviceType;
+        bool                mVerbose;
 
     public :
+
+        Camera() {
+
+            mInputDeviceType = UNDEFINED_INPUT_TYPE;
+            mVerbose = true;
+
+        }
+
+        virtual ~Camera() {};
 
         virtual vector<pair<int,string>> getCamerasList() {
 
@@ -93,6 +104,10 @@ class Camera {
         */
         virtual bool getDeviceNameById(int id, string &deviceName) {return false;};
 
+        virtual bool getCameraName() {return false;};
+
+        InputDeviceType getDeviceType() {return mInputDeviceType;};
+
         /**
         * Get device's grabbing status.
         *
@@ -111,7 +126,7 @@ class Camera {
         * Run acquisition.
         *
         */
-        virtual void acqStart() {};
+        virtual bool acqStart() {return false;};
 
         /**
         * Stop acquisition.
@@ -149,9 +164,6 @@ class Camera {
         * @param eMax Return maximum exposure time value.
         */
         virtual void getExposureBounds(double &eMin, double &eMax) {};
-
-
-        virtual TimeMeasureUnit getExposureUnit() {return SEC;};
 
         /**
         * Get device's gain bounds.
@@ -260,5 +272,7 @@ class Camera {
         * @return Success status to load next data set.
         */
         virtual bool loadNextDataSet(string &location) {location = ""; return true; };
+
+        virtual void test() {cout << " in camera.h" << endl;};
 
 };

@@ -65,6 +65,7 @@
 #include "EStackMeth.h"
 #include "ECamPixFmt.h"
 #include <boost/filesystem.hpp>
+#include "SParam.h"
 
 using namespace boost::filesystem;
 using namespace std;
@@ -90,30 +91,52 @@ class Detection {
 
     public:
 
+        virtual ~Detection() {};
+
         /**
         * Run meteor detection method.
         *
         * @param c Current frame.
-        * @param p Previous frame.
         * @return Success to perform analysis.
         */
-        virtual bool run(Frame &c){return false;};
+        virtual bool runDetection(Frame &c) {
+
+            return false;
+
+        };
 
         /**
-        * Get frame's number (in frame buffer) of the first frame which belongs to the detected event.
+        * Get the number of the first detected event's frame.
         *
         * @return Frame number.
         */
-        virtual int getNumFirstEventFrame(){return 0;};
+        virtual int getEventFirstFrameNb() {
 
+            return 0;
+
+        };
+
+        /**
+        * Get the number of the last detected event's frame.
+        *
+        * @return Frame number.
+        */
+        virtual int getEventLastFrameNb() {
+            
+            return 0;
+        
+        };
+        
         /**
         * Get date of the detected event.
         *
         * @return Date of the event : YYYY-MM-DDTHH:MM:SS,fffffffff
         */
-        virtual TimeDate::Date getDateEvent() {
+        virtual TimeDate::Date getEventDate() {
+
             TimeDate::Date date;
             return date;
+
         };
 
         /**
@@ -132,14 +155,9 @@ class Detection {
         * Save infos on the detected event.
         *
         */
-        virtual void saveDetectionInfos(string p){};
+        virtual void saveDetectionInfos(string p, int nbFramesAround){};
 
-        /**
-        * Get frame's number (in frame buffer) of the last frame which belongs to the detected event.
-        *
-        * @return Frame number.
-        */
-        virtual int getNumLastEventFrame(){return 0;};
+        virtual vector<string> getDebugFiles() {vector<string> files; return files;};
 
 };
 

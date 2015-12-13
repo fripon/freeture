@@ -38,85 +38,11 @@ boost::log::sources::severity_logger< LogSeverityLevel > DetectionTemplate::logg
 
 DetectionTemplate::Init DetectionTemplate::initializer;
 
-DetectionTemplate::DetectionTemplate(string cfgPath):
-mDownsampleEnabled(false), mSavePos(false), mMaskEnabled(false), mImgNum(0),
-mDebugEnabled(false), mDebugVideo(false), mMaskToCreate(false),
-mDataSetCounter(0) {
+DetectionTemplate::DetectionTemplate(detectionParam dtp, CamPixFmt fmt):mImgNum(0), mDataSetCounter(0) {
 
-    Configuration cfg;
-    cfg.Load(cfgPath);
+    mdtp = dtp;
 
-    //********************* DEBUG OPTION.******************************
-
-    if(!cfg.Get("DET_DEBUG", mDebugEnabled)) {
-        mDebugEnabled = false;
-        BOOST_LOG_SEV(logger, warning) << "Fail to load DET_DEBUG from configuration file. Set to false.";
-    }
-
-    //********************* DOWNSAMPLE OPTION *************************
-
-    if(!cfg.Get("DET_DOWNSAMPLE_ENABLED", mDownsampleEnabled)) {
-        mDownsampleEnabled = true;
-        BOOST_LOG_SEV(logger, warning) << "Fail to load DET_DOWNSAMPLE_ENABLED from configuration file. Set to true.";
-    }
-
-    //********************* SAVE POSITION OPTION **********************
-
-    if(!cfg.Get("DET_SAVE_POS", mSavePos)) {
-        mSavePos = true;
-        BOOST_LOG_SEV(logger, warning) << "Fail to load DET_SAVE_POS from configuration file. Set to true.";
-    }
-
-    //********************* USE MASK OPTION ***************************
-
-    if(!cfg.Get("ACQ_MASK_ENABLED", mMaskEnabled)) {
-        mMaskEnabled = false;
-        BOOST_LOG_SEV(logger, warning) << "Fail to load ACQ_MASK_ENABLED from configuration file. Set to false.";
-    }
-
-    //********************* MASK PATH *****************************
-
-    if(!cfg.Get("ACQ_MASK_PATH", mMaskPath)) {
-        throw "Fail to load ACQ_MASK_PATH from configuration file.";
-    }
-
-    string acqFormat;
-    cfg.Get("ACQ_FORMAT", acqFormat);
-    EParser<CamPixFmt> camFormat;
-    CamPixFmt bitDepth = camFormat.parseEnum("ACQ_FORMAT", acqFormat);
-
-    mMaskControl = new Mask(10, mMaskEnabled, mMaskPath, mDownsampleEnabled, bitDepth, true);
-
-    //********************* DEBUG PATH ********************************
-
-    if(!cfg.Get("DET_DEBUG_PATH", mDebugPath) && mDebugEnabled) {
-        mDebugEnabled = false;
-        mDebugPath = "";
-        BOOST_LOG_SEV(logger, warning) << "Error about DET_DEBUG_PATH from configuration file. DET_DEBUG option disabled.";
-    }
-
-    mDebugCurrentPath = mDebugPath;
-
-    //********************* DEBUG VIDEO OPETION ***********************
-
-    if(!cfg.Get("DET_DEBUG_VIDEO", mDebugVideo)) {
-        mDebugVideo = false;
-        BOOST_LOG_SEV(logger, warning) << "Fail to load DET_DEBUG_VIDEO from configuration file. Set to false.";
-    }
-
-    // Create directories for debugging method.
-    if(mDebugEnabled)
-        createDebugDirectories(true);
-
-    // Create debug video.
-    if(mDebugVideo)
-        mVideoDebug = VideoWriter(mDebugCurrentPath + "debug-video.avi", CV_FOURCC('M', 'J', 'P', 'G'), 5, Size(static_cast<int>(1280), static_cast<int>(960)), true);
-
-    accStatus = {0,0,0,0,0,0,0,0,0,0,0,0};
-
-    accMax = {5,10,15,20,25,30,35,40,45,50,55,60};
-
-
+    mMaskControl = new Mask(10, dtp.ACQ_MASK_ENABLED, dtp.ACQ_MASK_PATH, dtp.DET_DOWNSAMPLE_ENABLED, fmt, true);
 
 }
 
@@ -129,11 +55,11 @@ void DetectionTemplate::createDebugDirectories(bool cleanDebugDirectory) {
 
 }
 
-bool DetectionTemplate::run(Frame &c) {
+bool DetectionTemplate::runDetection(Frame &c) {
 
     Mat currImg;
 
-    if(mDownsampleEnabled)
+    if(mdtp.DET_DOWNSAMPLE_ENABLED)
         pyrDown(c.mImg, currImg, Size(c.mImg.cols / 2, c.mImg.rows / 2));
     else
         c.mImg.copyTo(currImg);
@@ -156,11 +82,9 @@ bool DetectionTemplate::run(Frame &c) {
 
         }
 
-        //SaveImg::saveJPEG(currImg, "/home/fripon/debug/original/frame_"+Conversion::intToString(c.mFrameNumber));
-
         Mat absdiffImg;
         cv::absdiff(currImg, mPrevFrame, absdiffImg);
-        SaveImg::saveJPEG(Conversion::convertTo8UC1(absdiffImg), "/home/fripon/debug/absdiff/frame_" + Conversion::intToString(c.mFrameNumber));
+        //SaveImg::saveJPEG(Conversion::convertTo8UC1(absdiffImg), "/home/fripon/debug/absdiff/frame_" + Conversion::intToString(c.mFrameNumber));
 
         // ---------------------------------
         //  Dilatation absolute difference.
@@ -169,7 +93,7 @@ bool DetectionTemplate::run(Frame &c) {
         int dilation_size = 2;
         Mat element = getStructuringElement(MORPH_RECT, Size(2*dilation_size + 1, 2*dilation_size+1), Point(dilation_size, dilation_size));
         cv::dilate(absdiffImg, absdiffImg, element);
-        SaveImg::saveJPEG(Conversion::convertTo8UC1(absdiffImg), "/home/fripon/debug/dilate/frame_" + Conversion::intToString(c.mFrameNumber));
+        //SaveImg::saveJPEG(Conversion::convertTo8UC1(absdiffImg), "/home/fripon/debug/dilate/frame_" + Conversion::intToString(c.mFrameNumber));
 
         // ----------------------------------
         //   Threshold absolute difference.
@@ -178,7 +102,7 @@ bool DetectionTemplate::run(Frame &c) {
         Mat absDiffBinaryMap = Mat(currImg.rows,currImg.cols, CV_8UC1,Scalar(0));
         Scalar meanAbsDiff, stddevAbsDiff;
         cv::meanStdDev(absdiffImg, meanAbsDiff, stddevAbsDiff, mMaskControl->mCurrentMask);
-        int absDiffThreshold = /*stddevAbsDiff[0] * 5 + 10;//*/meanAbsDiff[0] * 3;
+        int absDiffThreshold = meanAbsDiff[0] * 3;
 
         if(absdiffImg.type() == CV_16UC1) {
 
@@ -198,7 +122,7 @@ bool DetectionTemplate::run(Frame &c) {
                 }
             }
 
-            SaveImg::saveJPEG(absDiffBinaryMap, "/home/fripon/debug/thresh/frame_" + Conversion::intToString(c.mFrameNumber));
+            //SaveImg::saveJPEG(absDiffBinaryMap, "/home/fripon/debug/thresh/frame_" + Conversion::intToString(c.mFrameNumber));
 
         }
 
@@ -210,49 +134,12 @@ bool DetectionTemplate::run(Frame &c) {
 
     }
 
-/*
-    for(int i =0; i < accStatus.size(); i++) {
-
-        int value = (int)((255/accMax.at(i)) * accStatus.at(i));
-        cout << "status : " << accStatus.at(i) << "/" << accMax.at(i) << " -> value : " << value << endl;
-
-        if(accStatus.at(i) == 0 ) {
-
-            Mat t = Mat(currImg.rows,currImg.cols, CV_8UC1,Scalar(0));
-            accImg.push_back(t);
-            Mat temp = Mat(currImg.rows,currImg.cols, CV_8UC1,Scalar(value));
-            Mat res;
-            temp.copyTo(res,absDiffBinaryMap);
-            res.copyTo(accImg.at(i), absDiffBinaryMap);
-            accStatus.at(i)++;
-
-        }else{
-
-            if(accStatus.at(i) == accMax.at(i)) {
-
-                SaveImg::saveJPEG(accImg.at(i), "/home/fripon/debug/acc/frame_" + Conversion::intToString(c.mFrameNumber) + "_" + Conversion::intToString(accMax.at(i)));
-                accStatus.at(i) = 1;
-
-            }else{
-
-                Mat temp = Mat(currImg.rows,currImg.cols, CV_8UC1,Scalar(value));
-                Mat res;
-                temp.copyTo(res,absDiffBinaryMap);
-                res.copyTo(accImg.at(i), absDiffBinaryMap);
-                accStatus.at(i)++;
-
-            }
-
-        }
-
-    }
-*/
     // No detection : return false
     return false;
 
 }
 
-void DetectionTemplate::saveDetectionInfos(string p) {
+void DetectionTemplate::saveDetectionInfos(string p, int nbFramesAround) {
 
 
 }
@@ -267,20 +154,20 @@ void DetectionTemplate::resetMask() {
 
 }
 
-int DetectionTemplate::getNumFirstEventFrame() {
+int DetectionTemplate::getEventFirstFrameNb() {
 
     return 0;
 
 }
 
-TimeDate::Date DetectionTemplate::getDateEvent() {
+TimeDate::Date DetectionTemplate::getEventDate() {
 
     TimeDate::Date d;
     return d;
 
 }
 
-int DetectionTemplate::getNumLastEventFrame() {
+int DetectionTemplate::getEventLastFrameNb() {
 
     return 0;
 

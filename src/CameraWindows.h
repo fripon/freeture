@@ -112,7 +112,7 @@ class CameraWindows: public Camera {
 
         bool grabInitialization();
 
-        void acqStart();
+        bool acqStart();
 
         bool grabImage(Frame &newFrame);
 
@@ -124,7 +124,6 @@ class CameraWindows: public Camera {
 
         double getExposureTime();
 
-        TimeMeasureUnit getExposureUnit();
 };
 #endif
 

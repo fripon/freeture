@@ -48,32 +48,6 @@ Fits2D::Fits2D(string path):mFitsPath(path){
 
 }
 
-void Fits2D::copyKeywords(const Fits &fits) {
-
-    kFILTER     = fits.kFILTER;
-    kTELESCOP   = fits.kTELESCOP;
-    kOBSERVER   = fits.kOBSERVER;
-    kINSTRUME   = fits.kINSTRUME;
-    kCAMERA     = fits.kCAMERA;
-    kFOCAL      = fits.kFOCAL;
-    kAPERTURE   = fits.kAPERTURE;
-    kSITELONG   = fits.kSITELONG;
-    kSITELAT    = fits.kSITELAT;
-    kSITEELEV   = fits.kSITEELEV;
-    kK1         = fits.kK1;
-    kK2         = fits.kK2;
-    kCOMMENT    = fits.kCOMMENT;
-    kCD1_1      = fits.kCD1_1;
-    kCD1_2      = fits.kCD1_2;
-    kCD2_1      = fits.kCD2_1;
-    kCD2_2      = fits.kCD2_2;
-    kCRPIX1     = fits.kCRPIX1;
-    kCRPIX2     = fits.kCRPIX2;
-    kXPIXEL     = fits.kXPIXEL;
-    kYPIXEL     = fits.kYPIXEL;
-
-}
-
 bool Fits2D::writeKeywords(fitsfile *fptr){
 
     /*
@@ -1283,8 +1257,7 @@ bool Fits2D::writeFits(Mat img, ImgBitDepth imgType, string fileName, string com
             }
 
             // Delete old file if it already exists.
-            if(remove(filename)!=0)
-                return false;
+            remove(filename);
 
             // Create new FITS file
             if(fits_create_file(&fptr, filename, &status)){
@@ -1536,13 +1509,13 @@ bool Fits2D::readFits16S(Mat &img){
     const char * filename;
 
     filename = mFitsPath.c_str();
-    cout << "open" << endl;
+
     if(fits_open_file(&fptr, filename, READONLY, &status)){
 
         printerror(status);
         return false;
     }
-    cout << "read naxis" << endl;
+
     // Read the NAXIS1 and NAXIS2 keyword to get image size.
     if(fits_read_keys_lng(fptr, "NAXIS", 1, 2, naxes, &nfound, &status)){
 
@@ -1557,7 +1530,7 @@ bool Fits2D::readFits16S(Mat &img){
     nullval  = 0;                           // don't check for null values in the image
 
     nbuffer = npixels;
-    cout << "read img" << endl;
+
    // short  buffer[npixels];
     short* buffer = new short[npixels];
     if(fits_read_img(fptr, TSHORT, fpixel, nbuffer, &nullval,buffer, &anynull, &status)){
@@ -1566,7 +1539,7 @@ bool Fits2D::readFits16S(Mat &img){
         delete buffer;
         return false;
     }
-    cout << "end read img" << endl;
+
     memcpy(image.ptr(), buffer, npixels * 2);
 
     Mat loadImg = Mat::zeros( naxes[1],naxes[0], CV_16UC1 );

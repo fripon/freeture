@@ -30,7 +30,7 @@
 * \author  Yoan Audureau -- FRIPON-GEOPS-UPSUD
 * \version 1.0
 * \date    03/06/2014
-* \brief   Detection method by temporal movement.
+* \brief   Detection method by temporal analysis.
 */
 
 #pragma once
@@ -61,6 +61,7 @@
 #include "Fits2D.h"
 #include "Fits.h"
 #include "Frame.h"
+#include "ImgProcessing.h"
 #include "EStackMeth.h"
 #include "ECamPixFmt.h"
 #include "GlobalEvent.h"
@@ -105,20 +106,11 @@ class DetectionTemporal : public Detection {
 
         vector<GlobalEvent>             mListGlobalEvents;      // List of global events (Events spread on several frames).
         vector<Point>                   mSubdivisionPos;        // Position (origin in top left) of 64 subdivisions.
-        vector<Scalar>                  mListColors;            // Each color (B,G,R) is an attribute of a local event.
-        Mat                             mLocalMask;             // Mask used to remove single white pixels.
-        bool                            mSubdivisionStatus;     // It subdivisions positions have been computed.
+        vector<Scalar>                  mListColors;            // One color per local event.
+        Mat                             mLocalMask;             // Mask used to remove isolated white pixels.
+        bool                            mSubdivisionStatus;     // If subdivisions positions have been computed.
         Mat                             mPrevThresholdedMap;
         vector<GlobalEvent>::iterator   mGeToSave;              // Global event to save.
-        bool                            mDownsampleEnabled;     // Use downsampling or not      (parameter from configuration file).
-        bool                            mSaveGeMap;             // Save GE map                  (parameter from configuration file).
-        bool                            mSavePos;               // Save GE positions            (parameter from configuration file).
-        bool                            mDebugEnabled;          // Enable or disable debugging  (parameter from configuration file).
-        bool                            mSaveDirMap;            // Save GE direction map        (parameter from configuration file).
-        bool                            mSaveGeInfos;           // Save GE informations         (parameter from configuration file).
-        string                          mDebugPath;             // Debug location data          (parameter from configuration file).
-        bool                            mDebugVideo;            // Create a video for debugging (parameter from configuration file).
-        VideoWriter                     mVideoDebug;            // Video debug container.
         int                             mRoiSize[2];
         int                             mImgNum;                // Current frame number.
         Mat                             mPrevFrame;             // Previous frame.
@@ -126,134 +118,45 @@ class DetectionTemporal : public Detection {
         string                          mDebugCurrentPath;
         int                             mDataSetCounter;
         bool                            mDebugUpdateMask;
-        double                          mTimeBeforeEvent;       // Time to keep before an event     (parameter from configuration file).
         Mask                            *mMaskManager;
-
-        VideoWriter mVideoDebugAutoMask;
+        vector<string>                  debugFiles;
+        detectionParam                  mdtp;
+        VideoWriter                     mVideoDebugAutoMask;
 
     public :
 
-        /**
-        * Constructor.
-        *
-        */
-        DetectionTemporal(double timeBefore, string cfgPath);
+        DetectionTemporal(detectionParam dp, CamPixFmt fmt);
 
-        /**
-        * Destructor.
-        *
-        */
         ~DetectionTemporal();
 
-        /**
-        * Initialize detection method.
-        *
-        * @param cfgPath Configuration file path.
-        */
         void initMethod(string cfgPath);
 
-        /**
-        * Run meteor detection.
-        *
-        * @param c Current frame.
-        * @return Success to analysis.
-        */
-        bool run(Frame &c);
+        bool runDetection(Frame &c);
 
-        /**
-        * Save infos on the detected event.
-        *
-        */
-        void saveDetectionInfos(string p);
+        void saveDetectionInfos(string p, int nbFramesAround);
 
-        /**
-        * Reset detection method.
-        *
-        */
         void resetDetection(bool loadNewDataSet);
 
-        /**
-        * Reset mask.
-        *
-        */
         void resetMask();
 
-        /**
-        * Get frame's number (in frame buffer) of the first frame which belongs to the detected event.
-        *
-        * @return Frame number.
-        */
-        int getNumFirstEventFrame() {return (*mGeToSave).getNumFirstFrame();};
+        int getEventFirstFrameNb() {return (*mGeToSave).getNumFirstFrame();};
 
-        /**
-        * Get date of the detected event.
-        *
-        * @return Date of the event : YYYY-MM-DDTHH:MM:SS,fffffffff
-        */
-        TimeDate::Date getDateEvent() {return (*mGeToSave).getDate();};
+        TimeDate::Date getEventDate() {return (*mGeToSave).getDate();};
 
-        /**
-        * Get frame's number (in frame buffer) of the last frame which belongs to the detected event.
-        *
-        * @return Frame number.
-        */
-        int getNumLastEventFrame() {return (*mGeToSave).getNumLastFrame();};
+        int getEventLastFrameNb() {return (*mGeToSave).getNumLastFrame();};
+
+        vector<string> getDebugFiles();
 
     private :
 
-        /**
-        * Initialize debug.
-        *
-        */
         void createDebugDirectories(bool cleanDebugDirectory);
 
-        /**
-        * Select a threshold.
-        *
-        * @param i Opencv mat image.
-        * @return Threshold.
-        */
         int selectThreshold(Mat i);
 
-        /**
-        * Compute subdivisions position in a frame.
-        *
-        * @param sub Subdivisions positions container.
-        * @param n Number of expected subdivisions.
-        * @param imgH Frame's height.
-        * @param imgW Frame's width.
-        */
-        void subdivideFrame(vector<Point> &sub, int n, int imgH, int imgW);
-
-        /**
-        * Extract color at given position.
-        *
-        * @param eventMap Image source where to extract color.
-        * @param roiCenter Position where to read color.
-        * @return Extracted BGR color.
-        */
         vector<Scalar> getColorInEventMap(Mat &eventMap, Point roiCenter);
 
-        /**
-        * Color an image region in black.
-        *
-        * @param p Center of the black region.
-        * @param h Height of the black region.
-        * @param w Width of the black region.
-        * @param region Black region's destination.
-        */
         void colorRoiInBlack(Point p, int h, int w, Mat &region);
 
-        /**
-        * Create loca events or attach ROI to existing local events.
-        *
-        * @param region Subdivision where to search.
-        * @param frame Thresholded frame.
-        * @param eventMap Map of local events.
-        * @param listLE List of local events.
-        * @param regionPosInFrame Subdivision position in frame.
-        * @param maxNbLE Maximum number of local event.
-        */
         void analyseRegion( Mat &subdivision,
                             Mat &absDiffBinaryMap,
                             Mat &eventMap,
@@ -267,6 +170,8 @@ class DetectionTemporal : public Detection {
                             int numFrame,
                             string &msg,
                             TimeDate::Date cFrameDate);
+
+
 
 };
 

@@ -179,3 +179,115 @@ Mat ImgProcessing::thresholding(Mat &img, Mat &mask, int factor, Thresh threshTy
     return thresholdedMap;
 
 }
+
+// Create n * n region in a frame ( n is a pair value)
+void ImgProcessing::subdivideFrame(vector<Point> &sub, int n, int imgH, int imgW) {
+
+    /*
+
+    Example : frame with n = 4 -> 16 subdivisions returned
+
+    |07|08|09|10|
+    |06|01|02|11|
+    |05|04|03|12|
+    |16|15|14|13|
+
+    */
+
+    int subW = imgW/n;
+    int subH = imgH/n;
+
+    Point first = cv::Point((n/2 - 1) * subW, (n/2)*subH);
+    Point last = Point(imgW - subW, imgH - subH);
+
+    sub.push_back(first);
+
+    int x = first.x, y = first.y;
+    int nbdep = 0,
+        nbdepLimit = 1,
+        dep = 1; // 1 up
+                 // 2 right
+                 // 3 down
+                 // 4 left
+
+
+    for(int i = 1; i < n * n; i++){
+
+        if(dep == 1){
+
+            y = y - subH;
+            sub.push_back(Point(x,y));
+            nbdep ++;
+            if(nbdep == nbdepLimit){
+                nbdep = 0;
+                dep ++;
+            }
+
+        }else if(dep == 2){
+
+            x = x + subW;
+            sub.push_back(Point(x,y));
+            nbdep ++;
+            if(nbdep == nbdepLimit){
+                nbdep = 0;
+                nbdepLimit++;
+                dep ++;
+            }
+
+        }else if(dep == 3){
+
+            y = y + subH;
+            sub.push_back(Point(x,y));
+            nbdep ++;
+            if(nbdep == nbdepLimit){
+                nbdep = 0;
+                dep ++;
+            }
+
+        }else if(dep == 4){
+
+            x = x - subW;
+            sub.push_back(Point(x,y));
+            nbdep ++;
+            if(nbdep == nbdepLimit){
+                nbdep = 0;
+                nbdepLimit++;
+                dep = 1;
+            }
+        }
+    }
+}
+
+Mat ImgProcessing::subdivideFrame(Mat img, int n) {
+
+    vector<Point> listSubPos;
+
+    int subW = img.cols/n;
+    int subH = img.rows/n;
+
+    cout << "subW : " << subW << endl;
+    cout << "subH : " << subH << endl;
+
+    for(int j = 0; j < n; j++) {
+
+        for(int i = 0; i < n; i++) {
+
+            listSubPos.push_back(Point(i*subW, j*subH));
+            // cout << Point(i*subW, j*subH)<< endl;
+
+        }
+
+    }
+
+    Mat imgSubdivided;
+    img.copyTo(imgSubdivided);
+
+    for(int i = 0; i < n; i++)
+        line(imgSubdivided, Point(i * subW, 0), Point(i*subW, subH * n), Scalar(255), 1, 8);
+
+    for(int j = 0; j < n; j++)
+        line(imgSubdivided, Point(0, j * subH), Point(subW * n, j * subH), Scalar(255), 1, 8);
+
+    return imgSubdivided;
+
+}

@@ -90,75 +90,39 @@ class CameraFrames: public Camera {
 
     public:
 
-        /**
-         * Constructor.
-         *
-         * @param locationList Directories which contain set of frames in fits format.
-         * @param numPos Position of the frame's number in its filename.
-         */
-        CameraFrames(vector<string>	locationList, int numPos);
+        CameraFrames(vector<string>	locationList, int numPos, bool verbose);
 
-        /**
-         * Destructor.
-         */
         ~CameraFrames();
+
+        bool acqStart() {return true;};
 
         bool createDevice(int id) { return true;};
 
         bool listCameras() {return true;};
 
-        /**
-        * Prepare acquisition on the first directory of fits frames.
-        *
-        * @return Success status to prepare acquisition.
-        */
         bool grabInitialization();
 
-        /**
-        * Read the next fits frame in the current directory.
-        *
-        * @param newFrame New frame's container object.
-        * @return Success status to get a frame.
-        */
         bool grabImage(Frame &img);
 
-        /**
-        * Get status : End to read fits frames in the current directory.
-        *
-        * @return Reading end status.
-        */
         bool getStopStatus();
 
-        /**
-        * Load next directory of fits frames if there is.
-        *
-        * @return Success status to load next data set.
-        */
         bool loadNextDataSet(string &location);
 
-        /**
-        * Get data status : Is there another directory to use in input ?
-        *
-        * @return If there is still a directory to load in input.
-        */
         bool getDataSetStatus();
 
         bool getFPS(double &value);
 
-        // Fake exposure.
         bool setExposureTime(double exp){return true;};
 
-        // Fake gain.
         bool setGain(int gain) {return true;};
 
-        // Fake fps.
         bool setFPS(double fps){return true;};
 
-        // Fake format.
         bool setPixelFormat(CamPixFmt format){return true;};
 
-        // Fake size.
         bool setSize(int width, int height, bool customSize) {return true;};
+
+        bool getCameraName();
 
 };
 

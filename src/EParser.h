@@ -46,7 +46,8 @@
 #include "ETimeMode.h"
 #include "EImgFormat.h"
 #include "ECamPixFmt.h"
-
+#include "EInputDeviceType.h"
+#include "ECamSdkType.h"
 
 using namespace std;
 
@@ -81,12 +82,10 @@ template<typename T> class EParser {
 
                 typename map<string, T>::const_iterator it;
 
-                string res = "\nThe parameter " + paramName + " can't has the value : "
-                                + value + "\nPlease see the configuration file.\n"
-                                + "Possible value for this parameter are only : \n\n";
+                string res = "<" + value + "> is not correct. Available values are : \n";
 
                 for(it = enumMap.begin(); it != enumMap.end(); ++it){
-                    res = res + it->first + "\n";
+                    res = res + "    <" + it->first + ">\n";
                 }
 
                 throw runtime_error(res);

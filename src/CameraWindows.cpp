@@ -42,12 +42,15 @@ CameraWindows::CameraWindows() {
     mExposureAvailable = false;
     mGainAvailable = false;
     mFrameCounter = 0;
+    mInputDeviceType = CAMERA;
+    mDevNumber = -1;
+    mBuffer = NULL;
 }
 
 CameraWindows::~CameraWindows()
 {
-    mVideoInput.stopDevice(mDevNumber);
-    delete[] mBuffer;
+    if(mBuffer != NULL)
+        delete[] mBuffer;
 }
 
 vector<pair<int,string>> CameraWindows::getCamerasList() {
@@ -104,9 +107,9 @@ bool CameraWindows::setSize(int width, int height, bool customSize) {
     mBuffer = new unsigned char[mSize];
 
     // Disable autofocus and set focus to 0
-    mVideoInput.setVideoSettingCamera(camID, CameraControl_Focus, mDefaultFocus, CameraControl_Flags_Manual);
+    // mVideoInput.setVideoSettingCamera(camID, CameraControl_Focus, mDefaultFocus, CameraControl_Flags_Manual);
 
-    setPixelFormat(frame.mBitDepth);
+    setPixelFormat(frame.mFormat);
     setExposureTime(frame.mExposure);
     setGain(frame.mGain);
 
@@ -121,7 +124,7 @@ bool CameraWindows::setSize(int width, int height, bool customSize) {
         string acquisitionDate = to_iso_extended_string(time);
         frame = Frame(img, 0, 0, acquisitionDate);
         frame.mFps = 0;
-        frame.mBitDepth = MONO_8;
+        frame.mFormat = MONO8;
         frame.mSaturatedValue = 255;
         frame.mFrameNumber = 0;
         mVideoInput.stopDevice(camID);
@@ -148,11 +151,13 @@ bool  CameraWindows::setPixelFormat(CamPixFmt format){
 }
 
 void  CameraWindows::getExposureBounds(double &eMin, double &eMax){
-
+    eMin = -1;
+    eMax = -1;
 }
 
 void  CameraWindows::getGainBounds(int &gMin, int &gMax){
-
+    gMin = -1;
+    gMax = -1;
 }
 
 bool  CameraWindows::getFPS(double &value){
@@ -214,7 +219,7 @@ bool  CameraWindows::grabInitialization() {
     return true;
 }
 
-void  CameraWindows::acqStart(){};
+bool  CameraWindows::acqStart(){return true;};
 
 bool  CameraWindows::grabImage(Frame &newFrame){
 
@@ -229,7 +234,7 @@ bool  CameraWindows::grabImage(Frame &newFrame){
         string acquisitionDate = to_iso_extended_string(time);
         newFrame = Frame(img, 0, 0, acquisitionDate);
         newFrame.mFps = 0;
-        newFrame.mBitDepth = MONO_8;
+        newFrame.mFormat = MONO8;
         newFrame.mSaturatedValue = 255;
         newFrame.mFrameNumber = mFrameCounter;
         mFrameCounter++;
@@ -279,12 +284,6 @@ double  CameraWindows::getExposureTime() {
     }
 
     return 0.0;
-
-}
-
-TimeMeasureUnit CameraWindows::getExposureUnit() {
-
-    return SEC;
 
 }
 

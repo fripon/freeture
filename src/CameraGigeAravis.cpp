@@ -47,6 +47,7 @@
     nbFailures(0), nbUnderruns(0), frameCounter(0), shiftBitsImage(shift), stream(NULL) {
         mExposureAvailable = true;
         mGainAvailable = true;
+        mInputDeviceType = CAMERA;
     }
 
     CameraGigeAravis::CameraGigeAravis():
@@ -55,6 +56,7 @@
     nbFailures(0), nbUnderruns(0), frameCounter(0), shiftBitsImage(false), stream(NULL) {
         mExposureAvailable = true;
         mGainAvailable = true;
+        mInputDeviceType = CAMERA;
     }
 
     CameraGigeAravis::~CameraGigeAravis(){}
@@ -309,7 +311,7 @@
 
     void CameraGigeAravis::grabCleanse(){}
 
-    void CameraGigeAravis::acqStart(){
+    bool CameraGigeAravis::acqStart(){
 
         BOOST_LOG_SEV(logger, notification) << "Set camera to CONTINUOUS MODE";
         arv_camera_set_acquisition_mode(camera, ARV_ACQUISITION_MODE_CONTINUOUS);
@@ -319,6 +321,8 @@
 
         BOOST_LOG_SEV(logger, notification) << "Start acquisition on camera";
         arv_camera_start_acquisition(camera);
+
+        return true;
 
     }
 
@@ -1011,12 +1015,6 @@
         }
 
         return false;
-
-    }
-
-    TimeMeasureUnit CameraGigeAravis::getExposureUnit() {
-
-        return USEC;
 
     }
 

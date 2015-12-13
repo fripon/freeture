@@ -1,5 +1,5 @@
 /*
-                                Configuration.h
+                                CfgLoader.h
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 *
@@ -26,11 +26,11 @@
 *%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%*/
 
 /**
-* \file    Configuration.h
+* \file    CfgLoader.h
 * \author  Yoan Audureau -- FRIPON-GEOPS-UPSUD
 * \version 1.0
 * \date    03/06/2014
-* \brief   Get FreeTure's parameters from a configuration file.
+* \brief   Load parameters from a configuration file.
 */
 
 #pragma once
@@ -43,7 +43,7 @@
 
 using namespace std;
 
-class Configuration{
+class CfgLoader{
 
     private :
 
@@ -55,7 +55,7 @@ class Configuration{
          * Constructor.
          *
          */
-        Configuration(void);
+        CfgLoader(void);
 
         /**
          * Clear all values

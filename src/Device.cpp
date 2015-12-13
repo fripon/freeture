@@ -39,64 +39,31 @@ boost::log::sources::severity_logger< LogSeverityLevel >  Device::logger;
 
 Device::Init Device::initializer;
 
-Device::Device(string cfgPath) {
+Device::Device(cameraParam cp, framesParam fp, videoParam vp, int cid) {
 
     mCam        = NULL;
     mCamID      = 0;
-    mCfgPath    = cfgPath;
+    mVerbose    = true;
+    mNbDev      = -1;
     mVideoFramesInput = false;
-
-    Configuration cfg;
-
-    if(!cfg.Load(cfgPath))
-        throw "Fail to load parameters for device object from configuration file.";
-
-    if(!cfg.Get("CAMERA_ID", mGenCamID))
-        throw "Fail to get CAMERA_ID for device object.";
-
-    if(!cfg.Get("ACQ_FPS", mFPS))
-        throw "Fail to get ACQ_FPS for device object.";
-
-    if(!cfg.Get("ACQ_NIGHT_EXPOSURE", mNightExposure))
-        throw "Fail to get ACQ_NIGHT_EXPOSURE for device object.";
-
-    if(!cfg.Get("ACQ_NIGHT_GAIN", mNightGain))
-        throw "Fail to get ACQ_NIGHT_GAIN for device object.";
-
-    if(!cfg.Get("ACQ_DAY_EXPOSURE", mDayExposure))
-        throw "Fail to get ACQ_DAY_EXPOSURE for device object.";
-
-    if(!cfg.Get("ACQ_DAY_GAIN", mDayGain))
-        throw "Fail to get ACQ_DAY_GAIN for device object.";
-
-    if(!cfg.Get("SHIFT_BITS", mShiftBits))
-        throw "Fail to get SHIFT_BITS for device object.";
-
-    string acqFormat;
-    cfg.Get("ACQ_FORMAT", acqFormat);
-    EParser<CamPixFmt> camPixFmt;
-    mFormat = camPixFmt.parseEnum("ACQ_FORMAT", acqFormat);
-
-    if(!cfg.Get("ACQ_RES_CUSTOM_SIZE", mCustomSize))
-        throw "Fail to get ACQ_RES_CUSTOM_SIZE for device object.";
-
-    if(mCustomSize) {
-
-        string res;
-        if(!cfg.Get("ACQ_RES_SIZE", res))
-            throw "Fail to get ACQ_BIT_DEPTH for device object.";
-
-        string width = res.substr(0,res.find("x"));
-        string height = res.substr(res.find("x")+1,string::npos);
-        mSizeWidth = atoi(width.c_str());
-        mSizeHeight = atoi(height.c_str());
-
-    }else {
-
-        mSizeWidth      = 640;
-        mSizeHeight     = 480;
-
-    }
+    mGenCamID = cid;
+    mFPS = cp.ACQ_FPS;
+    mNightExposure = cp.ACQ_NIGHT_EXPOSURE;
+    mNightGain = cp.ACQ_NIGHT_GAIN;
+    mDayExposure = cp.ACQ_DAY_EXPOSURE;
+    mDayGain = cp.ACQ_DAY_GAIN;
+    mMinExposureTime = -1;
+    mMaxExposureTime = -1;
+    mMinGain = -1;
+    mMaxGain = -1;
+    mShiftBits = cp.SHIFT_BITS;
+    mFormat = cp.ACQ_FORMAT;
+    mCustomSize = cp.ACQ_RES_CUSTOM_SIZE;
+    mSizeWidth = cp.ACQ_WIDTH;
+    mSizeHeight = cp.ACQ_HEIGHT;
+    mDeviceType = UNDEFINED_INPUT_TYPE;
+    mvp = vp;
+    mfp = fp;
 }
 
 Device::Device() {
@@ -106,6 +73,10 @@ Device::Device() {
     mNightGain      = 0;
     mDayExposure    = 0;
     mDayGain        = 0;
+    mMinExposureTime = -1;
+    mMaxExposureTime = -1;
+    mMinGain = -1;
+    mMaxGain = -1;
     mFPS            = 30;
     mCamID          = 0;
     mGenCamID       = 0;
@@ -115,6 +86,12 @@ Device::Device() {
     mCam            = NULL;
     mVideoFramesInput = false;
     mShiftBits      = false;
+    mNbDev          = -1;
+    mVerbose        = true;
+    mDeviceType     = UNDEFINED_INPUT_TYPE;
+    vector<string> finput, vinput;
+    mvp.INPUT_VIDEO_PATH = vinput;
+    mfp.INPUT_FRAMES_DIRECTORY_PATH = finput;
 
 }
 
@@ -130,8 +107,10 @@ bool Device::createCamera(int id, bool create) {
     if(id >=0 && id < mDevices.size()) {
 
         // Create Camera object with the correct sdk.
-        if(!createDevicesWith(mDevices.at(id).second.second))
+        if(!createDevicesWith(mDevices.at(id).second.second)){
+            cout << "Fail to select correct sdk : "<< mDevices.at(id).second.second << endl;
             return false;
+        }
 
         mCamID = mDevices.at(id).first;
 
@@ -150,7 +129,6 @@ bool Device::createCamera(int id, bool create) {
     }
 
     BOOST_LOG_SEV(logger, fail) << "No device with ID " << id;
-    cout << "No device with ID " << id << endl;
 
     return false;
 
@@ -178,9 +156,24 @@ bool Device::createCamera() {
     }
 
     BOOST_LOG_SEV(logger, fail) << "No device with ID " << mGenCamID;
-    cout << "No device with ID " << mGenCamID << endl;
-
+ 
     return false;
+
+}
+
+void Device::setVerbose(bool status) {
+
+    mVerbose = status;
+
+}
+
+CamSdkType Device::getDeviceSdk(int id){
+
+    if(id >=0 && id < mDevices.size()) {
+        return mDevices.at(id).second.second;
+    }
+
+    return UNKNOWN;
 
 }
 
@@ -191,41 +184,9 @@ bool Device::createDevicesWith(CamSdkType sdk) {
         case VIDEOFILE :
 
             {
-                Configuration cfg;
-                if(!cfg.Load(mCfgPath)) {
-                    BOOST_LOG_SEV(logger, fail) << "Can't load parameters from configuration file.";
-                    cout << "Can't load parameters from configuration file." << endl;
-                    return false;
-                }
-
-                // Get frames locations.
-                string INPUT_VIDEO_PATH; cfg.Get("INPUT_VIDEO_PATH", INPUT_VIDEO_PATH);
-
                 mVideoFramesInput = true;
-
-                vector<string> videoList;
-
-                typedef boost::tokenizer<boost::char_separator<char> > tokenizer;
-                boost::char_separator<char> sep(",");
-                tokenizer tokens(INPUT_VIDEO_PATH, sep);
-
-                int n = 1;
-
-                for(tokenizer::iterator tok_iter = tokens.begin();tok_iter != tokens.end(); ++tok_iter){
-                    videoList.push_back(*tok_iter);
-                    cout << "VIDEO " << Conversion::intToString(n) << " : " << *tok_iter << endl;
-                    n++;
-                }
-
-                // Create camera using pre-recorded video in input.
-                if(videoList.size()!=0) {
-                    mCam = new CameraVideo(videoList);
-                    mCam->grabInitialization();
-                }else{
-                    BOOST_LOG_SEV(logger, fail) << "No video files found.";
-                    cout << "No video files found." << endl;
-                    return false;
-                }
+                mCam = new CameraVideo(mvp.INPUT_VIDEO_PATH, mVerbose);
+                mCam->grabInitialization();
             }
 
             break;
@@ -233,43 +194,13 @@ bool Device::createDevicesWith(CamSdkType sdk) {
         case FRAMESDIR :
 
             {
-                Configuration cfg;
-                if(!cfg.Load(mCfgPath)) {
-                    BOOST_LOG_SEV(logger, fail) << "Can't load parameters from configuration file.";
-                    cout << "Can't load parameters from configuration file." << endl;
-                    return false;
-                }
-
-                // Get frames location.
-                string INPUT_FRAMES_DIRECTORY_PATH; cfg.Get("INPUT_FRAMES_DIRECTORY_PATH", INPUT_FRAMES_DIRECTORY_PATH);
-                BOOST_LOG_SEV(logger, normal) << "Read INPUT_FRAMES_DIRECTORY_PATH from configuration file : " << INPUT_FRAMES_DIRECTORY_PATH;
 
                 mVideoFramesInput = true;
-
-                vector<string> framesLocationList;
-
-                typedef boost::tokenizer<boost::char_separator<char> > tokenizer;
-                boost::char_separator<char> sep(",");
-                tokenizer tokens(INPUT_FRAMES_DIRECTORY_PATH, sep);
-
-                int n = 1;
-
-                for(tokenizer::iterator tok_iter = tokens.begin();tok_iter != tokens.end(); ++tok_iter){
-                    framesLocationList.push_back(*tok_iter);
-                    cout << "LOCATION 1 : " << Conversion::intToString(n) << " : " << *tok_iter << endl;
-                    n++;
-                }
-
                 // Create camera using pre-recorded fits2D in input.
-                if(framesLocationList.size()!=0) {
-                    mCam = new CameraFrames(framesLocationList, 1);
-                    if(!mCam->grabInitialization())
-                        throw "Fail to prepare acquisition on the first frames directory.";
-                }else {
-                    BOOST_LOG_SEV(logger, fail) << "No frames directories found.";
-                    cout << "No frames directories found." << endl;
-                    return false;
-                }
+                mCam = new CameraFrames(mfp.INPUT_FRAMES_DIRECTORY_PATH, 1, mVerbose);
+                if(!mCam->grabInitialization())
+                    throw "Fail to prepare acquisition on the first frames directory.";
+                
             }
 
             break;
@@ -324,15 +255,48 @@ bool Device::createDevicesWith(CamSdkType sdk) {
 
             break;
 
+        default :
+
+            cout << "Unknown sdk." << endl;
+
     }
 
     return true;
 
 }
 
+InputDeviceType Device::getDeviceType(CamSdkType t) {
+
+    switch(t){
+
+        case VIDEOFILE :
+            return VIDEO;
+            break;
+
+        case FRAMESDIR :
+            return SINGLE_FITS_FRAME;
+            break;
+
+        case V4L2 :
+        case VIDEOINPUT :
+        case ARAVIS :
+        case PYLONGIGE :
+        case TIS :
+            return CAMERA;
+            break;
+
+        case UNKNOWN :
+                return UNDEFINED_INPUT_TYPE;
+            break;
+    }
+
+    return UNDEFINED_INPUT_TYPE;
+}
+
 void Device::listDevices(bool printInfos) {
 
-    int nbDev = 0, nbCam = 0;
+    int nbCam = 0;
+    mNbDev = 0;
     pair<int, CamSdkType> elem;             // general index to specify camera to use
     pair<int,pair<int,CamSdkType>> subElem; // index in a specific sdk
     vector<pair<int,string>> listCams;
@@ -341,33 +305,33 @@ void Device::listDevices(bool printInfos) {
 
         // PYLONGIGE
 
-        createDevicesWith(PYLONGIGE);
+        mCam = new CameraGigePylon();
         listCams = mCam->getCamerasList();
         for(int i = 0; i < listCams.size(); i++) {
-            elem.first = nbDev; elem.second = PYLONGIGE;
+            elem.first = mNbDev; elem.second = PYLONGIGE;
             subElem.first = listCams.at(i).first; subElem.second = elem;
             mDevices.push_back(subElem);
-            if(printInfos) cout << "[" << nbDev << "]    " << listCams.at(i).second << endl;
-            nbDev++;
+            if(printInfos) cout << "[" << mNbDev << "]    " << listCams.at(i).second << endl;
+            mNbDev++;
         }
         delete mCam;
 
         // TIS
 
-        createDevicesWith(TIS);
+        mCam = new CameraGigeTis();
         listCams = mCam->getCamerasList();
         for(int i = 0; i < listCams.size(); i++) {
-            elem.first = nbDev; elem.second = TIS;
+            elem.first = mNbDev; elem.second = TIS;
             subElem.first = listCams.at(i).first; subElem.second = elem;
             mDevices.push_back(subElem);
-            if(printInfos) cout << "[" << nbDev << "]    " << listCams.at(i).second << endl;
-            nbDev++;
+            if(printInfos) cout << "[" << mNbDev << "]    " << listCams.at(i).second << endl;
+            mNbDev++;
         }
         delete mCam;
 
         // WINDOWS
 
-        createDevicesWith(VIDEOINPUT);
+        mCam = new CameraWindows();
         listCams = mCam->getCamerasList();
         for(int i = 0; i < listCams.size(); i++) {
 
@@ -377,14 +341,14 @@ void Device::listDevices(bool printInfos) {
             if((pos1 != std::string::npos) || (pos2 != std::string::npos)) {
                 //std::cout << "found \"words\" at position " << pos1 << std::endl;
             } else {
-                elem.first = nbDev; elem.second = VIDEOINPUT;
+                elem.first = mNbDev; elem.second = VIDEOINPUT;
                 subElem.first = listCams.at(i).first; subElem.second = elem;
                 mDevices.push_back(subElem);
-                if(printInfos) cout << "[" << nbDev << "]    " << listCams.at(i).second << endl;
-                nbDev++;
+                if(printInfos) cout << "[" << mNbDev << "]    " << listCams.at(i).second << endl;
+                mNbDev++;
             }
-
         }
+
         delete mCam;
 
     #else
@@ -394,11 +358,11 @@ void Device::listDevices(bool printInfos) {
         createDevicesWith(ARAVIS);
         listCams = mCam->getCamerasList();
         for(int i = 0; i < listCams.size(); i++) {
-            elem.first = nbDev; elem.second = ARAVIS;
+            elem.first = mNbDev; elem.second = ARAVIS;
             subElem.first = listCams.at(i).first; subElem.second = elem;
             mDevices.push_back(subElem);
-            if(printInfos) cout << "[" << nbDev << "]    " << listCams.at(i).second << endl;
-            nbDev++;
+            if(printInfos) cout << "[" << mNbDev << "]    " << listCams.at(i).second << endl;
+            mNbDev++;
         }
         delete mCam;
 
@@ -407,11 +371,11 @@ void Device::listDevices(bool printInfos) {
         createDevicesWith(V4L2);
         listCams = mCam->getCamerasList();
         for(int i = 0; i < listCams.size(); i++) {
-            elem.first = nbDev; elem.second = V4L2;
+            elem.first = mNbDev; elem.second = V4L2;
             subElem.first = listCams.at(i).first; subElem.second = elem;
             mDevices.push_back(subElem);
-            if(printInfos) cout << "[" << nbDev << "]    " << listCams.at(i).second << endl;
-            nbDev++;
+            if(printInfos) cout << "[" << mNbDev << "]    " << listCams.at(i).second << endl;
+            mNbDev++;
         }
         delete mCam;
 
@@ -419,21 +383,27 @@ void Device::listDevices(bool printInfos) {
 
     // VIDEO
 
-    elem.first = nbDev; elem.second = VIDEOFILE;
+    elem.first = mNbDev; elem.second = VIDEOFILE;
     subElem.first = 0; subElem.second = elem;
     mDevices.push_back(subElem);
-    if(printInfos) cout << "[" << nbDev << "]    VIDEO FILES" << endl;
-    nbDev++;
+    if(printInfos) cout << "[" << mNbDev << "]    VIDEO FILES" << endl;
+    mNbDev++;
 
     // FRAMES
 
-    elem.first = nbDev; elem.second = FRAMESDIR;
+    elem.first = mNbDev; elem.second = FRAMESDIR;
     subElem.first = 0; subElem.second = elem;
     mDevices.push_back(subElem);
-    if(printInfos) cout << "[" << nbDev << "]    FRAMES DIRECTORY" << endl;
-    nbDev++;
+    if(printInfos) cout << "[" << mNbDev << "]    FRAMES DIRECTORY" << endl;
+    mNbDev++;
 
     mCam = NULL;
+
+}
+
+bool Device::getDeviceName() {
+
+    return mCam->getCameraName();
 
 }
 
@@ -456,16 +426,34 @@ bool Device::getSupportedPixelFormats() {
 
 }
 
+InputDeviceType Device::getDeviceType() {
+
+    return mCam->getDeviceType();
+
+}
+
 bool Device::getCameraExposureBounds(double &min, double &max) {
 
     mCam->getExposureBounds(min, max);
     return true;
 }
 
+void Device::getCameraExposureBounds() {
+
+    mCam->getExposureBounds(mMinExposureTime, mMaxExposureTime);
+
+}
+
 bool Device::getCameraGainBounds(int &min, int &max) {
 
     mCam->getGainBounds(min, max);
     return true;
+}
+
+void Device::getCameraGainBounds() {
+
+    mCam->getGainBounds(mMinGain, mMaxGain);
+
 }
 
 bool Device::setCameraNightExposureTime() {
@@ -542,7 +530,6 @@ bool Device::setCameraGain(int value) {
 
 bool Device::setCameraFPS() {
 
-    cout << "mFPS : " << mFPS << endl;
     if(!mCam->setFPS(mFPS)) {
         BOOST_LOG_SEV(logger, fail) << "Fail to set FPS to " << mFPS;
         mCam->grabCleanse();
@@ -568,7 +555,9 @@ bool Device::initializeCamera() {
 bool Device::startCamera() {
 
     BOOST_LOG_SEV(logger, notification) << "Starting camera...";
-    mCam->acqStart();
+    if(!mCam->acqStart())
+        return false;
+
     return true;
 
 }
@@ -583,10 +572,8 @@ bool Device::stopCamera() {
 }
 
 bool Device::runContinuousCapture(Frame &img) {
-    double tacq = (double)getTickCount();
+
     if(mCam->grabImage(img)) {
-        tacq = (((double)getTickCount() - tacq)/getTickFrequency())*1000;
-        std::cout << " >> [ TIME ACQ RCC] : " << tacq << " ms" << endl;
         return true;
     }
 

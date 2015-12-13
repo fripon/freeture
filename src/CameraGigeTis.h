@@ -44,6 +44,8 @@
     #include "Frame.h"
     #include "TimeDate.h"
     #include "Camera.h"
+    #include "EParser.h"
+    #include "ECamPixFmt.h"
     #include <boost/log/common.hpp>
     #include <boost/log/expressions.hpp>
     #include <boost/log/utility/setup/file.hpp>
@@ -135,7 +137,7 @@
 
             bool grabInitialization();
 
-            void acqStart();
+            bool acqStart();
 
             bool grabImage(Frame &newFrame);
 
@@ -147,9 +149,9 @@
 
             double getExposureTime();
 
-            TimeMeasureUnit getExposureUnit();
-
             bool setSize(int width, int height, bool customSize);
+
+            void getAvailablePixelFormats();
 
     };
 

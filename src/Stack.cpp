@@ -39,11 +39,12 @@ boost::log::sources::severity_logger< LogSeverityLevel >  Stack::logger;
 
 Stack::Init Stack::initializer;
 
-Stack::Stack(string fitsCompression):
+Stack::Stack(string fitsCompression, fitskeysParam fkp, stationParam stp):
 mFitsCompressionMethod(fitsCompression),
 curFrames(0), varExpTime(false),
 sumExpTime(0.0), gainFirstFrame(0), expFirstFrame(0), fps(0), format(MONO8){
-
+    mfkp = fkp;
+    mstp = stp;
 }
 
 Stack::~Stack(){}
@@ -89,7 +90,7 @@ void Stack::addFrame(Frame &i){
 
 }
 
-bool Stack::saveStack(Fits fitsHeader, string path, StackMeth stackMthd, string stationName, bool stackReduction){
+bool Stack::saveStack(string path, StackMeth stackMthd, bool stackReduction){
 
 
     double  debObsInSeconds = mDateFirstFrame.hours*3600 + mDateFirstFrame.minutes*60 + mDateFirstFrame.seconds;
@@ -97,13 +98,13 @@ bool Stack::saveStack(Fits fitsHeader, string path, StackMeth stackMthd, string 
     double  elapTime        = endObsInSeconds - debObsInSeconds;
     double  julianDate      = TimeDate::gregorianToJulian(mDateFirstFrame);
     double  julianCentury   = TimeDate::julianCentury(julianDate);
-    double  sideralT        = TimeDate::localSideralTime_2(julianCentury, mDateFirstFrame.hours,  mDateFirstFrame.minutes, (int)mDateFirstFrame.seconds, fitsHeader.kSITELONG);
+    double  sideralT        = TimeDate::localSideralTime_2(julianCentury, mDateFirstFrame.hours,  mDateFirstFrame.minutes, (int)mDateFirstFrame.seconds, mstp.SITELONG);
 
     BOOST_LOG_SEV(logger, notification) << "Start create fits2D to save the stack.";
 
     // Fits creation.
     Fits2D newFits(path);
-    newFits.copyKeywords(fitsHeader);
+    newFits.loadKeys(mfkp, mstp);
     BOOST_LOG_SEV(logger, notification) << "Fits path : " << path;
     // Creation date of the fits file : YYYY-MM-DDTHH:MM:SS
     boost::posix_time::ptime time = boost::posix_time::microsec_clock::universal_time();

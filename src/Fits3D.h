@@ -60,7 +60,7 @@
 #include <boost/log/sources/logger.hpp>
 #include <boost/log/core.hpp>
 #include "ELogSeverityLevel.h"
-#include "Configuration.h"
+#include "CfgLoader.h"
 #include "TimeDate.h"
 #include "Fits.h"
 #include "ECamPixFmt.h"
@@ -129,13 +129,6 @@ class Fits3D : public Fits {
         ~Fits3D(){};
 
         void addImageToFits3D(Mat frame);
-
-        /**
-        * Copy fits keywords from a Fits object.
-        * @param fits Fits object.
-        *
-        */
-        void copyKeywords(const Fits &fits);
 
         /**
         * Create and write fits 3D.

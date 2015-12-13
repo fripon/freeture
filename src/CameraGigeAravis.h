@@ -125,7 +125,7 @@
 
             void grabCleanse();
 
-            void acqStart();
+            bool acqStart();
 
             void acqStop();
 
@@ -136,8 +136,6 @@
             bool getDeviceNameById(int id, string &device);
 
             void getExposureBounds(double &eMin, double &eMax);
-
-            TimeMeasureUnit getExposureUnit();
 
             void getGainBounds(int &gMin, int &gMax);
 

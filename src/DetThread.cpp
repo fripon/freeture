@@ -38,21 +38,23 @@ boost::log::sources::severity_logger< LogSeverityLevel >  DetThread::logger;
 
 DetThread::Init DetThread::initializer;
 
-DetThread::DetThread(   string                          cfg_p,
-                        boost::circular_buffer<Frame>  *fb,
+DetThread::DetThread(   boost::circular_buffer<Frame>  *fb,
                         boost::mutex                   *fb_m,
                         boost::condition_variable      *fb_c,
                         bool                           *dSignal,
                         boost::mutex                   *dSignal_m,
-                        boost::condition_variable      *dSignal_c):
+                        boost::condition_variable      *dSignal_c,
+                        detectionParam                  dtp,
+                        dataParam                       dp,
+                        mailParam mp,
+                        stationParam sp,
+                        fitskeysParam fkp,
+                        CamPixFmt pfmt):
 
-                        pDetMthd(NULL), mSaveAvi(false), mSaveFits3D(false), mSaveFits2D(false), mSaveSum(false),
-                        mTimeBeforeEvent(0), mTimeAfterEvent(0), mTimeBeforeEv(0), mTimeAfterEv(0), mFormat(MONO8), mMailAlertEnabled(false),
-                        mSmtpSecurity(NO_SECURITY), mStackReduction(false), mStackMthd(SUM), mForceToReset(false), mMustStop(false),
+                        pDetMthd(NULL), mForceToReset(false), mMustStop(false),
                         mEventPath(""), mIsRunning(false), mNbDetection(0), mWaitFramesToCompleteEvent(false), mCurrentDataSetLocation(""),
                         mNbWaitFrames(0), mInterruptionStatus(false) {
 
-    mCfgPath = cfg_p;
     frameBuffer = fb;
     frameBuffer_mutex = fb_m;
     frameBuffer_condition = fb_c;
@@ -60,209 +62,24 @@ DetThread::DetThread(   string                          cfg_p,
     detSignal_mutex = dSignal_m;
     detSignal_condition = dSignal_c;
     pThread = NULL;
+    mFormat = pfmt;
+    mStationName = sp.STATION_NAME;
+    mdp = dp; 
+    mdtp = dtp;
+    mmp = mp;
+    mfkp = fkp;
+    mstp = sp;
+    mNbFramesAround = 0;
 
-    Configuration cfg;
+    mFitsHeader.loadKeys(fkp, sp);
 
-    if(!cfg.Load(cfg_p))
-        throw "Fail to load parameters for detThread from configuration file.";
-
-    //********************* ACQUISITION FORMAT.******************************
-
-    string acqFormat;
-    cfg.Get("ACQ_FORMAT", acqFormat);
-    EParser<CamPixFmt> camFormat;
-    mFormat = camFormat.parseEnum("ACQ_FORMAT", acqFormat);
-
-    //********************* STATION NAME.************************************
-
-    if(!cfg.Get("STATION_NAME", mStationName)) {
-        mStationName = "STATION";
-        BOOST_LOG_SEV(logger, warning) << "Fail to load STATION_NAME from configuration file. Set to STATION";
-    }
-
-    //********************* DATA PATH.***************************************
-
-    if(!cfg.Get("DATA_PATH", mDataPath))
-        throw "Fail to load DATA_PATH from configuration file !";
-
-    //********************* SAVE AVI.****************************************
-
-    if(!cfg.Get("DET_SAVE_AVI", mSaveAvi)) {
-        mSaveAvi = false;
-        BOOST_LOG_SEV(logger, warning) << "Fail to load DET_SAVE_AVI from configuration file. Set to false";
-    }
-
-    //********************* SAVE FITS3D.*************************************
-
-    if(!cfg.Get("DET_SAVE_FITS3D", mSaveFits3D)) {
-        mSaveFits3D = false;
-        BOOST_LOG_SEV(logger, warning) << "Fail to load DET_SAVE_FITS3D from configuration file. Set to false";
-    }
-
-    //********************* SAVE FITS2D.*************************************
-
-    if(!cfg.Get("DET_SAVE_FITS2D", mSaveFits2D)) {
-        mSaveFits2D = true;
-        BOOST_LOG_SEV(logger, warning) << "Fail to load DET_SAVE_FITS2D from configuration file. Set to true";
-    }
-
-    //********************* SAVE SUM.****************************************
-
-    if(!cfg.Get("DET_SAVE_SUM", mSaveSum)) {
-        mSaveSum = true;
-        BOOST_LOG_SEV(logger, warning) << "Fail to load DET_SAVE_SUM from configuration file. Set to true";
-    }
-
-    //********************* GEMAP OPTION ******************************
-
-    if(!cfg.Get("DET_SAVE_GEMAP", mSaveGeMap)) {
-        mSaveGeMap = false;
-        BOOST_LOG_SEV(logger, warning) << "Fail to load DET_SAVE_GEMAP from configuration file. Set to false.";
-    }
-
-    //********************* ENABLE HISTOGRAM EQUALIZATION.*******************
-
-    if(!cfg.Get("DET_SAVE_SUM_WITH_HIST_EQUALIZATION", mSaveSumWithHistEqualization)) {
-        mSaveSumWithHistEqualization = true;
-        BOOST_LOG_SEV(logger, warning) << "Fail to load DET_SAVE_SUM_WITH_HIST_EQUALIZATION from configuration file. Set to true";
-    }
-
-    //********************* TIME BEFORE.*************************************
-
-    if(!cfg.Get("DET_TIME_BEFORE", mTimeBeforeEv)) {
-        mTimeBeforeEv = 0;
-        BOOST_LOG_SEV(logger, warning) << "Fail to load DET_TIME_BEFORE from configuration file. Set to 0";
-    }
-
-    //********************* TIME AFTER.**************************************
-
-    if(!cfg.Get("DET_TIME_AFTER", mTimeAfterEv)) {
-        mTimeAfterEv = 0;
-        BOOST_LOG_SEV(logger, warning) << "Fail to load DET_TIME_AFTER from configuration file. Set to 0";
-    }
-
-    //********************* SEND MAIL.***************************************
-
-    if(!cfg.Get("MAIL_DETECTION_ENABLED", mMailAlertEnabled)) {
-        mMailAlertEnabled = false;
-        BOOST_LOG_SEV(logger, warning) << "Fail to load MAIL_DETECTION_ENABLED from configuration file. Set to false";
-    }
-
-    //********************* SMTP SERVER.*************************************
-
-    if(!cfg.Get("MAIL_SMTP_SERVER", mMailSmtpServer) && mMailAlertEnabled) {
-        mMailAlertEnabled = false;
-        BOOST_LOG_SEV(logger, warning) << "Fail to load MAIL_SMTP_SERVER from configuration file. Set MAIL_DETECTION_ENABLED to false";
-    }
-
-    //********************* SMTP LOGIN.**************************************
-
-    if(!cfg.Get("MAIL_SMTP_LOGIN", mMailSmtpLogin)) {
-        BOOST_LOG_SEV(logger, warning) << "Fail to load MAIL_SMTP_LOGIN from configuration file. Set MAIL_DETECTION_ENABLED to false";
-    }
-
-    //********************* SMTP PASSWORD.***********************************
-
-    if(!cfg.Get("MAIL_SMTP_PASSWORD", mMailSmtpPassword)) {
-        BOOST_LOG_SEV(logger, warning) << "Fail to load MAIL_SMTP_PASSWORD from configuration file. Set MAIL_DETECTION_ENABLED to false";
-    }
-
-    //********************* SMTP SECURITY.***********************************
-
-    string smtp_connection_type;
-    if(!cfg.Get("MAIL_CONNECTION_TYPE", smtp_connection_type) && mMailAlertEnabled) {
-        mMailAlertEnabled = false;
-        BOOST_LOG_SEV(logger, warning) << "Fail to load MAIL_CONNECTION_TYPE from configuration file. Set MAIL_DETECTION_ENABLED to false";
-    }else {
-        EParser<SmtpSecurity> smtp_security;
-        mSmtpSecurity = smtp_security.parseEnum("MAIL_CONNECTION_TYPE", smtp_connection_type);
-    }
-
-    //********************* STACK REDUCTION.*********************************
-
-    if(!cfg.Get("STACK_REDUCTION", mStackReduction)) {
-        mStackReduction = false;
-        BOOST_LOG_SEV(logger, warning) << "Fail to load STACK_REDUCTION from configuration file. Set to false";
-    }
-
-    //********************* STACK MTHD.**************************************
-
-    string stack_method;
-
-    if(!cfg.Get("STACK_MTHD", stack_method)) {
-        mStackMthd = SUM;
-        BOOST_LOG_SEV(logger, warning) << "Fail to load STACK_MTHD from configuration file. Set to SUM";
-    }else {
-        EParser<StackMeth> stack_mth;
-        mStackMthd = stack_mth.parseEnum("STACK_MTHD", stack_method);
-    }
-
-    //********************* FITS COMPRESSION.********************************
-
-    if(!cfg.Get("FITS_COMPRESSION", mFitsCompression)) {
-
-        mFitsCompression = false;
-        mFitsCompressionMethod = "";
-        BOOST_LOG_SEV(logger, warning) << "Fail to load FITS_COMPRESSION from configuration file. Set to false.";
-
-    }else{
-
-        if(mFitsCompression) {
-
-            if(!cfg.Get("FITS_COMPRESSION_METHOD", mFitsCompressionMethod)) {
-                mFitsCompressionMethod = "[compress]";
-                BOOST_LOG_SEV(logger, warning) << "Fail to load FITS_COMPRESSION_METHOD from configuration file. Set to [compress].";
-            }
-
-        }else{
-
-            mFitsCompressionMethod = "";
-
-        }
-    }
-
-    //********************* FITS KEYWORDS.***********************************
-
-    mFitsHeader.loadKeywordsFromConfigFile(mCfgPath);
-
-    //********************* MAIL RECIPIENTS.*********************************
-
-    string mailRecipients;
-
-    if(!cfg.Get("MAIL_RECIPIENT", mailRecipients) && mMailAlertEnabled) {
-
-        mMailAlertEnabled = false;
-        BOOST_LOG_SEV(logger, warning) << "Fail to load MAIL_RECIPIENT from configuration file. Set MAIL_DETECTION_ENABLED to false";
-
-    }else {
-
-        typedef boost::tokenizer<boost::char_separator<char> > tokenizer;
-        boost::char_separator<char> sep(",");
-        tokenizer tokens(mailRecipients, sep);
-
-        for (tokenizer::iterator tok_iter = tokens.begin();tok_iter != tokens.end(); ++tok_iter){
-            mMailRecipients.push_back(*tok_iter);
-
-        }
-
-    }
-
-    //********************* DETECTION METHOD.********************************
-
-    // Get det method.
-    string det_method;
-    if(!cfg.Get("DET_METHOD", det_method))
-        throw "Fail to load DET_METHOD from configuration file.";
-    EParser<DetMeth> det_mth;
-    DetMeth mDetMthd = det_mth.parseEnum("DET_METHOD", det_method);
-
-    switch(mDetMthd){
+    switch(dtp.DET_METHOD){
 
         case TEMPORAL_MTHD :
 
             {
 
-                pDetMthd = new DetectionTemporal(mTimeBeforeEvent, mCfgPath);
+                pDetMthd = new DetectionTemporal(dtp, pfmt);
 
             }
 
@@ -272,7 +89,7 @@ DetThread::DetThread(   string                          cfg_p,
 
             {
 
-                pDetMthd = new DetectionTemplate(mCfgPath);
+                pDetMthd = new DetectionTemplate(dtp, pfmt);
 
             }
 
@@ -343,6 +160,10 @@ void DetThread::operator ()(){
 
     bool stopThread = false;
     mIsRunning = true;
+    // Flag to indicate that an event must be complete with more frames.
+    bool eventToComplete = false;
+    // Reference date to count time to complete an event.
+    string refDate;
 
     BOOST_LOG_SCOPED_THREAD_TAG("LogName", "DET_THREAD");
     BOOST_LOG_SEV(logger,notification) << "\n";
@@ -358,12 +179,10 @@ void DetThread::operator ()(){
             try {
 
                 /// Wait new frame from AcqThread.
-                BOOST_LOG_SEV(logger, normal) << "Waiting new frame from AcqThread...";
                 boost::mutex::scoped_lock lock(*detSignal_mutex);
                 while (!(*detSignal)) detSignal_condition->wait(lock);
                 *detSignal = false;
                 lock.unlock();
-                BOOST_LOG_SEV(logger, normal) << "Frame received from AcqThread.";
 
                 // Check interruption signal from AcqThread.
                 mForceToReset = false;
@@ -386,28 +205,38 @@ void DetThread::operator ()(){
                     double t = (double)getTickCount();
 
                     if(lastFrame.mImg.data) {
+                        mFormat = lastFrame.mFormat;
 
                         // Run detection process.
-                        if(pDetMthd->run(lastFrame) && !mWaitFramesToCompleteEvent){
+                        if(pDetMthd->runDetection(lastFrame) && !eventToComplete){
 
                             // Event detected.
                             BOOST_LOG_SEV(logger, notification) << "Event detected ! Waiting frames to complete the event..." << endl;
-                            mWaitFramesToCompleteEvent = true;
+                            eventToComplete = true;
+
+                            // Get a reference date.
+                            string currDate = to_simple_string(boost::posix_time::microsec_clock::universal_time());
+                            refDate = currDate.substr(0, currDate.find("."));
+
                             mNbDetection++;
 
                         }
 
                         // Wait frames to complete the detection.
-                        if(mWaitFramesToCompleteEvent){
+                        if(eventToComplete){
 
-                            BOOST_LOG_SEV(logger, notification) << "mNbWaitFrames : " << mNbWaitFrames <<    "       mTimeAfterEvent : " << mTimeAfterEvent;
+                            string currDate = to_simple_string(boost::posix_time::microsec_clock::universal_time());
+                            string nowDate = currDate.substr(0, currDate.find("."));
+                            boost::posix_time::ptime t1(boost::posix_time::time_from_string(refDate));
+                            boost::posix_time::ptime t2(boost::posix_time::time_from_string(nowDate));
+                            boost::posix_time::time_duration td = t2 - t1;
 
-                            if(mNbWaitFrames >= mTimeAfterEvent){
+                            if(td.total_seconds() > mdtp.DET_TIME_AROUND) {
 
                                 BOOST_LOG_SEV(logger, notification) << "Event completed." << endl;
 
                                 // Build event directory.
-                                mEventDate = pDetMthd->getDateEvent();
+                                mEventDate = pDetMthd->getEventDate();
                                 BOOST_LOG_SEV(logger, notification) << "Building event directory..." << endl;
 
                                 if(buildEventDataDirectory())
@@ -417,9 +246,9 @@ void DetThread::operator ()(){
 
                                 // Save event.
                                 BOOST_LOG_SEV(logger, notification) << "Saving event..." << endl;
-                                pDetMthd->saveDetectionInfos(mEventPath);
+                                pDetMthd->saveDetectionInfos(mEventPath, mNbFramesAround);
                                 boost::mutex::scoped_lock lock(*frameBuffer_mutex);
-                                if(!saveEventData(pDetMthd->getNumFirstEventFrame(), pDetMthd->getNumLastEventFrame()))
+                                if(!saveEventData(pDetMthd->getEventFirstFrameNb(), pDetMthd->getEventLastFrameNb()))
                                     BOOST_LOG_SEV(logger,critical) << "Error saving event data.";
                                 else
                                     BOOST_LOG_SEV(logger, notification) << "Success to save event !" << endl;
@@ -429,14 +258,12 @@ void DetThread::operator ()(){
                                 // Reset detection.
                                 BOOST_LOG_SEV(logger, notification) << "Reset detection process." << endl;
                                 pDetMthd->resetDetection(false);
-                                mWaitFramesToCompleteEvent = false;
-                                mNbWaitFrames = 0;
-
-                            }else{
-
-                                mNbWaitFrames++;
+                                eventToComplete = false;
+                                mNbFramesAround = 0;
 
                             }
+
+                            mNbFramesAround++;
                         }
                     }
 
@@ -450,7 +277,7 @@ void DetThread::operator ()(){
                     if(pDetMthd != NULL)
                         pDetMthd->resetDetection(false);
 
-                    mWaitFramesToCompleteEvent = false;
+                    eventToComplete = false;
                     mNbWaitFrames = 0;
 
                     mInterruptionStatusMutex.lock();
@@ -481,7 +308,7 @@ void DetThread::operator ()(){
 
             // Create Report for videos and frames in input.
             ofstream report;
-            string reportPath = mDataPath + "detections_report.txt";
+            string reportPath = mdp.DATA_PATH + "detections_report.txt";
             report.open(reportPath.c_str());
 
             cout << "--------------- DETECTION REPORT --------------" << endl;
@@ -535,10 +362,10 @@ bool DetThread::buildEventDataDirectory(){
     string YYYYMMDD = TimeDate::getYYYYMMDD(mEventDate);
 
     // Data location.
-    path p(mDataPath);
+    path p(mdp.DATA_PATH);
 
     // Create data directory for the current day.
-    string fp = mDataPath + mStationName + "_" + YYYYMMDD +"/";
+    string fp = mdp.DATA_PATH + mStationName + "_" + YYYYMMDD +"/";
     path p0(fp);
 
     // Events directory.
@@ -691,10 +518,10 @@ bool DetThread::saveEventData(int firstEvPosInFB, int lastEvPosInFB){
     vector<string> mailAttachments;
 
     // Number of the first frame to save. It depends of how many frames we want to keep before the event.
-    int numFirstFrameToSave = firstEvPosInFB - mTimeBeforeEvent;
+    int numFirstFrameToSave = firstEvPosInFB - mNbFramesAround;
 
     // Number of the last frame to save. It depends of how many frames we want to keep after the event.
-    int numLastFrameToSave = lastEvPosInFB + mTimeAfterEvent;
+    int numLastFrameToSave = lastEvPosInFB + mNbFramesAround;
 
     // If the number of the first frame to save for the event is not in the framebuffer.
     // The first frame to save become the first frame available in the framebuffer.
@@ -721,8 +548,8 @@ bool DetThread::saveEventData(int firstEvPosInFB, int lastEvPosInFB){
     BOOST_LOG_SEV(logger,notification) << "> Lst frame to save    : " << numLastFrameToSave;
     BOOST_LOG_SEV(logger,notification) << "> First event frame    : " << firstEvPosInFB;
     BOOST_LOG_SEV(logger,notification) << "> Last event frame     : " << lastEvPosInFB;
-    BOOST_LOG_SEV(logger,notification) << "> Time to keep before  : " << mTimeBeforeEvent;
-    BOOST_LOG_SEV(logger,notification) << "> Time to keep after   : " << mTimeAfterEvent;
+    BOOST_LOG_SEV(logger,notification) << "> Frames before        : " << mNbFramesAround;
+    BOOST_LOG_SEV(logger,notification) << "> Frames after         : " << mNbFramesAround;
     BOOST_LOG_SEV(logger,notification) << "> Total frames to save : " << nbTotalFramesToSave;
     BOOST_LOG_SEV(logger,notification) << "> Total digit          : " << nbDigitOnNbTotalFramesToSave;
 
@@ -730,22 +557,29 @@ bool DetThread::saveEventData(int firstEvPosInFB, int lastEvPosInFB){
 
     int c = 0;
 
+    // Init video avi
+    VideoWriter *video = NULL;
+    
+    if(mdtp.DET_SAVE_AVI) {
+        video = new VideoWriter(mEventPath + "video.avi", CV_FOURCC('M', 'J', 'P', 'G'), 5, Size(static_cast<int>(frameBuffer->front().mImg.cols), static_cast<int>(frameBuffer->front().mImg.rows)), false);
+    }
+
     // Init fits 3D.
     Fits3D fits3d;
 
-    if(mSaveFits3D) {
+    if(mdtp.DET_SAVE_FITS3D) {
 
         fits3d = Fits3D(mFormat, frameBuffer->front().mImg.rows, frameBuffer->front().mImg.cols, (numLastFrameToSave - numFirstFrameToSave +1), mEventPath + "fits3D");
         boost::posix_time::ptime time = boost::posix_time::microsec_clock::universal_time();
         fits3d.kDATE = to_iso_extended_string(time);
 
         // Name of the fits file.
-        fits3d.kFILENAME = "fits3d.fit";
+        fits3d.kFILENAME = mEventPath + "fitscube.fit";
 
     }
 
     // Init sum.
-    Stack stack = Stack(mFitsCompressionMethod);
+    Stack stack = Stack(mdp.FITS_COMPRESSION_METHOD, mfkp, mstp);
 
     // Exposure time sum.
     double sumExpTime = 0.0;
@@ -757,7 +591,7 @@ bool DetThread::saveEventData(int firstEvPosInFB, int lastEvPosInFB){
     for(it = frameBuffer->begin(); it != frameBuffer->end(); ++it){
 
         // Get infos about the first frame of the event for fits 3D.
-        if((*it).mFrameNumber == numFirstFrameToSave && mSaveFits3D){
+        if((*it).mFrameNumber == numFirstFrameToSave && mdtp.DET_SAVE_FITS3D){
 
             fits3d.kDATEOBS = TimeDate::getIsoExtendedFormatDate((*it).mDate);
 
@@ -783,7 +617,7 @@ bool DetThread::saveEventData(int firstEvPosInFB, int lastEvPosInFB){
         }
 
         // Get infos about the last frame of the event record for fits 3D.
-        if((*it).mFrameNumber == numLastFrameToSave && mSaveFits3D){
+        if((*it).mFrameNumber == numLastFrameToSave && mdtp.DET_SAVE_FITS3D){
             cout << "DATE first : " << dateFirstFrame.hours << " H " << dateFirstFrame.minutes << " M " << dateFirstFrame.seconds << " S" << endl;
             cout << "DATE last : " << (*it).mDate.hours << " H " << (*it).mDate.minutes << " M " << (*it).mDate.seconds << " S" << endl;
             fits3d.kELAPTIME = ((*it).mDate.hours*3600 + (*it).mDate.minutes*60 + (*it).mDate.seconds) - (dateFirstFrame.hours*3600 + dateFirstFrame.minutes*60 + dateFirstFrame.seconds);
@@ -791,17 +625,17 @@ bool DetThread::saveEventData(int firstEvPosInFB, int lastEvPosInFB){
         }
 
         // If the current frame read from the framebuffer has to be saved.
-        if((*it).mFrameNumber >= numFirstFrameToSave && (*it).mFrameNumber <= numLastFrameToSave) {
+        if((*it).mFrameNumber >= numFirstFrameToSave && (*it).mFrameNumber < numLastFrameToSave) {
 
             // Save fits2D.
-            if(mSaveFits2D) {
+            if(mdtp.DET_SAVE_FITS2D) {
 
                 string fits2DPath = mEventPath + "fits2D/";
                 string fits2DName = "frame_" + Conversion::numbering(nbDigitOnNbTotalFramesToSave, c) + Conversion::intToString(c);
                 BOOST_LOG_SEV(logger,notification) << ">> Saving fits2D : " << fits2DName;
 
                 Fits2D newFits(fits2DPath);
-                newFits.copyKeywords(mFitsHeader);
+                newFits.loadKeys(mfkp, mstp);
                 // Frame's acquisition date.
                 newFits.kDATEOBS = TimeDate::getIsoExtendedFormatDate((*it).mDate);
                 // Fits file creation date.
@@ -839,22 +673,29 @@ bool DetThread::saveEventData(int firstEvPosInFB, int lastEvPosInFB){
 
                     case MONO12 :
                         {
-                            newFits.writeFits((*it).mImg, S16, fits2DName, mFitsCompressionMethod);
+                            newFits.writeFits((*it).mImg, S16, fits2DName, mdp.FITS_COMPRESSION_METHOD);
                         }
                         break;
 
                     default :
 
                         {
-                            newFits.writeFits((*it).mImg, UC8, fits2DName, mFitsCompressionMethod);
+                            newFits.writeFits((*it).mImg, UC8, fits2DName, mdp.FITS_COMPRESSION_METHOD);
                         }
 
                 }
 
             }
 
+            if(mdtp.DET_SAVE_AVI) {
+                Mat iv = Conversion::convertTo8UC1((*it).mImg);
+                if(video->isOpened()) {
+                    video->write(iv);
+                }
+            }
+
             // Add a frame to fits cube.
-            if(mSaveFits3D) {
+            if(mdtp.DET_SAVE_FITS3D) {
 
                 if(firstExpTime != (*it).mExposure)
                     varExpTime = true;
@@ -865,7 +706,7 @@ bool DetThread::saveEventData(int firstEvPosInFB, int lastEvPosInFB){
             }
 
             // Add frame to the event's stack.
-            if(mSaveSum && (*it).mFrameNumber >= firstEvPosInFB && (*it).mFrameNumber <= lastEvPosInFB){
+            if(mdtp.DET_SAVE_SUM && (*it).mFrameNumber >= firstEvPosInFB && (*it).mFrameNumber <= lastEvPosInFB){
 
                 stack.addFrame((*it));
 
@@ -876,39 +717,47 @@ bool DetThread::saveEventData(int firstEvPosInFB, int lastEvPosInFB){
         }
     }
 
+    if(mdtp.DET_SAVE_AVI) {
+        if(video != NULL)
+            delete video;
+    }
+
     // ********************************* SAVE EVENT IN FITS CUBE  ***********************************
 
-    if(mSaveFits3D) {
+    if(mdtp.DET_SAVE_FITS3D) {
 
         // Exposure time of a single frame.
         if(varExpTime)
             fits3d.kEXPOSURE = 999999;
-        else
+        else {
+            it = frameBuffer->begin();
             fits3d.kEXPOSURE = (*it).mExposure/1000000.0;
+        }
 
         // Exposure time sum of frames in the fits cube.
         fits3d.kONTIME = sumExpTime/1000000.0;
-
+   
         fits3d.writeFits3D();
 
     }
 
     // ********************************* SAVE EVENT STACK IN FITS  **********************************
 
-    if(mSaveSum) {
+    if(mdtp.DET_SAVE_SUM) {
 
-        stack.saveStack(mFitsHeader, mEventPath, mStackMthd, mStationName, mStackReduction);
+        stack.saveStack(mEventPath, mdtp.DET_SUM_MTHD, mdtp.DET_SUM_REDUCTION);
 
     }
 
     // ************************** EVENT STACK WITH HISTOGRAM EQUALIZATION ***************************
 
-    if(mSaveSumWithHistEqualization) {
+    if(mdtp.DET_SAVE_SUM_WITH_HIST_EQUALIZATION) {
 
         Mat s,s1, eqHist;
         float bzero  = 0.0;
         float bscale = 1.0;
         s = stack.reductionByFactorDivision(bzero,bscale);
+        cout << "mFormat : " << mFormat << endl;
         if(mFormat != MONO8)
             Conversion::convertTo8UC1(s).copyTo(s);
 
@@ -918,34 +767,37 @@ bool DetThread::saveEventData(int firstEvPosInFB, int lastEvPosInFB){
     }
 
     // *********************************** SEND MAIL NOTIFICATION ***********************************
-    BOOST_LOG_SEV(logger,notification) << "Prepare mail..." << mMailAlertEnabled;
-    if(mMailAlertEnabled) {
+    BOOST_LOG_SEV(logger,notification) << "Prepare mail..." << mmp.MAIL_DETECTION_ENABLED;
+    if(mmp.MAIL_DETECTION_ENABLED) {
 
         BOOST_LOG_SEV(logger,notification) << "Sending mail...";
 
-        if(mSaveGeMap && boost::filesystem::exists( mEventPath + "GeMap.bmp" )) {
+        for(int i = 0; i < pDetMthd->getDebugFiles().size(); i++) {
 
-            BOOST_LOG_SEV(logger,notification) << "Send : " << mEventPath << "GeMap.bmp";
-            mailAttachments.push_back(mEventPath + "GeMap.bmp");
+            if(boost::filesystem::exists( mEventPath + pDetMthd->getDebugFiles().at(i))) {
 
+                BOOST_LOG_SEV(logger,notification) << "Send : " << mEventPath << pDetMthd->getDebugFiles().at(i);
+                mailAttachments.push_back(mEventPath + pDetMthd->getDebugFiles().at(i));
+
+            }
         }
 
-        if(mSaveSumWithHistEqualization && boost::filesystem::exists(mEventPath + mStationName + "_" + TimeDate::getYYYYMMDDThhmmss(mEventDate) + "_UT.jpg")) {
+        if(mdtp.DET_SAVE_SUM_WITH_HIST_EQUALIZATION && boost::filesystem::exists(mEventPath + mStationName + "_" + TimeDate::getYYYYMMDDThhmmss(mEventDate) + "_UT.jpg")) {
 
             BOOST_LOG_SEV(logger,notification) << "Send : " << mEventPath << mStationName << "_" << TimeDate::getYYYYMMDDThhmmss(mEventDate) << "_UT.jpg";
             mailAttachments.push_back(mEventPath + mStationName + "_" + TimeDate::getYYYYMMDDThhmmss(mEventDate) + "_UT.jpg");
 
         }
 
-        SMTPClient::sendMail(   mMailSmtpServer,
-                                mMailSmtpLogin,
-                                mMailSmtpPassword,
+        SMTPClient::sendMail(   mmp.MAIL_SMTP_SERVER,
+                                mmp.MAIL_SMTP_LOGIN,
+                                mmp.MAIL_SMTP_PASSWORD,
                                 "freeture@" + mStationName +".fr",
-                                mMailRecipients,
+                                mmp.MAIL_RECIPIENTS,
                                 mStationName  + "-" + TimeDate::getYYYYMMDDThhmmss(mEventDate),
                                 mStationName + "\n" + mEventPath,
                                 mailAttachments,
-                                mSmtpSecurity);
+                                mmp.MAIL_CONNECTION_TYPE);
 
     }
 

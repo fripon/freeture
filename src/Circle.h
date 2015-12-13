@@ -121,7 +121,7 @@ class Circle {
                     float C = pow(x0,2) + pow(y0,2) + pow(N,2) - pow(R0,2) - 2* y0*N;
                     double delta = std::sqrt(pow(B,2)-4*A*C);
                        
-                    cout << delta << endl;
+                    //cout << delta << endl;
 
                     if(delta > 0) {
 

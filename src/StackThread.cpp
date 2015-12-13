@@ -39,15 +39,19 @@ boost::log::sources::severity_logger< LogSeverityLevel >  StackThread::logger;
 
 StackThread::Init StackThread::initializer;
 
-StackThread::StackThread(   string                          cfgPath,
-                            bool                            *sS,
+StackThread::StackThread(   bool                            *sS,
                             boost::mutex                    *sS_m,
                             boost::condition_variable       *sS_c,
                             boost::circular_buffer<Frame>   *fb,
                             boost::mutex                    *fb_m,
-                            boost::condition_variable       *fb_c){
+                            boost::condition_variable       *fb_c,
+                            dataParam dp,
+                            stackParam sp,
+                            stationParam stp,
+                            CamPixFmt pfmt,
+                            fitskeysParam fkp){
 
-    thread = NULL;
+    mThread = NULL;
     mustStop = false;
     frameBuffer = fb;
     frameBuffer_mutex = fb_m;
@@ -58,80 +62,11 @@ StackThread::StackThread(   string                          cfgPath,
     completeDataPath = "";
     isRunning = false;
     interruptionStatus = false;
-
-    Configuration cfg;
-
-    if(!cfg.Load(cfgPath))
-        throw "Fail to load parameters for stackThread from configuration file.";
-
-    if(!cfg.Get("FITS_COMPRESSION", mFitsCompression)) {
-
-        mFitsCompression = false;
-        mFitsCompressionMethod = "";
-        BOOST_LOG_SEV(logger, warning) << "Fail to load FITS_COMPRESSION from configuration file. Set to false.";
-
-    }else{
-
-        if(mFitsCompression) {
-
-            if(!cfg.Get("FITS_COMPRESSION_METHOD", mFitsCompressionMethod)) {
-                mFitsCompressionMethod = "[compress]";
-                BOOST_LOG_SEV(logger, warning) << "Fail to load FITS_COMPRESSION_METHOD from configuration file. Set to [compress].";
-            }
-
-        }else{
-
-            mFitsCompressionMethod = "";
-
-        }
-    }
-
-    // Get camera format.
-    string acqFormat;
-    if(!cfg.Get("ACQ_FORMAT", acqFormat)){
-        throw "Fail to load ACQ_FORMAT from configuration file !";
-    }
-    EParser<CamPixFmt> camFormat;
-    mAcqBitDepth = camFormat.parseEnum("ACQ_FORMAT", acqFormat);
-    BOOST_LOG_SEV(logger,notification) << "Load ACQ_FORMAT : " << acqFormat;
-
-    // Get time of stacking frames.
-    if(!cfg.Get("STACK_TIME", mStackTime)){
-        throw "Fail to load STACK_TIME from configuration file !";
-    }
-
-    // Get time to wait before a new stack.
-    if(!cfg.Get("STACK_INTERVAL", mStackInterval)){
-        throw "Fail to load STACK_INTERVAL from configuration file !";
-    }
-
-    // Get stack method to use.
-    string stack_method;
-    if(!cfg.Get("STACK_MTHD", stack_method)){
-        stack_method = "SUM";
-        BOOST_LOG_SEV(logger,notification) << "Fail to load STACK_MTHD from configuration file. Set to SUM.";
-    }
-    EParser<StackMeth> stack_mth;
-    mStackMthd = stack_mth.parseEnum("STACK_MTHD", stack_method);
-
-    // Use reduction method or not.
-    if(!cfg.Get("STACK_REDUCTION", mStackReduction)){
-        mStackReduction = true;
-        BOOST_LOG_SEV(logger,notification) << "Fail to load STACK_REDUCTION from configuration file. Set to true.";
-    }
-
-    // Get station name.
-    if(!cfg.Get("STATION_NAME", mStationName)){
-        mStationName = "STATION";
-        BOOST_LOG_SEV(logger,notification) << "Fail to load STATION_NAME from configuration file. Set to STATION.";
-    }
-
-    // Get location where to store data.
-    if(!cfg.Get("DATA_PATH", mDataPath))
-        throw "Fail to load DATA_PATH from configuration file !";
-
-    // Get fits keywords.
-    mFitsHeader.loadKeywordsFromConfigFile(cfgPath);
+    mdp = dp;
+    mstp = stp;
+    msp = sp;
+    mfkp = fkp;
+    mPixfmt = pfmt;
 
 }
 
@@ -139,15 +74,15 @@ StackThread::~StackThread(void){
 
     BOOST_LOG_SEV(logger,notification) << "Cleaning ressources and deleting StackThread...";
 
-    if(thread!=NULL)
-        delete thread;
+    if(mThread!=NULL)
+        delete mThread;
 
 }
 
 bool StackThread::startThread(){
 
     BOOST_LOG_SEV(logger,notification) << "Creating StackThread...";
-    thread = new boost::thread(boost::ref(*this));
+    mThread = new boost::thread(boost::ref(*this));
     return true;
 }
 
@@ -158,11 +93,12 @@ void StackThread::stopThread(){
     mustStop = true;
     mustStopMutex.unlock();
 
-    while(thread->timed_join(boost::posix_time::seconds(1)) == false) {
-        thread->interrupt();
-    }
+    if(mThread != NULL)
+        while(mThread->timed_join(boost::posix_time::seconds(1)) == false)
+            mThread->interrupt();
 
     interruptThread();
+
 
 }
 
@@ -180,7 +116,7 @@ bool StackThread::buildStackDataDirectory(TimeDate::Date date){
 
     namespace fs = boost::filesystem;
     string YYYYMMDD = TimeDate::getYYYYMMDD(date);
-    string root = mDataPath + mStationName + "_" + YYYYMMDD +"/";
+    string root = mdp.DATA_PATH + mstp.STATION_NAME + "_" + YYYYMMDD +"/";
     string subDir = "astro/";
     string finalPath = root + subDir;
     completeDataPath = finalPath;
@@ -191,7 +127,7 @@ bool StackThread::buildStackDataDirectory(TimeDate::Date date){
 
     BOOST_LOG_SEV(logger,notification) << "Stack data path : " << completeDataPath;
 
-    path p(mDataPath);
+    path p(mdp.DATA_PATH);
     path p1(root);
     path p2(root + subDir);
 
@@ -318,10 +254,10 @@ void StackThread::operator()(){
             try {
 
                 // Thread is sleeping...
-                boost::this_thread::sleep(boost::posix_time::millisec(mStackInterval*1000));
+                boost::this_thread::sleep(boost::posix_time::millisec(msp.STACK_INTERVAL*1000));
 
                 // Create a stack to accumulate n frames.
-                Stack frameStack = Stack(mFitsCompressionMethod);
+                Stack frameStack = Stack(mdp.FITS_COMPRESSION_METHOD, mfkp, mstp);
 
                 // First reference date.
                 boost::posix_time::ptime time = boost::posix_time::microsec_clock::universal_time();
@@ -385,14 +321,14 @@ void StackThread::operator()(){
                     boost::posix_time::ptime t2(boost::posix_time::time_from_string(nowDate));
                     boost::posix_time::time_duration td = t2 - t1;
                     secTime = td.total_seconds();
-                    cout << "NEXT STACK : " << (int)(mStackTime - secTime) << "s" <<  endl;
+                    cout << "NEXT STACK : " << (int)(msp.STACK_TIME - secTime) << "s" <<  endl;
 
-                }while(secTime <= mStackTime);
+                }while(secTime <= msp.STACK_TIME);
 
                 // Stack finished. Save it.
                 if(buildStackDataDirectory(frameStack.getDateFirstFrame())) {
 
-                    if(!frameStack.saveStack(mFitsHeader, completeDataPath, mStackMthd, mStationName, mStackReduction)){
+                    if(!frameStack.saveStack(completeDataPath, msp.STACK_MTHD, msp.STACK_REDUCTION)){
 
                         BOOST_LOG_SEV(logger,fail) << "Fail to save stack.";
 
