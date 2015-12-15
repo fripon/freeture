@@ -52,7 +52,7 @@
 
     enum io_method   io = IO_METHOD_MMAP;
 
-    struct buffer    *buffers;
+    struct buffer    *buffers = NULL;
     unsigned int     n_buffers;
     int              out_buf = 1;
     int              frame_count = 10;
@@ -87,7 +87,10 @@
 
     }
 
-    CameraV4l2::~CameraV4l2(){}
+    CameraV4l2::~CameraV4l2(){
+
+
+    }
 
     bool CameraV4l2::getInfos() {
 
@@ -581,26 +584,28 @@
 
         unsigned int i;
 
-        switch (io) {
+        if(buffers != NULL) {
+            switch (io) {
 
-            case IO_METHOD_READ:
-                free(buffers[0].start);
-                break;
+                case IO_METHOD_READ:
+                    free(buffers[0].start);
+                    break;
 
-            case IO_METHOD_MMAP:
+                case IO_METHOD_MMAP:
 
-                for (i = 0; i < n_buffers; ++i)
-                    if (-1 == munmap(buffers[i].start, buffers[i].length))
-                        errno_exit("munmap");
-                break;
+                    for (i = 0; i < n_buffers; ++i)
+                        if (-1 == munmap(buffers[i].start, buffers[i].length))
+                            errno_exit("munmap");
+                    break;
 
-            case IO_METHOD_USERPTR:
-                for (i = 0; i < n_buffers; ++i)
-                    free(buffers[i].start);
-                break;
+                case IO_METHOD_USERPTR:
+                    for (i = 0; i < n_buffers; ++i)
+                        free(buffers[i].start);
+                    break;
+            }
+
+            free(buffers);
         }
-
-        free(buffers);
 
         // Close device
 
@@ -1434,7 +1439,7 @@
     }
 
     bool CameraV4l2::setFPS(double fps){
-        cout << "Set fps v4l2 function " << endl;
+
         bool res = true;
         struct v4l2_frmivalenum temp;
         memset(&temp, 0, sizeof(temp));
@@ -1450,8 +1455,6 @@
             while (ioctl(fd, VIDIOC_ENUM_FRAMEINTERVALS, &temp) != -1) {
 
                 if(fps == (float(temp.discrete.denominator)/temp.discrete.numerator)) {
-
-
 
                     struct v4l2_streamparm setfps;
                     struct v4l2_fract *tpf;
@@ -1542,7 +1545,7 @@
         while (0 == xioctl(fd, VIDIOC_ENUM_FMT, &fmtdesc)) {
 
             strncpy(fourcc, (char *)&fmtdesc.pixelformat, 4);
-cout << "fourcc : " << string(fourcc)<< endl;
+
             if(string(fourcc) == fstring) {
 
                 fmtFound = true;

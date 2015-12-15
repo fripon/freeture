@@ -364,7 +364,7 @@ int main(int argc, const char ** argv){
                         device->mFormat = static_cast<CamPixFmt>(acqFormat);
                         if(!device->createCamera(devID, true)) {
                             delete device;
-                            throw ">> Fail to create device.";
+                            throw "Fail to create device.";
                         }
 
                         if(acqWidth != 0 && acqHeight != 0)
@@ -372,7 +372,10 @@ int main(int argc, const char ** argv){
                         else
                             device->setCameraSize();
 
-                        device->setCameraPixelFormat();
+                        if(!device->setCameraPixelFormat()) {
+                            delete device;
+                            throw "Fail to set format";
+                        }
                         device->setCameraFPS();
                         device->setCameraExposureTime(exp);
                         device->setCameraGain(gain);
