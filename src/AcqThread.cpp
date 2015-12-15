@@ -659,13 +659,13 @@ bool AcqThread::buildAcquisitionDirectory(string YYYYMMDD){
 
                 BOOST_LOG_SEV(logger,notification) << "Success to create STATION_YYYYMMDD directory : " << p1.string();
 
-                // If fail to create DATA_PATH/STATION_YYYYMMDD/astro/
+                // If fail to create DATA_PATH/STATION_YYYYMMDD/stack/
                 if(!fs::create_directory(p2)){
 
                     BOOST_LOG_SEV(logger,critical) << "Unable to create captures directory : " << p2.string();
                     return false;
 
-                // If success to create DATA_PATH/STATION_YYYYMMDD/astro/
+                // If success to create DATA_PATH/STATION_YYYYMMDD/stack/
                 }else{
 
                     BOOST_LOG_SEV(logger,notification) << "Success to create captures directory : " << p2.string();

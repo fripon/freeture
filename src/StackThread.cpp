@@ -117,7 +117,7 @@ bool StackThread::buildStackDataDirectory(TimeDate::Date date){
     namespace fs = boost::filesystem;
     string YYYYMMDD = TimeDate::getYYYYMMDD(date);
     string root = mdp.DATA_PATH + mstp.STATION_NAME + "_" + YYYYMMDD +"/";
-    string subDir = "astro/";
+    string subDir = "stacks/";
     string finalPath = root + subDir;
     completeDataPath = finalPath;
 
@@ -125,7 +125,7 @@ bool StackThread::buildStackDataDirectory(TimeDate::Date date){
         return false;
 
 
-    BOOST_LOG_SEV(logger,notification) << "Stack data path : " << completeDataPath;
+    BOOST_LOG_SEV(logger,notification) << "Stacks data path : " << completeDataPath;
 
     path p(mdp.DATA_PATH);
     path p1(root);
@@ -137,19 +137,19 @@ bool StackThread::buildStackDataDirectory(TimeDate::Date date){
         // If DATA_PATH/STATION_YYYYMMDD/ exists
         if(fs::exists(p1)){
 
-            // If DATA_PATH/STATION_YYYYMMDD/astro/ doesn't exists
+            // If DATA_PATH/STATION_YYYYMMDD/stacks/ doesn't exists
             if(!fs::exists(p2)){
 
-                // If fail to create DATA_PATH/STATION_YYYYMMDD/astro/
+                // If fail to create DATA_PATH/STATION_YYYYMMDD/stacks/
                 if(!fs::create_directory(p2)){
 
-                    BOOST_LOG_SEV(logger,critical) << "Unable to create astro directory : " << p2.string();
+                    BOOST_LOG_SEV(logger,critical) << "Unable to create stacks directory : " << p2.string();
                     return false;
 
-                // If success to create DATA_PATH/STATION_YYYYMMDD/astro/
+                // If success to create DATA_PATH/STATION_YYYYMMDD/stacks/
                 }else{
 
-                   BOOST_LOG_SEV(logger,notification) << "Success to create astro directory : " << p2.string();
+                   BOOST_LOG_SEV(logger,notification) << "Success to create stacks directory : " << p2.string();
                    return true;
 
                 }
@@ -169,16 +169,16 @@ bool StackThread::buildStackDataDirectory(TimeDate::Date date){
 
                 BOOST_LOG_SEV(logger,notification) << "Success to create STATION_YYYYMMDD directory : " << p1.string();
 
-                // If fail to create DATA_PATH/STATION_YYYYMMDD/astro/
+                // If fail to create DATA_PATH/STATION_YYYYMMDD/stacks/
                 if(!fs::create_directory(p2)){
 
-                    BOOST_LOG_SEV(logger,critical) << "Unable to create astro directory : " << p2.string();
+                    BOOST_LOG_SEV(logger,critical) << "Unable to create stacks directory : " << p2.string();
                     return false;
 
-                // If success to create DATA_PATH/STATION_YYYYMMDD/astro/
+                // If success to create DATA_PATH/STATION_YYYYMMDD/stacks/
                 }else{
 
-                    BOOST_LOG_SEV(logger,notification) << "Success to create astro directory : " << p2.string();
+                    BOOST_LOG_SEV(logger,notification) << "Success to create stacks directory : " << p2.string();
                     return true;
 
                 }
@@ -210,16 +210,16 @@ bool StackThread::buildStackDataDirectory(TimeDate::Date date){
 
                 BOOST_LOG_SEV(logger,notification) << "Success to create STATION_YYYYMMDD directory : " << p1.string();
 
-                // If fail to create DATA_PATH/STATION_YYYYMMDD/astro/
+                // If fail to create DATA_PATH/STATION_YYYYMMDD/stacks/
                 if(!fs::create_directory(p2)){
 
-                    BOOST_LOG_SEV(logger,critical) << "Unable to create astro directory : " << p2.string();
+                    BOOST_LOG_SEV(logger,critical) << "Unable to create stacks directory : " << p2.string();
                     return false;
 
-                // If success to create DATA_PATH/STATION_YYYYMMDD/astro/
+                // If success to create DATA_PATH/STATION_YYYYMMDD/stacks/
                 }else{
 
-                    BOOST_LOG_SEV(logger,notification) << "Success to create astro directory : " << p2.string();
+                    BOOST_LOG_SEV(logger,notification) << "Success to create stacks directory : " << p2.string();
                     return true;
 
                 }

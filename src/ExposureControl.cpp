@@ -425,9 +425,9 @@ bool ExposureControl::controlExposureTime(Device *camera, Mat image, TimeDate::D
                         }else if(step2) {
 
                             BOOST_LOG_SEV(logger,notification) << "STEP 2";
-                            
+
                             msvArray_2.push_back(msv);
-                            
+
                             if(incrementExposureTimeValue) {
 
                                 double delta = 30;
@@ -680,13 +680,13 @@ bool ExposureControl::checkDataLocation(TimeDate::Date date){
                 // If fail to create data/STATION_YYYMMDD/exposure/
                 if(!fs::create_directory(p2)){
 
-                    //BOOST_LOG_SEV(logger,critical) << "Unable to create astro directory : " << p2.string();
+                    //BOOST_LOG_SEV(logger,critical) << "Unable to create stack directory : " << p2.string();
                     return false;
 
                 // If success to create data/STATION_YYYMMDD/exposure/
                 }else{
 
-                   //BOOST_LOG_SEV(logger,notification) << "Success to create astro directory : " << p2.string();
+                   //BOOST_LOG_SEV(logger,notification) << "Success to create stack directory : " << p2.string();
                    return true;
 
                 }
@@ -709,13 +709,13 @@ bool ExposureControl::checkDataLocation(TimeDate::Date date){
                 // If fail to create data/STATION_YYYMMDD/exposure/
                 if(!fs::create_directory(p2)){
 
-                    //BOOST_LOG_SEV(logger,critical) << "Unable to create astro directory : " << p2.string();
+                    //BOOST_LOG_SEV(logger,critical) << "Unable to create stack directory : " << p2.string();
                     return false;
 
                 // If success to create data/STATION_YYYMMDD/exposure/
                 }else{
 
-                    //BOOST_LOG_SEV(logger,notification) << "Success to create astro directory : " << p2.string();
+                    //BOOST_LOG_SEV(logger,notification) << "Success to create stack directory : " << p2.string();
                     return true;
 
                 }
@@ -729,7 +729,7 @@ bool ExposureControl::checkDataLocation(TimeDate::Date date){
         if(!fs::create_directory(p)){
 
             //BOOST_LOG_SEV(logger,fail) << "Unable to create data/  directory : " << p.string();
-			return false;
+            return false;
 
         // If success to create data/
         }else{
@@ -740,7 +740,7 @@ bool ExposureControl::checkDataLocation(TimeDate::Date date){
             if(!fs::create_directory(p1)){
 
                 //BOOST_LOG_SEV(logger,fail) << "Unable to create STATION_YYYYMMDD directory : " << p1.string();
-				return false;
+                return false;
 
             // If success to create data/STATION_YYYMMDD/
             }else{
@@ -750,14 +750,14 @@ bool ExposureControl::checkDataLocation(TimeDate::Date date){
                 // If fail to create data/STATION_YYYMMDD/exposure/
                 if(!fs::create_directory(p2)){
 
-                    //BOOST_LOG_SEV(logger,critical) << "Unable to create astro directory : " << p2.string();
-					return false;
+                    //BOOST_LOG_SEV(logger,critical) << "Unable to create stack directory : " << p2.string();
+                    return false;
 
                 // If success to create data/STATION_YYYMMDD/exposure/
                 }else{
 
-                    //BOOST_LOG_SEV(logger,notification) << "Success to create astro directory : " << p2.string();
-					return true;
+                    //BOOST_LOG_SEV(logger,notification) << "Success to create stack directory : " << p2.string();
+                    return true;
 
                 }
             }
