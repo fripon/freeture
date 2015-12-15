@@ -869,7 +869,7 @@ int main(int argc, const char ** argv){
                                     double  sideralT        = TimeDate::localSideralTime_2(julianCentury, frame.mDate.hours, frame.mDate.minutes, (int)frame.mDate.seconds, fh.kSITELONG);
                                     newFits.kCRVAL1 = sideralT;
                                     newFits.loadKeys(cfg.getFitskeysParam(), cfg.getStationParam());
-                                    
+
                                 }
 
                                 newFits.kGAINDB = (int)gain;
@@ -899,7 +899,7 @@ int main(int argc, const char ** argv){
 
                                         vector<string> mailAttachments;
                                         mailAttachments.push_back(savePath + fileName + "-" + Conversion::intToString(filenum) + ".fit");
-                                        
+
                                         SMTPClient::sendMail(cfg.getMailParam().MAIL_SMTP_SERVER,
                                                             cfg.getMailParam().MAIL_SMTP_LOGIN,
                                                             cfg.getMailParam().MAIL_SMTP_PASSWORD,
@@ -970,7 +970,7 @@ int main(int argc, const char ** argv){
                 case 6 :
 
                     {
-                       
+
                     }
 
                     break;

@@ -108,12 +108,12 @@ CfgParam::CfgParam(string cfgFilePath) {
     param.st.STACK_ENABLED = false;
 
     param.mail.MAIL_DETECTION_ENABLED = false;
-    
+
     param.station.STATION_NAME = "STATION";
     param.station.SITEELEV = 0.0;
     param.station.SITELAT = 0.0;
     param.station.SITELONG = 0.0;
-   
+
     // Load parameters.
 
     boost::filesystem::path pcfg(cfgFilePath);
@@ -124,32 +124,34 @@ CfgParam::CfgParam(string cfgFilePath) {
             loadLogParam();
 
             if(param.DEVICE_ID.first.second) {
-    
+
+                // Get input type according to device number.
                 Device *device = new Device();
                 device->setVerbose(false);
                 device->listDevices(false);
                 inputType = device->getDeviceType(device->getDeviceSdk(param.DEVICE_ID.first.first));
+                delete device;
 
                 switch(inputType) {
 
-                    case VIDEO : 
+                    case VIDEO :
                             loadVidParam();
                         break;
 
-                    case SINGLE_FITS_FRAME : 
+                    case SINGLE_FITS_FRAME :
                             loadFramesParam();
                         break;
 
                     // camera
-                    case CAMERA : 
+                    case CAMERA :
                             loadCamParam();
                         break;
 
                 }
-                
-                delete device;
+
+
             }
-            
+
             loadDetParam();
             loadStackParam();
             loadStationParam();
@@ -201,7 +203,7 @@ void CfgParam::loadDeviceID() {
                 failmsg += "Not correct input.\n";
                 failStringId = true;
             }
-            
+
         }catch (std::exception &ex) {
             failmsg += string(ex.what());
             failStringId = true;
@@ -280,7 +282,7 @@ void CfgParam::loadLogParam() {
         param.log.errormsg.push_back("- LOG_SEVERITY : Fail to get value.");
         e = true;
     }
-    
+
     try {
         param.log.LOG_SEVERITY = log_sev.parseEnum("LOG_SEVERITY", log_severity);
     }catch (std::exception &ex) {
@@ -352,7 +354,7 @@ void CfgParam::loadCamParam() {
     bool e = false;
 
     if(!param.DEVICE_ID.first.second) {
-    
+
         loadDeviceID();
         if(!param.DEVICE_ID.first.second) {
             return;
@@ -415,14 +417,14 @@ void CfgParam::loadCamParam() {
                         param.camInput.errormsg.push_back("- ACQ_RES_SIZE : Height value is not correct.");
                         e = true;
                     }else{
-                        param.camInput.ACQ_HEIGHT = mSizeHeight; 
+                        param.camInput.ACQ_HEIGHT = mSizeHeight;
                     }
 
                     if(mSizeWidth <= 0) {
                         param.camInput.errormsg.push_back("- ACQ_RES_SIZE : Width value is not correct.");
                         e = true;
                     }else{
-                        param.camInput.ACQ_WIDTH = mSizeWidth; 
+                        param.camInput.ACQ_WIDTH = mSizeWidth;
                     }
 
                 }else {
@@ -459,10 +461,10 @@ void CfgParam::loadCamParam() {
 
         if(mine != -1 && maxe != -1) {
             if(param.camInput.ACQ_NIGHT_EXPOSURE < mine || param.camInput.ACQ_NIGHT_EXPOSURE > maxe) {
-                param.camInput.errormsg.push_back("- ACQ_NIGHT_EXPOSURE : Value <" + 
-                    Conversion::intToString(param.camInput.ACQ_NIGHT_EXPOSURE) + 
-                    "> is not correct. \nAvailable range is from " + 
-                    Conversion::intToString(mine) + " to " + 
+                param.camInput.errormsg.push_back("- ACQ_NIGHT_EXPOSURE : Value <" +
+                    Conversion::intToString(param.camInput.ACQ_NIGHT_EXPOSURE) +
+                    "> is not correct. \nAvailable range is from " +
+                    Conversion::intToString(mine) + " to " +
                     Conversion::intToString(maxe));
                 e = true;
             }
@@ -478,10 +480,10 @@ void CfgParam::loadCamParam() {
 
         if(ming != -1 && maxg != -1) {
             if(param.camInput.ACQ_NIGHT_GAIN < ming || param.camInput.ACQ_NIGHT_GAIN > maxg) {
-                param.camInput.errormsg.push_back("- ACQ_NIGHT_GAIN : Value <" + 
-                    Conversion::intToString(param.camInput.ACQ_NIGHT_GAIN) + 
-                    "> is not correct. \nAvailable range is from " + 
-                    Conversion::intToString(ming) + " to " + 
+                param.camInput.errormsg.push_back("- ACQ_NIGHT_GAIN : Value <" +
+                    Conversion::intToString(param.camInput.ACQ_NIGHT_GAIN) +
+                    "> is not correct. \nAvailable range is from " +
+                    Conversion::intToString(ming) + " to " +
                     Conversion::intToString(maxg));
                 e = true;
             }
@@ -497,10 +499,10 @@ void CfgParam::loadCamParam() {
 
         if(mine != -1 && maxe != -1) {
             if(param.camInput.ACQ_DAY_EXPOSURE < mine || param.camInput.ACQ_DAY_EXPOSURE > maxe) {
-                param.camInput.errormsg.push_back("- ACQ_DAY_EXPOSURE : Value <" + 
-                    Conversion::intToString(param.camInput.ACQ_DAY_EXPOSURE) + 
-                    "> is not correct. \nAvailable range is from " + 
-                    Conversion::intToString(mine) + " to " + 
+                param.camInput.errormsg.push_back("- ACQ_DAY_EXPOSURE : Value <" +
+                    Conversion::intToString(param.camInput.ACQ_DAY_EXPOSURE) +
+                    "> is not correct. \nAvailable range is from " +
+                    Conversion::intToString(mine) + " to " +
                     Conversion::intToString(maxe));
                 e = true;
             }
@@ -516,10 +518,10 @@ void CfgParam::loadCamParam() {
 
         if(ming != -1 && maxg != -1) {
             if(param.camInput.ACQ_DAY_GAIN < ming || param.camInput.ACQ_DAY_GAIN > maxg) {
-                param.camInput.errormsg.push_back("- ACQ_DAY_GAIN : Value <" + 
-                    Conversion::intToString(param.camInput.ACQ_DAY_GAIN) + 
-                    "> is not correct. \nAvailable range is from " + 
-                    Conversion::intToString(ming) + " to " + 
+                param.camInput.errormsg.push_back("- ACQ_DAY_GAIN : Value <" +
+                    Conversion::intToString(param.camInput.ACQ_DAY_GAIN) +
+                    "> is not correct. \nAvailable range is from " +
+                    Conversion::intToString(ming) + " to " +
                     Conversion::intToString(maxg));
                 e = true;
             }
@@ -615,7 +617,7 @@ void CfgParam::loadCamParam() {
             param.camInput.errormsg.push_back("- SUNSET_TIME : Fail to get value.");
             e = true;
         }else{
-            
+
             if(sunset_time.find(":") != std::string::npos) {
 
                 typedef boost::tokenizer<boost::char_separator<char> > tokenizer;
@@ -660,14 +662,14 @@ void CfgParam::loadCamParam() {
     }
 
     //-------------------------------------------------------------------
-    
+
     if(!cfg.Get("ACQ_REGULAR_ENABLED", param.camInput.regcap.ACQ_REGULAR_ENABLED)) {
         param.camInput.errormsg.push_back("- ACQ_REGULAR_ENABLED : Fail to get value.");
         e = true;
     }else {
         if(param.camInput.regcap.ACQ_REGULAR_ENABLED) {
             //-------------------------------------------------------------------
-    
+
             string reg_mode;
             if(!cfg.Get("ACQ_REGULAR_MODE", reg_mode)) {
                 e = true;
@@ -683,7 +685,7 @@ void CfgParam::loadCamParam() {
             }
 
             //-------------------------------------------------------------------
-    
+
             {
 
                 string img_output;
@@ -743,10 +745,10 @@ void CfgParam::loadCamParam() {
 
                     if(mine != -1 && maxe != -1) {
                         if(param.camInput.regcap.ACQ_REGULAR_CFG.exp < mine || param.camInput.regcap.ACQ_REGULAR_CFG.exp > maxe) {
-                            param.camInput.errormsg.push_back("- ACQ_REGULAR_CFG : Exposure value <" + 
-                                Conversion::intToString(param.camInput.regcap.ACQ_REGULAR_CFG.exp) + 
-                                "> is not correct. \nAvailable range is from " + 
-                                Conversion::intToString(mine) + " to " + 
+                            param.camInput.errormsg.push_back("- ACQ_REGULAR_CFG : Exposure value <" +
+                                Conversion::intToString(param.camInput.regcap.ACQ_REGULAR_CFG.exp) +
+                                "> is not correct. \nAvailable range is from " +
+                                Conversion::intToString(mine) + " to " +
                                 Conversion::intToString(maxe));
                             e = true;
                         }
@@ -757,10 +759,10 @@ void CfgParam::loadCamParam() {
 
                     if(ming != -1 && maxg != -1) {
                         if(param.camInput.regcap.ACQ_REGULAR_CFG.gain < ming || param.camInput.regcap.ACQ_REGULAR_CFG.gain > maxg) {
-                            param.camInput.errormsg.push_back("- ACQ_REGULAR_CFG : Gain value <" + 
-                                Conversion::intToString(param.camInput.regcap.ACQ_REGULAR_CFG.gain) + 
-                                "> is not correct. \nAvailable range is from " + 
-                                Conversion::intToString(ming) + " to " + 
+                            param.camInput.errormsg.push_back("- ACQ_REGULAR_CFG : Gain value <" +
+                                Conversion::intToString(param.camInput.regcap.ACQ_REGULAR_CFG.gain) +
+                                "> is not correct. \nAvailable range is from " +
+                                Conversion::intToString(ming) + " to " +
                                 Conversion::intToString(maxg));
                             e = true;
                         }
@@ -867,10 +869,10 @@ void CfgParam::loadCamParam() {
 
                                 if(mine != -1 && maxe != -1) {
                                     if(spa.exp < mine || spa.exp > maxe) {
-                                        param.camInput.errormsg.push_back("- ACQ_SCHEDULE : In " + sch1.at(i) + ". Exposure value <" + 
-                                            Conversion::intToString(spa.exp) + 
-                                            "> is not correct. \nAvailable range is from " + 
-                                            Conversion::intToString(mine) + " to " + 
+                                        param.camInput.errormsg.push_back("- ACQ_SCHEDULE : In " + sch1.at(i) + ". Exposure value <" +
+                                            Conversion::intToString(spa.exp) +
+                                            "> is not correct. \nAvailable range is from " +
+                                            Conversion::intToString(mine) + " to " +
                                             Conversion::intToString(maxe));
                                         e = true;
                                         status = false;
@@ -881,10 +883,10 @@ void CfgParam::loadCamParam() {
 
                                 if(ming != -1 && maxg != -1) {
                                     if(spa.gain < ming || spa.gain > maxg) {
-                                        param.camInput.errormsg.push_back("- ACQ_SCHEDULE : In " + sch1.at(i) + ". Gain value <" + 
-                                            Conversion::intToString(spa.gain) + 
-                                            "> is not correct. \nAvailable range is from " + 
-                                            Conversion::intToString(ming) + " to " + 
+                                        param.camInput.errormsg.push_back("- ACQ_SCHEDULE : In " + sch1.at(i) + ". Gain value <" +
+                                            Conversion::intToString(spa.gain) +
+                                            "> is not correct. \nAvailable range is from " +
+                                            Conversion::intToString(ming) + " to " +
                                             Conversion::intToString(maxg));
                                         e = true;
                                         status = false;
@@ -995,8 +997,8 @@ void CfgParam::loadCamParam() {
         }
     }
 
-    if(device != NULL) { 
-        delete device; 
+    if(device != NULL) {
+        delete device;
     }
 
     if(!e) param.camInput.status = true;
@@ -1038,10 +1040,10 @@ void CfgParam::loadDetParam() {
                         device->setVerbose(false);
                         device->listDevices(false);
                         inputType = device->getDeviceType(device->getDeviceSdk(param.DEVICE_ID.first.first));
-                 
+
                         switch(inputType) {
 
-                            case VIDEO : 
+                            case VIDEO :
                                 {
                                     if(vidParamIsCorrect()) {
 
@@ -1050,17 +1052,17 @@ void CfgParam::loadDetParam() {
                                             if(cap.isOpened()) {
                                                 if(cap.get(CV_CAP_PROP_FRAME_HEIGHT) != tempmask.rows) {
                                                     e = true;
-                                                    param.det.errormsg.push_back("- ACQ_MASK_PATH : Mask's height (" + 
-                                                        Conversion::intToString(tempmask.rows) + 
-                                                        ") is not correct with " + param.vidInput.INPUT_VIDEO_PATH.at(i) + " (" + 
+                                                    param.det.errormsg.push_back("- ACQ_MASK_PATH : Mask's height (" +
+                                                        Conversion::intToString(tempmask.rows) +
+                                                        ") is not correct with " + param.vidInput.INPUT_VIDEO_PATH.at(i) + " (" +
                                                         Conversion::intToString(cap.get(CV_CAP_PROP_FRAME_HEIGHT)) + ")");
-                                                }    
+                                                }
 
                                                 if(cap.get(CV_CAP_PROP_FRAME_WIDTH) != tempmask.cols) {
                                                     e = true;
-                                                    param.det.errormsg.push_back("- ACQ_MASK_PATH : Mask's width (" + 
-                                                        Conversion::intToString(tempmask.cols) + 
-                                                        ") is not correct with " + param.vidInput.INPUT_VIDEO_PATH.at(i) + " (" + 
+                                                    param.det.errormsg.push_back("- ACQ_MASK_PATH : Mask's width (" +
+                                                        Conversion::intToString(tempmask.cols) +
+                                                        ") is not correct with " + param.vidInput.INPUT_VIDEO_PATH.at(i) + " (" +
                                                         Conversion::intToString(cap.get(CV_CAP_PROP_FRAME_WIDTH)) + ")");
                                                 }
                                             }else{
@@ -1076,8 +1078,8 @@ void CfgParam::loadDetParam() {
                                 }
                                 break;
 
-                            case SINGLE_FITS_FRAME : 
-                   
+                            case SINGLE_FITS_FRAME :
+
                                 {
                                     if(framesParamIsCorrect()) {
                                         for(int i = 0; i < param.framesInput.INPUT_FRAMES_DIRECTORY_PATH.size(); i++) {
@@ -1114,17 +1116,17 @@ void CfgParam::loadDetParam() {
 
                                                     if(h != tempmask.rows) {
                                                         e = true;
-                                                        param.det.errormsg.push_back("- ACQ_MASK_PATH : Mask's height (" + 
-                                                            Conversion::intToString(tempmask.rows) + 
-                                                            ") is not correct with " + param.framesInput.INPUT_FRAMES_DIRECTORY_PATH.at(i) + " (" + 
+                                                        param.det.errormsg.push_back("- ACQ_MASK_PATH : Mask's height (" +
+                                                            Conversion::intToString(tempmask.rows) +
+                                                            ") is not correct with " + param.framesInput.INPUT_FRAMES_DIRECTORY_PATH.at(i) + " (" +
                                                             Conversion::intToString(h) + ")");
-                                                    }    
+                                                    }
 
                                                     if(w != tempmask.cols) {
                                                         e = true;
-                                                        param.det.errormsg.push_back("- ACQ_MASK_PATH : Mask's width (" + 
-                                                            Conversion::intToString(tempmask.cols) + 
-                                                            ") is not correct with " + param.framesInput.INPUT_FRAMES_DIRECTORY_PATH.at(i) + " (" + 
+                                                        param.det.errormsg.push_back("- ACQ_MASK_PATH : Mask's width (" +
+                                                            Conversion::intToString(tempmask.cols) +
+                                                            ") is not correct with " + param.framesInput.INPUT_FRAMES_DIRECTORY_PATH.at(i) + " (" +
                                                             Conversion::intToString(w) + ")");
                                                     }
                                                 }
@@ -1139,7 +1141,7 @@ void CfgParam::loadDetParam() {
 
                                 break;
 
-                            case CAMERA : 
+                            case CAMERA :
                                 {
                                     /*if(camParamIsCorrect()) {
 
@@ -1152,7 +1154,7 @@ void CfgParam::loadDetParam() {
                                 param.det.errormsg.push_back("- ACQ_MASK_PATH : Fail to create device to check mask's size.");
 
                         }
-                
+
                         delete device;
 
                     }else {
@@ -1437,7 +1439,7 @@ void CfgParam::loadStationParam() {
 void CfgParam::loadFitskeysParam() {
 
     bool e = false;
-    
+
     if(!cfg.Get("K1", param.fitskeys.K1)) {
         e = true;
         param.fitskeys.errormsg.push_back("- K1 : Fail to load value.");
@@ -1732,11 +1734,11 @@ bool CfgParam::inputIsCorrect() {
 
     switch(inputType) {
 
-        case VIDEO : 
+        case VIDEO :
                 return vidParamIsCorrect();
             break;
 
-        case SINGLE_FITS_FRAME : 
+        case SINGLE_FITS_FRAME :
                 return framesParamIsCorrect();
             break;
 
@@ -1799,7 +1801,7 @@ bool CfgParam::allParamAreCorrect() {
         cout << ">> Errors on mail parameters. " << endl;
     }
 
-    if(eFound) 
+    if(eFound)
         return false;
 
     return true;

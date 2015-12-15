@@ -59,7 +59,15 @@
         mInputDeviceType = CAMERA;
     }
 
-    CameraGigeAravis::~CameraGigeAravis(){}
+    CameraGigeAravis::~CameraGigeAravis(){
+
+        if(stream != NULL)
+            g_object_unref(stream);
+
+        if(camera != NULL)
+            g_object_unref(camera);
+
+    }
 
     vector<pair<int,string>> CameraGigeAravis::getCamerasList() {
 
@@ -330,24 +338,25 @@
 
         arv_stream_get_statistics(stream, &nbCompletedBuffers, &nbFailures, &nbUnderruns);
 
-        cout << "Completed buffers = " << (unsigned long long) nbCompletedBuffers	<< endl;
-        cout << "Failures          = " << (unsigned long long) nbFailures           << endl;
-        cout << "Underruns         = " << (unsigned long long) nbUnderruns          << endl;
+        //cout << "Completed buffers = " << (unsigned long long) nbCompletedBuffers   << endl;
+        //cout << "Failures          = " << (unsigned long long) nbFailures           << endl;
+        //cout << "Underruns         = " << (unsigned long long) nbUnderruns          << endl;
 
         BOOST_LOG_SEV(logger, notification) << "Completed buffers = " << (unsigned long long) nbCompletedBuffers;
         BOOST_LOG_SEV(logger, notification) << "Failures          = " << (unsigned long long) nbFailures;
         BOOST_LOG_SEV(logger, notification) << "Underruns         = " << (unsigned long long) nbUnderruns;
 
-        BOOST_LOG_SEV(logger, notification) << "Stop acquisition on camera";
-        cout << "Stop acquisition on camera" << endl;
+        BOOST_LOG_SEV(logger, notification) << "Stopping acquisition...";
         arv_camera_stop_acquisition(camera);
-        cout << "Acquisition on camera stopped " << endl;
+        BOOST_LOG_SEV(logger, notification) << "Acquisition stopped.";
 
-        cout << "unref stream" << endl;
+        BOOST_LOG_SEV(logger, notification) << "Unreferencing stream.";
         g_object_unref(stream);
+        stream = NULL;
 
-        cout << "unref camera" << endl;
+        BOOST_LOG_SEV(logger, notification) << "Unreferencing camera.";
         g_object_unref(camera);
+        camera = NULL;
 
     }
 
@@ -998,15 +1007,15 @@
             switch(depth){
 
                 case MONO8 :
-
-                    arv_camera_set_pixel_format(camera, ARV_PIXEL_FORMAT_MONO_8);
-
+                    {
+                        arv_camera_set_pixel_format(camera, ARV_PIXEL_FORMAT_MONO_8);
+                    }
                     break;
 
                 case MONO12 :
-
-                    arv_camera_set_pixel_format(camera, ARV_PIXEL_FORMAT_MONO_12);
-
+                    {
+                        arv_camera_set_pixel_format(camera, ARV_PIXEL_FORMAT_MONO_12);
+                    }
                     break;
 
             }

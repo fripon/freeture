@@ -156,7 +156,7 @@ bool Device::createCamera() {
     }
 
     BOOST_LOG_SEV(logger, fail) << "No device with ID " << mGenCamID;
- 
+
     return false;
 
 }
@@ -200,7 +200,7 @@ bool Device::createDevicesWith(CamSdkType sdk) {
                 mCam = new CameraFrames(mfp.INPUT_FRAMES_DIRECTORY_PATH, 1, mVerbose);
                 if(!mCam->grabInitialization())
                     throw "Fail to prepare acquisition on the first frames directory.";
-                
+
             }
 
             break;

@@ -184,7 +184,7 @@ void AcqThread::operator()(){
             // Reference time to compute interval between regular captures.
             string cDate = to_simple_string(boost::posix_time::microsec_clock::universal_time());
             string refDate = cDate.substr(0, cDate.find("."));
-            
+
             do {
 
                 // Container for the grabbed image.
@@ -218,12 +218,12 @@ void AcqThread::operator()(){
                         }
 
                         // Slow down the time in order to give more time to the detection process.
-                        #ifdef WINDOWS 
+                        #ifdef WINDOWS
                             Sleep(500);
-                        #else 
-                            #ifdef LINUX 
-                                usleep(500000); 
-                            #endif 
+                        #else
+                            #ifdef LINUX
+                                usleep(500000);
+                            #endif
                         #endif
 
                     }else {
@@ -402,7 +402,7 @@ void AcqThread::operator()(){
                         if(mcp.schcap.ACQ_SCHEDULE.size() != 0 && mcp.schcap.ACQ_SCHEDULE_ENABLED && !mDevice->mVideoFramesInput) {
 
                             int next = (mNextAcq.hours * 3600 + mNextAcq.min * 60 + mNextAcq.sec) - (newFrame.mDate.hours * 3600 + newFrame.mDate.minutes * 60 + newFrame.mDate.seconds);
-                            
+
                             if(next < 0) {
                                 next = (24 * 3600) - (newFrame.mDate.hours * 3600 + newFrame.mDate.minutes * 60 + newFrame.mDate.seconds) + (mNextAcq.hours * 3600 + mNextAcq.min * 60 + mNextAcq.sec);
                                 cout << "next : " << next << endl;
@@ -532,7 +532,7 @@ void AcqThread::operator()(){
                 pDetection->getDetMethod()->resetDetection(true);
                 pDetection->getDetMethod()->resetMask();
                 pDetection->updateDetectionReport();
-                if(!pDetection->getRunStatus()) 
+                if(!pDetection->getRunStatus())
                     break;
 
             }
@@ -757,7 +757,7 @@ void AcqThread::runImageCapture(int imgNumber, int imgExposure, int imgGain, Cam
 
     for(int i = 0; i < imgNumber; i++) {
 
-        BOOST_LOG_SEV(logger, notification) << "Prepare capture n° " << i;
+        BOOST_LOG_SEV(logger, notification) << "Prepare capture nÂ° " << i;
 
         // Configuration for single capture.
         Frame frame;
