@@ -70,7 +70,7 @@ DetectionTemporal::DetectionTemporal(detectionParam dtp, CamPixFmt fmt) {
     mRoiSize[1] = 10;
     mdtp = dtp;
 
-    mMaskManager = new Mask(dtp.DET_UPDATE_MASK_FREQUENCY, dtp.ACQ_MASK_ENABLED, dtp.ACQ_MASK_PATH, dtp.DET_DOWNSAMPLE_ENABLED, dtp.DET_DEBUG_PATH, dtp.DET_DEBUG_UPDATE_MASK, fmt, dtp.DET_UPDATE_MASK);
+    mMaskManager = new Mask(dtp.DET_UPDATE_MASK_FREQUENCY, dtp.ACQ_MASK_ENABLED, dtp.ACQ_MASK_PATH, dtp.DET_DOWNSAMPLE_ENABLED, fmt, dtp.DET_UPDATE_MASK);
 
     // Create local mask to eliminate single white pixels.
     Mat maskTemp(3,3,CV_8UC1,Scalar(255));
@@ -802,10 +802,10 @@ bool DetectionTemporal::runDetection(Frame &c) {
         // The mask has been updated.
         }else{
 
-            if(mDebugUpdateMask) {
+            if(mdtp.DET_DEBUG_UPDATE_MASK) {
                 const boost::filesystem::path p = path(mdtp.DET_DEBUG_PATH + "/mask/");
                 if(!boost::filesystem::exists(p)) boost::filesystem::create_directories(p);
-                SaveImg::saveJPEG(Conversion::convertTo8UC1(currImg), mdtp.DET_DEBUG_PATH + "/mask/updateMask_" + Conversion::intToString(c.mFrameNumber));
+                SaveImg::saveJPEG(Conversion::convertTo8UC1(currImg), mdtp.DET_DEBUG_PATH + "/mask/umask_" + Conversion::intToString(c.mFrameNumber));
             }
 
             currImg.copyTo(mPrevFrame);

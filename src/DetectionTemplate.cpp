@@ -42,7 +42,7 @@ DetectionTemplate::DetectionTemplate(detectionParam dtp, CamPixFmt fmt):mImgNum(
 
     mdtp = dtp;
 
-    mMaskControl = new Mask(10, dtp.ACQ_MASK_ENABLED, dtp.ACQ_MASK_PATH, dtp.DET_DOWNSAMPLE_ENABLED, dtp.DET_DEBUG_PATH, dtp.DET_DEBUG_UPDATE_MASK, fmt, true);
+    mMaskControl = new Mask(10, dtp.ACQ_MASK_ENABLED, dtp.ACQ_MASK_PATH, dtp.DET_DOWNSAMPLE_ENABLED, fmt, true);
 
 }
 

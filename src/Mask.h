@@ -54,22 +54,18 @@ class Mask {
 
     private :
 
-        string mDebugPath;
-        bool mSaveMask;
-        int mNbMask;
         Mat mOriginalMask;
         int mUpdateInterval;
         bool mUpdateMask;
         bool mMaskToCreate;
         string refDate;
         bool updateStatus;
-        long diffTime;
         int saturatedValue;
         boost::circular_buffer<Mat> satMap;
 
     public :
 
-        Mask(int timeInterval, bool customMask, string customMaskPath, bool downsampleMask, string debugPath, bool saveMask, CamPixFmt format, bool updateMask);
+        Mask(int timeInterval, bool customMask, string customMaskPath, bool downsampleMask, CamPixFmt format, bool updateMask);
 
         bool applyMask(Mat &currFrame);
 
