@@ -38,6 +38,7 @@
 #include <opencv2/imgproc/imgproc.hpp>
 #include <string>
 #include <iostream>
+#include "SaveImg.h"
 
 using namespace std;
 using namespace cv;

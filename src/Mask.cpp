@@ -46,7 +46,7 @@ mUpdateInterval(timeInterval), mUpdateMask(updateMask) {
     if(customMask) {
 
         mOriginalMask = imread(customMaskPath, CV_LOAD_IMAGE_GRAYSCALE);
-
+        SaveImg::saveJPEG(mOriginalMask, "/home/fripon/mOriginalMask");
         if(!mOriginalMask.data)
             throw "Fail to load the mask from its path.";
 
@@ -66,13 +66,13 @@ mUpdateInterval(timeInterval), mUpdateMask(updateMask) {
 
         case MONO12 :
 
-                saturatedValue = 4095;
+                saturatedValue = 4092;
 
             break;
 
         default :
 
-                saturatedValue = 255;
+                saturatedValue = 254;
 
     }
 

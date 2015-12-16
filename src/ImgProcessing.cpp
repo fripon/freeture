@@ -79,20 +79,42 @@ Mat ImgProcessing::correctGammaOnMono12(Mat& img, double gamma) {
 
 Mat ImgProcessing::buildSaturatedMap(Mat &img, int maxval) {
 
-    Mat saturatedMap = Mat::zeros(img.rows, img.cols, CV_8UC1);
+    Mat saturatedMap = Mat(img.rows, img.cols, CV_8UC1, Scalar(0));
 
-    unsigned short * ptr1;
-    unsigned char * ptr2;
+    if(img.type() == CV_16UC1) {
 
-    for(int i = 0; i < img.rows; i++) {
+        unsigned short * ptr1;
+        unsigned char * ptr2;
 
-        ptr1 = img.ptr<unsigned short>(i);
-        ptr2 = saturatedMap.ptr<unsigned char>(i);
+        for(int i = 0; i < img.rows; i++) {
 
-        for(int j = 0; j < img.cols; j++){
+            ptr1 = img.ptr<unsigned short>(i);
+            ptr2 = saturatedMap.ptr<unsigned char>(i);
 
-            if(ptr1[j] >= maxval) {
-                ptr2[j] = 255;
+            for(int j = 0; j < img.cols; j++){
+
+                if(ptr1[j] >= maxval) {
+                    ptr2[j] = 255;
+                }
+            }
+        }
+    }
+
+    if(img.type() == CV_8UC1) {
+
+        unsigned char * ptr1;
+        unsigned char * ptr2;
+
+        for(int i = 0; i < img.rows; i++) {
+
+            ptr1 = img.ptr<unsigned char>(i);
+            ptr2 = saturatedMap.ptr<unsigned char>(i);
+
+            for(int j = 0; j < img.cols; j++){
+
+                if(ptr1[j] >= maxval) {
+                    ptr2[j] = 255;
+                }
             }
         }
     }
