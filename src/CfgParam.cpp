@@ -71,6 +71,8 @@ CfgParam::CfgParam(string cfgFilePath) {
     vector<string> finput, vinput;
     param.framesInput.INPUT_FRAMES_DIRECTORY_PATH = finput;
     param.vidInput.INPUT_VIDEO_PATH = vinput;
+    param.framesInput.INPUT_TIME_INTERVAL = 0;
+    param.vidInput.INPUT_TIME_INTERVAL = 0;
 
     param.camInput.ACQ_DAY_EXPOSURE = 0;
     param.camInput.ACQ_DAY_GAIN = 0;
@@ -297,6 +299,12 @@ void CfgParam::loadFramesParam() {
 
     bool e = false;
 
+    if(!cfg.Get("INPUT_TIME_INTERVAL", param.framesInput.INPUT_TIME_INTERVAL)) {
+        param.framesInput.errormsg.push_back("- INPUT_TIME_INTERVAL : Fail to get value.");
+        //cout << "- INPUT_FRAMES_DIRECTORY_PATH : Fail to get value." << endl;
+        e = true;
+    }
+
     string inputPaths;
     if(!cfg.Get("INPUT_FRAMES_DIRECTORY_PATH", inputPaths)) {
         param.framesInput.errormsg.push_back("- INPUT_FRAMES_DIRECTORY_PATH : Fail to get value.");
@@ -324,6 +332,12 @@ void CfgParam::loadFramesParam() {
 void CfgParam::loadVidParam() {
 
     bool e = false;
+
+    if(!cfg.Get("INPUT_TIME_INTERVAL", param.vidInput.INPUT_TIME_INTERVAL)) {
+        param.vidInput.errormsg.push_back("- INPUT_TIME_INTERVAL : Fail to get value.");
+        //cout << "- INPUT_FRAMES_DIRECTORY_PATH : Fail to get value." << endl;
+        e = true;
+    }
 
     string input_video_path;
     if(!cfg.Get("INPUT_VIDEO_PATH", input_video_path)) {

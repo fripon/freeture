@@ -100,6 +100,7 @@ struct dataParam {
 // ******************************************************
 
 struct framesParam {
+    int INPUT_TIME_INTERVAL;
     vector<string> INPUT_FRAMES_DIRECTORY_PATH;
     bool status;
     vector<string> errormsg;
@@ -110,6 +111,7 @@ struct framesParam {
 // ******************************************************
 
 struct videoParam {
+    int INPUT_TIME_INTERVAL;
     vector<string> INPUT_VIDEO_PATH;
     bool status;
     vector<string> errormsg;
@@ -120,13 +122,13 @@ struct videoParam {
 // ******************************************************
 
 struct scheduleParam {
-    int hours;    
-    int min;     
+    int hours;
+    int min;
     int sec;
-    int exp;    
-    int gain;   
-    int rep;    
-    CamPixFmt fmt;   
+    int exp;
+    int gain;
+    int rep;
+    CamPixFmt fmt;
 };
 
 // ******************************************************
@@ -147,7 +149,7 @@ struct cameraParam{
     int         EXPOSURE_CONTROL_FREQUENCY;
     bool        EXPOSURE_CONTROL_SAVE_IMAGE;
     bool        EXPOSURE_CONTROL_SAVE_INFOS;
-        
+
     struct ephemeris {
         bool    EPHEMERIS_ENABLED;
         double  SUN_HORIZON_1;

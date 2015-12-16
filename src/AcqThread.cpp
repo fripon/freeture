@@ -218,11 +218,16 @@ void AcqThread::operator()(){
                         }
 
                         // Slow down the time in order to give more time to the detection process.
+                        int twait = 100;
+                        if(mvp.INPUT_TIME_INTERVAL == 0 && mfp.INPUT_TIME_INTERVAL > 0)
+                            twait = mfp.INPUT_TIME_INTERVAL;
+                        else if(mvp.INPUT_TIME_INTERVAL > 0 && mfp.INPUT_TIME_INTERVAL == 0)
+                            twait = mvp.INPUT_TIME_INTERVAL;
                         #ifdef WINDOWS
-                            Sleep(500);
+                            Sleep(twait);
                         #else
                             #ifdef LINUX
-                                usleep(500000);
+                                usleep(twait * 1000);
                             #endif
                         #endif
 
