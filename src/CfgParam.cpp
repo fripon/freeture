@@ -1221,6 +1221,18 @@ void CfgParam::loadDetParam() {
     if(!cfg.Get("DET_TIME_MAX", param.det.DET_TIME_MAX)) {
         e = true;
         param.det.errormsg.push_back("- DET_TIME_MAX : Fail to load value.");
+    }else{
+
+        // If input device type is frames or video, increase DET_TIME_MAX because
+        // time can not be take account as the time interval between can be increased.
+        if(inputType == VIDEO || inputType == SINGLE_FITS_FRAME) {
+            param.det.DET_TIME_MAX = 10000;
+        }else{
+            if(param.det.DET_TIME_MAX <= 0 || param.det.DET_TIME_MAX > 30) {
+                e = true;
+                param.det.errormsg.push_back("- DET_TIME_MAX : Available range is from 1 to 30 seconds.");
+            }
+        }
     }
 
     string det_mthd;
@@ -1321,11 +1333,29 @@ void CfgParam::loadDetParam() {
     if(!cfg.Get("DET_LE_MAX", param.det.temporal.DET_LE_MAX)) {
         e = true;
         param.det.errormsg.push_back("- DET_LE_MAX : Fail to load value.");
+    }else{
+
+        if(param.det.temporal.DET_LE_MAX < 1 || param.det.temporal.DET_LE_MAX > 10) {
+
+            e = true;
+            param.det.errormsg.push_back("- DET_LE_MAX : Available range is from 1 to 10.");
+
+        }
+
     }
 
     if(!cfg.Get("DET_GE_MAX", param.det.temporal.DET_GE_MAX)) {
         e = true;
         param.det.errormsg.push_back("- DET_GE_MAX : Fail to load value.");
+    }else{
+
+        if(param.det.temporal.DET_GE_MAX < 1 || param.det.temporal.DET_GE_MAX > 10) {
+
+            e = true;
+            param.det.errormsg.push_back("- DET_GE_MAX : Available range is from 1 to 10.");
+
+        }
+
     }
 
     /*if(!cfg.Get("DET_SAVE_GE_INFOS", param.det.temporal.DET_SAVE_GE_INFOS)) {

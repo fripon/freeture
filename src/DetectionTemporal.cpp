@@ -450,7 +450,7 @@ bool DetectionTemporal::runDetection(Frame &c) {
                                     negThreshold,
                                     listLocalEvents,
                                     (*itR),
-                                    10,
+                                    mdtp.temporal.DET_LE_MAX,
                                     c.mFrameNumber,
                                     debugMsg,
                                     c.mDate);
@@ -665,7 +665,7 @@ bool DetectionTemporal::runDetection(Frame &c) {
                 }else{
 
                     // The current LE has not been linked. It became a new GE.
-                    if(mListGlobalEvents.size() < 10){
+                    if(mListGlobalEvents.size() < mdtp.temporal.DET_GE_MAX){
 
                         //cout << "Selecting last available color ... "<< endl;
                         Scalar geColor = Scalar(255,255,255);//availableGeColor.back();
@@ -681,7 +681,7 @@ bool DetectionTemporal::runDetection(Frame &c) {
 
                     }
                 }
-                
+
                 itLE = listLocalEvents.erase(itLE); // Delete the current localEvent.
 
             }
@@ -718,9 +718,9 @@ bool DetectionTemporal::runDetection(Frame &c) {
                 if((*itGE).getAgeLastElem() > 5){
 
                     // Linear profil ? Minimum duration respected ?
-                    if((*itGE).LEList.size() >= 5 
-                        && (*itGE).continuousGoodPos(4, msgGe) 
-                        && (*itGE).ratioFramesDist(msgGe) 
+                    if((*itGE).LEList.size() >= 5
+                        && (*itGE).continuousGoodPos(4, msgGe)
+                        && (*itGE).ratioFramesDist(msgGe)
                         && (*itGE).negPosClusterFilter(msgGe)){
 
                         mGeToSave = itGE;
@@ -734,14 +734,44 @@ bool DetectionTemporal::runDetection(Frame &c) {
                 // CASE 2 : NOT FINISHED EVENT.
                 }else{
 
+                    int nbsec = TimeDate::secBetweenTwoDates((*itGE).getDate(), c.mDate);
+                    bool maxtime = false;
+                    if(nbsec > mdtp.DET_TIME_MAX)
+                        maxtime = true;
+
                     // Check some characteristics : Too long event ? not linear ?
-                    if( (*itGE).getAge() > 500 
-                        || (!(*itGE).getLinearStatus() 
-                        && !(*itGE).continuousGoodPos(5,msgGe)) 
-                        || (!(*itGE).getLinearStatus() 
+                    if( maxtime
+                        || (!(*itGE).getLinearStatus()
+                        && !(*itGE).continuousGoodPos(5,msgGe))
+                        || (!(*itGE).getLinearStatus()
                         && (*itGE).continuousBadPos((int)(*itGE).getAge()/2))){
 
                         itGE = mListGlobalEvents.erase(itGE); // Delete the event.
+
+                        if(maxtime) {
+
+                            TimeDate::Date gedate = (*itGE).getDate();
+                            BOOST_LOG_SEV(logger, notification) << "# GE deleted because max time reached : ";
+                            BOOST_LOG_SEV(logger, notification) << "- (*itGE).getDate() : "
+                                                                << Conversion::numbering(4, gedate.year) << Conversion::intToString(gedate.year)
+                                                                << Conversion::numbering(2, gedate.month) << Conversion::intToString(gedate.month)
+                                                                << Conversion::numbering(2, gedate.day) << Conversion::intToString(gedate.day) << "T"
+                                                                << Conversion::numbering(2, gedate.hours) << Conversion::intToString(gedate.hours)
+                                                                << Conversion::numbering(2, gedate.minutes) << Conversion::intToString(gedate.minutes)
+                                                                << Conversion::numbering(2, gedate.seconds) << Conversion::intToString((int)gedate.seconds);
+
+                            BOOST_LOG_SEV(logger, notification) << "- c.mDate : "
+                                                                << Conversion::numbering(4, c.mDate.year) << Conversion::intToString(c.mDate.year)
+                                                                << Conversion::numbering(2, c.mDate.month) << Conversion::intToString(c.mDate.month)
+                                                                << Conversion::numbering(2, c.mDate.day) << Conversion::intToString(c.mDate.day) << "T"
+                                                                << Conversion::numbering(2, c.mDate.hours) << Conversion::intToString(c.mDate.hours)
+                                                                << Conversion::numbering(2, c.mDate.minutes) << Conversion::intToString(c.mDate.minutes)
+                                                                << Conversion::numbering(2, c.mDate.seconds) << Conversion::intToString((int)c.mDate.seconds);
+
+                            BOOST_LOG_SEV(logger, notification) << "- difftime in sec : " << nbsec;
+                            BOOST_LOG_SEV(logger, notification) << "- maxtime in sec : " << mdtp.DET_TIME_MAX;
+
+                        }
 
                     // Let the GE alive.
                     }else if(c.mFrameRemaining < 10 && c.mFrameRemaining != 0){

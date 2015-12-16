@@ -184,5 +184,10 @@ class TimeDate {
 
         static string getIsoExtendedFormatDate(Date date);
 
+        /**
+        * Get seconds between two dates
+        */
+        static int secBetweenTwoDates(Date d1, Date d2);
+
 };
 

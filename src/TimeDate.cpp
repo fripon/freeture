@@ -197,7 +197,7 @@ double TimeDate::localSideralTime_2(double julianCentury, int gregorianH, int gr
     vector<int> GTSM0_hms;
     GTSM0_hms.push_back((int)entPart_h%24); // H
     GTSM0_hms.push_back((int)entPart_m); // M
-	GTSM0_hms.push_back((int)std::floor(fractPart_s*60 + 0.5)); // S
+    GTSM0_hms.push_back((int)std::floor(fractPart_s*60 + 0.5)); // S
 
     //cout << "GTSM0_hms-> "<<GTSM0_hms.at(0)<<"h "<<GTSM0_hms.at(1)<< "m "<<GTSM0_hms.at(2)<< "s"<<endl;
 
@@ -449,6 +449,29 @@ string TimeDate::getYYYYMMDDThhmmss(string date){
     }
 
     return finalDate;
+
+}
+
+int TimeDate::secBetweenTwoDates(Date d1, Date d2) {
+
+    string sd2 =    Conversion::numbering(4,d2.year) + Conversion::intToString(d2.year) +
+                    Conversion::numbering(2,d2.month) + Conversion::intToString(d2.month) +
+                    Conversion::numbering(2,d2.day) + Conversion::intToString(d2.day) + "T" +
+                    Conversion::numbering(2,d2.hours) + Conversion::intToString(d2.hours) +
+                    Conversion::numbering(2,d2.minutes) + Conversion::intToString(d2.minutes) +
+                    Conversion::numbering(2,d2.seconds) + Conversion::intToString((int)d2.seconds);
+
+    string sd1 =    Conversion::numbering(4,d1.year) + Conversion::intToString(d1.year) +
+                    Conversion::numbering(2,d1.month) + Conversion::intToString(d1.month) +
+                    Conversion::numbering(2,d1.day) + Conversion::intToString(d1.day) + "T" +
+                    Conversion::numbering(2,d1.hours) + Conversion::intToString(d1.hours) +
+                    Conversion::numbering(2,d1.minutes) + Conversion::intToString(d1.minutes) +
+                    Conversion::numbering(2,d1.seconds) + Conversion::intToString((int)d1.seconds);
+
+    boost::posix_time::ptime t1(boost::posix_time::time_from_string(sd1));
+    boost::posix_time::ptime t2(boost::posix_time::time_from_string(sd2));
+    boost::posix_time::time_duration td = t2 - t1;
+    return td.total_seconds();
 
 }
 
