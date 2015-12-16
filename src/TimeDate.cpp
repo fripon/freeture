@@ -468,8 +468,8 @@ int TimeDate::secBetweenTwoDates(Date d1, Date d2) {
                     Conversion::numbering(2,d1.minutes) + Conversion::intToString(d1.minutes) +
                     Conversion::numbering(2,d1.seconds) + Conversion::intToString((int)d1.seconds);
 
-    boost::posix_time::ptime t1(boost::posix_time::time_from_string(sd1));
-    boost::posix_time::ptime t2(boost::posix_time::time_from_string(sd2));
+    boost::posix_time::ptime t1(boost::posix_time::from_iso_string(sd1));
+    boost::posix_time::ptime t2(boost::posix_time::from_iso_string(sd2));
     boost::posix_time::time_duration td = t2 - t1;
     return td.total_seconds();
 

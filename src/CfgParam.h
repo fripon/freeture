@@ -57,6 +57,7 @@
 #include "SParam.h"
 #include "ECamSdkType.h"
 
+using namespace boost::filesystem;
 using namespace std;
 using namespace cv;
 
@@ -79,7 +80,7 @@ class CfgParam{
         }initializer;
 
         CfgLoader cfg;
-        parameters param; 
+        parameters param;
 
         InputDeviceType inputType;
 

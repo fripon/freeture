@@ -70,7 +70,7 @@ DetectionTemporal::DetectionTemporal(detectionParam dtp, CamPixFmt fmt) {
     mRoiSize[1] = 10;
     mdtp = dtp;
 
-    mMaskManager = new Mask(dtp.DET_UPDATE_MASK_FREQUENCY, dtp.ACQ_MASK_ENABLED, dtp.ACQ_MASK_PATH, dtp.DET_DOWNSAMPLE_ENABLED, fmt, dtp.DET_UPDATE_MASK);
+    mMaskManager = new Mask(dtp.DET_UPDATE_MASK_FREQUENCY, dtp.ACQ_MASK_ENABLED, dtp.ACQ_MASK_PATH, dtp.DET_DOWNSAMPLE_ENABLED, dtp.DET_DEBUG_PATH, dtp.DET_DEBUG_UPDATE_MASK, fmt, dtp.DET_UPDATE_MASK);
 
     // Create local mask to eliminate single white pixels.
     Mat maskTemp(3,3,CV_8UC1,Scalar(255));
@@ -752,13 +752,15 @@ bool DetectionTemporal::runDetection(Frame &c) {
 
                             TimeDate::Date gedate = (*itGE).getDate();
                             BOOST_LOG_SEV(logger, notification) << "# GE deleted because max time reached : ";
-                            BOOST_LOG_SEV(logger, notification) << "- (*itGE).getDate() : "
-                                                                << Conversion::numbering(4, gedate.year) << Conversion::intToString(gedate.year)
-                                                                << Conversion::numbering(2, gedate.month) << Conversion::intToString(gedate.month)
-                                                                << Conversion::numbering(2, gedate.day) << Conversion::intToString(gedate.day) << "T"
-                                                                << Conversion::numbering(2, gedate.hours) << Conversion::intToString(gedate.hours)
-                                                                << Conversion::numbering(2, gedate.minutes) << Conversion::intToString(gedate.minutes)
-                                                                << Conversion::numbering(2, gedate.seconds) << Conversion::intToString((int)gedate.seconds);
+                                                       string m = "- (*itGE).getDate() : "
+                                                                + Conversion::numbering(4, gedate.year) + Conversion::intToString(gedate.year)
+                                                                + Conversion::numbering(2, gedate.month) + Conversion::intToString(gedate.month)
+                                                                + Conversion::numbering(2, gedate.day) + Conversion::intToString(gedate.day) + "T"
+                                                                + Conversion::numbering(2, gedate.hours) + Conversion::intToString(gedate.hours)
+                                                                + Conversion::numbering(2, gedate.minutes) + Conversion::intToString(gedate.minutes)
+                                                                + Conversion::numbering(2, gedate.seconds) + Conversion::intToString((int)gedate.seconds);
+
+                            BOOST_LOG_SEV(logger, notification) << m;
 
                             BOOST_LOG_SEV(logger, notification) << "- c.mDate : "
                                                                 << Conversion::numbering(4, c.mDate.year) << Conversion::intToString(c.mDate.year)

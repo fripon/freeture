@@ -41,8 +41,10 @@
 #include "SaveImg.h"
 #include "Conversion.h"
 #include "ECamPixFmt.h"
+#include <boost/filesystem.hpp>
 
 using namespace std;
+using namespace boost::filesystem;
 
 class Mask {
 
@@ -52,6 +54,9 @@ class Mask {
 
     private :
 
+        string mDebugPath;
+        bool mSaveMask;
+        int mNbMask;
         Mat mOriginalMask;
         int mUpdateInterval;
         bool mUpdateMask;
@@ -64,7 +69,7 @@ class Mask {
 
     public :
 
-        Mask(int timeInterval, bool customMask, string customMaskPath, bool downsampleMask, CamPixFmt format, bool updateMask);
+        Mask(int timeInterval, bool customMask, string customMaskPath, bool downsampleMask, string debugPath, bool saveMask, CamPixFmt format, bool updateMask);
 
         bool applyMask(Mat &currFrame);
 

@@ -34,11 +34,15 @@
 
 #include "Mask.h"
 
-Mask::Mask(int timeInterval, bool customMask, string customMaskPath, bool downsampleMask, CamPixFmt format, bool updateMask):
+Mask::Mask(int timeInterval, bool customMask, string customMaskPath, bool downsampleMask, string debugPath, bool saveMask, CamPixFmt format, bool updateMask):
 mUpdateInterval(timeInterval), mUpdateMask(updateMask) {
 
+    mDebugPath = debugPath;
+    mSaveMask = saveMask;
+    mNbMask = 0;
     mMaskToCreate = false;
-    updateStatus = true;
+    updateStatus = false;
+    refDate = to_simple_string(boost::posix_time::second_clock::universal_time());
     diffTime = 0;
     satMap = boost::circular_buffer<Mat>(2);
 
@@ -121,6 +125,24 @@ bool Mask::applyMask(Mat &currFrame) {
             Mat temp; currFrame.copyTo(temp, mCurrentMask);
             temp.copyTo(currFrame);
 
+            if(mSaveMask) {
+                namespace fs = boost::filesystem;
+                path p(mDebugPath + "/automask/");
+
+                if(!fs::exists(p)){
+                    if(fs::create_directory(p)){
+                        SaveImg::saveBMP(mCurrentMask, mDebugPath + "/automask/m-" + Conversion::intToString(mNbMask));
+                        SaveImg::saveBMP(Conversion::convertTo8UC1(currFrame), mDebugPath + "/automask/morig-" + Conversion::intToString(mNbMask));
+                        mNbMask++;
+                    }
+
+                }else{
+                    SaveImg::saveBMP(mCurrentMask, mDebugPath + "/automask/m-" + Conversion::intToString(mNbMask));
+                    SaveImg::saveBMP(Conversion::convertTo8UC1(currFrame), mDebugPath + "/automask/morig-" + Conversion::intToString(mNbMask));
+                    mNbMask++;
+                }
+            }
+
             updateStatus = false;
             return true; // Mask not applied, only computed.
 
@@ -137,6 +159,9 @@ bool Mask::applyMask(Mat &currFrame) {
             updateStatus = true;
 
         }
+
+        cout << "NEXT MASK : " << (mUpdateInterval - (int)diffTime) << "s" << endl;
+
     }
 
     if(!mCurrentMask.data || (mCurrentMask.rows != currFrame.rows && mCurrentMask.cols != currFrame.cols)) {

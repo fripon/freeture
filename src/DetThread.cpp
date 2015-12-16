@@ -64,7 +64,7 @@ DetThread::DetThread(   boost::circular_buffer<Frame>  *fb,
     pThread = NULL;
     mFormat = pfmt;
     mStationName = sp.STATION_NAME;
-    mdp = dp; 
+    mdp = dp;
     mdtp = dtp;
     mmp = mp;
     mfkp = fkp;
@@ -559,7 +559,7 @@ bool DetThread::saveEventData(int firstEvPosInFB, int lastEvPosInFB){
 
     // Init video avi
     VideoWriter *video = NULL;
-    
+
     if(mdtp.DET_SAVE_AVI) {
         video = new VideoWriter(mEventPath + "video.avi", CV_FOURCC('M', 'J', 'P', 'G'), 5, Size(static_cast<int>(frameBuffer->front().mImg.cols), static_cast<int>(frameBuffer->front().mImg.rows)), false);
     }
@@ -736,7 +736,7 @@ bool DetThread::saveEventData(int firstEvPosInFB, int lastEvPosInFB){
 
         // Exposure time sum of frames in the fits cube.
         fits3d.kONTIME = sumExpTime/1000000.0;
-   
+
         fits3d.writeFits3D();
 
     }

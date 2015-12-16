@@ -239,6 +239,15 @@ void CfgParam::loadDataParam() {
     if(!cfg.Get("DATA_PATH", param.data.DATA_PATH)) {
         param.data.errormsg.push_back("- DATA_PATH : Fail to get value.");
         e = true;
+    }else{
+
+        namespace fs = boost::filesystem;
+        path p(param.data.DATA_PATH);
+
+        if(!fs::exists(p)){
+            e = true;
+            param.data.errormsg.push_back("- DATA_PATH : Path doesn't exist.");
+        }
     }
 
     if(!cfg.Get("FITS_COMPRESSION", param.data.FITS_COMPRESSION)) {
@@ -266,6 +275,15 @@ void CfgParam::loadLogParam() {
     if(!cfg.Get("LOG_PATH", param.log.LOG_PATH)) {
         param.log.errormsg.push_back("- LOG_PATH : Fail to get value.");
         e = true;
+    }else{
+
+        namespace fs = boost::filesystem;
+        path p(param.log.LOG_PATH);
+
+        if(!fs::exists(p)){
+            e = true;
+            param.log.errormsg.push_back("- LOG_PATH : Path doesn't exist.");
+        }
     }
 
     if(!cfg.Get("LOG_ARCHIVE_DAY", param.log.LOG_ARCHIVE_DAY)) {
@@ -1209,6 +1227,15 @@ void CfgParam::loadDetParam() {
             if(!cfg.Get("DET_DEBUG_PATH", param.det.DET_DEBUG_PATH)) {
                 e = true;
                 param.det.errormsg.push_back("- DET_DEBUG_PATH : Fail to load value.");
+            }else{
+
+                namespace fs = boost::filesystem;
+                path p(param.det.DET_DEBUG_PATH);
+
+                if(!fs::exists(p)){
+                    e = true;
+                    param.det.errormsg.push_back("- DET_DEBUG_PATH : Path doesn't exist.");
+                }
             }
         }
     }
@@ -1306,6 +1333,24 @@ void CfgParam::loadDetParam() {
     if(!cfg.Get("DET_DEBUG_UPDATE_MASK", param.det.DET_DEBUG_UPDATE_MASK)) {
         e = true;
         param.det.errormsg.push_back("- DET_DEBUG_UPDATE_MASK : Fail to load value.");
+    }else{
+
+        if(param.det.DET_DEBUG_UPDATE_MASK){
+
+            if(!cfg.Get("DET_DEBUG_PATH", param.det.DET_DEBUG_PATH)) {
+                e = true;
+                param.det.errormsg.push_back("- DET_DEBUG_PATH : Fail to load value.");
+            }else{
+
+                namespace fs = boost::filesystem;
+                path p(param.det.DET_DEBUG_PATH);
+
+                if(!fs::exists(p)){
+                    e = true;
+                    param.det.errormsg.push_back("- DET_DEBUG_PATH : Path doesn't exist.");
+                }
+            }
+        }
     }
 
     // --------------------------------------------------------------------------------------

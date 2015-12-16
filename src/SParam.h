@@ -211,7 +211,7 @@ struct detectionParam {
     bool        DET_SAVE_SUM_WITH_HIST_EQUALIZATION;
     bool        DET_SAVE_AVI;
     bool        DET_UPDATE_MASK;
-    bool        DET_UPDATE_MASK_FREQUENCY;
+    int         DET_UPDATE_MASK_FREQUENCY;
     bool        DET_DEBUG_UPDATE_MASK;
     bool        DET_DOWNSAMPLE_ENABLED;
 
