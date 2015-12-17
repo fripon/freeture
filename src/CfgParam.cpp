@@ -1347,7 +1347,7 @@ void CfgParam::loadDetParam() {
 
                 if(!fs::exists(p)){
                     e = true;
-                    param.det.errormsg.push_back("- DET_DEBUG_PATH : Path doesn't exist.");
+                    param.det.errormsg.push_back("- DET_DEBUG_PATH : Path doesn't exist. It must exists because DET_DEBUG_UPDATE_MASK is enabled.");
                 }
             }
         }
