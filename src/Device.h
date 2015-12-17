@@ -132,6 +132,7 @@ class Device {
         double      mMaxExposureTime;
         int         mMinGain;
         int         mMaxGain;
+        //int         mNbFrame;
 
     public :
 
@@ -172,6 +173,8 @@ class Device {
         void getCameraExposureBounds();
 
         bool getDeviceName();
+
+        bool recreateCamera();
 
         InputDeviceType getDeviceType();
 

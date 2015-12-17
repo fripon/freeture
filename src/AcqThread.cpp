@@ -121,6 +121,10 @@ bool AcqThread::startThread() {
     // Search available devices.
     mDevice->listDevices(false);
 
+    // CREATE CAMERA
+    if(!mDevice->createCamera())
+        return false;
+
     // Prepare continuous acquisition.
     if(!prepareAcquisitionOnDevice())
         return false;
@@ -804,6 +808,11 @@ void AcqThread::runImageCapture(int imgNumber, int imgExposure, int imgGain, Cam
     #endif
 
     BOOST_LOG_SEV(logger, notification) << "Restarting camera in continuous mode...";
+
+    // RECREATE CAMERA
+    if(!mDevice->recreateCamera())
+        throw "Fail to restart camera.";
+
     prepareAcquisitionOnDevice();
 
 }
@@ -1093,9 +1102,6 @@ bool AcqThread::computeSunTimes() {
 
 bool AcqThread::prepareAcquisitionOnDevice() {
 
-    // CREATE CAMERA
-    if(!mDevice->createCamera())
-        return false;
 
     // SET SIZE
     if(!mDevice->setCameraSize())

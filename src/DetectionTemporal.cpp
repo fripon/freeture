@@ -806,7 +806,7 @@ bool DetectionTemporal::runDetection(Frame &c) {
             if(mdtp.DET_DEBUG_UPDATE_MASK) {
                 const boost::filesystem::path p = path(mdtp.DET_DEBUG_PATH + "/mask/");
                 if(!boost::filesystem::exists(p)) boost::filesystem::create_directories(p);
-                SaveImg::saveJPEG(Conversion::convertTo8UC1(currImg), mdtp.DET_DEBUG_PATH + "/mask/umask_" + Conversion::intToString(c.mFrameNumber));
+                SaveImg::saveJPEG(Conversion::convertTo8UC1(currImg), mdtp.DET_DEBUG_PATH + "/mask/umask_" + Conversion::numbering(10,c.mFrameNumber) + Conversion::intToString(c.mFrameNumber));
             }
 
             currImg.copyTo(mPrevFrame);

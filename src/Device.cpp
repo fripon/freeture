@@ -64,6 +64,7 @@ Device::Device(cameraParam cp, framesParam fp, videoParam vp, int cid) {
     mDeviceType = UNDEFINED_INPUT_TYPE;
     mvp = vp;
     mfp = fp;
+    //mNbFrame = 0;
 }
 
 Device::Device() {
@@ -92,6 +93,7 @@ Device::Device() {
     vector<string> finput, vinput;
     mvp.INPUT_VIDEO_PATH = vinput;
     mfp.INPUT_FRAMES_DIRECTORY_PATH = finput;
+    //mNbFrame = 0;
 
 }
 
@@ -141,6 +143,29 @@ bool Device::createCamera() {
         // Create Camera object with the correct sdk.
         if(!createDevicesWith(mDevices.at(mGenCamID).second.second))
             return false;
+
+        mCamID = mDevices.at(mGenCamID).first;
+
+        if(mCam != NULL) {
+            if(!mCam->createDevice(mCamID)){
+                BOOST_LOG_SEV(logger, fail) << "Fail to create device with ID  : " << mGenCamID;
+                mCam->grabCleanse();
+                return false;
+            }
+            return true;
+        }
+
+    }
+
+    BOOST_LOG_SEV(logger, fail) << "No device with ID " << mGenCamID;
+
+    return false;
+
+}
+
+bool Device::recreateCamera() {
+
+    if(mGenCamID >=0 && mGenCamID < mDevices.size()) {
 
         mCamID = mDevices.at(mGenCamID).first;
 
@@ -574,6 +599,8 @@ bool Device::stopCamera() {
 bool Device::runContinuousCapture(Frame &img) {
 
     if(mCam->grabImage(img)) {
+        //img.mFrameNumber = mNbFrame;
+        //mNbFrame++;
         return true;
     }
 
