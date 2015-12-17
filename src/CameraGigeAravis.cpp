@@ -743,7 +743,9 @@
             arv_camera_stop_acquisition(camera);
 
             g_object_unref(stream);
+            stream = NULL;
             g_object_unref(camera);
+            camera = NULL;
 
         }
 
