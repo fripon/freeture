@@ -757,7 +757,8 @@
 
             if(0 == r) {
               fprintf(stderr, "select timeout\n");
-              exit(EXIT_FAILURE);
+              BOOST_LOG_SEV(logger, warning) << "Select timeout !";
+              //exit(EXIT_FAILURE);
             }
 
             if(read_frame()) {

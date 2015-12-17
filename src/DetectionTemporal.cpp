@@ -98,7 +98,8 @@ void DetectionTemporal::resetDetection(bool loadNewDataSet){
 
     BOOST_LOG_SEV(logger, notification) << "Clear global events list.";
     mListGlobalEvents.clear();
-
+    // Clear list of files to send by mail.
+    debugFiles.clear();
     mSubdivisionStatus = false;
     mPrevThresholdedMap.release();
     mPrevFrame.release();
