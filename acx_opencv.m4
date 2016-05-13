@@ -75,8 +75,6 @@ if test x$acx_opencv_ok = xyes; then
   if test x$1 = x; then
     AC_CHECK_LIB(opencv_calib3d, main,, [acx_opencv_ok=no],
 		[-lopencv_calib3d])
-    AC_CHECK_LIB(opencv_contrib, main,, [acx_opencv_ok=no],
-		[-lopencv_contrib])
     AC_CHECK_LIB(opencv_core, main,, [acx_opencv_ok=no],
 		[-lopencv_core])
     AC_CHECK_LIB(opencv_features2d, main,, [acx_opencv_ok=no],
@@ -87,14 +85,14 @@ if test x$acx_opencv_ok = xyes; then
 		[-lopencv_highgui])
     AC_CHECK_LIB(opencv_imgproc, main,, [acx_opencv_ok=no],
 		[-lopencv_imgproc])
-    AC_CHECK_LIB(opencv_legacy, main,, [acx_opencv_ok=no],
-		[-lopencv_legacy])
     AC_CHECK_LIB(opencv_ml, main,, [acx_opencv_ok=no],
 		[-lopencv_ml])
     AC_CHECK_LIB(opencv_objdetect, main,, [acx_opencv_ok=no],
 		[-lopencv_objdetect])
     AC_CHECK_LIB(opencv_video, main,, [acx_opencv_ok=no],
 		[-lopencv_video])
+    AC_CHECK_LIB(opencv_videoio, main,, [acx_opencv_ok=no],
+		[-lopencv_videoio])
     if test x$acx_opencv_ok = xyes; then
       OPENCV_LIBPATH=""
     else
@@ -106,8 +104,6 @@ dnl Specific libdir specified
 dnl -------------------------
     AC_CHECK_LIB(opencv_calib3d, main,, [acx_opencv_ok=no],
 		[-L$1 -lopencv_calib3d])
-    AC_CHECK_LIB(opencv_contrib, main,, [acx_opencv_ok=no],
-		[-L$1 -lopencv_contrib])
     AC_CHECK_LIB(opencv_core, main,, [acx_opencv_ok=no],
 		[-L$1 -lopencv_core])
     AC_CHECK_LIB(opencv_features2d, main,, [acx_opencv_ok=no],
@@ -118,14 +114,14 @@ dnl -------------------------
 		[-L$1 -lopencv_highgui])
     AC_CHECK_LIB(opencv_imgproc, main,, [acx_opencv_ok=no],
 		[-L$1 -lopencv_imgproc])
-    AC_CHECK_LIB(opencv_legacy, main,, [acx_opencv_ok=no],
-		[-L$1 -lopencv_legacy])
     AC_CHECK_LIB(opencv_ml, main,, [acx_opencv_ok=no],
 		[-L$1 -lopencv_ml])
     AC_CHECK_LIB(opencv_objdetect, main,, [acx_opencv_ok=no],
 		[-L$1 -lopencv_objdetect])
     AC_CHECK_LIB(opencv_video, main,, [acx_opencv_ok=no],
 		[-L$1 -lopencv_video])
+    AC_CHECK_LIB(opencv_videoio, main,, [acx_opencv_ok=no],
+		[-L$1 -lopencv_videoio])
     if test x$acx_opencv_ok = xyes; then
       OPENCV_LIBPATH="-L$1"
     else
@@ -143,7 +139,7 @@ dnl -------------------------------------------------------------------------
 if test x"$acx_opencv_ok" = xyes; then
   AC_DEFINE(HAVE_OPENCV,1,
 	[Define if you have the OpenCV libraries and header files.])
-  OPENCV_LIBS="$OPENCV_LIBPATH -lopencv_calib3d -lopencv_contrib -lopencv_core -lopencv_features2d -lopencv_flann -lopencv_highgui -lopencv_imgproc -lopencv_legacy -lopencv_ml -lopencv_objdetect -lopencv_video"
+  OPENCV_LIBS="$OPENCV_LIBPATH -lopencv_calib3d -lopencv_core -lopencv_features2d -lopencv_flann -lopencv_highgui -lopencv_imgproc -lopencv_ml -lopencv_objdetect -lopencv_video -lopencv_videoio"
   LIBS="$OLIBS"
   AC_SUBST(OPENCV_LIBS)
   $3
