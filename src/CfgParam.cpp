@@ -5,7 +5,7 @@
 *
 *   This file is part of:   freeture
 *
-*   Copyright:      (C) 2014-2015 Yoan Audureau
+*   Copyright:      (C) 2014-2016 Yoan Audureau, Chiara Marmo
 *                               FRIPON-GEOPS-UPSUD-CNRS
 *
 *   License:        GNU General Public License
@@ -21,7 +21,7 @@
 *   You should have received a copy of the GNU General Public License
 *   along with FreeTure. If not, see <http://www.gnu.org/licenses/>.
 *
-*   Last modified:      20/10/2014
+*   Last modified:      13/05/2016
 *
 *%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%*/
 
@@ -245,8 +245,10 @@ void CfgParam::loadDataParam() {
         path p(param.data.DATA_PATH);
 
         if(!fs::exists(p)){
-            e = true;
-            param.data.errormsg.push_back("- DATA_PATH : Path doesn't exist.");
+            if(!fs::create_directory(p)){
+                e = true;
+                param.data.errormsg.push_back("- DATA_PATH : Can't create Data Path directory.");
+            }
         }
     }
 
@@ -281,8 +283,10 @@ void CfgParam::loadLogParam() {
         path p(param.log.LOG_PATH);
 
         if(!fs::exists(p)){
-            e = true;
-            param.log.errormsg.push_back("- LOG_PATH : Path doesn't exist.");
+            if(!fs::create_directory(p)){
+                e = true;
+                param.log.errormsg.push_back("- LOG_PATH : Can't create Log Path directory.");
+            }
         }
     }
 
@@ -1233,8 +1237,10 @@ void CfgParam::loadDetParam() {
                 path p(param.det.DET_DEBUG_PATH);
 
                 if(!fs::exists(p)){
-                    e = true;
-                    param.det.errormsg.push_back("- DET_DEBUG_PATH : Path doesn't exist.");
+                    if(!fs::create_directory(p)){
+                        e = true;
+                        param.det.errormsg.push_back("- DET_DEBUG_PATH : Can't create Debug Path.");
+                    }
                 }
             }
         }
@@ -1346,8 +1352,10 @@ void CfgParam::loadDetParam() {
                 path p(param.det.DET_DEBUG_PATH);
 
                 if(!fs::exists(p)){
-                    e = true;
-                    param.det.errormsg.push_back("- DET_DEBUG_PATH : Path doesn't exist. It must exists because DET_DEBUG_UPDATE_MASK is enabled.");
+                    if(!fs::create_directory(p)){
+                        e = true;
+                        param.det.errormsg.push_back("- DET_DEBUG_PATH : Can't create Debug Path. Debug Path must exist as DET_DEBUG_UPDATE_MASK is enabled.");
+                    }
                 }
             }
         }
