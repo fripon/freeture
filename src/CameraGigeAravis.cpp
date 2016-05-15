@@ -5,7 +5,7 @@
 *
 *   This file is part of:   freeture
 *
-*   Copyright:      (C) 2014-2015 Yoan Audureau
+*   Copyright:      (C) 2014-2016 Yoan Audureau
 *                               FRIPON-GEOPS-UPSUD-CNRS
 *
 *   License:        GNU General Public License
@@ -21,7 +21,7 @@
 *   You should have received a copy of the GNU General Public License
 *   along with FreeTure. If not, see <http://www.gnu.org/licenses/>.
 *
-*   Last modified:      20/07/2015
+*   Last modified:      16/05/2016
 *
 *%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%*/
 
@@ -29,7 +29,7 @@
 * \file    CameraGigeAravis.cpp
 * \author  Yoan Audureau -- FRIPON-GEOPS-UPSUD
 * \version 1.0
-* \date    21/01/2015
+* \date    16/05/2016
 * \brief   Use Aravis library to pilot GigE Cameras.
 *          https://wiki.gnome.org/action/show/Projects/Aravis?action=show&redirect=Aravis
 */
@@ -73,20 +73,35 @@
 
         vector<pair<int,string>> camerasList;
 
-        arv_update_device_list();
+        ArvInterface *interface;
 
-        int nb = arv_get_n_devices();
+        //arv_update_device_list();
+
+        int ni = arv_get_n_interfaces();
 
 
-        for(int i = 0; i < nb; i++){
+        for (int j = 0; j< ni; j++){
 
-            pair<int,string> c;
-            c.first = i;
-            const char* str = arv_get_device_id(i);
-            std::string s = str;
-            c.second = "NAME[" + s + "] SDK[ARAVIS]";
-            camerasList.push_back(c);
+            const char* name = arv_get_interface_id (j);
+            if (strcmp(name,"GigEVision") == 0) {
+                interface = arv_gv_interface_get_instance();
+                arv_interface_update_device_list(interface);
+                //int nb = arv_get_n_devices();
 
+                int nb = arv_interface_get_n_devices(interface);
+
+                for(int i = 0; i < nb; i++){
+
+                    pair<int,string> c;
+                    c.first = i;
+                    //const char* str = arv_get_device_id(i);
+                    const char* str = arv_interface_get_device_id(interface,i);
+                    const char* addr = arv_interface_get_device_address(interface,i);
+                    std::string s = str;
+                    c.second = "NAME[" + s + "] SDK[ARAVIS] IP: " + addr;
+                    camerasList.push_back(c);
+                }
+            }
         }
 
        return camerasList;
@@ -95,24 +110,33 @@
 
     bool CameraGigeAravis::listCameras(){
 
-        arv_update_device_list();
+        ArvInterface *interface;
+        //arv_update_device_list();
 
-        int nb = arv_get_n_devices();
+        int ni = arv_get_n_interfaces ();
 
         cout << endl << "------------ GIGE CAMERAS WITH ARAVIS ----------" << endl << endl;
 
-        for(int i = 0; i < nb; i++){
+        for (int j = 0; j< ni; j++){
 
-            cout << "-> [" << i << "] " << arv_get_device_id(i)<< endl;
+            interface = arv_gv_interface_get_instance();
+            arv_interface_update_device_list(interface);
+            //int nb = arv_get_n_devices();
 
+            int nb = arv_interface_get_n_devices(interface);
+            for(int i = 0; i < nb; i++){
+
+                cout << "-> [" << i << "] " << arv_interface_get_device_id(interface,i)<< endl;
+                //cout << "-> [" << i << "] " << arv_get_device_id(i)<< endl;
+
+            }
+
+            if(nb == 0) {
+                cout << "-> No cameras detected..." << endl;
+                return false;
+            }
         }
-
         cout << endl << "------------------------------------------------" << endl << endl;
-
-        if(nb == 0) {
-            cout << "-> No cameras detected..." << endl;
-            return false;
-        }
 
         return true;
 
