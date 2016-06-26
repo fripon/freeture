@@ -192,6 +192,8 @@ class Device {
 
         bool setCameraFPS();
 
+        bool setCameraFPS(double value);
+ 
         bool setCameraSize();
 
         bool getCameraFPS(double &fps);

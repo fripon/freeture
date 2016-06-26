@@ -565,6 +565,17 @@ bool Device::setCameraFPS() {
 
 }
 
+/* Method to set the camera FPS at a given value */
+bool Device::setCameraFPS(double value) {
+
+    if(!mCam->setFPS(value)) {
+        BOOST_LOG_SEV(logger, fail) << "Fail to set FPS to " << value;
+        mCam->grabCleanse();
+        return false;
+    }
+    return true;
+}
+
 bool Device::initializeCamera() {
 
     if(!mCam->grabInitialization()){

@@ -224,7 +224,9 @@
         BOOST_LOG_SEV(logger, notification) << "Camera gain bound min : " << gainMin;
         BOOST_LOG_SEV(logger, notification) << "Camera gain bound max : " << gainMax;
 
-        arv_camera_set_frame_rate(camera, 30);
+		// Uncomment this line if one want to force the Frame Rate at a given value
+		// otherwise the value from the configuration file is used.
+        // arv_camera_set_frame_rate(camera, 30);
 
         fps = arv_camera_get_frame_rate(camera);
         BOOST_LOG_SEV(logger, notification) << "Camera frame rate : " << fps;
@@ -561,7 +563,9 @@
 
         arv_camera_get_gain_bounds (camera, &gainMin, &gainMax);
 
-        arv_camera_set_frame_rate(camera, 1);
+		// Uncomment this line if one want to force the Frame Rate at a given value
+		// otherwise the value from the configuration file is used.
+        // arv_camera_set_frame_rate(camera, 1);
 
         fps = arv_camera_get_frame_rate(camera);
 
