@@ -563,9 +563,8 @@
 
         arv_camera_get_gain_bounds (camera, &gainMin, &gainMax);
 
-		// Uncomment this line if one want to force the Frame Rate at a given value
-		// otherwise the value from the configuration file is used.
-        // arv_camera_set_frame_rate(camera, 1);
+		// Set the required Frame Rate obtained from the configuration file
+        arv_camera_set_frame_rate(camera, frame.mFps);
 
         fps = arv_camera_get_frame_rate(camera);
 
