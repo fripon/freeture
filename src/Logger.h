@@ -161,9 +161,12 @@ class Logger {
             unsigned long long logSize = 0;
             getFoldersize(mLogPath, logSize);
             //cout << "LOG SIZE : " <<  logSize << endl;
-            if((logSize/1024.0)/1024.0 > mSizeLimit)
-                boost::filesystem::remove_all(path(mLogPath));
-
+            if((logSize/1024.0)/1024.0 > mSizeLimit) {
+                boost::filesystem::path path_to_remove(mLogPath);
+                for (boost::filesystem::directory_iterator end_dir_it, it(path_to_remove); it!=end_dir_it; ++it) {
+                    boost::filesystem::remove_all(it->path());
+                }
+            }
         }
 
     private :

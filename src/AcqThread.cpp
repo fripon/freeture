@@ -395,7 +395,7 @@ void AcqThread::operator()(){
                                 }else if(currentTimeMode == DAY && (mcp.regcap.ACQ_REGULAR_MODE == DAY || mcp.regcap.ACQ_REGULAR_MODE == DAYNIGHT)) {
 
                                     BOOST_LOG_SEV(logger, notification) << "Run regular acquisition.";
-                                    saveImageCaptured(newFrame, 0, mcp.regcap.ACQ_REGULAR_OUTPUT);
+                                    saveImageCaptured(newFrame, 0, mcp.regcap.ACQ_REGULAR_OUTPUT, mcp.regcap.ACQ_REGULAR_PRFX);
 
                                 }
 
@@ -789,7 +789,7 @@ void AcqThread::runImageCapture(int imgNumber, int imgExposure, int imgGain, Cam
 
             BOOST_LOG_SEV(logger, notification) << "Single capture succeed !";
             cout << "Single capture succeed !" << endl;
-            saveImageCaptured(frame, i, imgOutput);
+            saveImageCaptured(frame, i, imgOutput, "");
 
         }else{
 
@@ -817,7 +817,7 @@ void AcqThread::runImageCapture(int imgNumber, int imgExposure, int imgGain, Cam
 
 }
 
-void AcqThread::saveImageCaptured(Frame &img, int imgNum, ImgFormat outputType) {
+void AcqThread::saveImageCaptured(Frame &img, int imgNum, ImgFormat outputType, string imgPrefix) {
 
     if(img.mImg.data) {
 
@@ -825,7 +825,7 @@ void AcqThread::saveImageCaptured(Frame &img, int imgNum, ImgFormat outputType) 
 
         if(buildAcquisitionDirectory(YYYYMMDD)) {
 
-            string fileName = "CAP_" + TimeDate::getYYYYMMDDThhmmss(img.mDate) + "_UT-" + Conversion::intToString(imgNum);
+            string fileName = imgPrefix + "_" + TimeDate::getYYYYMMDDThhmmss(img.mDate) + "_UT-" + Conversion::intToString(imgNum);
 
             switch(outputType) {
 

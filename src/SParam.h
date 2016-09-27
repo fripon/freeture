@@ -164,6 +164,7 @@ struct cameraParam{
     struct regularCaptures {
         bool        ACQ_REGULAR_ENABLED;
         TimeMode    ACQ_REGULAR_MODE;
+        string      ACQ_REGULAR_PRFX;
         ImgFormat   ACQ_REGULAR_OUTPUT;
         struct regularParam {
             int interval;

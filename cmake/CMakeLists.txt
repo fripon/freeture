@@ -4,7 +4,7 @@ cmake_minimum_required(VERSION 2.6)
 project(freeture)
 #------------------------------------------------
 # The version number.
-set(VERSION 1.0.1)
+set(VERSION 1.1.0)
 # Configuration file default path
 set(CFG_PATH /usr/local/share/freeture/ )
 #------------------------------------------------

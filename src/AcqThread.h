@@ -163,7 +163,7 @@ class AcqThread {
         void selectNextAcquisitionSchedule(TimeDate::Date date);
 
         // Save a capture on disk.
-        void saveImageCaptured(Frame &img, int imgNum, ImgFormat outputType);
+        void saveImageCaptured(Frame &img, int imgNum, ImgFormat outputType, string imgPrefix);
 
         // Run a regular or scheduled acquisition.
         void runImageCapture(int imgNumber, int imgExposure, int imgGain, CamPixFmt imgFormat, ImgFormat imgOutput);
