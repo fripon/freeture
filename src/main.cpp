@@ -297,6 +297,7 @@ int main(int argc, const char ** argv){
 
             mode = vm["mode"].as<int>();
             if(vm.count("cfg")) configPath = vm["cfg"].as<string>();
+            if(vm.count("time")) executionTime = vm["time"].as<int>();
             CfgParam cfg(configPath);
 
             switch(mode){
