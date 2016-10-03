@@ -5,7 +5,7 @@
 *
 *   This file is part of:   freeture
 *
-*   Copyright:      (C) 2014-2015 Yoan Audureau -- FRIPON-GEOPS-UPSUD
+*   Copyright:      (C) 2014-2016 Yoan Audureau, Chiara Marmo -- FRIPON-GEOPS-UPSUD
 *
 *   License:        GNU General Public License
 *
@@ -20,15 +20,15 @@
 *   You should have received a copy of the GNU General Public License
 *   along with FreeTure. If not, see <http://www.gnu.org/licenses/>.
 *
-*   Last modified:      21/01/2015
+*   Last modified:      03/10/2016
 *
 *%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%*/
 
 /**
 * \file    AcqThread.h
-* \author  Yoan Audureau -- FRIPON-GEOPS-UPSUD
+* \author  Yoan Audureau, Chiara Marmo -- FRIPON-GEOPS-UPSUD
 * \version 1.0
-* \date    21/01/2015
+* \date    03/10/2016
 * \brief   Acquisition thread.
 */
 
@@ -166,7 +166,7 @@ class AcqThread {
         void saveImageCaptured(Frame &img, int imgNum, ImgFormat outputType, string imgPrefix);
 
         // Run a regular or scheduled acquisition.
-        void runImageCapture(int imgNumber, int imgExposure, int imgGain, CamPixFmt imgFormat, ImgFormat imgOutput);
+        void runImageCapture(int imgNumber, int imgExposure, int imgGain, CamPixFmt imgFormat, ImgFormat imgOutput, string imgPrefix);
 
         // Prepare the device for a continuous acquisition.
         bool prepareAcquisitionOnDevice();
