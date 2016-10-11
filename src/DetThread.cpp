@@ -33,6 +33,7 @@
 */
 
 #include "DetThread.h"
+#include <thread>
 
 boost::log::sources::severity_logger< LogSeverityLevel >  DetThread::logger;
 
@@ -764,6 +765,15 @@ bool DetThread::saveEventData(int firstEvPosInFB, int lastEvPosInFB){
         equalizeHist(s, eqHist);
         SaveImg::saveJPEG(eqHist,mEventPath+mStationName+"_"+TimeDate::getYYYYMMDDThhmmss(mEventDate)+"_UT");
 
+    }
+
+    // *********************************** USER COMMAND ***********************************
+    if(boost::filesystem::exists(mdtp.DET_EVENT_USER_ACTION) && (*pDetMthd).getEventStatus() ) {
+        string commandString = mdtp.DET_EVENT_USER_ACTION + " " + mEventPath;
+        BOOST_LOG_SEV(logger,notification) << "Executing user command : " << commandString;
+        std::thread t1([this,commandString](){ return system(commandString.c_str()); });
+        t1.detach();
+        BOOST_LOG_SEV(logger,notification) << "Script left running.";
     }
 
     // *********************************** SEND MAIL NOTIFICATION ***********************************

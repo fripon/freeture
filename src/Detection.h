@@ -94,6 +94,16 @@ class Detection {
         virtual ~Detection() {};
 
         /**
+        * Get the event analysis state.
+        *
+        * @return bool.
+        */
+        virtual bool getEventStatus() {
+            return true;
+
+        };
+
+        /**
         * Run meteor detection method.
         *
         * @param c Current frame.
