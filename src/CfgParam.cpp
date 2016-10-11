@@ -724,6 +724,19 @@ void CfgParam::loadCamParam() {
 
             {
 
+                string img_prefix;
+                if(!cfg.Get("ACQ_REGULAR_PRFX", img_prefix)) {
+                    e = true;
+                    param.camInput.errormsg.push_back("- ACQ_REGULAR_PRFX : Fail to load value.");
+                }else {
+                    param.camInput.regcap.ACQ_REGULAR_PRFX = img_prefix;
+                }
+            }
+
+            //-------------------------------------------------------------------
+
+            {
+
                 string img_output;
                 if(!cfg.Get("ACQ_REGULAR_OUTPUT", img_output)) {
                     e = true;

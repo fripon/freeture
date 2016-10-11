@@ -5,7 +5,7 @@
 *
 *   This file is part of:   freeture
 *
-*   Copyright:      (C) 2014-2015 Yoan Audureau
+*   Copyright:      (C) 2014-2016 Yoan Audureau, Chiara Marmo
 *                               FRIPON-GEOPS-UPSUD-CNRS
 *
 *   License:        GNU General Public License
@@ -21,13 +21,13 @@
 *   You should have received a copy of the GNU General Public License
 *   along with FreeTure. If not, see <http://www.gnu.org/licenses/>.
 *
-*   Last modified:      20/07/2015
+*   Last modified:      03/10/2016
 *
 *%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%*/
 
 /**
 * \file    AcqThread.cpp
-* \author  Yoan Audureau -- FRIPON-GEOPS-UPSUD
+* \author  Yoan Audureau, Chiara Marmo -- FRIPON-GEOPS-UPSUD
 * \version 1.0
 * \date    21/01/2015
 * \brief   Acquisition thread.
@@ -162,7 +162,7 @@ void AcqThread::operator()(){
         bool exposureControlActive = false;
         bool cleanStatus = false;
 
-        // If exposure can be setted on the input device.
+        // If exposure can be set on the input device.
         if(mDevice->getExposureStatus()) {
 
             pExpCtrl = new ExposureControl( mcp.EXPOSURE_CONTROL_FREQUENCY,
@@ -389,13 +389,14 @@ void AcqThread::operator()(){
                                                             mcp.regcap.ACQ_REGULAR_CFG.exp,
                                                             mcp.regcap.ACQ_REGULAR_CFG.gain,
                                                             mcp.regcap.ACQ_REGULAR_CFG.fmt,
-                                                            mcp.regcap.ACQ_REGULAR_OUTPUT);
+                                                            mcp.regcap.ACQ_REGULAR_OUTPUT,
+                                                            mcp.regcap.ACQ_REGULAR_PRFX);
 
                                 // Current time is between sunrise start and sunset stop = DAY
                                 }else if(currentTimeMode == DAY && (mcp.regcap.ACQ_REGULAR_MODE == DAY || mcp.regcap.ACQ_REGULAR_MODE == DAYNIGHT)) {
 
                                     BOOST_LOG_SEV(logger, notification) << "Run regular acquisition.";
-                                    saveImageCaptured(newFrame, 0, mcp.regcap.ACQ_REGULAR_OUTPUT);
+                                    saveImageCaptured(newFrame, 0, mcp.regcap.ACQ_REGULAR_OUTPUT, mcp.regcap.ACQ_REGULAR_PRFX);
 
                                 }
 
@@ -433,7 +434,8 @@ void AcqThread::operator()(){
                                                     mNextAcq.exp,
                                                     mNextAcq.gain,
                                                     format,
-                                                    mcp.schcap.ACQ_SCHEDULE_OUTPUT);
+                                                    mcp.schcap.ACQ_SCHEDULE_OUTPUT,
+                                                    "");
 
                                 // Update mNextAcq
                                 selectNextAcquisitionSchedule(newFrame.mDate);
@@ -729,7 +731,7 @@ bool AcqThread::buildAcquisitionDirectory(string YYYYMMDD){
     return true;
 }
 
-void AcqThread::runImageCapture(int imgNumber, int imgExposure, int imgGain, CamPixFmt imgFormat, ImgFormat imgOutput) {
+void AcqThread::runImageCapture(int imgNumber, int imgExposure, int imgGain, CamPixFmt imgFormat, ImgFormat imgOutput, string imgPrefix) {
 
     // Stop camera
     mDevice->stopCamera();
@@ -789,7 +791,7 @@ void AcqThread::runImageCapture(int imgNumber, int imgExposure, int imgGain, Cam
 
             BOOST_LOG_SEV(logger, notification) << "Single capture succeed !";
             cout << "Single capture succeed !" << endl;
-            saveImageCaptured(frame, i, imgOutput);
+            saveImageCaptured(frame, i, imgOutput, imgPrefix);
 
         }else{
 
@@ -817,7 +819,7 @@ void AcqThread::runImageCapture(int imgNumber, int imgExposure, int imgGain, Cam
 
 }
 
-void AcqThread::saveImageCaptured(Frame &img, int imgNum, ImgFormat outputType) {
+void AcqThread::saveImageCaptured(Frame &img, int imgNum, ImgFormat outputType, string imgPrefix) {
 
     if(img.mImg.data) {
 
@@ -825,7 +827,7 @@ void AcqThread::saveImageCaptured(Frame &img, int imgNum, ImgFormat outputType) 
 
         if(buildAcquisitionDirectory(YYYYMMDD)) {
 
-            string fileName = "CAP_" + TimeDate::getYYYYMMDDThhmmss(img.mDate) + "_UT-" + Conversion::intToString(imgNum);
+            string fileName = imgPrefix + "_" + TimeDate::getYYYYMMDDThhmmss(img.mDate) + "_UT-" + Conversion::intToString(imgNum);
 
             switch(outputType) {
 

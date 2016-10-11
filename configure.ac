@@ -23,7 +23,7 @@
 #*	You should have received a copy of the GNU General Public License
 #*	along with FreeTure. If not, see <http://www.gnu.org/licenses/>.
 #*
-#*	Last modified:		15/06/2015
+#*	Last modified:		27/09/2016
 #*
 #*%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%*/
 
@@ -32,7 +32,7 @@ define([AC_CACHE_LOAD],)
 define([AC_CACHE_SAVE],)
 
 AC_PREREQ([2.69])
-AC_INIT([freeture], [1.0-4], [yoan.audureau@u-psud.fr])
+AC_INIT([freeture], [1.1-0], [yoan.audureau@u-psud.fr])
 AC_CONFIG_SRCDIR([src/main.cpp])
 AC_CONFIG_HEADERS([config.h])
 
@@ -51,7 +51,6 @@ AC_DEFINE(LINUX, 1, [Linux plateform])
 sinclude(acx_urbi_resolve_dir.m4)
 sinclude(acx_boost.m4)
 sinclude(acx_opencv.m4)
-#sinclude(acx_openssl.m4)
 sinclude(acx_cfitsio.m4)
 sinclude(acx_pylon.m4)
 
