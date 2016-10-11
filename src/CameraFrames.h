@@ -90,7 +90,7 @@ class CameraFrames: public Camera {
 
     public:
 
-        CameraFrames(vector<string>	locationList, int numPos, bool verbose);
+        CameraFrames(vector<string> locationList, int numPos, bool verbose);
 
         ~CameraFrames();
 

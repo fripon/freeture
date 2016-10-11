@@ -46,7 +46,7 @@ CameraVideo::CameraVideo(vector<string> videoList, bool verbose):mVideoID(0), mF
     // Open the video file for reading.
     if(mVideoList.size()>0)
         mCap = VideoCapture(videoList.front());
-    else 
+    else
         throw "No video path in input.";
 
     mExposureAvailable = false;

@@ -759,7 +759,7 @@
 
             arv_stream_get_statistics(stream, &nbCompletedBuffers, &nbFailures, &nbUnderruns);
 
-            cout << ">> Completed buffers = " << (unsigned long long) nbCompletedBuffers	<< endl;
+            cout << ">> Completed buffers = " << (unsigned long long) nbCompletedBuffers    << endl;
             cout << ">> Failures          = " << (unsigned long long) nbFailures           << endl;
             //cout << ">> Underruns         = " << (unsigned long long) nbUnderruns          << endl;
 

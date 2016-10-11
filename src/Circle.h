@@ -50,20 +50,20 @@ class Circle {
     private :
 
         Point   mPos;     // Center position.
-        int     mRadius; 
+        int     mRadius;
 
     public :
 
         Circle(Point center, int radius):mPos(center), mRadius(radius) {
-            
+
         }
 
         Point getCenter() { return mPos;};
         int getRadius() { return mRadius;};
 
-        bool computeDiskSurfaceIntersection(    Circle c2, 
-                                                float &surfaceCircle1,  
-                                                float &surfaceCircle2, 
+        bool computeDiskSurfaceIntersection(    Circle c2,
+                                                float &surfaceCircle1,
+                                                float &surfaceCircle2,
                                                 float &intersectedSurface,
                                                 bool enableDebug,
                                                 string debugPath) {
@@ -79,10 +79,10 @@ class Circle {
 
             if(enableDebug) circle(map, mPos, mRadius, Scalar(0,255,0));
             if(enableDebug) circle(map, c2.getCenter(), c2.getRadius(), Scalar(0,0,255));
-   
+
             // Distance between two circles centers
             float distPcNc = sqrt(pow((mPos.x - c2.getCenter().x),2) + pow((mPos.y - c2.getCenter().y),2));
-                 
+
             // No intersections.
             if(distPcNc > c2.getRadius() + mRadius) {
 
@@ -102,7 +102,7 @@ class Circle {
                 res = true;
 
             }else {
-               
+
                 surfaceCircle1 = M_PI * pow(mRadius,2);
                 surfaceCircle2 = M_PI * pow(c2.getRadius(),2);
 
@@ -112,7 +112,7 @@ class Circle {
                 double y0 = mPos.y;
                 double x1 = c2.getCenter().x;
                 double y1 = c2.getCenter().y;
-                     
+
                 if(mPos.y != c2.getCenter().y) {
 
                     float N = (pow(R1,2) - pow(R0,2) - pow(x1,2) + pow(x0,2) - pow(y1,2) + pow(y0,2)) / (2 * (y0 - y1));
@@ -120,7 +120,7 @@ class Circle {
                     float B = 2*y0*((x0-x1)/(y0-y1))-2*N*((x0-x1)/(y0-y1))-2*x0;
                     float C = pow(x0,2) + pow(y0,2) + pow(N,2) - pow(R0,2) - 2* y0*N;
                     double delta = std::sqrt(pow(B,2)-4*A*C);
-                       
+
                     //cout << delta << endl;
 
                     if(delta > 0) {
@@ -130,9 +130,9 @@ class Circle {
 
                         float resY1 = N - resX1 * ((x0-x1)/(y0-y1));
                         float resY2 = N - resX2 * ((x0-x1)/(y0-y1));
-  
+
                         if(enableDebug) line(map, Point(resX1,resY1 ), Point(resX2,resY2 ), Scalar(255,255,255), 1, CV_AA);
-                                    
+
                         // Circle1 more inside the other
                         if(distPcNc > abs(c2.getRadius() - mRadius) && distPcNc < c2.getRadius() && c2.getRadius() > mRadius) {
 
@@ -144,16 +144,16 @@ class Circle {
                             if(cc>1.0) cc = 1.0;
                             double thetaCircle1 = 2.0* asin(cc);
                             double areaCircle1 = (pow(R0,2)/2) * (thetaCircle1 - sin(thetaCircle1));
-                  
+
                             double ccc = c/(2.0*R1);
                             if(ccc>1.0) ccc=1.0;
                             double thetaCircle2 = 2* asin(ccc);
                             double areaCircle2 = (pow(R1,2)/2) * (thetaCircle2 - sin(thetaCircle2));
-        
+
                             intersectedSurface = surfaceCircle1 - areaCircle1 + areaCircle2;
 
                             displayIntersectedSurface = true;
-                            
+
                         // Circle2 more inside the other
                         }else if(distPcNc > abs(c2.getRadius() - mRadius )&& distPcNc < mRadius && mRadius > c2.getRadius()) {
 
@@ -161,21 +161,21 @@ class Circle {
 
                             // Cord length.
                             double c = sqrt(pow((resX1 - resX2),2) + pow((resY1 - resY2),2));
-        
+
                             double cc = c/(2.0*R0);
                             if(cc>1.0) cc = 1.0;
                             double thetaPosCircle = 2.0* asin(cc);
                             double areaPosCircle = (pow(R0,2)/2) * (thetaPosCircle - sin(thetaPosCircle));
-                
+
                             double ccc = c/(2.0*R1);
                             if(ccc>1.0) ccc=1.0;
                             double thetaNegCircle = 2* asin(ccc);
                             double areaNegCircle = (pow(R1,2)/2) * (thetaNegCircle - sin(thetaNegCircle));
-                    
+
                             intersectedSurface = surfaceCircle2 - areaNegCircle + areaPosCircle;
 
                             displayIntersectedSurface = true;
-                                    
+
                         }else if(distPcNc  == c2.getRadius() ||  distPcNc  == mRadius ) {
 
                             //cout << "Outskirt" << endl;
@@ -183,23 +183,23 @@ class Circle {
                         }else {
 
                             double c = sqrt(pow((resX1 - resX2),2) + pow((resY1 - resY2),2));
-         
+
                             double cc = c/(2.0*R0);
                             if(cc>1.0) cc = 1.0;
                             double thetaPosCircle = 2.0* asin(cc);
                             double areaPosCircle = (pow(R0,2)/2) * (thetaPosCircle - sin(thetaPosCircle));
-                     
+
                             double ccc = c/(2.0*R1);
                             if(ccc>1.0) ccc=1.0;
                             double thetaNegCircle = 2* asin(ccc);
                             double areaNegCircle = (pow(R1,2)/2) * (thetaNegCircle - sin(thetaNegCircle));
-                       
+
                             intersectedSurface = areaNegCircle + areaPosCircle;
 
                             displayIntersectedSurface = true;
 
                         }
-                                                                                    
+
                         res = true;
 
                     }
@@ -212,7 +212,7 @@ class Circle {
                     float C = pow(x1,2) + pow(x,2) - 2*x1*x + pow(y1,2) - pow(R1,2);
 
                     double delta = std::sqrt(pow(B,2)-4*A*C);
-                                       
+
                     if(delta > 0) {
 
                         float resY1 = (-B-delta) / (2*A);
@@ -228,18 +228,18 @@ class Circle {
 
                             // Cord length.
                             double c = sqrt(pow((resX1 - resX2),2) + pow((resY1 - resY2),2));
-              
+
                             double cc = c/(2.0*R0);
                             if(cc>1.0) cc = 1.0;
                             double thetaPosCircle = 2.0* asin(cc);
-                             
+
                             double areaPosCircle = (pow(R0,2)/2) * (thetaPosCircle - sin(thetaPosCircle));
-                        
+
                             double ccc = c/(2.0*R1);
                             if(ccc>1.0) ccc=1.0;
                             double thetaNegCircle = 2* asin(ccc);
                             double areaNegCircle = (pow(R1,2)/2) * (thetaNegCircle - sin(thetaNegCircle));
-                    
+
                             intersectedSurface = surfaceCircle1 - areaPosCircle + areaNegCircle;
 
                             displayIntersectedSurface = true;
@@ -254,34 +254,34 @@ class Circle {
                             if(cc>1.0) cc = 1.0;
                             double thetaPosCircle = 2.0* asin(cc);
                             double areaPosCircle = (pow(R0,2)/2) * (thetaPosCircle - sin(thetaPosCircle));
-                            
+
                             double ccc = c/(2.0*R1);
                             if(ccc>1.0) ccc=1.0;
                             double thetaNegCircle = 2* asin(ccc);
                             double areaNegCircle = (pow(R1,2)/2) * (thetaNegCircle - sin(thetaNegCircle));
-                            
+
                             intersectedSurface = surfaceCircle2 - areaNegCircle + areaPosCircle;
 
                             displayIntersectedSurface = true;
-                                    
+
                         }else if(distPcNc  == c2.getRadius() ||  distPcNc  ==mRadius ) {
 
                             //cout << "Le centre d'un des cercles est sur la périphérie de l'autre" << endl;
-                                  
+
                         }else {
 
                             double c = sqrt(pow((resX1 - resX2),2) + pow((resY1 - resY2),2));
-                                           
+
                             double cc = c/(2.0*R0);
                             if(cc>1.0) cc = 1.0;
                             double thetaPosCircle = 2.0* asin(cc);
                             double areaPosCircle = (pow(R0,2)/2) * (thetaPosCircle - sin(thetaPosCircle));
-                 
+
                             double ccc = c/(2.0*R1);
                             if(ccc>1.0) ccc=1.0;
                             double thetaNegCircle = 2* asin(ccc);
                             double areaNegCircle = (pow(R1,2)/2) * (thetaNegCircle - sin(thetaNegCircle));
-                
+
                             intersectedSurface = areaNegCircle + areaPosCircle;
 
                             displayIntersectedSurface = true;
@@ -292,11 +292,11 @@ class Circle {
                         res = true;
 
                     }
-              
+
                 }
 
             }
-            
+
             if(enableDebug && displayIntersectedSurface) {
 
                 putText(map, "Intersected surface : " , cvPoint(15,15),FONT_HERSHEY_COMPLEX_SMALL, 0.8, cvScalar(0,0,255), 1, CV_AA);
@@ -308,7 +308,7 @@ class Circle {
             }
 
             if(enableDebug) SaveImg::saveBMP(map, debugPath);
-        
+
             return res;
 
         }

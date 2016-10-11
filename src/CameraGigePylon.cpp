@@ -50,7 +50,7 @@ CameraGigePylon::CameraGigePylon(){
     mExposureAvailable = true;
     mGainAvailable = true;
     mInputDeviceType = CAMERA;
-    
+
     // Enumerate GigE cameras
     pTlFactory = &CTlFactory::GetInstance();
     pTl = pTlFactory->CreateTl(CBaslerGigECamera ::DeviceClass());
@@ -93,7 +93,7 @@ vector<pair<int,string>> CameraGigePylon::getCamerasList() {
 
 CameraGigePylon::~CameraGigePylon(void){
 
-    if(pStreamGrabber != NULL){ 
+    if(pStreamGrabber != NULL){
         delete pStreamGrabber;
     }
 
@@ -102,7 +102,7 @@ CameraGigePylon::~CameraGigePylon(void){
         delete pCamera;
     }
 
-    if(pTlFactory != NULL) 
+    if(pTlFactory != NULL)
         pTlFactory->ReleaseTl(pTl);
 
 }
@@ -141,7 +141,7 @@ bool CameraGigePylon::listCameras() {
 bool CameraGigePylon::createDevice(int id){
 
     try {
-        
+
         if(!devices.empty()) {
 
             // Create a camera object
@@ -177,7 +177,7 @@ bool CameraGigePylon::getDeviceNameById(int id, string &device) {
         cout << " Name :        " << devices[id].GetModelName().c_str() << endl;
         return true;
     }
-    
+
     return false;
 
 }
@@ -369,11 +369,11 @@ void CameraGigePylon::grabCleanse(){
                         pCamera = NULL;
                     }
 
-                    if(pTlFactory != NULL) 
+                    if(pTlFactory != NULL)
                         pTlFactory->ReleaseTl(pTl);
                         pTlFactory = NULL;
                     }
- 
+
             }catch (GenICam::GenericException &e){
 
                 // Error handling.
@@ -611,7 +611,7 @@ bool CameraGigePylon::grabSingleImage(Frame &frame, int camID){
 
                 ExposureTimeRaw->SetValue(ExposureTimeRaw->GetMin());
                 cout << ">> Exposure has been setted with the minimum available value." << endl;
-                cout <<	">> The available exposure range is [" << ExposureTimeRaw->GetMin() << "-" << ExposureTimeRaw->GetMax() << "] (us)" << endl;
+                cout << ">> The available exposure range is [" << ExposureTimeRaw->GetMin() << "-" << ExposureTimeRaw->GetMax() << "] (us)" << endl;
             }
 
         }else {
@@ -641,7 +641,7 @@ bool CameraGigePylon::grabSingleImage(Frame &frame, int camID){
 
                 gainRaw->SetValue(gainRaw->GetMin());
                 cout << ">> Gain has been setted to the minimum available value." << endl;
-                cout <<	">> The available gain range is [" << gainRaw->GetMin() << "-" << gainRaw->GetMax() << "]" << endl;
+                cout << ">> The available gain range is [" << gainRaw->GetMin() << "-" << gainRaw->GetMax() << "]" << endl;
             }
         }
 
