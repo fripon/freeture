@@ -18,7 +18,7 @@ Features
 - Night and daytime (experimental) meteor detection modes
 - Fits format in output https://en.wikipedia.org/wiki/FITS
 - Possibility to run regular or scheduled long exposure acquisition
-- Possibility to stack frames in order to keep a kind of "historic"
+- Possibility to stack frames in order to keep a kind of history
 
 Examples
 --------
