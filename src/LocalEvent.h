@@ -54,7 +54,7 @@ class LocalEvent {
         Mat             mLeMap;             // ROI map.
         Point           mLeMassCenter;      // Mass center.
         int             mLeNumFrame;        // Associated frame.
-        
+
         Point           mPosMassCenter;
         Point           mNegMassCenter;
         float           mPosRadius;

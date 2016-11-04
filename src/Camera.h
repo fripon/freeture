@@ -3,7 +3,7 @@
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 *
-*   This file is part of:	freeture
+*   This file is part of:   freeture
 *
 *   Copyright:      (C) 2014-2015 Yoan Audureau -- FRIPON-GEOPS-UPSUD
 *
@@ -231,7 +231,7 @@ class Camera {
         * @param value New exposure time value (us).
         * @return Success status to set new exposure time.
         */
-        virtual bool setExposureTime(double value)	{return false;};
+        virtual bool setExposureTime(double value)  {return false;};
 
         /**
         * Set device's gain value.

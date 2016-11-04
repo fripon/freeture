@@ -1276,7 +1276,7 @@
 
             // ************************ DISABLE AUTO EXPOSURE *****************************
 
-	    struct v4l2_queryctrl queryctrl1;
+        struct v4l2_queryctrl queryctrl1;
             struct v4l2_control control1;
             memset(&queryctrl1, 0, sizeof(queryctrl1));
             queryctrl1.id = V4L2_CID_EXPOSURE_AUTO;
@@ -1315,7 +1315,7 @@
 
             // ************************ SET AUTO EXPOSURE *****************************
 
-	    struct v4l2_queryctrl queryctrl;
+        struct v4l2_queryctrl queryctrl;
             struct v4l2_control control;
             memset(&queryctrl, 0, sizeof(queryctrl));
             queryctrl.id = V4L2_CID_EXPOSURE_ABSOLUTE;
@@ -1507,8 +1507,8 @@
                 if (!tpf->denominator || !tpf->numerator)
                     printf("Invalid frame rate\n");
                 else
-				printf("Frame rate set to %.3f fps\n",
-					1.0 * tpf->denominator / tpf->numerator);
+                printf("Frame rate set to %.3f fps\n",
+                    1.0 * tpf->denominator / tpf->numerator);
             }
         }
 

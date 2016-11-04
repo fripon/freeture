@@ -122,11 +122,11 @@ class Detection {
         * @return Frame number.
         */
         virtual int getEventLastFrameNb() {
-            
+
             return 0;
-        
+
         };
-        
+
         /**
         * Get date of the detected event.
         *

@@ -1452,7 +1452,7 @@ bool Fits2D::readFits16US(Mat &img){
     nbuffer = npixels;
 
     //unsigned short  buffer[npixels];
-	unsigned short* buffer = new unsigned short[npixels];
+    unsigned short* buffer = new unsigned short[npixels];
     if(fits_read_img(fptr, TUSHORT, fpixel, nbuffer, &nullval,buffer, &anynull, &status)){
 
         printerror(status);
@@ -1480,7 +1480,7 @@ bool Fits2D::readFits16US(Mat &img){
     }
 
     loadImg.copyTo(img);
-	delete buffer;
+    delete buffer;
 
     if(fits_close_file(fptr, &status)){
 

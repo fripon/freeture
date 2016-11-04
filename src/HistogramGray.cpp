@@ -37,7 +37,7 @@
 
 HistogramGray::HistogramGray(){
 
-		bins = Mat(1, 256, CV_32F, Scalar(0.f));
+        bins = Mat(1, 256, CV_32F, Scalar(0.f));
 
 }
 

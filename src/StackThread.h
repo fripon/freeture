@@ -81,7 +81,7 @@ class StackThread {
         bool            isRunning;
         bool            interruptionStatus;
         boost::mutex    interruptionStatusMutex;
- 
+
         boost::condition_variable       *frameBuffer_condition;
         boost::mutex                    *frameBuffer_mutex;
         boost::circular_buffer<Frame>   *frameBuffer;

@@ -74,7 +74,7 @@ class AcqThread {
         }initializer;
 
         bool                mMustStop;              // Signal to stop thread.
-        boost::mutex        mMustStopMutex;         
+        boost::mutex        mMustStopMutex;
         boost::thread       *mThread;               // Acquisition thread.
         bool                mThreadTerminated;      // Terminated status of the thread.
         Device              *mDevice;               // Device used for acquisition.
