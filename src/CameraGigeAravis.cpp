@@ -163,24 +163,24 @@
 
     bool CameraGigeAravis::setSize(int width, int height, bool customSize) {
 
-        if(customSize) {
+        int sensor_width, sensor_height;
 
-            arv_camera_set_region(camera, 0, 0,width,height);
+        arv_camera_get_sensor_size(camera, &sensor_width, &sensor_height);
+        BOOST_LOG_SEV(logger, notification) << "Camera sensor size : " << sensor_width << "x" << sensor_height;
+        
+        if(customSize && sensor_width > width && sensor_height > height) {
+
+            arv_camera_set_region(camera, (sensor_width - width)/2, (sensor_height - height)/2,width,height);
             arv_camera_get_region (camera, NULL, NULL, &mWidth, &mHeight);
-            BOOST_LOG_SEV(logger, notification) << "Camera region size : " << mWidth << "x" << mHeight;
 
         // Default is maximum size
         }else {
-
-            int sensor_width, sensor_height;
-
-            arv_camera_get_sensor_size(camera, &sensor_width, &sensor_height);
-            BOOST_LOG_SEV(logger, notification) << "Camera sensor size : " << sensor_width << "x" << sensor_height;
 
             arv_camera_set_region(camera, 0, 0,sensor_width,sensor_height);
             arv_camera_get_region (camera, NULL, NULL, &mWidth, &mHeight);
 
         }
+        BOOST_LOG_SEV(logger, notification) << "Camera region size : " << mWidth << "x" << mHeight;
 
         return true;
 
