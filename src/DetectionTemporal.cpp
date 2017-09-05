@@ -176,7 +176,7 @@ void DetectionTemporal::saveDetectionInfos(string p, int nbFramesAround){
     // Save infos.
     /*if(mdtp.temporal.DET_SAVE_GE_INFOS) {
 
-        ofstream infFile;
+        std::ofstream infFile;
         string infFilePath = p + "GeInfos.txt";
         infFile.open(infFilePath.c_str());
 
@@ -217,7 +217,7 @@ void DetectionTemporal::saveDetectionInfos(string p, int nbFramesAround){
     // Save positions.
     if(mdtp.temporal.DET_SAVE_POS) {
 
-        ofstream posFile;
+        std::ofstream posFile;
         string posFilePath = p + "positions.txt";
         posFile.open(posFilePath.c_str());
 
@@ -469,10 +469,10 @@ bool DetectionTemporal::runDetection(Frame &c) {
 
             int leNumber = listLocalEvents.size();
 
-            // Liste d'iterators sur la liste des localEvent contenant soit un cluster positif ou négatif.
+            // Liste d'iterators sur la liste des localEvent contenant soit un cluster positif ou nÃ©gatif.
             vector<vector<LocalEvent>::iterator > itLePos, itLeNeg;
 
-            // Association d'un local event à cluster positif avec un local event à cluster negatif.
+            // Association d'un local event Ã  cluster positif avec un local event Ã  cluster negatif.
             vector<pair<vector<LocalEvent>::iterator, vector<LocalEvent>::iterator> > itPair;
 
             itLE = listLocalEvents.begin();
