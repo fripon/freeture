@@ -138,7 +138,7 @@ bool Mask::applyMask(Mat &currFrame) {
 
         }
 
-        cout << "NEXT MASK : " << (mUpdateInterval - (int)diffTime) << "s" << endl;
+        cout <<"\033[20;0H" << "NEXT MASK : " << (mUpdateInterval - (int)diffTime) << "s" << endl;
 
     }
 
