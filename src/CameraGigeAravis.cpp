@@ -224,6 +224,10 @@
         BOOST_LOG_SEV(logger, notification) << "Camera gain bound min : " << gainMin;
         BOOST_LOG_SEV(logger, notification) << "Camera gain bound max : " << gainMax;
 
+        arv_camera_gv_set_packet_size(camera, 1488);
+        packetsize = arv_camera_gv_get_packet_size(camera);
+        BOOST_LOG_SEV(logger, notification) << "Camera packet size : " << packetsize;
+
         arv_camera_set_frame_rate(camera, 30);
 
         fps = arv_camera_get_frame_rate(camera);
@@ -252,6 +256,7 @@
         cout << "Gain            : " << gain                                << endl;
         cout << "Fps             : " << fps                                 << endl;
         cout << "Type            : " << capsString                         << endl;
+        cout << "Packet Size     : " << arv_camera_gv_get_packet_size(camera) << endl;
 
         cout << endl;
 
@@ -584,6 +589,7 @@
         cout << "Gain            : " << gain                                << endl;
         cout << "Fps             : " << fps                                 << endl;
         cout << "Type            : " << capsString                         << endl;
+        cout << "Packet Size     : " << arv_camera_gv_get_packet_size(camera) << endl;
 
         cout << endl;
 

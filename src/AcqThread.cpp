@@ -1163,13 +1163,15 @@ bool AcqThread::prepareAcquisitionOnDevice() {
 
     }
 
-    // SET FPS.
-    if(!mDevice->setCameraFPS())
-        return false;
 
     // INIT CAMERA.
     if(!mDevice->initializeCamera())
         return false;
+
+// SET FPS.
+    if(!mDevice->setCameraFPS())
+        return false;
+
 
     // START CAMERA.
     if(!mDevice->startCamera())
