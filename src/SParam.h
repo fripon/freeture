@@ -215,6 +215,7 @@ struct detectionParam {
     int         DET_UPDATE_MASK_FREQUENCY;
     bool        DET_DEBUG_UPDATE_MASK;
     bool        DET_DOWNSAMPLE_ENABLED;
+    string      DET_EVENT_USER_ACTION;
 
     struct detectionMethod1 {
         bool    DET_SAVE_GEMAP;

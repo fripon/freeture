@@ -94,6 +94,17 @@ DetectionTemporal::~DetectionTemporal() {
 
 }
 
+bool DetectionTemporal::getEventStatus(){
+        bool status = true;
+        int i = 0;
+        for(; status && (i < (*mGeToSave).mainPtsValidity.size()); i++)
+            status &= (*mGeToSave).mainPtsValidity.at(i);
+
+        // true where there are at least TWO tracked points...
+        return status && (i >= 2);
+}
+
+
 void DetectionTemporal::resetDetection(bool loadNewDataSet){
 
     BOOST_LOG_SEV(logger, notification) << "Clear global events list.";

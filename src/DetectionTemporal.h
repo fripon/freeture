@@ -129,6 +129,8 @@ class DetectionTemporal : public Detection {
 
         ~DetectionTemporal();
 
+        bool getEventStatus();
+
         void initMethod(string cfgPath);
 
         bool runDetection(Frame &c);

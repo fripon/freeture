@@ -1374,6 +1374,12 @@ void CfgParam::loadDetParam() {
         }
     }
 
+    if(!cfg.Get("DET_EVENT_USER_ACTION", param.det.DET_EVENT_USER_ACTION)) {
+        e = true;
+        param.det.errormsg.push_back("- DET_EVENT_USER_ACTION : Fail to load value.");
+    }
+
+
     // --------------------------------------------------------------------------------------
 
     if(!cfg.Get("DET_DOWNSAMPLE_ENABLED", param.det.DET_DOWNSAMPLE_ENABLED)) {
