@@ -268,7 +268,7 @@ void DetThread::operator ()(){
                     }
 
                     t = (((double)getTickCount() - t)/getTickFrequency())*1000;
-                    cout << " [ TIME DET ] : " << std::setprecision(3) << std::fixed << t << " ms " << endl;
+                    cout <<"\033[11;0H" << " [ TIME DET ] : " << std::setprecision(3) << std::fixed << t << " ms " << endl;
                     BOOST_LOG_SEV(logger,normal) << " [ TIME DET ] : " << std::setprecision(3) << std::fixed << t << " ms ";
 
                 }else{
@@ -307,7 +307,7 @@ void DetThread::operator ()(){
         }else {
 
             // Create Report for videos and frames in input.
-            ofstream report;
+            std::ofstream report;
             string reportPath = mdp.DATA_PATH + "detections_report.txt";
             report.open(reportPath.c_str());
 

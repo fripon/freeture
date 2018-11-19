@@ -297,7 +297,7 @@ void StackThread::operator()(){
                         frameStack.addFrame(newFrame);
 
                         t = (((double)getTickCount() - t)/getTickFrequency())*1000;
-                        std::cout << "[ TIME STACK ] : " << std::setprecision(5) << std::fixed << t << " ms" << endl;
+                        std::cout <<"\033[15;0H" << "[ TIME STACK ] : " << std::setprecision(5) << std::fixed << t << " ms" << endl;
                         BOOST_LOG_SEV(logger,normal) << "[ TIME STACK ] : " << std::setprecision(5) << std::fixed << t << " ms" ;
 
                     }else{
@@ -321,7 +321,7 @@ void StackThread::operator()(){
                     boost::posix_time::ptime t2(boost::posix_time::time_from_string(nowDate));
                     boost::posix_time::time_duration td = t2 - t1;
                     secTime = td.total_seconds();
-                    cout << "NEXT STACK : " << (int)(msp.STACK_TIME - secTime) << "s" <<  endl;
+                    cout <<"\033[16;0H" << "NEXT STACK : " << (int)(msp.STACK_TIME - secTime) << "s" <<  endl;
 
                 }while(secTime <= msp.STACK_TIME);
 

@@ -224,6 +224,25 @@
         BOOST_LOG_SEV(logger, notification) << "Camera gain bound min : " << gainMin;
         BOOST_LOG_SEV(logger, notification) << "Camera gain bound max : " << gainMax;
 
+        if(arv_camera_is_gv_device (camera)) {
+
+            // http://www.baslerweb.com/media/documents/AW00064902000%20Control%20Packet%20Timing%20With%20Delays.pdf
+            // https://github.com/GNOME/aravis/blob/06ac777fc6d98783680340f1c3f3ea39d2780974/src/arvcamera.c
+
+            // Configure the inter packet delay to insert between each packet for the current stream
+            // channel. This can be used as a crude flow-control mechanism if the application or the network
+            // infrastructure cannot keep up with the packets coming from the device.
+            //arv_camera_gv_set_packet_delay (camera, 4000);
+
+            // Specifies the stream packet size, in bytes, to send on the selected channel for a GVSP transmitter
+            // or specifies the maximum packet size supported by a GVSP receiver.
+            arv_camera_gv_set_packet_size (camera, 1488);
+
+        }
+
+        packetsize = arv_camera_gv_get_packet_size(camera);
+        BOOST_LOG_SEV(logger, notification) << "Camera packet size : " << packetsize;
+
         arv_camera_set_frame_rate(camera, 30);
 
         fps = arv_camera_get_frame_rate(camera);
@@ -252,6 +271,7 @@
         cout << "Gain            : " << gain                                << endl;
         cout << "Fps             : " << fps                                 << endl;
         cout << "Type            : " << capsString                         << endl;
+        cout << "Packet Size     : " << arv_camera_gv_get_packet_size(camera) << endl;
 
         cout << endl;
 
@@ -584,6 +604,7 @@
         cout << "Gain            : " << gain                                << endl;
         cout << "Fps             : " << fps                                 << endl;
         cout << "Type            : " << capsString                         << endl;
+        cout << "Packet Size     : " << arv_camera_gv_get_packet_size(camera) << endl;
 
         cout << endl;
 

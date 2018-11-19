@@ -1,15 +1,15 @@
 # - Try to find Aravis
 # Once done this will define
-#  ARAVIS_FOUND - System has aravis-0.4
-#  ARAVIS_INCLUDE_DIRS - The aravis-0.4 include directories
-#  ARAVIS_LIBRARIES - The libraries needed to use aravis-0.4
+#  ARAVIS_FOUND - System has aravis-0.6
+#  ARAVIS_INCLUDE_DIRS - The aravis-0.6 include directories
+#  ARAVIS_LIBRARIES - The libraries needed to use aravis-0.6
 
 # http://www.cmake.org/Wiki/CMake:How_To_Find_Libraries#Using_LibFindMacros
 
 include(LibFindMacros)
 
 # Use pkg-config to get hints about paths
-libfind_pkg_check_modules(aravis_PKGCONF aravis-0.4)
+libfind_pkg_check_modules(aravis_PKGCONF aravis-0.6)
 
 # Include dir
 find_path(aravis_INCLUDE_DIR
@@ -21,7 +21,7 @@ message("include : " ${INCLUDE_DIR})
 
 # Finally the library itself
 find_library(aravis_LIBRARY
-	NAMES aravis-0.4
+	NAMES aravis-0.6
 	PATHS 
 	${aravis_PKGCONF_LIBRARY_DIRS}
 	

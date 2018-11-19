@@ -106,6 +106,7 @@
             guint64         nbFailures;             // Number of frames failed to be received.
             guint64         nbUnderruns;
             int             frameCounter;           // Counter of success received frames.
+            guint           packetsize;             // Cameras packet size in transport layer
 
         public :
 

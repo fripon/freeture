@@ -201,7 +201,7 @@ void AcqThread::operator()(){
                 if(mDevice->runContinuousCapture(newFrame)) {
 
                     BOOST_LOG_SEV(logger, normal)   << "============= FRAME " << newFrame.mFrameNumber << " ============= ";
-                    cout                            << "============= FRAME " << newFrame.mFrameNumber << " ============= " << endl;
+                    cout  << "\033[H\033[2J"        << "============= FRAME " << newFrame.mFrameNumber << " ============= " << endl;
 
                     // If camera type in input is FRAMES or VIDEO.
                     if(mDevice->mVideoFramesInput) {
@@ -375,7 +375,7 @@ void AcqThread::operator()(){
 
                             boost::posix_time::time_duration td = t2 - t1;
                             long secTime = td.total_seconds();
-                            cout << "NEXT REGCAP : " << (int)(mcp.regcap.ACQ_REGULAR_CFG.interval - secTime) << "s" <<  endl;
+                            cout <<"\033[2;0H"<< "NEXT REGCAP : " << (int)(mcp.regcap.ACQ_REGULAR_CFG.interval - secTime) << "s" <<  endl;
 
                             // Check it's time to run a regular capture.
                             if(secTime >= mcp.regcap.ACQ_REGULAR_CFG.interval) {
@@ -420,7 +420,7 @@ void AcqThread::operator()(){
 
                             vector<int>tsch = TimeDate::HdecimalToHMS(next/3600.0);
 
-                            cout << "NEXT SCHCAP : " << tsch.at(0) << "h" << tsch.at(1) << "m" << tsch.at(2) << "s" <<  endl;
+                            cout <<"\033[3;0H"<< "NEXT SCHCAP : " << tsch.at(0) << "h" << tsch.at(1) << "m" << tsch.at(2) << "s" <<  endl;
 
                             // It's time to run scheduled acquisition.
                             if( mNextAcq.hours == newFrame.mDate.hours &&
@@ -485,14 +485,14 @@ void AcqThread::operator()(){
                                 if(currentTimeInSec > mStopSunsetTime)
                                     nextSunrise = TimeDate::HdecimalToHMS(((24*3600 - currentTimeInSec) + mStartSunriseTime ) / 3600.0);
 
-                                cout << "NEXT SUNRISE : " << nextSunrise.at(0) << "h" << nextSunrise.at(1) << "m" << nextSunrise.at(2) << "s" << endl;
+                                cout <<"\033[4;0H"<< "NEXT SUNRISE : " << nextSunrise.at(0) << "h" << nextSunrise.at(1) << "m" << nextSunrise.at(2) << "s" << endl;
                             }
 
                             // Print time before sunset.
                             if(currentTimeInSec > mStopSunriseTime && currentTimeInSec < mStartSunsetTime){
                                 vector<int> nextSunset;
                                 nextSunset = TimeDate::HdecimalToHMS((mStartSunsetTime - currentTimeInSec) / 3600.0);
-                                cout << "NEXT SUNSET : " << nextSunset.at(0) << "h" << nextSunset.at(1) << "m" << nextSunset.at(2) << "s" << endl;
+                                cout <<"\033[5;0H"<< "NEXT SUNSET : " << nextSunset.at(0) << "h" << nextSunset.at(1) << "m" << nextSunset.at(2) << "s" << endl;
 
                             }
 
@@ -528,7 +528,7 @@ void AcqThread::operator()(){
                 }
 
                 tacq = (((double)getTickCount() - tacq)/getTickFrequency())*1000;
-                std::cout << " [ TIME ACQ ] : " << tacq << " ms   ~cFPS("  << (1.0/(tacq/1000.0)) << ")" <<  endl;
+                std::cout <<"\033[6;0H" << " [ TIME ACQ ] : " << tacq << " ms   ~cFPS("  << (1.0/(tacq/1000.0)) << ")" <<  endl;
                 BOOST_LOG_SEV(logger, normal) << " [ TIME ACQ ] : " << tacq << " ms";
 
                 mMustStopMutex.lock();
@@ -968,7 +968,7 @@ bool AcqThread::computeSunTimes() {
     mCurrentDate = Conversion::intToString(intDate.at(0)) + month + day;
     mCurrentTime = intDate.at(3) * 3600 + intDate.at(4) * 60 + intDate.at(5);
 
-    cout << "LOCAL DATE      :  " << mCurrentDate << endl;
+    cout <<"\033[7;0H" << "LOCAL DATE      :  " << mCurrentDate << endl;
 
     if(mcp.ephem.EPHEMERIS_ENABLED) {
 
@@ -1090,8 +1090,8 @@ bool AcqThread::computeSunTimes() {
 
     }
 
-    cout << "SUNRISE         :  " << sunriseStartH << "H" << sunriseStartM << " - " << sunriseStopH << "H" << sunriseStopM << endl;
-    cout << "SUNSET          :  " << sunsetStartH << "H" << sunsetStartM << " - " << sunsetStopH << "H" << sunsetStopM << endl;
+    cout <<"\033[8;0H" << "SUNRISE         :  " << sunriseStartH << "H" << sunriseStartM << " - " << sunriseStopH << "H" << sunriseStopM << endl;
+    cout <<"\033[9;0H" << "SUNSET          :  " << sunsetStartH << "H" << sunsetStartM << " - " << sunsetStopH << "H" << sunsetStopM << endl;
 
     mStartSunriseTime = sunriseStartH * 3600 + sunriseStartM * 60;
     mStopSunriseTime = sunriseStopH * 3600 + sunriseStopM * 60;
@@ -1163,13 +1163,15 @@ bool AcqThread::prepareAcquisitionOnDevice() {
 
     }
 
-    // SET FPS.
-    if(!mDevice->setCameraFPS())
-        return false;
 
     // INIT CAMERA.
     if(!mDevice->initializeCamera())
         return false;
+
+// SET FPS.
+    if(!mDevice->setCameraFPS())
+        return false;
+
 
     // START CAMERA.
     if(!mDevice->startCamera())
