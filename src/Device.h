@@ -113,7 +113,7 @@ class Device {
         int         mNightGain;
         int         mDayExposure;
         int         mDayGain;
-        int         mFPS;
+        double      mFPS;
         int         mCamID;         // ID in a specific sdk.
         int         mGenCamID;      // General ID.
         Camera      *mCam;
@@ -192,6 +192,8 @@ class Device {
 
         bool setCameraFPS();
 
+        bool setCameraFPS(double value);
+ 
         bool setCameraSize();
 
         bool getCameraFPS(double &fps);

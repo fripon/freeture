@@ -136,7 +136,7 @@ struct scheduleParam {
 // ******************************************************
 
 struct cameraParam{
-    int         ACQ_FPS;
+    double      ACQ_FPS;
     CamPixFmt   ACQ_FORMAT;
     bool        ACQ_RES_CUSTOM_SIZE;
     bool        SHIFT_BITS;

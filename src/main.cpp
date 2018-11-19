@@ -377,7 +377,8 @@ int main(int argc, const char ** argv){
                             delete device;
                             throw "Fail to set format";
                         }
-                        device->setCameraFPS();
+                        // Set the FPS specifically to the value provided in the configuration file
+                        device->setCameraFPS(cfg.getCamParam().ACQ_FPS);
                         device->setCameraExposureTime(exp);
                         device->setCameraGain(gain);
                         device->initializeCamera();
@@ -811,6 +812,8 @@ int main(int argc, const char ** argv){
                         frame.mFormat = static_cast<CamPixFmt>(acqFormat);
                         frame.mHeight = acqHeight;
                         frame.mWidth = acqWidth;
+                        // Set the FPS specifically to the value provided in the configuration file
+                        frame.mFps = cfg.getCamParam().ACQ_FPS;
 
                         Device *device = new Device();
                         device->listDevices(false);
