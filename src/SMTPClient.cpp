@@ -344,7 +344,7 @@ void SMTPClient::sendMail(  string            server,
                     BOOST_LOG_SEV(logger,notification) << "Initialize SSL connection.";
                     OpenSSL::StaticInitialize sslInitializer;
 
-                    OpenSSL openSSL(socket.GetSocket()->native());
+                    OpenSSL openSSL(socket.GetSocket()->native_handle());
                     BOOST_LOG_SEV(logger,normal) << openSSL.Read(ReceiveFunctor(220));
 
                     BOOST_LOG_SEV(logger,notification) << string("EHLO ") << server;
