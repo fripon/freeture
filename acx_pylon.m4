@@ -41,7 +41,7 @@ acx_pylon_ok=no
 dnl --------------------
 dnl Search include files
 dnl --------------------
-def_pylon=/opt/pylon3
+def_pylon=/opt/pylon5
 def_inc=$def_pylon/include
 geni_inc=$def_pylon/genicam/library/CPP/include
 if test x$2 = x; then
@@ -72,7 +72,7 @@ fi
 dnl --------------------
 dnl Search library files
 dnl --------------------
-def_lib=/opt/pylon3
+def_lib=/opt/pylon5
 genicam_lib=genicam/bin/Linux64_x64
 lib=lib64
 if test x$acx_pylon_ok = xyes; then

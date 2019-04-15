@@ -1,0 +1,3 @@
+/home/odroid/freeture/cmake/CMakeFiles/rebuild_cache.dir
+/home/odroid/freeture/cmake/CMakeFiles/FreeTure.dir
+/home/odroid/freeture/cmake/CMakeFiles/edit_cache.dir

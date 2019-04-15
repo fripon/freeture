@@ -165,7 +165,7 @@
 
         if(customSize) {
 
-            arv_camera_set_region(camera, 0, 0,width,height);
+            arv_camera_set_region(camera, 140, 44,width,height);
             arv_camera_get_region (camera, NULL, NULL, &mWidth, &mHeight);
             BOOST_LOG_SEV(logger, notification) << "Camera region size : " << mWidth << "x" << mHeight;
 
@@ -558,7 +558,7 @@
 
         if(frame.mWidth > 0 && frame.mHeight > 0) {
 
-            arv_camera_set_region(camera, 0, 0,frame.mWidth,frame.mHeight);
+            arv_camera_set_region(camera, 140, 44,frame.mWidth,frame.mHeight);
             arv_camera_get_region (camera, NULL, NULL, &mWidth, &mHeight);
 
         }else{

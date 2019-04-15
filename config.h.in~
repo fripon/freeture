@@ -1,0 +1,224 @@
+/* config.h.in.  Generated from configure.ac by autoheader.  */
+
+/* BOOST header filename. */
+#undef BOOST_H
+
+/* Default path for the configuration file */
+#undef CFG_PATH
+
+/* CFITSIO header filename. */
+#undef CFITSIO_H
+
+/* Archive creation date */
+#undef DATE
+
+/* Define if you have the Boost libraries and header files. */
+#undef HAVE_BOOST
+
+/* Define to 1 if you have the <boost/date_time.hpp> header file. */
+#undef HAVE_BOOST_DATE_TIME_HPP
+
+/* Define if you have the CFitsIO libraries and header files. */
+#undef HAVE_CFITSIO
+
+/* Define to 1 if you have the <cfitsio/fitsio.h> header file. */
+#undef HAVE_CFITSIO_FITSIO_H
+
+/* Define to 1 if you have the <fitsio.h> header file. */
+#undef HAVE_FITSIO_H
+
+/* Define to 1 if you have the `floor' function. */
+#undef HAVE_FLOOR
+
+/* Define to 1 if you have the <inttypes.h> header file. */
+#undef HAVE_INTTYPES_H
+
+/* Define to 1 if you have the `boost_chrono' library (-lboost_chrono). */
+#undef HAVE_LIBBOOST_CHRONO
+
+/* Define to 1 if you have the `boost_date_time' library (-lboost_date_time).
+   */
+#undef HAVE_LIBBOOST_DATE_TIME
+
+/* Define to 1 if you have the `boost_filesystem' library
+   (-lboost_filesystem). */
+#undef HAVE_LIBBOOST_FILESYSTEM
+
+/* Define to 1 if you have the `boost_iostreams' library (-lboost_iostreams).
+   */
+#undef HAVE_LIBBOOST_IOSTREAMS
+
+/* Define to 1 if you have the `boost_log' library (-lboost_log). */
+#undef HAVE_LIBBOOST_LOG
+
+/* Define to 1 if you have the `boost_log_setup' library (-lboost_log_setup).
+   */
+#undef HAVE_LIBBOOST_LOG_SETUP
+
+/* Define to 1 if you have the `boost_program_options' library
+   (-lboost_program_options). */
+#undef HAVE_LIBBOOST_PROGRAM_OPTIONS
+
+/* Define to 1 if you have the `boost_system' library (-lboost_system). */
+#undef HAVE_LIBBOOST_SYSTEM
+
+/* Define to 1 if you have the `boost_thread' library (-lboost_thread). */
+#undef HAVE_LIBBOOST_THREAD
+
+/* Define to 1 if you have the `cfitsio' library (-lcfitsio). */
+#undef HAVE_LIBCFITSIO
+
+/* Define to 1 if you have the `opencv_calib3d' library (-lopencv_calib3d). */
+#undef HAVE_LIBOPENCV_CALIB3D
+
+/* Define to 1 if you have the `opencv_core' library (-lopencv_core). */
+#undef HAVE_LIBOPENCV_CORE
+
+/* Define to 1 if you have the `opencv_features2d' library
+   (-lopencv_features2d). */
+#undef HAVE_LIBOPENCV_FEATURES2D
+
+/* Define to 1 if you have the `opencv_flann' library (-lopencv_flann). */
+#undef HAVE_LIBOPENCV_FLANN
+
+/* Define to 1 if you have the `opencv_highgui' library (-lopencv_highgui). */
+#undef HAVE_LIBOPENCV_HIGHGUI
+
+/* Define to 1 if you have the `opencv_imgcodecs' library
+   (-lopencv_imgcodecs). */
+#undef HAVE_LIBOPENCV_IMGCODECS
+
+/* Define to 1 if you have the `opencv_imgproc' library (-lopencv_imgproc). */
+#undef HAVE_LIBOPENCV_IMGPROC
+
+/* Define to 1 if you have the `opencv_ml' library (-lopencv_ml). */
+#undef HAVE_LIBOPENCV_ML
+
+/* Define to 1 if you have the `opencv_objdetect' library
+   (-lopencv_objdetect). */
+#undef HAVE_LIBOPENCV_OBJDETECT
+
+/* Define to 1 if you have the `opencv_video' library (-lopencv_video). */
+#undef HAVE_LIBOPENCV_VIDEO
+
+/* Define to 1 if you have the `pylonbase' library (-lpylonbase). */
+#undef HAVE_LIBPYLONBASE
+
+/* Define to 1 if your system has a GNU libc compatible `malloc' function, and
+   to 0 otherwise. */
+#undef HAVE_MALLOC
+
+/* Define to 1 if you have the <memory.h> header file. */
+#undef HAVE_MEMORY_H
+
+/* Define to 1 if you have the `memset' function. */
+#undef HAVE_MEMSET
+
+/* Define to 1 if you have the `modf' function. */
+#undef HAVE_MODF
+
+/* Define if you have the OpenCV libraries and header files. */
+#undef HAVE_OPENCV
+
+/* Define to 1 if you have the <opencv2/opencv.hpp> header file. */
+#undef HAVE_OPENCV2_OPENCV_HPP
+
+/* Define to 1 if you have the `pow' function. */
+#undef HAVE_POW
+
+/* Define if you have the Pylon libraries and header files. */
+#undef HAVE_PYLON
+
+/* Define to 1 if you have the `sqrt' function. */
+#undef HAVE_SQRT
+
+/* Define to 1 if you have the <stdint.h> header file. */
+#undef HAVE_STDINT_H
+
+/* Define to 1 if you have the <stdlib.h> header file. */
+#undef HAVE_STDLIB_H
+
+/* Define to 1 if you have the <strings.h> header file. */
+#undef HAVE_STRINGS_H
+
+/* Define to 1 if you have the <string.h> header file. */
+#undef HAVE_STRING_H
+
+/* Define to 1 if you have the <sys/stat.h> header file. */
+#undef HAVE_SYS_STAT_H
+
+/* Define to 1 if you have the <sys/types.h> header file. */
+#undef HAVE_SYS_TYPES_H
+
+/* Define to 1 if you have the <unistd.h> header file. */
+#undef HAVE_UNISTD_H
+
+/* Define to 1 if the system has the type `_Bool'. */
+#undef HAVE__BOOL
+
+/* Linux plateform */
+#undef LINUX
+
+/* OPENCV header filename. */
+#undef OPENCV_H
+
+/* Name of package */
+#undef PACKAGE
+
+/* Define to the address where bug reports for this package should be sent. */
+#undef PACKAGE_BUGREPORT
+
+/* Define to the full name of this package. */
+#undef PACKAGE_NAME
+
+/* Define to the full name and version of this package. */
+#undef PACKAGE_STRING
+
+/* Define to the one symbol short name of this package. */
+#undef PACKAGE_TARNAME
+
+/* Define to the home page for this package. */
+#undef PACKAGE_URL
+
+/* Define to the version of this package. */
+#undef PACKAGE_VERSION
+
+/* PYLON header filename. */
+#undef PYLON_H
+
+/* Define to 1 if you have the ANSI C header files. */
+#undef STDC_HEADERS
+
+/* Pylon activated for Basler cameras */
+#undef USE_PYLON
+
+/* Version number of package */
+#undef VERSION
+
+/* Define for Solaris 2.5.1 so the uint32_t typedef from <sys/synch.h>,
+   <pthread.h>, or <semaphore.h> is not used. If the typedef were allowed, the
+   #define below would cause a syntax error. */
+#undef _UINT32_T
+
+/* Define for Solaris 2.5.1 so the uint8_t typedef from <sys/synch.h>,
+   <pthread.h>, or <semaphore.h> is not used. If the typedef were allowed, the
+   #define below would cause a syntax error. */
+#undef _UINT8_T
+
+/* Define to rpl_malloc if the replacement function should be used. */
+#undef malloc
+
+/* Define to `unsigned int' if <sys/types.h> does not define. */
+#undef size_t
+
+/* Define to the type of an unsigned integer type of width exactly 16 bits if
+   such a type exists and the standard includes do not define it. */
+#undef uint16_t
+
+/* Define to the type of an unsigned integer type of width exactly 32 bits if
+   such a type exists and the standard includes do not define it. */
+#undef uint32_t
+
+/* Define to the type of an unsigned integer type of width exactly 8 bits if
+   such a type exists and the standard includes do not define it. */
+#undef uint8_t

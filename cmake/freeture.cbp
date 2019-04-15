@@ -1,0 +1,656 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<CodeBlocks_project_file>
+	<FileVersion major="1" minor="6"/>
+	<Project>
+		<Option title="freeture"/>
+		<Option makefile_is_custom="1"/>
+		<Option compiler="gcc"/>
+		<Option virtualFolders="CMake Files\;CMake Files\..\;CMake Files\..\..\;CMake Files\..\..\..\;CMake Files\..\..\..\..\;CMake Files\..\..\..\..\usr\;CMake Files\..\..\..\..\usr\local\;CMake Files\..\..\..\..\usr\local\share\;CMake Files\..\..\..\..\usr\local\share\OpenCV\;CMake Files\Modules\;"/>
+		<Build>
+			<Target title="all">
+				<Option working_dir="/home/odroid/freeture/cmake"/>
+				<Option type="4"/>
+				<MakeCommands>
+					<Build command="/usr/bin/make -j4 -f &quot;/home/odroid/freeture/cmake/Makefile&quot;  VERBOSE=1 all"/>
+					<CompileFile command="/usr/bin/make -j4 -f &quot;/home/odroid/freeture/cmake/Makefile&quot;  VERBOSE=1 &quot;$file&quot;"/>
+					<Clean command="/usr/bin/make -j4 -f &quot;/home/odroid/freeture/cmake/Makefile&quot;  VERBOSE=1 clean"/>
+					<DistClean command="/usr/bin/make -j4 -f &quot;/home/odroid/freeture/cmake/Makefile&quot;  VERBOSE=1 clean"/>
+				</MakeCommands>
+			</Target>
+			<Target title="rebuild_cache">
+				<Option working_dir="/home/odroid/freeture/cmake"/>
+				<Option type="4"/>
+				<MakeCommands>
+					<Build command="/usr/bin/make -j4 -f &quot;/home/odroid/freeture/cmake/Makefile&quot;  VERBOSE=1 rebuild_cache"/>
+					<CompileFile command="/usr/bin/make -j4 -f &quot;/home/odroid/freeture/cmake/Makefile&quot;  VERBOSE=1 &quot;$file&quot;"/>
+					<Clean command="/usr/bin/make -j4 -f &quot;/home/odroid/freeture/cmake/Makefile&quot;  VERBOSE=1 clean"/>
+					<DistClean command="/usr/bin/make -j4 -f &quot;/home/odroid/freeture/cmake/Makefile&quot;  VERBOSE=1 clean"/>
+				</MakeCommands>
+			</Target>
+			<Target title="FreeTure">
+				<Option output="/home/odroid/freeture/cmake/bin/FreeTure" prefix_auto="0" extension_auto="0"/>
+				<Option working_dir="bin/"/>
+				<Option object_output="./"/>
+				<Option type="1"/>
+				<Option compiler="gcc"/>
+				<Compiler>
+					<Add directory="/usr/local/include"/>
+					<Add directory="/usr/local/include/opencv"/>
+					<Add directory="/usr/include/glib-2.0"/>
+					<Add directory="/usr/lib/aarch64-linux-gnu/glib-2.0/include"/>
+					<Add directory="/usr/local/include/aravis-0.6"/>
+					<Add directory="/home/odroid/freeture/cmake"/>
+					<Add directory="/usr/include/c++/7"/>
+					<Add directory="/usr/include/aarch64-linux-gnu/c++/7"/>
+					<Add directory="/usr/include/c++/7/backward"/>
+					<Add directory="/usr/lib/gcc/aarch64-linux-gnu/7/include"/>
+					<Add directory="/usr/lib/gcc/aarch64-linux-gnu/7/include-fixed"/>
+					<Add directory="/usr/include/aarch64-linux-gnu"/>
+					<Add directory="/usr/include"/>
+				</Compiler>
+				<MakeCommands>
+					<Build command="/usr/bin/make -j4 -f &quot;/home/odroid/freeture/cmake/Makefile&quot;  VERBOSE=1 FreeTure"/>
+					<CompileFile command="/usr/bin/make -j4 -f &quot;/home/odroid/freeture/cmake/Makefile&quot;  VERBOSE=1 &quot;$file&quot;"/>
+					<Clean command="/usr/bin/make -j4 -f &quot;/home/odroid/freeture/cmake/Makefile&quot;  VERBOSE=1 clean"/>
+					<DistClean command="/usr/bin/make -j4 -f &quot;/home/odroid/freeture/cmake/Makefile&quot;  VERBOSE=1 clean"/>
+				</MakeCommands>
+			</Target>
+			<Target title="FreeTure/fast">
+				<Option output="/home/odroid/freeture/cmake/bin/FreeTure" prefix_auto="0" extension_auto="0"/>
+				<Option working_dir="bin/"/>
+				<Option object_output="./"/>
+				<Option type="1"/>
+				<Option compiler="gcc"/>
+				<Compiler>
+					<Add directory="/usr/local/include"/>
+					<Add directory="/usr/local/include/opencv"/>
+					<Add directory="/usr/include/glib-2.0"/>
+					<Add directory="/usr/lib/aarch64-linux-gnu/glib-2.0/include"/>
+					<Add directory="/usr/local/include/aravis-0.6"/>
+					<Add directory="/home/odroid/freeture/cmake"/>
+					<Add directory="/usr/include/c++/7"/>
+					<Add directory="/usr/include/aarch64-linux-gnu/c++/7"/>
+					<Add directory="/usr/include/c++/7/backward"/>
+					<Add directory="/usr/lib/gcc/aarch64-linux-gnu/7/include"/>
+					<Add directory="/usr/lib/gcc/aarch64-linux-gnu/7/include-fixed"/>
+					<Add directory="/usr/include/aarch64-linux-gnu"/>
+					<Add directory="/usr/include"/>
+				</Compiler>
+				<MakeCommands>
+					<Build command="/usr/bin/make -j4 -f &quot;/home/odroid/freeture/cmake/Makefile&quot;  VERBOSE=1 FreeTure/fast"/>
+					<CompileFile command="/usr/bin/make -j4 -f &quot;/home/odroid/freeture/cmake/Makefile&quot;  VERBOSE=1 &quot;$file&quot;"/>
+					<Clean command="/usr/bin/make -j4 -f &quot;/home/odroid/freeture/cmake/Makefile&quot;  VERBOSE=1 clean"/>
+					<DistClean command="/usr/bin/make -j4 -f &quot;/home/odroid/freeture/cmake/Makefile&quot;  VERBOSE=1 clean"/>
+				</MakeCommands>
+			</Target>
+			<Target title="edit_cache">
+				<Option working_dir="/home/odroid/freeture/cmake"/>
+				<Option type="4"/>
+				<MakeCommands>
+					<Build command="/usr/bin/make -j4 -f &quot;/home/odroid/freeture/cmake/Makefile&quot;  VERBOSE=1 edit_cache"/>
+					<CompileFile command="/usr/bin/make -j4 -f &quot;/home/odroid/freeture/cmake/Makefile&quot;  VERBOSE=1 &quot;$file&quot;"/>
+					<Clean command="/usr/bin/make -j4 -f &quot;/home/odroid/freeture/cmake/Makefile&quot;  VERBOSE=1 clean"/>
+					<DistClean command="/usr/bin/make -j4 -f &quot;/home/odroid/freeture/cmake/Makefile&quot;  VERBOSE=1 clean"/>
+				</MakeCommands>
+			</Target>
+		</Build>
+		<Unit filename="/home/odroid/freeture/src/.deps/AcqThread.Po">
+			<Option target="FreeTure"/>
+		</Unit>
+		<Unit filename="/home/odroid/freeture/src/.deps/Base64.Po">
+			<Option target="FreeTure"/>
+		</Unit>
+		<Unit filename="/home/odroid/freeture/src/.deps/CameraFrames.Po">
+			<Option target="FreeTure"/>
+		</Unit>
+		<Unit filename="/home/odroid/freeture/src/.deps/CameraGigeAravis.Po">
+			<Option target="FreeTure"/>
+		</Unit>
+		<Unit filename="/home/odroid/freeture/src/.deps/CameraGigePylon.Po">
+			<Option target="FreeTure"/>
+		</Unit>
+		<Unit filename="/home/odroid/freeture/src/.deps/CameraGigeTis.Po">
+			<Option target="FreeTure"/>
+		</Unit>
+		<Unit filename="/home/odroid/freeture/src/.deps/CameraV4l2.Po">
+			<Option target="FreeTure"/>
+		</Unit>
+		<Unit filename="/home/odroid/freeture/src/.deps/CameraVideo.Po">
+			<Option target="FreeTure"/>
+		</Unit>
+		<Unit filename="/home/odroid/freeture/src/.deps/CameraWindows.Po">
+			<Option target="FreeTure"/>
+		</Unit>
+		<Unit filename="/home/odroid/freeture/src/.deps/CfgLoader.Po">
+			<Option target="FreeTure"/>
+		</Unit>
+		<Unit filename="/home/odroid/freeture/src/.deps/CfgParam.Po">
+			<Option target="FreeTure"/>
+		</Unit>
+		<Unit filename="/home/odroid/freeture/src/.deps/Conversion.Po">
+			<Option target="FreeTure"/>
+		</Unit>
+		<Unit filename="/home/odroid/freeture/src/.deps/DetThread.Po">
+			<Option target="FreeTure"/>
+		</Unit>
+		<Unit filename="/home/odroid/freeture/src/.deps/DetectionTemplate.Po">
+			<Option target="FreeTure"/>
+		</Unit>
+		<Unit filename="/home/odroid/freeture/src/.deps/DetectionTemporal.Po">
+			<Option target="FreeTure"/>
+		</Unit>
+		<Unit filename="/home/odroid/freeture/src/.deps/Device.Po">
+			<Option target="FreeTure"/>
+		</Unit>
+		<Unit filename="/home/odroid/freeture/src/.deps/EParser.Po">
+			<Option target="FreeTure"/>
+		</Unit>
+		<Unit filename="/home/odroid/freeture/src/.deps/Ephemeris.Po">
+			<Option target="FreeTure"/>
+		</Unit>
+		<Unit filename="/home/odroid/freeture/src/.deps/ExposureControl.Po">
+			<Option target="FreeTure"/>
+		</Unit>
+		<Unit filename="/home/odroid/freeture/src/.deps/Fits.Po">
+			<Option target="FreeTure"/>
+		</Unit>
+		<Unit filename="/home/odroid/freeture/src/.deps/Fits2D.Po">
+			<Option target="FreeTure"/>
+		</Unit>
+		<Unit filename="/home/odroid/freeture/src/.deps/Fits3D.Po">
+			<Option target="FreeTure"/>
+		</Unit>
+		<Unit filename="/home/odroid/freeture/src/.deps/Frame.Po">
+			<Option target="FreeTure"/>
+		</Unit>
+		<Unit filename="/home/odroid/freeture/src/.deps/GlobalEvent.Po">
+			<Option target="FreeTure"/>
+		</Unit>
+		<Unit filename="/home/odroid/freeture/src/.deps/Histogram.Po">
+			<Option target="FreeTure"/>
+		</Unit>
+		<Unit filename="/home/odroid/freeture/src/.deps/HistogramGray.Po">
+			<Option target="FreeTure"/>
+		</Unit>
+		<Unit filename="/home/odroid/freeture/src/.deps/HistogramRGB.Po">
+			<Option target="FreeTure"/>
+		</Unit>
+		<Unit filename="/home/odroid/freeture/src/.deps/ImgProcessing.Po">
+			<Option target="FreeTure"/>
+		</Unit>
+		<Unit filename="/home/odroid/freeture/src/.deps/LocalEvent.Po">
+			<Option target="FreeTure"/>
+		</Unit>
+		<Unit filename="/home/odroid/freeture/src/.deps/Mask.Po">
+			<Option target="FreeTure"/>
+		</Unit>
+		<Unit filename="/home/odroid/freeture/src/.deps/OpenSSL.Po">
+			<Option target="FreeTure"/>
+		</Unit>
+		<Unit filename="/home/odroid/freeture/src/.deps/PixFmtConv.Po">
+			<Option target="FreeTure"/>
+		</Unit>
+		<Unit filename="/home/odroid/freeture/src/.deps/SMTPClient.Po">
+			<Option target="FreeTure"/>
+		</Unit>
+		<Unit filename="/home/odroid/freeture/src/.deps/SaveImg.Po">
+			<Option target="FreeTure"/>
+		</Unit>
+		<Unit filename="/home/odroid/freeture/src/.deps/Stack.Po">
+			<Option target="FreeTure"/>
+		</Unit>
+		<Unit filename="/home/odroid/freeture/src/.deps/StackThread.Po">
+			<Option target="FreeTure"/>
+		</Unit>
+		<Unit filename="/home/odroid/freeture/src/.deps/TimeDate.Po">
+			<Option target="FreeTure"/>
+		</Unit>
+		<Unit filename="/home/odroid/freeture/src/.deps/main.Po">
+			<Option target="FreeTure"/>
+		</Unit>
+		<Unit filename="/home/odroid/freeture/src/AcqSchedule.cpp">
+			<Option target="FreeTure"/>
+		</Unit>
+		<Unit filename="/home/odroid/freeture/src/AcqSchedule.h">
+			<Option target="FreeTure"/>
+		</Unit>
+		<Unit filename="/home/odroid/freeture/src/AcqThread.cpp">
+			<Option target="FreeTure"/>
+		</Unit>
+		<Unit filename="/home/odroid/freeture/src/AcqThread.h">
+			<Option target="FreeTure"/>
+		</Unit>
+		<Unit filename="/home/odroid/freeture/src/AcqThread.o">
+			<Option target="FreeTure"/>
+		</Unit>
+		<Unit filename="/home/odroid/freeture/src/Base64.cpp">
+			<Option target="FreeTure"/>
+		</Unit>
+		<Unit filename="/home/odroid/freeture/src/Base64.h">
+			<Option target="FreeTure"/>
+		</Unit>
+		<Unit filename="/home/odroid/freeture/src/Base64.o">
+			<Option target="FreeTure"/>
+		</Unit>
+		<Unit filename="/home/odroid/freeture/src/Camera.h">
+			<Option target="FreeTure"/>
+		</Unit>
+		<Unit filename="/home/odroid/freeture/src/CameraFrames.cpp">
+			<Option target="FreeTure"/>
+		</Unit>
+		<Unit filename="/home/odroid/freeture/src/CameraFrames.h">
+			<Option target="FreeTure"/>
+		</Unit>
+		<Unit filename="/home/odroid/freeture/src/CameraFrames.o">
+			<Option target="FreeTure"/>
+		</Unit>
+		<Unit filename="/home/odroid/freeture/src/CameraGigeAravis.cpp">
+			<Option target="FreeTure"/>
+		</Unit>
+		<Unit filename="/home/odroid/freeture/src/CameraGigeAravis.h">
+			<Option target="FreeTure"/>
+		</Unit>
+		<Unit filename="/home/odroid/freeture/src/CameraGigeAravis.o">
+			<Option target="FreeTure"/>
+		</Unit>
+		<Unit filename="/home/odroid/freeture/src/CameraGigePylon.cpp">
+			<Option target="FreeTure"/>
+		</Unit>
+		<Unit filename="/home/odroid/freeture/src/CameraGigePylon.h">
+			<Option target="FreeTure"/>
+		</Unit>
+		<Unit filename="/home/odroid/freeture/src/CameraGigePylon.o">
+			<Option target="FreeTure"/>
+		</Unit>
+		<Unit filename="/home/odroid/freeture/src/CameraGigeTis.cpp">
+			<Option target="FreeTure"/>
+		</Unit>
+		<Unit filename="/home/odroid/freeture/src/CameraGigeTis.h">
+			<Option target="FreeTure"/>
+		</Unit>
+		<Unit filename="/home/odroid/freeture/src/CameraGigeTis.o">
+			<Option target="FreeTure"/>
+		</Unit>
+		<Unit filename="/home/odroid/freeture/src/CameraV4l2.cpp">
+			<Option target="FreeTure"/>
+		</Unit>
+		<Unit filename="/home/odroid/freeture/src/CameraV4l2.h">
+			<Option target="FreeTure"/>
+		</Unit>
+		<Unit filename="/home/odroid/freeture/src/CameraV4l2.o">
+			<Option target="FreeTure"/>
+		</Unit>
+		<Unit filename="/home/odroid/freeture/src/CameraVideo.cpp">
+			<Option target="FreeTure"/>
+		</Unit>
+		<Unit filename="/home/odroid/freeture/src/CameraVideo.h">
+			<Option target="FreeTure"/>
+		</Unit>
+		<Unit filename="/home/odroid/freeture/src/CameraVideo.o">
+			<Option target="FreeTure"/>
+		</Unit>
+		<Unit filename="/home/odroid/freeture/src/CameraWindows.cpp">
+			<Option target="FreeTure"/>
+		</Unit>
+		<Unit filename="/home/odroid/freeture/src/CameraWindows.h">
+			<Option target="FreeTure"/>
+		</Unit>
+		<Unit filename="/home/odroid/freeture/src/CameraWindows.o">
+			<Option target="FreeTure"/>
+		</Unit>
+		<Unit filename="/home/odroid/freeture/src/CfgLoader.cpp">
+			<Option target="FreeTure"/>
+		</Unit>
+		<Unit filename="/home/odroid/freeture/src/CfgLoader.h">
+			<Option target="FreeTure"/>
+		</Unit>
+		<Unit filename="/home/odroid/freeture/src/CfgLoader.o">
+			<Option target="FreeTure"/>
+		</Unit>
+		<Unit filename="/home/odroid/freeture/src/CfgParam.cpp">
+			<Option target="FreeTure"/>
+		</Unit>
+		<Unit filename="/home/odroid/freeture/src/CfgParam.h">
+			<Option target="FreeTure"/>
+		</Unit>
+		<Unit filename="/home/odroid/freeture/src/CfgParam.o">
+			<Option target="FreeTure"/>
+		</Unit>
+		<Unit filename="/home/odroid/freeture/src/Circle.h">
+			<Option target="FreeTure"/>
+		</Unit>
+		<Unit filename="/home/odroid/freeture/src/Conversion.cpp">
+			<Option target="FreeTure"/>
+		</Unit>
+		<Unit filename="/home/odroid/freeture/src/Conversion.h">
+			<Option target="FreeTure"/>
+		</Unit>
+		<Unit filename="/home/odroid/freeture/src/Conversion.o">
+			<Option target="FreeTure"/>
+		</Unit>
+		<Unit filename="/home/odroid/freeture/src/DetThread.cpp">
+			<Option target="FreeTure"/>
+		</Unit>
+		<Unit filename="/home/odroid/freeture/src/DetThread.h">
+			<Option target="FreeTure"/>
+		</Unit>
+		<Unit filename="/home/odroid/freeture/src/DetThread.o">
+			<Option target="FreeTure"/>
+		</Unit>
+		<Unit filename="/home/odroid/freeture/src/Detection.h">
+			<Option target="FreeTure"/>
+		</Unit>
+		<Unit filename="/home/odroid/freeture/src/DetectionTemplate.cpp">
+			<Option target="FreeTure"/>
+		</Unit>
+		<Unit filename="/home/odroid/freeture/src/DetectionTemplate.h">
+			<Option target="FreeTure"/>
+		</Unit>
+		<Unit filename="/home/odroid/freeture/src/DetectionTemplate.o">
+			<Option target="FreeTure"/>
+		</Unit>
+		<Unit filename="/home/odroid/freeture/src/DetectionTemporal.cpp">
+			<Option target="FreeTure"/>
+		</Unit>
+		<Unit filename="/home/odroid/freeture/src/DetectionTemporal.h">
+			<Option target="FreeTure"/>
+		</Unit>
+		<Unit filename="/home/odroid/freeture/src/DetectionTemporal.o">
+			<Option target="FreeTure"/>
+		</Unit>
+		<Unit filename="/home/odroid/freeture/src/Device.cpp">
+			<Option target="FreeTure"/>
+		</Unit>
+		<Unit filename="/home/odroid/freeture/src/Device.h">
+			<Option target="FreeTure"/>
+		</Unit>
+		<Unit filename="/home/odroid/freeture/src/Device.o">
+			<Option target="FreeTure"/>
+		</Unit>
+		<Unit filename="/home/odroid/freeture/src/Doxyfile">
+			<Option target="FreeTure"/>
+		</Unit>
+		<Unit filename="/home/odroid/freeture/src/ECamPixFmt.h">
+			<Option target="FreeTure"/>
+		</Unit>
+		<Unit filename="/home/odroid/freeture/src/ECamSdkType.h">
+			<Option target="FreeTure"/>
+		</Unit>
+		<Unit filename="/home/odroid/freeture/src/EDetMeth.h">
+			<Option target="FreeTure"/>
+		</Unit>
+		<Unit filename="/home/odroid/freeture/src/EImgBitDepth.h">
+			<Option target="FreeTure"/>
+		</Unit>
+		<Unit filename="/home/odroid/freeture/src/EImgFormat.h">
+			<Option target="FreeTure"/>
+		</Unit>
+		<Unit filename="/home/odroid/freeture/src/EInputDeviceType.h">
+			<Option target="FreeTure"/>
+		</Unit>
+		<Unit filename="/home/odroid/freeture/src/ELogSeverityLevel.h">
+			<Option target="FreeTure"/>
+		</Unit>
+		<Unit filename="/home/odroid/freeture/src/EParser.cpp">
+			<Option target="FreeTure"/>
+		</Unit>
+		<Unit filename="/home/odroid/freeture/src/EParser.h">
+			<Option target="FreeTure"/>
+		</Unit>
+		<Unit filename="/home/odroid/freeture/src/EParser.o">
+			<Option target="FreeTure"/>
+		</Unit>
+		<Unit filename="/home/odroid/freeture/src/ESmtpSecurity.h">
+			<Option target="FreeTure"/>
+		</Unit>
+		<Unit filename="/home/odroid/freeture/src/EStackMeth.h">
+			<Option target="FreeTure"/>
+		</Unit>
+		<Unit filename="/home/odroid/freeture/src/ETimeMode.h">
+			<Option target="FreeTure"/>
+		</Unit>
+		<Unit filename="/home/odroid/freeture/src/Ephemeris.cpp">
+			<Option target="FreeTure"/>
+		</Unit>
+		<Unit filename="/home/odroid/freeture/src/Ephemeris.h">
+			<Option target="FreeTure"/>
+		</Unit>
+		<Unit filename="/home/odroid/freeture/src/Ephemeris.o">
+			<Option target="FreeTure"/>
+		</Unit>
+		<Unit filename="/home/odroid/freeture/src/ExposureControl.cpp">
+			<Option target="FreeTure"/>
+		</Unit>
+		<Unit filename="/home/odroid/freeture/src/ExposureControl.h">
+			<Option target="FreeTure"/>
+		</Unit>
+		<Unit filename="/home/odroid/freeture/src/ExposureControl.o">
+			<Option target="FreeTure"/>
+		</Unit>
+		<Unit filename="/home/odroid/freeture/src/Fits.cpp">
+			<Option target="FreeTure"/>
+		</Unit>
+		<Unit filename="/home/odroid/freeture/src/Fits.h">
+			<Option target="FreeTure"/>
+		</Unit>
+		<Unit filename="/home/odroid/freeture/src/Fits.o">
+			<Option target="FreeTure"/>
+		</Unit>
+		<Unit filename="/home/odroid/freeture/src/Fits2D.cpp">
+			<Option target="FreeTure"/>
+		</Unit>
+		<Unit filename="/home/odroid/freeture/src/Fits2D.h">
+			<Option target="FreeTure"/>
+		</Unit>
+		<Unit filename="/home/odroid/freeture/src/Fits2D.o">
+			<Option target="FreeTure"/>
+		</Unit>
+		<Unit filename="/home/odroid/freeture/src/Fits3D.cpp">
+			<Option target="FreeTure"/>
+		</Unit>
+		<Unit filename="/home/odroid/freeture/src/Fits3D.h">
+			<Option target="FreeTure"/>
+		</Unit>
+		<Unit filename="/home/odroid/freeture/src/Fits3D.o">
+			<Option target="FreeTure"/>
+		</Unit>
+		<Unit filename="/home/odroid/freeture/src/Frame.cpp">
+			<Option target="FreeTure"/>
+		</Unit>
+		<Unit filename="/home/odroid/freeture/src/Frame.h">
+			<Option target="FreeTure"/>
+		</Unit>
+		<Unit filename="/home/odroid/freeture/src/Frame.o">
+			<Option target="FreeTure"/>
+		</Unit>
+		<Unit filename="/home/odroid/freeture/src/GlobalEvent.cpp">
+			<Option target="FreeTure"/>
+		</Unit>
+		<Unit filename="/home/odroid/freeture/src/GlobalEvent.h">
+			<Option target="FreeTure"/>
+		</Unit>
+		<Unit filename="/home/odroid/freeture/src/GlobalEvent.o">
+			<Option target="FreeTure"/>
+		</Unit>
+		<Unit filename="/home/odroid/freeture/src/Histogram.cpp">
+			<Option target="FreeTure"/>
+		</Unit>
+		<Unit filename="/home/odroid/freeture/src/Histogram.h">
+			<Option target="FreeTure"/>
+		</Unit>
+		<Unit filename="/home/odroid/freeture/src/Histogram.o">
+			<Option target="FreeTure"/>
+		</Unit>
+		<Unit filename="/home/odroid/freeture/src/HistogramGray.cpp">
+			<Option target="FreeTure"/>
+		</Unit>
+		<Unit filename="/home/odroid/freeture/src/HistogramGray.h">
+			<Option target="FreeTure"/>
+		</Unit>
+		<Unit filename="/home/odroid/freeture/src/HistogramGray.o">
+			<Option target="FreeTure"/>
+		</Unit>
+		<Unit filename="/home/odroid/freeture/src/HistogramRGB.cpp">
+			<Option target="FreeTure"/>
+		</Unit>
+		<Unit filename="/home/odroid/freeture/src/HistogramRGB.h">
+			<Option target="FreeTure"/>
+		</Unit>
+		<Unit filename="/home/odroid/freeture/src/HistogramRGB.o">
+			<Option target="FreeTure"/>
+		</Unit>
+		<Unit filename="/home/odroid/freeture/src/ImgProcessing.cpp">
+			<Option target="FreeTure"/>
+		</Unit>
+		<Unit filename="/home/odroid/freeture/src/ImgProcessing.h">
+			<Option target="FreeTure"/>
+		</Unit>
+		<Unit filename="/home/odroid/freeture/src/ImgProcessing.o">
+			<Option target="FreeTure"/>
+		</Unit>
+		<Unit filename="/home/odroid/freeture/src/LocalEvent.cpp">
+			<Option target="FreeTure"/>
+		</Unit>
+		<Unit filename="/home/odroid/freeture/src/LocalEvent.h">
+			<Option target="FreeTure"/>
+		</Unit>
+		<Unit filename="/home/odroid/freeture/src/LocalEvent.o">
+			<Option target="FreeTure"/>
+		</Unit>
+		<Unit filename="/home/odroid/freeture/src/Logger.h">
+			<Option target="FreeTure"/>
+		</Unit>
+		<Unit filename="/home/odroid/freeture/src/Makefile">
+			<Option target="FreeTure"/>
+		</Unit>
+		<Unit filename="/home/odroid/freeture/src/Makefile.am">
+			<Option target="FreeTure"/>
+		</Unit>
+		<Unit filename="/home/odroid/freeture/src/Makefile.in">
+			<Option target="FreeTure"/>
+		</Unit>
+		<Unit filename="/home/odroid/freeture/src/Mask.cpp">
+			<Option target="FreeTure"/>
+		</Unit>
+		<Unit filename="/home/odroid/freeture/src/Mask.h">
+			<Option target="FreeTure"/>
+		</Unit>
+		<Unit filename="/home/odroid/freeture/src/Mask.o">
+			<Option target="FreeTure"/>
+		</Unit>
+		<Unit filename="/home/odroid/freeture/src/OpenSSL.cpp">
+			<Option target="FreeTure"/>
+		</Unit>
+		<Unit filename="/home/odroid/freeture/src/OpenSSL.h">
+			<Option target="FreeTure"/>
+		</Unit>
+		<Unit filename="/home/odroid/freeture/src/OpenSSL.o">
+			<Option target="FreeTure"/>
+		</Unit>
+		<Unit filename="/home/odroid/freeture/src/PixFmtConv.cpp">
+			<Option target="FreeTure"/>
+		</Unit>
+		<Unit filename="/home/odroid/freeture/src/PixFmtConv.h">
+			<Option target="FreeTure"/>
+		</Unit>
+		<Unit filename="/home/odroid/freeture/src/PixFmtConv.o">
+			<Option target="FreeTure"/>
+		</Unit>
+		<Unit filename="/home/odroid/freeture/src/SMTPClient.cpp">
+			<Option target="FreeTure"/>
+		</Unit>
+		<Unit filename="/home/odroid/freeture/src/SMTPClient.h">
+			<Option target="FreeTure"/>
+		</Unit>
+		<Unit filename="/home/odroid/freeture/src/SMTPClient.o">
+			<Option target="FreeTure"/>
+		</Unit>
+		<Unit filename="/home/odroid/freeture/src/SParam.h">
+			<Option target="FreeTure"/>
+		</Unit>
+		<Unit filename="/home/odroid/freeture/src/SaveImg.cpp">
+			<Option target="FreeTure"/>
+		</Unit>
+		<Unit filename="/home/odroid/freeture/src/SaveImg.h">
+			<Option target="FreeTure"/>
+		</Unit>
+		<Unit filename="/home/odroid/freeture/src/SaveImg.o">
+			<Option target="FreeTure"/>
+		</Unit>
+		<Unit filename="/home/odroid/freeture/src/Socket.h">
+			<Option target="FreeTure"/>
+		</Unit>
+		<Unit filename="/home/odroid/freeture/src/Stack.cpp">
+			<Option target="FreeTure"/>
+		</Unit>
+		<Unit filename="/home/odroid/freeture/src/Stack.h">
+			<Option target="FreeTure"/>
+		</Unit>
+		<Unit filename="/home/odroid/freeture/src/Stack.o">
+			<Option target="FreeTure"/>
+		</Unit>
+		<Unit filename="/home/odroid/freeture/src/StackThread.cpp">
+			<Option target="FreeTure"/>
+		</Unit>
+		<Unit filename="/home/odroid/freeture/src/StackThread.h">
+			<Option target="FreeTure"/>
+		</Unit>
+		<Unit filename="/home/odroid/freeture/src/StackThread.o">
+			<Option target="FreeTure"/>
+		</Unit>
+		<Unit filename="/home/odroid/freeture/src/TimeDate.cpp">
+			<Option target="FreeTure"/>
+		</Unit>
+		<Unit filename="/home/odroid/freeture/src/TimeDate.h">
+			<Option target="FreeTure"/>
+		</Unit>
+		<Unit filename="/home/odroid/freeture/src/TimeDate.o">
+			<Option target="FreeTure"/>
+		</Unit>
+		<Unit filename="/home/odroid/freeture/src/main.cpp">
+			<Option target="FreeTure"/>
+		</Unit>
+		<Unit filename="/home/odroid/freeture/src/main.o">
+			<Option target="FreeTure"/>
+		</Unit>
+		<Unit filename="/home/odroid/freeture/cmake/CMakeLists.txt">
+			<Option virtualFolder="CMake Files\"/>
+		</Unit>
+		<Unit filename="/home/odroid/freeture/cmake/config.h.in">
+			<Option virtualFolder="CMake Files\"/>
+		</Unit>
+		<Unit filename="/home/odroid/freeture/cmake/../../../../usr/local/share/OpenCV/OpenCVConfig-version.cmake">
+			<Option virtualFolder="CMake Files\..\..\..\..\usr\local\share\OpenCV\"/>
+		</Unit>
+		<Unit filename="/home/odroid/freeture/cmake/../../../../usr/local/share/OpenCV/OpenCVConfig.cmake">
+			<Option virtualFolder="CMake Files\..\..\..\..\usr\local\share\OpenCV\"/>
+		</Unit>
+		<Unit filename="/home/odroid/freeture/cmake/../../../../usr/local/share/OpenCV/OpenCVModules-release.cmake">
+			<Option virtualFolder="CMake Files\..\..\..\..\usr\local\share\OpenCV\"/>
+		</Unit>
+		<Unit filename="/home/odroid/freeture/cmake/../../../../usr/local/share/OpenCV/OpenCVModules.cmake">
+			<Option virtualFolder="CMake Files\..\..\..\..\usr\local\share\OpenCV\"/>
+		</Unit>
+		<Unit filename="/home/odroid/freeture/cmake/Modules/FindCFITSIO.cmake">
+			<Option virtualFolder="CMake Files\Modules\"/>
+		</Unit>
+		<Unit filename="/home/odroid/freeture/cmake/Modules/FindGLIB2.cmake">
+			<Option virtualFolder="CMake Files\Modules\"/>
+		</Unit>
+		<Unit filename="/home/odroid/freeture/cmake/Modules/FindGObject.cmake">
+			<Option virtualFolder="CMake Files\Modules\"/>
+		</Unit>
+		<Unit filename="/home/odroid/freeture/cmake/Modules/FindOpenSSL.cmake">
+			<Option virtualFolder="CMake Files\Modules\"/>
+		</Unit>
+		<Unit filename="/home/odroid/freeture/cmake/Modules/FindV4L2.cmake">
+			<Option virtualFolder="CMake Files\Modules\"/>
+		</Unit>
+		<Unit filename="/home/odroid/freeture/cmake/Modules/Findaravis.cmake">
+			<Option virtualFolder="CMake Files\Modules\"/>
+		</Unit>
+		<Unit filename="/home/odroid/freeture/cmake/Modules/LibFindMacros.cmake">
+			<Option virtualFolder="CMake Files\Modules\"/>
+		</Unit>
+	</Project>
+</CodeBlocks_project_file>
