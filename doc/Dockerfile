@@ -30,6 +30,6 @@ RUN ./configure && make && make install
 RUN rm -rf /var/lib/apt/lists/* && apt-get clean && apt-get autoremove -y
 
 COPY ["configuration.cfg","/usr/local/share/freeture/"]
-RUN mkdir /freeture
+RUN mkdir /home/fripon
 
 CMD ["freeture","-l"] 
